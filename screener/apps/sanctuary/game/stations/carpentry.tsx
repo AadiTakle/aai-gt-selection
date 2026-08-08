@@ -567,26 +567,56 @@ export function CoatWallBase({ site }: { site: StationSite }): JSX.Element {
  */
 export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: boolean }): JSX.Element {
   const m = mats();
-  const { halfW } = site.bay;
   const groundY = -site.at[1];
   const surface = useRef<Mesh>(null);
 
-  /** World 0.78m, expressed in the station's local frame. */
-  const waterY = 0.78 - site.at[1];
+  /**
+   * The waterline, in world metres, converted into the station's local frame.
+   *
+   * 0.60 rather than the 0.78 of the first pass, and the basin pulled back under the panel rather than
+   * standing out in front of it. Both come from the same observation: the child stands 4.6m from the panel
+   * and anything 0.85m tall two and a half metres in front of them eats the bottom third of the screen. A
+   * lower rim, further back, leaves the basin plainly a basin and gives the shelf of portions the frame.
+   */
+  const waterY = 0.6 - site.at[1];
+
+  /**
+   * The basin, as four walls and a bed rather than one block.
+   *
+   * THIS IS THE WHOLE FILE'S MOST INSTRUCTIVE MISTAKE, so it is written down. The first pass built the
+   * kerb as a single `RoundedBoxGeometry` and put the water plane inside it at the waterline. A rounded
+   * box is SOLID: its top face is closed, so the water was sealed inside an opaque stone block and the
+   * station's defining feature — that it stands at water — was invisible from every angle. From the
+   * standing spot it read as a five-metre stone table. A basin has to be a RIM.
+   */
+  const basin = {
+    w: 4.6,
+    d: 1.45,
+    /** Under the shelf of portions, which `TideLine` hangs 1.08m forward of the panel at this scale. */
+    z: 0.95,
+    wall: 0.26,
+    height: 0.72,
+  };
+  /** The rim stands 9cm above the surface: enough to read as a kerb, little enough to see over. */
+  const rimTop = waterY + 0.09;
 
   const g = useMemo(
     () => ({
-      kerb: new RoundedBoxGeometry(halfW * 2 + 0.4, 0.9, 2.1, 3, 0.17),
-      pool: new RoundedBoxGeometry(halfW * 2 - 0.1, 0.5, 1.7, 3, 0.1),
-      water: new ShapeGeometry(roundedRectXY(halfW * 2 - 0.24, 1.8, 0.26)),
+      wallLong: new RoundedBoxGeometry(basin.w, basin.height, basin.wall, 3, 0.1),
+      wallShort: new RoundedBoxGeometry(basin.wall, basin.height, basin.d - basin.wall * 2, 3, 0.1),
+      bed: new RoundedBoxGeometry(basin.w - basin.wall * 2, 0.22, basin.d - basin.wall * 2, 2, 0.06),
+      water: new ShapeGeometry(
+        roundedRectXY(basin.w - basin.wall * 2 + 0.06, basin.d - basin.wall * 2 + 0.06, 0.2),
+      ),
       flume: new RoundedBoxGeometry(1.15, 0.16, 0.38, 2, 0.06),
       flumePost: new CylinderGeometry(0.09, 0.12, 1, 8),
       nozzle: new CylinderGeometry(0.06, 0.075, 0.22, 10),
-      fall: new CylinderGeometry(0.05, 0.07, 1, 8, 1, true),
+      fall: new CylinderGeometry(0.045, 0.07, 1, 8, 1, true),
+      splash: new TorusGeometry(0.16, 0.022, 6, 20),
       stone: new SphereGeometry(0.26, 10, 8),
       reed: new CylinderGeometry(0.018, 0.032, 0.8, 5),
     }),
-    [halfW],
+    [basin.w, basin.d, basin.wall, basin.height],
   );
 
   useFrame(({ clock }) => {
@@ -601,48 +631,60 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
 
   return (
     <group>
-      {/*
-        The basin. THE ONE MEASUREMENT THAT DECIDES WHETHER IT READS AS WATER: the kerb's top edge, which
-        is set 9cm above the surface. Level with it or below, and the pool is a coloured lid on a box; a
-        metre above, as the first pass had it, and the surface is invisible from a child's eye height and
-        the whole thing is a stone table. Nine centimetres hides the nearest half-metre of water behind
-        the rim at this eye height and leaves the rest of the two-metre basin open.
-      */}
+      {/* The four rim walls. */}
+      {([-1, 1] as const).map((side) => (
+        <mesh
+          key={`long${side}`}
+          geometry={g.wallLong}
+          material={m.stone}
+          position={[0, rimTop - basin.height / 2, basin.z + (side * (basin.d - basin.wall)) / 2]}
+          castShadow
+          receiveShadow
+        />
+      ))}
+      {([-1, 1] as const).map((side) => (
+        <mesh
+          key={`short${side}`}
+          geometry={g.wallShort}
+          material={m.stone}
+          position={[(side * (basin.w - basin.wall)) / 2, rimTop - basin.height / 2, basin.z]}
+          castShadow
+          receiveShadow
+        />
+      ))}
+      {/* The bed, dark and submerged, so the water has a depth to sit on. */}
       <mesh
-        geometry={g.kerb}
-        material={m.stone}
-        position={[0, waterY - 0.36, 1.0]}
-        castShadow
+        geometry={g.bed}
+        material={m.stoneDeep}
+        position={[0, waterY - 0.24, basin.z]}
         receiveShadow
       />
-      <mesh geometry={g.pool} material={m.stoneDeep} position={[0, waterY - 0.37, 1.0]} receiveShadow />
       <mesh
         ref={surface}
         geometry={g.water}
         material={m.water}
-        position={[0, waterY, 1.0]}
+        position={[0, waterY, basin.z]}
         rotation={[-Math.PI / 2, 0, 0]}
       />
 
       {/* Mossy stones along the wet rim, which is what says this basin has been here a while. */}
-      {[-2.0, -0.7, 0.8, 2.1].map((x, i) => (
+      {[-1.85, -0.5, 0.7, 1.95].map((x, i) => (
         <mesh
           key={x}
           geometry={g.stone}
           material={m.moss}
-          position={[x, waterY + 0.09, i % 2 ? 2.0 : 0.05]}
-          scale={[1.4, 0.5, 0.85]}
+          position={[x, rimTop, basin.z + (i % 2 ? (basin.d - basin.wall) / 2 : -(basin.d - basin.wall) / 2)]}
+          scale={[1.3, 0.45, 0.8]}
           castShadow
         />
       ))}
 
       {/*
-        The spring that feeds it: a post, a hollowed flume, a nozzle, and a visible fall of water into the
-        basin. The fall is the part that matters. A basin with no visible source is a puddle, and a flume
-        with no water coming out of it is a plank — the first pass had exactly that, plus a stretched
-        cylinder standing in mid-air that read as a length of teal pipe.
+        The spring that feeds it: a post, a hollowed flume, a nozzle, and a visible fall of water reaching
+        all the way to the surface. The fall is the part that matters. A basin with no visible source is a
+        puddle, and a flume with no water coming out of it is a plank.
       */}
-      <group position={[-halfW - 0.05, 0, 1.45]}>
+      <group position={[-basin.w / 2 - 0.25, 0, basin.z + 0.15]}>
         <mesh
           geometry={g.flumePost}
           material={m.timber}
@@ -654,35 +696,39 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
         <mesh
           geometry={g.flume}
           material={m.timber}
-          position={[0.05, nozzleY + 0.14, -0.06]}
+          position={[0.05, nozzleY + 0.14, -0.02]}
           rotation={[0, 0, -0.16]}
           castShadow
         />
-        <mesh geometry={g.nozzle} material={m.timberDeep} position={[0.56, nozzleY + 0.02, -0.06]} rotation={[0, 0, 0.3]} />
-        {/* The fall. Open-ended and slightly tapered, so it catches light down its length. */}
+        <mesh geometry={g.nozzle} material={m.timberDeep} position={[0.56, nozzleY + 0.02, -0.02]} rotation={[0, 0, 0.3]} />
         <mesh
           geometry={g.fall}
-          position={[0.62, nozzleY - 0.42, -0.06]}
-          scale={[1, Math.max(0.1, nozzleY - 0.1 - waterY), 1]}
+          position={[0.63, (nozzleY + waterY) / 2, -0.02]}
+          scale={[1, Math.max(0.1, nozzleY - waterY), 1]}
         >
           <meshStandardMaterial
-            color="#cfeaf2"
-            roughness={0.14}
+            color="#bfe2ee"
+            roughness={0.12}
             metalness={0}
             transparent
-            opacity={0.72}
+            opacity={0.6}
             side={DoubleSide}
           />
+        </mesh>
+        {/* Where it lands. One ring is enough; it is the only thing in the basin that tells a child the
+            water is moving. */}
+        <mesh geometry={g.splash} position={[0.63, waterY + 0.012, -0.02]} rotation={[-Math.PI / 2, 0, 0]}>
+          <meshStandardMaterial color="#e6f4f8" roughness={0.3} transparent opacity={0.65} />
         </mesh>
       </group>
 
       {/* Reeds at the far corners. Nothing structural: they are how the eye reads "water" from a distance
           when the surface itself is edge-on. */}
       {[
-        [-halfW + 0.15, 2.15],
-        [-halfW + 0.4, 2.35],
-        [halfW - 0.3, 2.2],
-        [halfW - 0.02, 2.4],
+        [-basin.w / 2 - 0.1, basin.d / 2 + basin.z + 0.2],
+        [-basin.w / 2 + 0.2, basin.d / 2 + basin.z + 0.42],
+        [basin.w / 2 - 0.1, basin.d / 2 + basin.z + 0.24],
+        [basin.w / 2 + 0.18, basin.d / 2 + basin.z + 0.45],
       ].map((pt, i) => (
         <mesh
           key={i}

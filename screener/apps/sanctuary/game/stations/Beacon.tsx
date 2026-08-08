@@ -72,7 +72,9 @@ export function Wisp({ site, lit, reduced }: { site: StationSite; lit: number; r
    * How high it hovers, and it is a framing number rather than a taste one. At `halfH + 1.55` the wisp
    * sits at five metres, which from the standing spot is 30° up — the exact edge of a 62° vertical field,
    * so it was clipped by the top of the screen in every shot taken from where a child actually stands.
-   * `halfH + 1.1`, sinking 0.9 as they close, keeps it in frame at both distances.
+   * `halfH + 1.1`, sinking 0.9 as they close, keeps it in frame at both distances. It also hovers 1.5m
+   * FORWARD of the panel rather than half a metre: the bay's pent roof oversails by 0.9m, and behind that
+   * line the wisp spends the whole approach hidden under its own station's roof.
    */
   const restY = halfH + 1.1;
 
@@ -97,7 +99,7 @@ export function Wisp({ site, lit, reduced }: { site: StationSite; lit: number; r
   });
 
   return (
-    <group ref={root} position={[0, restY, 0.5]}>
+    <group ref={root} position={[0, restY, 1.5]}>
       <mesh geometry={g.globe}>
         <meshBasicMaterial ref={glow} color="#ffe3a8" transparent opacity={0.7} toneMapped={false} fog={false} />
       </mesh>

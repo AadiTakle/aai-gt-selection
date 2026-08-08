@@ -206,11 +206,6 @@ export function proxyBody(): THREE.BufferGeometry {
   });
 }
 
-/** The eye set. One sphere reused at three sizes; a whole face is three draws and no new geometry. */
-export function proxyFace(): { sclera: THREE.BufferGeometry; iris: THREE.BufferGeometry } {
-  return { sclera: ball(), iris: ball() };
-}
-
 /* ------------------------------------------------------------------ *\
    Materials
 \* ------------------------------------------------------------------ */
@@ -307,7 +302,9 @@ export function glassMaterial(): THREE.MeshPhysicalMaterial {
         roughness: 0.06,
         metalness: 0,
         transparent: true,
-        opacity: 0.26,
+        // Thin. A window is about a centimetre across on screen and the thing behind it has to be identifiable
+        // by COLOUR at that size; at 0.26 the white veil pulled every family toward the same pale cream.
+        opacity: 0.12,
         clearcoat: 1,
         depthWrite: false,
       }),

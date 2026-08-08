@@ -170,20 +170,30 @@ export const SITES: readonly StationSite[] = [
      * INSIDE pen 1 — a nine-by-seven-metre enclosure — and a station needs 4.6m of clear standing room
      * on its axis, which that pen does not have without putting a child's back against a fence.
      *
-     * (7.5, -6.0) instead, and every one of `Buildings.tsx`'s keep-outs was checked at it: outside the
-     * arrival corridor (|x| < 5.5), 10.3m from the pod-wall apron's 9m radius, 5.4m outside the hut's
-     * padded footprint, 5.9m outside pen 1's, 3.8m from the nearest path centreline, and inside the 23m
-     * radius where the tree scatter never starts. Fifteen metres from the arrival point and in frame
-     * on the right as a child spawns.
+     * (6.5, -13.5), and every one of `Buildings.tsx`'s keep-outs was checked at it and at its standing
+     * spot: outside the arrival corridor (|x| < 5.5), nowhere near pen 1 or the windmill, 5.6m from the
+     * nearest path centreline, and inside the 23m radius where the tree scatter never starts. It sits
+     * inside the old pod-wall apron, which is not a keep-out but the opposite — that apron exists to keep
+     * trees and props off the ground in front of where the wall used to stand, so it is the most reliably
+     * empty patch on the ranch. Twenty-two metres from the arrival point and in frame slightly right as a
+     * child spawns.
+     *
+     * MOVED TWICE, and both moves were away from the keeper's hut. The first pass put it at (7.5, -6.0),
+     * two metres off the hut wall; the second at (8.5, -10.5), seven metres off it. Neither is a
+     * collision — both are composition. The hut is the one building `Lighting.tsx` deliberately leaves in
+     * shadow and gives warm lit windows to, so a station anywhere near it has a thatched roof and three
+     * glowing panes competing with the thing a child is meant to be looking at, and there is no room on
+     * that side to stand back and watch an egg hatch. From here the backdrop is meadow and treeline.
      */
-    at: [7.5, 2.15, -6.0],
+    at: [6.5, 2.15, -13.5],
     /**
-     * Turned to face the arrival, not the ranch centre: the normal points at (-0.47, 0.88), which aims
-     * the basin back up the sightline a child walks in on. The standing spot that falls out of it,
-     * (5.33, -1.94), lands within a centimetre of the hut path's centreline — so the mark on the ground
-     * is on a track a child is already walking, which is the cheapest wayfinding there is.
+     * Turned mostly toward the arrival, and the compromise in that "mostly" is deliberate. Facing the
+     * sightline squarely would put the normal at (-0.29, 0.96), whose dot with the sun's horizontal
+     * bearing is 0.27, heading for the terminator — and the version of this that faced the arrival exactly
+     * came out visibly grey. At -0.20 the normal is (-0.20, 0.98), the dot rises to 0.36, and the face is
+     * still within 6° of pointing back up the path. The lantern light closes the rest of the gap.
      */
-    yaw: -0.49,
+    yaw: -0.2,
     dock: 4.6,
     bay: { halfW: 2.55, halfH: 1.7 },
     families: ['waffle', 'rock'],
@@ -368,8 +378,8 @@ export const STATION_SOLIDS: { position: [number, number]; radius: number }[] = 
       // the two mounting posts from along the wall.
       put(site, -site.bay.halfW, 0.25, 0.28);
       put(site, site.bay.halfW, 0.25, 0.28);
-      // The cradle post, which does stand on the ground.
-      put(site, site.bay.halfW + 0.75, 0.3, 0.3);
+      // The cradle post, which does stand on the ground. See `NEST_OUT`/`NEST_FWD` in `Cradle.tsx`.
+      put(site, site.bay.halfW + 0.5, 1.25, 0.28);
       continue;
     }
 
@@ -379,7 +389,7 @@ export const STATION_SOLIDS: { position: [number, number]; radius: number }[] = 
       for (const lx of [-1.35, 0, 1.35]) put(site, lx, 0.95, 0.62);
       put(site, -site.bay.halfW, 0, 0.3);
       put(site, site.bay.halfW, 0, 0.3);
-      put(site, site.bay.halfW + 0.75, 0.3, 0.3);
+      put(site, site.bay.halfW + 0.5, 1.25, 0.28);
       continue;
     }
 
@@ -387,7 +397,7 @@ export const STATION_SOLIDS: { position: [number, number]; radius: number }[] = 
     for (const lx of [-2.0, -0.7, 0.7, 2.0]) put(site, lx, -1.3, 0.55);
     put(site, -site.bay.halfW, -0.1, 0.32);
     put(site, site.bay.halfW, -0.1, 0.32);
-    put(site, site.bay.halfW + 0.75, 0.3, 0.3);
+    put(site, site.bay.halfW + 0.5, 1.25, 0.28);
   }
 
   return out;

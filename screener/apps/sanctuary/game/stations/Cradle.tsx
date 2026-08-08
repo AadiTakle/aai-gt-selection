@@ -52,8 +52,27 @@ import { penFor, type StationSite } from './sites';
  * been. That is flavour. Nothing about a slime feeds anything.
  */
 
-/** The nest's height above the grass. Chest height on a five-year-old, so the egg is a thing you meet. */
-const NEST_Y = 1.05;
+/**
+ * The nest's height above the grass.
+ *
+ * 1.5m, which is higher than "chest height on a five-year-old" and is that way for one reason found by
+ * looking: `world/Buildings.tsx` scatters low scrub across the meadow, its bushes stand up to 1.6m of
+ * radius-scaled sphere, and its keep-out predicate lets them grow anywhere outside a building, a pen, a
+ * path or the old pod-wall apron. At 1.05m the egg spent its whole hatch behind a bush at one of the three
+ * stations. A nest a child looks slightly up at is also, as it happens, the better read: eggs go up high.
+ */
+const NEST_Y = 1.5;
+/**
+ * How far to one side of the bay the nest post stands, and how far forward of the panel.
+ *
+ * FORWARD MATTERS. Level with the panel and half a metre further out, the post sits directly behind the
+ * bay's own upright from the standing spot and the egg is invisible at the exact moment it hatches — which
+ * is what the first pass did, and a screenshot of the reward with the reward behind a post is a good way
+ * to find it out. 1.25m forward puts the sightline from the standing spot clear of the upright by nearly
+ * two metres.
+ */
+const NEST_OUT = 0.5;
+const NEST_FWD = 1.25;
 /** How many pips the post carries. A round is about four items, so five is never all lit. */
 const PIPS = 5;
 
@@ -178,8 +197,8 @@ export function Cradle({
       // A cracked half. `phiLength` a hair over π so the two halves overlap and no seam shows while shut.
       half: new SphereGeometry(0.19, 20, 12, 0, Math.PI * 1.06),
       speck: new SphereGeometry(0.022, 8, 6),
-      board: new RoundedBoxGeometry(0.62, 0.16, 0.07, 2, 0.03),
-      pip: new CylinderGeometry(0.032, 0.032, 0.035, 12),
+      board: new RoundedBoxGeometry(0.92, 0.2, 0.09, 2, 0.04),
+      pip: new CylinderGeometry(0.045, 0.045, 0.04, 12),
       ring: new TorusGeometry(0.3, 0.022, 8, 26),
     }),
     [],
@@ -206,7 +225,7 @@ export function Cradle({
       if (!mat) return;
       const on = i < pips;
       // Eased rather than switched, so lighting one is a small event rather than a state change.
-      const want = on ? 1.7 : 0;
+      const want = on ? 3.4 : 0;
       mat.emissiveIntensity += (want - mat.emissiveIntensity) * 0.12;
     });
 
@@ -292,7 +311,7 @@ export function Cradle({
     if (t < greetEnd) {
       // In the nest, facing the child, with two small bounces of hello.
       const s = Math.max(0, t - openEnd);
-      kid.position.set(0, nestY + 0.12 + (reduced ? 0 : Math.abs(Math.sin(s * 7.5)) * 0.06), 0);
+      kid.position.set(0, nestY + 0.02 + (reduced ? 0 : Math.abs(Math.sin(s * 7.5)) * 0.06), 0);
       if (babyInner.current) babyInner.current.rotation.y = 0;
       return;
     }
@@ -326,7 +345,7 @@ export function Cradle({
   });
 
   return (
-    <group position={[site.bay.halfW + 0.95, 0, 0.3]}>
+    <group position={[site.bay.halfW + NEST_OUT, 0, NEST_FWD]}>
       {/* The post. */}
       <mesh
         geometry={g.post}
@@ -336,31 +355,6 @@ export function Cradle({
         castShadow
         receiveShadow
       />
-
-      {/* The pips: five carved dots on a board, one lighting for each thing handed over. Deliberately
-          not a bar and deliberately not a number — a row of little lights that only ever gets fuller. */}
-      <group position={[0, nestY - 0.42, 0.14]}>
-        <mesh geometry={g.board} material={m.timberDeep} castShadow />
-        {Array.from({ length: PIPS }, (_, i) => (
-          <mesh
-            key={i}
-            geometry={g.pip}
-            position={[(i - (PIPS - 1) / 2) * 0.115, 0, 0.05]}
-            rotation={[Math.PI / 2, 0, 0]}
-          >
-            <meshStandardMaterial
-              ref={(el) => {
-                if (el) pipMats.current[i] = el;
-              }}
-              color="#e8dcc2"
-              emissive={HONEY}
-              emissiveIntensity={0}
-              roughness={0.6}
-              metalness={0}
-            />
-          </mesh>
-        ))}
-      </group>
 
       {/* The nest, woven. */}
       <group position={[0, nestY, 0]}>
@@ -394,11 +388,13 @@ export function Cradle({
               metalness={0}
             />
           </mesh>
+          {/* On the SHELL, not inside it. The first pass placed these at 0.13 from the centre of a
+              0.19-radius egg, which is comfortably interior, and the egg shipped unspeckled. */}
           {[
-            [0.09, 0.06, 0.13],
-            [-0.11, -0.05, 0.09],
-            [0.02, 0.16, -0.12],
-            [-0.05, -0.14, -0.11],
+            [0.12, 0.09, 0.145],
+            [-0.15, -0.07, 0.115],
+            [0.03, 0.23, -0.05],
+            [-0.07, -0.19, -0.145],
           ].map((p, i) => (
             <mesh
               key={i}
@@ -432,8 +428,56 @@ export function Cradle({
       </group>
 
       {/* The hatchling. Parked outside the nest group so it can walk away from it. */}
-      <group ref={baby} visible={false}>
+      <group ref={baby} name={`hatchling-${site.verbId}`} visible={false}>
         <group ref={babyInner}>{family ? <HatchlingBody family={family} openRef={openRef} /> : null}</group>
+      </group>
+
+      {/*
+        THE PIPS, on the bay's right-hand upright at about a child's eye height, turned in toward them.
+
+        Which is a placement decision with a real reason behind it, arrived at by putting them in two wrong
+        places first. They are the immediate, visible answer to "what did that do?" — one lights for each
+        thing the child hands over — so they have to be ON SCREEN AT THE MOMENT of handing it over.
+
+        On the nest post they sat 42° off the view axis, which is outside the frame on a 4:3 window. On the
+        bay's sill they were dead centre and perfect at two stations and completely submerged at the third,
+        because the tide ledge's sill is a third of a metre off the ground and its spring basin stands in
+        front of it. The upright is the one surface that is in frame, at eye height, and not competing with
+        anything at all three.
+
+        Reached back through the cradle's own group offset, so the pips and the egg stay one object in the
+        code even though they are half a metre apart in the world.
+      */}
+      <group
+        position={[-NEST_OUT - 0.03, -0.25, 0.34 - NEST_FWD]}
+        rotation={[0, -0.3, 0]}
+      >
+        <mesh geometry={g.board} material={m.timberDeep} castShadow />
+        {Array.from({ length: PIPS }, (_, i) => (
+          <mesh
+            key={i}
+            geometry={g.pip}
+            position={[(i - (PIPS - 1) / 2) * 0.155, 0, 0.06]}
+            rotation={[Math.PI / 2, 0, 0]}
+          >
+            {/* Dark when unlit, and that is the whole legibility of the row. Pale carved dots on a pale
+                board differ from lit ones only in emissive intensity, and under a 4.6-intensity sun that
+                difference is invisible — the first pass shipped five white dots that looked identical
+                whether the child had answered nothing or four things. A deep socket that fills with honey
+                reads at a glance. */}
+            <meshStandardMaterial
+              ref={(el) => {
+                if (el) pipMats.current[i] = el;
+              }}
+              color="#5f4a30"
+              emissive={HONEY}
+              emissiveIntensity={0}
+              roughness={0.55}
+              metalness={0}
+              toneMapped={false}
+            />
+          </mesh>
+        ))}
       </group>
     </group>
   );

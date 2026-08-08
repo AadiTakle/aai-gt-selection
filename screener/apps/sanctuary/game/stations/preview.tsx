@@ -9,7 +9,7 @@ import { Slime } from '../slimes/Slime';
 import { Buildings, SOLIDS } from '../world/Buildings';
 import { Lighting } from '../world/Lighting';
 import { Stations } from './Stations';
-import { SITES, STATION_SOLIDS, dockPoint, facingOf, siteFor } from './sites';
+import { SITES, STATION_SOLIDS, dockPoint, facingOf, localToWorld, siteFor } from './sites';
 
 /**
  * TEMPORARY. A looking-glass for the three stations, in the real ranch, with the real lights.
@@ -72,8 +72,17 @@ declare global {
       answered: number;
       granted: string[];
       itemId: string | null;
+      cradle: [number, number, number];
+      rewardEye: [number, number, number];
     };
-    __aim?: { hits: number; choosable: boolean; distance: number };
+    __lookAt?: (x: number, y: number, z: number) => void;
+    __moveTo?: (x: number, y: number, z: number) => void;
+    __aim?: {
+      hits: number;
+      choosable: boolean;
+      distance: number;
+      baby: { visible: boolean; at: number[]; scale: number; kids: number } | null;
+    };
   }
 }
 
@@ -115,6 +124,18 @@ function App(): JSX.Element | null {
   );
 
   const item = items ? items[Math.min(cursor, items.length - 1)] : undefined;
+  /** Where the egg is, in world metres, so a script can point the head at it for the hatch shots. */
+  const cradle = useMemo(() => localToWorld(site, site.bay.halfW + 0.5, 1.25), [site]);
+  /**
+   * Where to stand to watch the egg hatch, and it took three tries to find.
+   *
+   * Not the standing spot: from there the cradle is 40° off axis with the press badge and the emblem sign
+   * in between, and those shots were mostly a photograph of a keycap. Not directly in front of the nest
+   * either — the hatchling leaves along the station's own +Z, which is straight at a camera placed there,
+   * so it hops past the lens and out of frame. Off to the nest's outboard side, a little high and three and
+   * a half metres back: the egg, its post, and the whole run across the grass are all in shot.
+   */
+  const rewardEye = useMemo(() => localToWorld(site, site.bay.halfW + 2.6, 1.25 + 2.95), [site]);
 
   /** The mock session. Four items, then it closes itself, exactly as a real round does. */
   const answer = useCallback(
@@ -178,18 +199,39 @@ function App(): JSX.Element | null {
       answered,
       granted: granted.map((g) => g.family),
       itemId: item?.itemId ?? null,
+      // Where the egg is, and where to stand to watch it, so a script can frame the reward.
+      cradle: [cradle[0], 1.5, cradle[1]],
+      rewardEye: [rewardEye[0], 2.5, rewardEye[1]],
     };
-  }, [items, engaged, cursor, answered, granted, item]);
+  }, [items, engaged, cursor, answered, granted, item, cradle, rewardEye]);
 
   const eye = useMemo<[number, number, number]>(() => {
     const dock = dockPoint(site);
     const f = facingOf(site);
     if (view === 'engaged') return [dock[0], dock[1], dock[2]];
-    // `near` has to be inside `REACH` (6.8) to raise the prompt; 6.2 out leaves headroom either side.
-    if (view === 'near') return [site.at[0] + f[0] * 6.2, 1.5, site.at[2] + f[1] * 6.2];
-    // Across the meadow and off to one side, so the station is read as an object standing in a place.
-    // Swung the way that does not put pen 0's fence between the camera and the coat wall.
-    return [site.at[0] + f[0] * 10.5 - f[1] * 4.5, 3.4, site.at[2] + f[1] * 10.5 + f[0] * 4.5];
+    // `near` has to be inside `REACH` (6.8) to raise the prompt. 5.4 rather than 6.2: at the coat wall,
+    // 6.2 out puts the camera inside pen 0, and a gate post a metre from the lens is all you can see.
+    if (view === 'near') return [site.at[0] + f[0] * 5.4, 1.5, site.at[2] + f[1] * 5.4];
+    /*
+      Across the meadow and off to one side, so the station is read as an object standing in a place.
+      WHICH side is chosen rather than fixed: at a fixed offset one station's establishing shot is taken
+      from inside pen 0's fence and another from inside the barn's lean-to, and a photograph of a station
+      through a fence says nothing about the station. So both sides are tried and the one that puts the
+      lens further from the two buildings wins.
+    */
+    const clear = (x: number, z: number): number =>
+      Math.min(Math.hypot(x + 14.5, z - 1.5), Math.hypot(x - 13, z + 5));
+    const a: [number, number, number] = [
+      site.at[0] + f[0] * 10.5 - f[1] * 4.5,
+      3.4,
+      site.at[2] + f[1] * 10.5 + f[0] * 4.5,
+    ];
+    const b: [number, number, number] = [
+      site.at[0] + f[0] * 10.5 + f[1] * 4.5,
+      3.4,
+      site.at[2] + f[1] * 10.5 - f[0] * 4.5,
+    ];
+    return clear(a[0], a[2]) >= clear(b[0], b[2]) ? a : b;
   }, [site, view]);
 
   if (!items) return null;
@@ -206,7 +248,7 @@ function App(): JSX.Element | null {
         }}
       >
         <Look eye={eye} at={[site.at[0], site.at[1] - (view === 'far' ? 0.5 : 0.2), site.at[2]]} />
-        <Aim />
+        <Aim verbId={site.verbId} />
         <color attach="background" args={['#eec89a']} />
         <Lighting />
         <Buildings />
@@ -282,6 +324,18 @@ function Look({ eye, at }: { eye: [number, number, number]; at: [number, number,
       pitch.current = THREE.MathUtils.clamp(pitch.current - e.movementY * 0.0014, -1.1, 1.1);
     };
     window.addEventListener('mousemove', move);
+    // Deterministic aim, for a script that needs the head pointed at a known thing rather than swept
+    // there by mouse deltas. Nothing in the game uses it.
+    window.__moveTo = (tx: number, ty: number, tz: number): void => {
+      camera.position.set(tx, ty, tz);
+    };
+    window.__lookAt = (tx: number, ty: number, tz: number): void => {
+      const ax = tx - camera.position.x;
+      const ay = ty - camera.position.y;
+      const az = tz - camera.position.z;
+      yaw.current = Math.atan2(-ax, -az);
+      pitch.current = THREE.MathUtils.clamp(Math.atan2(ay, Math.hypot(ax, az)), -1.1, 1.1);
+    };
     return () => window.removeEventListener('mousemove', move);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eye[0], eye[1], eye[2], at[0], at[1], at[2]]);
@@ -300,7 +354,9 @@ function Look({ eye, at }: { eye: [number, number, number]; at: [number, number,
  * crosshair is genuinely on an option and only then click, instead of guessing pixel coordinates that
  * would change with every layout tweak.
  */
-function Aim(): null {
+function Aim({ verbId }: { verbId: string }): null {
+  const siteId = useRef(verbId);
+  siteId.current = verbId;
   const camera = useThree((s) => s.camera);
   const scene = useThree((s) => s.scene);
   const ray = useRef(new THREE.Raycaster());
@@ -314,10 +370,23 @@ function Aim(): null {
     ray.current.setFromCamera(centre.current, camera);
     const hits = ray.current.intersectObjects(scene.children, true);
     const pick = hits.find((h) => h.object.visible === false);
+    // Temporary: what the hatchling is actually doing, since a creature that does not appear looks
+    // identical to a creature that was never created.
+    const baby = scene.getObjectByName(`hatchling-${siteId.current}`);
+    const at = baby ? baby.getWorldPosition(new THREE.Vector3()) : null;
+    const sc = baby ? baby.getWorldScale(new THREE.Vector3()) : null;
     window.__aim = {
       hits: hits.length,
       choosable: !!pick,
       distance: pick ? Number(pick.distance.toFixed(2)) : -1,
+      baby: baby
+        ? {
+            visible: baby.visible,
+            at: [Number(at!.x.toFixed(2)), Number(at!.y.toFixed(2)), Number(at!.z.toFixed(2))],
+            scale: Number(sc!.y.toFixed(3)),
+            kids: baby.children[0]?.children.length ?? 0,
+          }
+        : null,
     };
   });
   return null;

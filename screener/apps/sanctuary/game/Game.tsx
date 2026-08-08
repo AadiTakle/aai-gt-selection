@@ -12,6 +12,9 @@ import { DayLog } from './screener/DayLog';
 import { Buildings, SOLIDS } from './world/Buildings';
 import { Lighting } from './world/Lighting';
 import { Slime, pushOutOfSlimes } from './slimes/Slime';
+import { Stations, STATION_SOLIDS } from './stations';
+import { Vacpack, capturedTrace } from './vacpack';
+import { FAMILY_BATTERY, type Family as Fam } from './contract';
 
 /**
  * A deliberately self-contained playable slice.
@@ -47,7 +50,7 @@ const PENS: [number, number][] = [
 ];
 
 /** First person: WASD, mouse look on pointer lock, space to jump. Tuned gentle for a child. */
-function Keeper({ locked, viewing = false }: { locked: boolean; viewing?: boolean }) {
+function Keeper({ locked }: { locked: boolean }) {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
   const vy = useRef(0);
@@ -77,17 +80,6 @@ function Keeper({ locked, viewing = false }: { locked: boolean; viewing?: boolea
   useFrame((_, dt) => {
     const step = Math.min(dt, 0.05);
 
-    // While an item is up, glide to a fixed vantage that frames it. A child should never have to
-    // aim the camera to find the thing they are being asked about.
-    if (viewing) {
-      const target = new THREE.Vector3(0, 3.0, -4.6);
-      camera.position.lerp(target, Math.min(1, step * 3.2));
-      yaw.current += (0 - yaw.current) * Math.min(1, step * 3.2);
-      pitch.current += (-0.06 - pitch.current) * Math.min(1, step * 3.2);
-      camera.rotation.set(pitch.current, yaw.current, 0, 'YXZ');
-      return;
-    }
-
     camera.rotation.set(pitch.current, yaw.current, 0, 'YXZ');
     if (!locked) return;
 
@@ -112,7 +104,7 @@ function Keeper({ locked, viewing = false }: { locked: boolean; viewing?: boolea
     // Push out of anything solid. SOLIDS is a chain of small circles per structure rather than one
     // circle per building, so a child can walk up to a barn door instead of being stopped short of it,
     // and gate openings are deliberately left empty so every pen is walkable.
-    for (const solid of SOLIDS) {
+    for (const solid of [...SOLIDS, ...STATION_SOLIDS]) {
       const dx = camera.position.x - solid.position[0];
       const dz = camera.position.z - solid.position[1];
       const d = Math.hypot(dx, dz);
@@ -239,15 +231,14 @@ function Beat({
 
 export function Game() {
   const [locked, setLocked] = useState(false);
-  const [beat, setBeat] = useState<string | null>(null);
+  const [engaged, setEngaged] = useState<string | null>(null);
   const [live, setLive] = useState<LiveItem | null>(null);
   const [cares, setCares] = useState(0);
 
-  const slimes = useMemo(
-    () =>
-      // Inside the three pens the buildings track actually placed, five to a pen. Each is bounded to
-      // its own pen so wandering never leaks across the ranch.
-      PENS.flatMap((pen, p) =>
+  const [slimes, setSlimes] = useState(() =>
+    // Inside the three pens the buildings track actually placed, five to a pen. Each is bounded to
+    // its own pen so wandering never leaks across the ranch.
+    PENS.flatMap((pen, p) =>
         Array.from({ length: 5 }, (_, k) => {
           const a = (k / 5) * Math.PI * 2 + p * 1.1;
           const r = 1.1 + (k % 3) * 0.85;
@@ -260,8 +251,77 @@ export function Game() {
           };
         }),
       ),
-    [],
   );
+
+  /**
+   * A round finished, so a slime joins the ranch. Called by the station once its egg has hatched and
+   * the hatchling is already bounding, so the permanent one appears while the eye is on movement.
+   *
+   * Granted for having taken part, never for having been right: correctness is deleted before it
+   * reaches this layer, so there is nothing here to branch on even if we wanted to.
+   */
+  /**
+   * A slime went into the tank, so it leaves the world.
+   *
+   * The herd's collider id is a mount-order counter that renumbers on remount, so it cannot address
+   * anything here. `capturedTrace` gives back what was caught, and a slime is located by the mark it
+   * was put down on rather than by where it currently is: it never leaves its own pen, so family plus
+   * stage plus nearest spawn is unambiguous.
+   */
+  const takeSlime = useCallback((capturedId: string) => {
+    const t = capturedTrace(capturedId);
+    if (!t) return;
+    setSlimes((prev) => {
+      let best = -1;
+      let bestD = Infinity;
+      prev.forEach((sl, i) => {
+        if (sl.family !== t.family || sl.stage !== t.stage) return;
+        const d = Math.hypot(sl.position[0] - t.x, sl.position[2] - t.z);
+        if (d < bestD) { bestD = d; best = i; }
+      });
+      return best < 0 ? prev : prev.filter((_, i) => i !== best);
+    });
+  }, []);
+
+  /** And back out again. Nothing is ever destroyed, so a release always restores one. */
+  const putSlime = useCallback((family: Fam, position: [number, number, number]) => {
+    setSlimes((prev) => {
+      // Bounded to the pen it landed nearest, so its wander stays local wherever it was plopped.
+      let pen = PENS[0]!;
+      let bestD = Infinity;
+      for (const c of PENS) {
+        const d = Math.hypot(position[0] - c[0], position[2] - c[1]);
+        if (d < bestD) { bestD = d; pen = c; }
+      }
+      const loose = Math.max(PEN_RADIUS, bestD + 1.5);
+      return [...prev, {
+        family, stage: 'tuffet' as const, position,
+        seed: 9001 + prev.length * 211,
+        bounds: { center: pen, radius: loose },
+      }];
+    });
+  }, []);
+
+  const grant = useCallback((family: Fam) => {
+    setSlimes((prev) => {
+      const pen = PENS[prev.length % PENS.length]!;
+      const a = prev.length * 1.7;
+      const r = 1.0 + (prev.length % 3) * 0.8;
+      return [
+        ...prev,
+        {
+          family,
+          stage: 'pip' as const,
+          position: [pen[0] + Math.cos(a) * r, 0, pen[1] + Math.sin(a) * r] as [number, number, number],
+          seed: 4001 + prev.length * 173,
+          bounds: { center: pen, radius: PEN_RADIUS },
+        },
+      ];
+    });
+    setCares((n) => n + 1);
+  }, []);
+
+  void FAMILY_BATTERY;
 
   const lock = useCallback(() => {
     const el = document.querySelector('canvas');
@@ -285,59 +345,46 @@ export function Game() {
             <Slime key={i} {...sl} />
           ))}
         </Suspense>
-        {live && IN_WORLD[live.serve.typeCode] ? (
-          <group position={[0, 3.6, -13]}>
-            <pointLight position={[0, 1.5, 5]} intensity={22} distance={16} color="#fff4de" />
-            {(() => {
-              const Presentation = IN_WORLD[live.serve.typeCode]!;
-              const content = live.serve.served.content;
-              return (
-                <Presentation
-                  // Keyed on the item so the presentation remounts per question. Without this its
-                  // internal `picked` state survives into the next item and every further click is
-                  // swallowed, which made the game unplayable after the first round.
-                  key={live.serve.served.itemId}
-                  content={content}
-                  disabled={!live.asking}
-                  onPick={(handed: string) => void live.answer(toRef(content, handed))}
-                />
-              );
-            })()}
-          </group>
-        ) : null}
-        <Keeper locked={locked && !beat} viewing={!!live} />
+        {/* Suck, carry, plop. Disabled while a station is engaged so a click means "choose" there
+            and "hoover" everywhere else, with no mode the child has to learn. */}
+        <Vacpack
+          enabled={locked && !engaged}
+          onCapture={takeSlime}
+          onRelease={(family, position) => putSlime(family, position)}
+        />
+        <Stations
+          engaged={engaged}
+          live={live}
+          onEngage={setEngaged}
+          onLeave={() => setEngaged(null)}
+          onGrant={grant}
+        />
+        <Keeper locked={locked && !engaged} />
       </Canvas>
 
-      {!locked && !beat && (
+      {!locked && !engaged && (
         <button type="button" className="bh-enter" onClick={lock}>
           Click to look around · WASD to walk · Space to hop
         </button>
       )}
 
-      {beat && (
+      {engaged && (
         <div className="bh-overlay">
           <Beat
-            verbId={beat}
+            verbId={engaged}
             report={setLive}
             onDone={() => {
-              setBeat(null);
+              // The station owns the leaving beat, so only the item is cleared here.
               setLive(null);
-              setCares((n) => n + 1);
             }}
           />
         </div>
       )}
 
-      {!beat && (
+      {!engaged && (
         <div className="bh-hud">
           <p className="bh-cares">{cares} looked after</p>
-          <div className="bh-calls">
-            {['coat', 'tide-line', 'log'].map((id) => (
-              <button key={id} type="button" className="bh-call" onClick={() => setBeat(id)}>
-                {VERBS.find((v) => v.id === id)?.title ?? id}
-              </button>
-            ))}
-          </div>
+          <p className="bh-cares">Walk up to the barn wall, the spring or the log</p>
         </div>
       )}
     </div>

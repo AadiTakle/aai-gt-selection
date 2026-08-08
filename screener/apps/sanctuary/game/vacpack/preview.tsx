@@ -32,7 +32,7 @@ import { paintOf } from './families';
 import { capturedTrace } from './identity';
 import { circlesFrom, overlaps, type Ground } from './suction';
 import { tankReset, useVacpackTank } from './tank';
-import { Vacpack } from './Vacpack';
+import { Vacpack, vacpackCost } from './Vacpack';
 
 const q = new URLSearchParams(location.search);
 const WITH_PACK = q.get('vac') !== '0';
@@ -146,7 +146,15 @@ function Meter(): null {
     if (a.t >= 1) {
       const ms = (a.t / a.n) * 1000;
       const el = document.getElementById('fps');
-      if (el) el.textContent = `${(a.n / a.t).toFixed(0)} fps · ${ms.toFixed(2)} ms/frame · worst ${(a.worst * 1000).toFixed(1)} ms`;
+      // The pack's OWN cost, separately, because the display is vsynced: whole-frame ms is pinned at the refresh
+      // interval whether the mechanic costs nothing or half a millisecond, and a figure that cannot move is not a
+      // measurement. `vacpackCost` times the mechanic's frame callback directly.
+      const v = WITH_PACK ? vacpackCost() : { ms: 0, worst: 0 };
+      if (el) {
+        el.textContent =
+          `${(a.n / a.t).toFixed(0)} fps · ${ms.toFixed(2)} ms/frame · worst ${(a.worst * 1000).toFixed(1)} ms` +
+          (WITH_PACK ? ` · vacpack ${v.ms.toFixed(3)} ms (peak ${v.worst.toFixed(2)})` : '');
+      }
       a.n = 0;
       a.t = 0;
       a.worst = 0;

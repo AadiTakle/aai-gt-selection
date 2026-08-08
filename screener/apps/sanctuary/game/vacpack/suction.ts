@@ -69,12 +69,17 @@ export const DRAW = {
 } as const;
 
 export const PLOP = {
-  /** How far in front the slime is placed, metres, before the world is allowed to veto it. */
-  reach: 4.2,
+  /**
+   * How far in front the slime is placed, metres, before the world is allowed to veto it.
+   *
+   * Five, not four: a warden is nearly two metres across, and at four metres it is still filling a third of the
+   * view when it lands. Far enough that a child can see the whole creature they just put down.
+   */
+  reach: 5,
   /** Seconds in the air. */
   flight: 0.62,
   /** Peak of the arc above the straight line, metres. Gentle: this is a lob, not a shot. */
-  rise: 0.85,
+  rise: 1,
   /** Seconds of squash-and-settle after touching down, before the real slime is handed back. */
   bounce: 0.42,
 } as const;

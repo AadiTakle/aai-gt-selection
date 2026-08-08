@@ -109,19 +109,78 @@ for (let i = 1; i <= 4; i += 1) {
 
 console.log(`after four choices: ${JSON.stringify(await page.evaluate(() => window.__stations))}`);
 
-/* The egg, mid-hatch and then mid-bound. Timed off the sequence in Cradle.tsx. */
-await page.waitForTimeout(400);
+/**
+ * Point the head at the cradle for the hatch shots.
+ *
+ * Aiming at four choices in a row sweeps the head a long way off centre — up to 33° of yaw — which is fine
+ * for a child and useless for a screenshot: the first run of this script photographed the sky beside the
+ * station. `__lookAt` is the preview's own deterministic aim, so the reward is framed on the egg rather
+ * than on wherever the last choice happened to be.
+ */
+const framing = await page.evaluate(() => ({
+  cradle: window.__stations?.cradle,
+  eye: window.__stations?.rewardEye,
+}));
+await page.evaluate((f) => {
+  if (f.eye) window.__moveTo?.(f.eye[0], f.eye[1], f.eye[2]);
+  if (f.cradle) window.__lookAt?.(f.cradle[0], 0.85, f.cradle[2]);
+}, framing);
+console.log(`framed on the cradle ${JSON.stringify(framing)}`);
+
+/**
+ * The egg, mid-hatch and then mid-bound.
+ *
+ * Timed off `hatchTiming` in `Cradle.tsx`: the shell parts at 0.75s, the hatchling is out and greeting by
+ * 1.25s, hopping from 1.7s to 3.3s, and gone by 4.0s. The round closed about 0.7s before this point — the
+ * loop above waits that long after the fourth choice — so these three waits land at roughly 1.3s, 2.6s and
+ * 4.4s into the sequence.
+ */
+await page.waitForTimeout(700);
 await page.screenshot({ path: `${OUT}/station-hatch-open.png` });
-await page.waitForTimeout(1500);
+await page.waitForTimeout(1300);
 await page.screenshot({ path: `${OUT}/station-hatch-away.png` });
-await page.waitForTimeout(2400);
+await page.waitForTimeout(1800);
 await page.screenshot({ path: `${OUT}/station-after.png` });
 console.log(`granted: ${JSON.stringify(await page.evaluate(() => window.__stations))}`);
 
-/* And the slime where it ended up. Look left, toward the pen it ran for. */
-await page.mouse.move(mx - 420, my - 40);
+/**
+ * And the slime where it ended up: pen 1, which is the one the tide ledge's hatchlings run for.
+ *
+ * The camera has to MOVE, not just turn. Left at the reward vantage it is inside the spring basin's kerb
+ * and the near plane clips through stone, which produces a flat grey frame that looks like a broken
+ * renderer rather than a mis-aimed camera.
+ */
+await page.evaluate(() => {
+  window.__moveTo?.(13.2, 1.5, 8.4);
+  window.__lookAt?.(13.0, 0.35, 4.2);
+});
 await page.waitForTimeout(900);
 await page.screenshot({ path: `${OUT}/station-reward-pen.png` });
+
+/**
+ * `prefers-reduced-motion`, which is a rule rather than a nicety.
+ *
+ * Every animation in this directory is gated on it and every gate resolves to its own RESTING state
+ * rather than to nothing — the wisp hovers still, the ground rings sit at their mid radius, the press
+ * badge shows one ring out and one in, the socket still glows, and the egg hatches without the wobble.
+ * The point of shooting it is that "resolves to nothing" and "resolves to its resting state" are
+ * indistinguishable in code review and obvious in a picture.
+ */
+const still = await browser.newPage({
+  viewport: { width: 1280, height: 800 },
+  deviceScaleFactor: 2,
+  reducedMotion: 'reduce',
+});
+for (const [name, query] of [
+  ['reduced-prompt', 'shot=log&view=near'],
+  ['reduced-engaged', 'shot=log&view=engaged&band=K-1&i=0'],
+]) {
+  await still.goto(`${BASE}?${query}`, { waitUntil: 'networkidle' });
+  await still.waitForFunction(() => window.__stations?.ready === true, { timeout: 15000 });
+  await still.waitForTimeout(1600);
+  await still.screenshot({ path: `${OUT}/station-${name}.png` });
+  console.log(`station-${name}.png (reduced motion)`);
+}
 
 if (problems.length) {
   console.log(`\n${problems.length} console problem(s):`);

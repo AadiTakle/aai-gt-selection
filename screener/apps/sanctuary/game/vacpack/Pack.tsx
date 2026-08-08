@@ -84,10 +84,6 @@ export const MUZZLE_LOCAL: THREE.Vector3 = new THREE.Vector3(
   NOZZLE_TIP[2],
 ).applyMatrix4(anchor.matrix);
 
-export const NOZZLE_FACING_LOCAL: THREE.Vector3 = new THREE.Vector3(0, 0, -1)
-  .applyEuler(new THREE.Euler(PACK_ROT[0], PACK_ROT[1], PACK_ROT[2]))
-  .normalize();
-
 /* ------------------------------------------------------------------ *\
    Model dimensions
 \* ------------------------------------------------------------------ */
@@ -243,8 +239,8 @@ function Window({ slot, held, rig }: { slot: number; held: Held | null; rig: Pac
             material={pennantMaterial(held.family)}
             // The blob is authored 0..1 tall about its base, so it is dropped half its height to sit centred
             // in the window rather than hanging off the top of it.
-            position={[0, -WINDOW.r * 0.42, 0]}
-            scale={[WINDOW.r * 0.62, WINDOW.r * 0.85, WINDOW.r * 0.62]}
+            position={[0, -WINDOW.r * 0.5, 0]}
+            scale={[WINDOW.r * 0.78, WINDOW.r * 1.02, WINDOW.r * 0.78]}
           />
           <Glyph family={held.family} r={WINDOW.r} />
         </group>

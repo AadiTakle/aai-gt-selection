@@ -42,7 +42,9 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import * as THREE from 'three';
 
-import type { Family } from '../contract';
+import { FAMILIES, type Family, type Stage } from '../contract';
+import { featureGeometry } from '../slimes/crests';
+import { glazeMaterial, trimMaterial, worldScale } from '../slimes/gumdrop';
 import { pushOutOfSlimes, slimeColliders } from '../slimes/herd';
 import { SOLIDS } from '../world/Buildings';
 import { LeanRig, MOTE_COUNT, Motes } from './airflow';
@@ -89,6 +91,17 @@ const wantSpot = { x: 0, z: 0 };
 /** Every building, post, tree and trough as a circle. Converted once; static for the life of the page. */
 const SOLID_CIRCLES = circlesFrom(SOLIDS);
 
+/**
+ * WHAT THE MECHANIC COSTS, measured rather than asserted. Rolling one-second average and worst case of this
+ * component's own frame callback, in milliseconds. Read by the preview harness; free to ignore.
+ */
+const cost = { ms: 0, worst: 0, n: 0, sum: 0, peak: 0, t: 0 };
+/** Also carries the live airflow, which is the number a harness needs to tell a held button from a released one. */
+const probe = { flow: 0, charge: 0 };
+export function vacpackCost(): { ms: number; worst: number; flow: number; charge: number } {
+  return { ms: cost.ms, worst: cost.worst, flow: probe.flow, charge: probe.charge };
+}
+
 /* ------------------------------------------------------------------ *\
    A slime in the air
 \* ------------------------------------------------------------------ */
@@ -99,6 +112,8 @@ interface Flyer {
   kind: 'in' | 'out';
   id: string;
   family: Family;
+  /** Needed only to fetch the right crest: a warden's is bigger than a pip's. */
+  stage: Stage;
   /** The herd id it was taken from, so the picker can refuse to grab the same slime twice. */
   herdId: number;
   /** Half-width and height, straight off the collider, so the proxy is exactly the size of what vanished. */
@@ -131,6 +146,18 @@ let nextKey = 1;
 const FALLBACK_R = 0.42;
 const FALLBACK_TOP = 0.95;
 
+/**
+ * The collider's radius is a little wider than the slime looks.
+ *
+ * `slimeRadius` in `gumdrop.ts` is `width * (1 + max(0, skirt)) * worldScale`, while the body's own widest point is
+ * `width * worldScale` — the skirt is padding, deliberately, so a child is stopped a hand's width short of a slime
+ * rather than clipping into it. Sizing the proxy off the raw collision radius therefore hands back a slime a few
+ * per cent fatter than the one that vanished, and a size change at the moment of capture is the most noticeable
+ * thing this mechanic could get wrong. The skirt runs 0 to 0.08 across the six families; one factor covers it to
+ * within about three per cent, and the alternative is importing the family tables from a directory mid-re-theme.
+ */
+const SKIRT_TRIM = 0.955;
+
 /* ------------------------------------------------------------------ *\
    The proxy body
 \* ------------------------------------------------------------------ */
@@ -150,6 +177,22 @@ function Proxy({ f }: { f: Flyer }): JSX.Element {
   const aspect = f.top / Math.max(0.01, f.r);
   const eyeR = 0.3;
   const eyeY = aspect * 0.52;
+
+  /**
+   * THE REAL CREST, borrowed. Syrup and a butter pat on a waffle, moss and boulders on a rock, two pairs of wings
+   * on a fairy — these are what tell the six families apart at a glance, and a proxy without one is a smooth dome
+   * that could be anybody. A grass slime visibly losing its blade tuft for the second it spends in the air, and
+   * getting it back on landing, was the last clearly wrong-looking thing in the mechanic.
+   *
+   * `featureGeometry` is a pure cached function returning two merged buffers per family and stage — at most
+   * twenty-four exist for the whole page — so this costs two draw calls and no allocation. It is authored in the
+   * same body units as the real gumdrop, where a uniform `worldScale(stage)` is the mapping to world size; the
+   * shell here is already scaled by the collider radius, so dividing by it converts into shell-local units. The
+   * residual error is the skirt padding, under three per cent, and it is invisible on a crest.
+   */
+  const feature = featureGeometry(f.family, f.stage);
+  const crest = worldScale(f.stage) / Math.max(0.01, f.r);
+
   return (
     <group
       ref={(o) => {
@@ -163,6 +206,10 @@ function Proxy({ f }: { f: Flyer }): JSX.Element {
         }}
       >
         <mesh geometry={proxyBody()} material={bodyMaterial(f.family)} scale={[1, aspect, 1]} castShadow />
+        {feature.trim ? (
+          <mesh geometry={feature.trim} material={trimMaterial(f.family)} scale={crest} castShadow />
+        ) : null}
+        {feature.glaze ? <mesh geometry={feature.glaze} material={glazeMaterial(f.family)} scale={crest} /> : null}
         {([-1, 1] as const).map((side) => (
           <group key={side} position={[side * 0.36, eyeY, 0.82]}>
             <mesh geometry={ball()} material={scleraMaterial()} scale={eyeR} />
@@ -202,7 +249,7 @@ export function Vacpack({
   worldRadius?: number;
   groundY?: number;
 }): JSX.Element {
-  const { camera, scene } = useThree();
+  const { camera, scene, gl } = useThree();
   const { held } = useVacpackTank();
 
   /**
@@ -292,7 +339,6 @@ export function Vacpack({
 
   /* --- refs into the scene ----------------------------------------------- */
   const camRig = useRef<THREE.Group>(null);
-  const worldRig = useRef<THREE.Group>(null);
   const cone = useRef<THREE.Mesh>(null);
   const swarm = useRef<THREE.InstancedMesh>(null);
   const mark = useRef<THREE.Mesh>(null);
@@ -385,8 +431,52 @@ export function Vacpack({
     [],
   );
 
+  /**
+   * SHADER WARM-UP, which is a real 250ms stutter and not a micro-optimisation.
+   *
+   * A proxy slime is the first thing on the page to use `MeshPhysicalMaterial` in that family's colour, so the
+   * first catch of each family compiles a program — and a program compile is synchronous, on the render thread,
+   * and took a quarter of a second in the harness. It lands on the exact frame the child pressed the button,
+   * which is the worst possible frame to drop.
+   *
+   * So the six bodies and their eyes are compiled up front. It is done by briefly adding pinhead meshes to the
+   * REAL scene and calling `gl.compile` on it, rather than to a scratch scene: a program's identity depends on
+   * the lights it is compiled against, so warming up against different lighting compiles a program that is then
+   * thrown away and recompiled on first use — all of the cost and none of the benefit.
+   *
+   * Deferred a frame so `<Lighting>` is certainly mounted, since sibling effect order is the integrator's to
+   * decide and not this file's to assume.
+   */
+  useEffect(() => {
+    let done = false;
+    const id = requestAnimationFrame(() => {
+      if (done) return;
+      const warm = new THREE.Group();
+      // Behind the eye and a tenth of a millimetre across: present for the compile, invisible for the one frame.
+      warm.position.set(0, -1000, 0);
+      warm.scale.setScalar(1e-4);
+      const g = proxyBody();
+      for (const f of FAMILIES) {
+        warm.add(new THREE.Mesh(g, bodyMaterial(f)));
+        warm.add(new THREE.Mesh(ball(), irisMaterial(f)));
+      }
+      warm.add(new THREE.Mesh(ball(), scleraMaterial()));
+      warm.add(new THREE.Mesh(ball(), catchlightMaterial()));
+      scene.add(warm);
+      gl.compile(scene, camera);
+      scene.remove(warm);
+      // Only the wrappers are discarded. Geometry and materials are the shared cached ones and stay compiled.
+      warm.clear();
+    });
+    return () => {
+      done = true;
+      cancelAnimationFrame(id);
+    };
+  }, [scene, camera, gl]);
+
   /* --- the frame --------------------------------------------------------- */
   useFrame((_, dt) => {
+    const t0 = performance.now();
     const step = Math.min(dt, 0.05);
     rig.t += step;
     lastStand.current.x = camera.position.x;
@@ -406,10 +496,16 @@ export function Vacpack({
     A.dir.y = dir.y;
     A.dir.z = dir.z;
 
-    /* --- wind-up ---------------------------------------------------------- */
+    /* --- wind-up ----------------------------------------------------------
+       Three states, not two, and the distinction matters: the BUTTON being down (`on`), and the pack actually
+       drawing (`drawing`, which additionally needs somewhere to put a slime). `rig.suck` tracks the button so
+       the nozzle lights the instant it is pressed; `rig.charge` tracks the draw, so a full pack neither flares
+       nor shakes nor blows a gale at slimes it cannot possibly pick up. */
     const on = enabled && sucking.current;
+    const room = !tankFull();
+    const drawing = on && room;
     rig.suck += ((on ? 1 : 0) - rig.suck) * Math.min(1, step * 14);
-    if (on) rig.charge = Math.min(1, rig.charge + step / (DRAW.windUp * Math.max(0.35, motion)));
+    if (drawing) rig.charge = Math.min(1, rig.charge + step / (DRAW.windUp * Math.max(0.35, motion)));
     else rig.charge = Math.max(0, rig.charge - step / 0.18);
     rig.settle = Math.max(0, rig.settle - step / (0.34 * Math.max(0.4, motion)));
     rig.punch = Math.max(0, rig.punch - step / (0.26 * Math.max(0.4, motion)));
@@ -418,18 +514,19 @@ export function Vacpack({
     cooldown.current = Math.max(0, cooldown.current - step);
 
     const colliders = slimeColliders();
-    const target = on || rig.charge > 0.02 ? pick(colliders, A, inFlight.current) : null;
+    const target = drawing || rig.charge > 0.02 ? pick(colliders, A, inFlight.current) : null;
 
     /* --- commit a grab ---------------------------------------------------- */
-    if (on && target && rig.charge >= 1 && cooldown.current <= 0 && !tankFull()) {
+    if (drawing && target && rig.charge >= 1 && cooldown.current <= 0) {
       const id = recordCapture(target);
       flyers.current.push({
         key: nextKey++,
         kind: 'in',
         id,
         family: target.family,
+        stage: target.stage,
         herdId: target.id,
-        r: target.r,
+        r: target.r * SKIRT_TRIM,
         top: target.top,
         sx: target.x,
         sy: groundY,
@@ -465,29 +562,36 @@ export function Vacpack({
         break;
       }
       const t = capturedTrace(out.id);
-      const r = t?.r ?? FALLBACK_R;
+      // Clearance is solved against the FULL collision radius and only the drawing is trimmed. Trimming the
+      // clearance too would put a slime that much nearer a wall than its own collider allows, which is the one
+      // direction this rounding is not allowed to go.
+      const clear = t?.r ?? FALLBACK_R;
+      const r = clear * SKIRT_TRIM;
       const top = t?.top ?? FALLBACK_TOP;
       // Where it is going, decided NOW and proved legal now, so the arc cannot end anywhere illegal.
       const want = plopTarget(A, wantSpot);
       const p = spot.current;
       p.x = want.x;
       p.z = want.z;
-      settleLanding(p, r, ground);
+      settleLanding(p, clear, ground);
       const v = tmp2.current.set(p.x, groundY, p.z);
-      pushOutOfSlimes(v, r);
+      pushOutOfSlimes(v, clear);
       p.x = v.x;
       p.z = v.z;
-      settleLanding(p, r, ground);
+      settleLanding(p, clear, ground);
       flyers.current.push({
         key: nextKey++,
         kind: 'out',
         id: out.id,
         family: out.family,
+        stage: t?.stage ?? 'crested',
         herdId: -1,
         r,
         top,
         sx: mz.x,
-        sy: mz.y - top * 0.5,
+        // The feet start half of its EMERGING height below the mouth, not half its full height, so the little one
+        // that comes out of the nozzle is centred on the nozzle rather than hanging below the pack.
+        sy: mz.y - top * intakeScale(top) * 0.5,
         sz: mz.z,
         lx: p.x,
         lz: p.z,
@@ -515,9 +619,11 @@ export function Vacpack({
       if (f.kind === 'in') {
         f.a = Math.min(1, f.a + step / f.dur);
         const e = drawEase(f.a);
-        // Held near full size for the first half of the flight — long enough to see WHAT is being taken — then
-        // squeezed down to nozzle size. See `intakeScale`.
-        const into = 1 - (1 - intakeScale(f.top)) * ramp(f.a, 0.42, 1);
+        // Squeezed almost from the off. The threshold started at 0.42 and had to come down: `drawEase` is slow at
+        // the start and fast at the end, so by the time a is 0.42 the slime is already most of the way to the eye,
+        // and a full-size warden at arm's length is a wall. Beginning the squeeze at 0.15 means the shrinking and
+        // the approach happen together, which is what being drawn down a pipe looks like.
+        const into = 1 - (1 - intakeScale(f.top)) * ramp(f.a, 0.15, 1);
         const height = f.top * into;
         if (g) {
           // The start point converted into camera space each frame; the END point is the constant nozzle mouth,
@@ -531,8 +637,12 @@ export function Vacpack({
             s.y + (MUZZLE_LOCAL.y - height * 0.5 - s.y) * e,
             s.z + (MUZZLE_LOCAL.z - s.z) * e,
           );
-          // Tumbling, and faster the closer it gets: it is not steering, it is being taken.
-          g.rotation.y = f.spin + e * 7;
+          // TURNED TOWARD THE NOZZLE, not tumbling. The proxy's face is its local +Z and the flyer lives in camera
+          // space, so a heading near zero is a slime looking straight at the child all the way in — which is the
+          // difference between watching a creature get carried to you and watching a beige boulder roll at you.
+          // The brief is explicit about which motion belongs where: they "wobble as they are drawn in" and "spin
+          // lazily in the tank", so the spin waits for the tank and the draw gets a sway and a wobble.
+          g.rotation.y = Math.sin(rig.t * 2.6 + f.spin) * 0.55 * motion;
           g.rotation.x = Math.sin(rig.t * f.wob) * 0.22 * e * motion;
           g.rotation.z = Math.cos(rig.t * f.wob * 0.8) * 0.18 * e * motion;
         }
@@ -565,6 +675,12 @@ export function Vacpack({
       /* --- lobbed out ------------------------------------------------------ */
       if (f.phase === 'fly') {
         f.a = Math.min(1, f.a + step / f.dur);
+        // THE MIRROR OF THE INTAKE, and just as necessary. A slime leaves through a seven-centimetre mouth that is
+        // half a metre from the eye; released at full size it is a wall of jelly across the entire screen for the
+        // first tenth of a second of every single plop. Emerging small and inflating over the first half of the arc
+        // is both the only thing that can physically be happening and the nicer read: it pops out and swells.
+        const small = intakeScale(f.top);
+        const outk = small + (1 - small) * ramp(f.a, 0, 0.55);
         if (g) {
           const from = tmp.current.set(f.sx, f.sy, f.sz);
           const to = tmp2.current.set(f.lx, groundY, f.lz);
@@ -578,7 +694,8 @@ export function Vacpack({
         if (sh) {
           // Stretched along the climb, rounder at the peak. Cheap anticipation for the squash to come.
           const st = 1 + (1 - f.a) * 0.14 * motion;
-          sh.scale.set((f.r * 1) / Math.sqrt(st), f.r * st, (f.r * 1) / Math.sqrt(st));
+          const k = f.r * outk;
+          sh.scale.set(k / Math.sqrt(st), k * st, k / Math.sqrt(st));
         }
         if (f.a >= 1) {
           f.phase = 'land';
@@ -610,7 +727,13 @@ export function Vacpack({
     if (changed) reflow();
 
     /* --- the airflow ------------------------------------------------------ */
-    const flow = enabled ? Math.max(rig.charge * 0.85, rig.suck * 0.5) : 0;
+    // A FULL PACK STOPS BLOWING. Without the capacity term, holding the button with four slimes aboard keeps the
+    // wind-up pinned at 1 forever — the cone at full strength, the motes streaming, every slime in view leaning —
+    // while nothing can possibly be caught. It looked like the toy was broken, and on top of that a permanent
+    // additive cone across the view washed the whole ranch out to white.
+    const flow = enabled && room ? Math.max(rig.charge * 0.85, rig.suck * 0.5) : 0;
+    probe.flow = flow;
+    probe.charge = rig.charge;
     lean.update(scene, colliders, A, flow, target ? target.id : null, step, motion);
 
     const c = cone.current;
@@ -642,6 +765,21 @@ export function Vacpack({
         mk.visible = false;
       }
     }
+
+    /* --- what that cost -------------------------------------------------- */
+    const spent = performance.now() - t0;
+    cost.n += 1;
+    cost.sum += spent;
+    cost.t += step;
+    if (spent > cost.peak) cost.peak = spent;
+    if (cost.t >= 1) {
+      cost.ms = cost.sum / cost.n;
+      cost.worst = cost.peak;
+      cost.n = 0;
+      cost.sum = 0;
+      cost.peak = 0;
+      cost.t = 0;
+    }
   });
 
   return (
@@ -670,7 +808,7 @@ export function Vacpack({
       </group>
 
       {/* WORLD SPACE. Anything lobbed, and the target ring. */}
-      <group ref={worldRig}>
+      <group>
         <mesh ref={mark} geometry={ring(1, 0.12)} material={markMaterial()} rotation={[-Math.PI / 2, 0, 0]} visible={false} />
         {flyers.current.filter((f) => f.kind === 'out').map((f) => (
           <Proxy key={f.key} f={f} />

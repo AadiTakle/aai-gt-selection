@@ -101,7 +101,11 @@ await shot('arc-rmb');
 await page.waitForTimeout(1400);
 console.log(`  ${JSON.stringify(await state())}`);
 
-console.log('a full tank, shot straight');
+console.log('a part-full and a full tank, shot straight');
+// Driven through the real store rather than by catching, so the row of windows is photographed with a known
+// number in it: catching depends on where the herd has wandered to and is not reproducible frame for frame.
+await open('?fill=2');
+await shot('tank-two');
 await open('?fill=4');
 await shot('full');
 

@@ -175,7 +175,7 @@ export function Stations({
     camera.getWorldDirection(forward.current);
     const flat = Math.hypot(forward.current.x, forward.current.z) || 1;
     let best: string | null = null;
-    let bestScore = -Infinity;
+    let bestRank = -Infinity;
     for (const site of SITES) {
       const dx = site.at[0] - camera.position.x;
       const dz = site.at[2] - camera.position.z;
@@ -188,9 +188,11 @@ export function Stations({
       if (look < FACING_DOT) continue;
       // Prefer the one being looked at most squarely, then the nearer. With three stations eight metres
       // apart this only ever matters if two are somehow in reach at once, but a stable rule costs nothing.
-      const score = look * 2 - d / REACH;
-      if (score > bestScore) {
-        bestScore = score;
+      // Called `rank` rather than the obvious word, because the obvious word is on the banned list for
+      // this app and a banned word does not become safe by being a local variable.
+      const rank = look * 2 - d / REACH;
+      if (rank > bestRank) {
+        bestRank = rank;
         best = site.verbId;
       }
     }
@@ -444,7 +446,9 @@ export function Stations({
 
             {/* The prompt. Only while in range and only while not already inside. */}
             {lit === 1 && !engaged ? (
-              <group position={[0, -1.0, 2.0]}>
+              /* Low and well forward: level with the emblem sign it would otherwise sit on top of, and
+                 clear of the sill. Only ever mounted while not engaged, so it cannot cover an item. */
+              <group position={[0, -1.4, 2.0]}>
                 <PressBadge site={site} reduced={reduced} />
               </group>
             ) : null}
