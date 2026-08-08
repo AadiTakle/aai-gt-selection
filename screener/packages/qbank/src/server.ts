@@ -7,4 +7,5 @@
 export * from './bank.js';
 // `session.js` re-exports the whole of `engine.js`, so one line covers both and there is no ambiguity
 // about which module a name arrived from.
+export * from './portable.js';
 export * from './session.js';

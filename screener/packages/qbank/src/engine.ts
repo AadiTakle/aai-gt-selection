@@ -413,9 +413,15 @@ export function posteriorsFrom(history: readonly QbankAttempt[], pool: readonly 
     if (attempt.correct === null) continue;
     const entry = byId.get(attempt.itemId);
     if (!entry) continue;
+    // A domain outside the four is a caller error, and an unhelpful TypeError three frames down is a bad way
+    // to learn it. Matters most for a replayed transcript, where the history came from outside this process.
+    const target = posteriors.byDomain[attempt.domain];
+    if (!target) {
+      throw new Error(`attempt ${attempt.itemId} declares unknown domain ${String(attempt.domain)}`);
+    }
     const params = paramsForRecord(entry.record, entry.b);
     posteriors.composite.update(params, attempt.correct);
-    posteriors.byDomain[attempt.domain].update(params, attempt.correct);
+    target.update(params, attempt.correct);
   }
   return posteriors;
 }

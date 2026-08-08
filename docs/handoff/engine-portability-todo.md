@@ -753,6 +753,72 @@ so it cannot be tampered with — a client that can edit its own posterior can h
 DynamoDB keyed by session id. Caller-held is simpler and fits "adoptable into any program"; it needs
 the signing to be right.
 
+**RESOLVED 8 Aug 2026 (Felipe): caller-held.** No table. `packages/qbank/src/portable.ts`;
+`sealSession` / `openSession` / `resumeFrom`; 16 tests, 257 pass.
+
+**Signed is not enough, and this is the part worth reading.** Signing gives integrity and says nothing
+about confidentiality, and here confidentiality is the sharper requirement. The transcript records, for
+every item, **whether the child got it right**, along with the running probability that they are above
+the threshold. This product refuses to tell a child any of that: every item in the catalogue carries the
+comment *"NEUTRAL acknowledgment only — never correct/incorrect"*, `toServed` strips the key before an
+item crosses to the frame, and the smoke suite asserts it three times
+(`scripts/check-practice.py:130`, `:175`, `:244`). A signed-but-readable token in the client's own hands
+would defeat all three at once — not by leaking the answer key, but by reporting the outcome, which is
+the thing the key was being protected to avoid.
+
+So the state is **sealed with AES-256-GCM**, which authenticates and conceals with one primitive. There
+is no version of this system that wants integrity without secrecy, so there is no reason to offer a
+signing-only mode. A test asserts no segment of a token decodes to `correct`, `pAbove`,
+`abilityThreshold`, a domain name or a selection reason.
+
+**The token holds the transcript and no posterior.** 3.1 established that `posteriorsFrom(history, pool)`
+reproduces belief from the transcript bit for bit, so shipping the five densities as well would be a
+second copy of one fact — and two copies of a fact are how they come to disagree. It also saves 17.5 KB.
+
+**Three more decisions inside the decision, each with a reason:**
+
+- **The config is sealed inside the token, not passed beside it.** If the caller supplied the threshold on
+  every request, a client could begin a session against one bar and finish against an easier one, and
+  nothing in the engine would notice.
+- **`issuedAt` and a maximum age** (24h default). A sealed token is a bearer credential; whoever holds it
+  holds that session, so the window in which a leaked one is worth anything should be bounded.
+- **Every failure is a refusal, never a repair,** and the error does not say which check failed.
+  Distinguishing a bad key from a bad tag tells an attacker which half to keep working on.
+
+**Sizes, measured. This constrains 3.4.**
+
+| Session | Items | Sealed token |
+|---|---|---|
+| Standard | 8 | 4,556 B |
+| Thorough | 20 | 10,658 B |
+
+A 10.6 KB token **does not fit in a cookie** (4 KB) and exceeds the default header limit of most proxies.
+**The token belongs in the request body**, and the wire contract has to say so rather than leave a client
+to discover it behind a 431. A full 40-item Thorough session lands near 20 KB.
+
+**One fork left open deliberately.** The engine needs only `{itemId, domain, correct}` per attempt —
+`typeCode` and `difficulty` are recoverable from the pool, and `selectionReason`, `pAboveBefore`,
+`pAboveAfter`, `rawResponse` and `latencyMs` are audit and telemetry rather than evidence. Dropping them
+would take a Thorough token from about 10.6 KB to roughly 1.5 KB. It would also throw away the audit
+trail, and *"every item records why the engine chose it"* is a smoke assertion and the sort of thing that
+matters when someone asks why a child saw what they saw. It would additionally discard exactly the
+latency data 1b.5 wants to start collecting. So the full transcript stays for now; if token size becomes
+the binding constraint, the honest fix is to keep the audit trail server-side rather than to stop
+recording it.
+
+**Two limitations of caller-held state that no amount of crypto removes**, and 3.5 should decide whether
+the product cares:
+
+1. **A token can be replayed.** Nothing stops a client presenting an earlier token to retry an item it got
+   wrong; it would simply resume from the shorter transcript. Preventing that needs server-side memory of
+   what has been spent, which is the thing caller-held state was chosen to avoid. For a screener whose
+   output is a recommendation and whose stated posture is deliberately generous, retrying is a much
+   smaller problem than it would be for an exam — but it is a property of the decision, not an oversight.
+2. **Resuming against a different pool silently changes the evidence.** An answered item missing from the
+   pool would contribute nothing to the replay, so a caller that narrows its `types` filter mid-session
+   would quietly discard responses. `resumeFrom` refuses that case loudly instead of replaying a
+   truncated history, and the contract should state that the pool must not narrow.
+
 **Task 3.3 — Solve bank loading for a cold start.** `loadBanks()` reads 19 MB of JSONL from disk at
 startup and holds it (`bank.ts:91` says exactly this). Options, roughly in order of preference:
 a compact prebuilt index of just what selection needs (id, type, difficulty, age bands, option count,

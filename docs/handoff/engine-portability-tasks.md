@@ -210,8 +210,13 @@ Numbers below marked *(measured 8 Aug)* were taken during `1b.7`; the rest still
   Default UI.
 - **Done when:** every count in the docs matches a number you measured today.
 
-### 13. `1b.8` — Measure whether lure weighting is worth doing, before doing it
+### 13. `1b.8` — Measure whether lure weighting is worth doing — **SKIPPED 8 Aug 2026 (Felipe)**
 Gates `1b.2` and `1b.1`. Throwaway code; do not merge the weighting itself from this task.
+
+**Not being done.** Two consequences worth stating rather than leaving implied. `1b.1` and `1b.2` stay
+gated and unstarted — skipping the measurement is not a finding that the effect is small, so nobody should
+implement lure-class weighting on the strength of the ordering argument alone. And the blocker below stands
+unresolved for whenever this is reopened: the simulation harness cannot measure a qbank scoring change.
 
 **Blocked as written (found 8 Aug during `1a.5`).** The *Baseline* step below says to run
 `packages/engine/src/harness/` unchanged. That harness contains no reference to `qbank`,
@@ -258,8 +263,9 @@ which does play real bank sessions per age band. Settle this before starting.
 - **Done when:** those numbers exist and someone has decided whether the shift is large enough to
   justify `1b.2`'s ordering argument, or small enough to close `1b.1` and `1b.2` as not worth it.
 
-### 14. `1b.2` then `1b.1` — Lure-class weighting
-Only if `1b.8` says the effect is real.
+### 14. `1b.2` then `1b.1` — Lure-class weighting — **BLOCKED, gate skipped**
+Only if `1b.8` says the effect is real, and `1b.8` was skipped on 8 Aug rather than run, so it has not
+said. Do not start these without reinstating some measurement first.
 
 - `1b.2` first: rank the eight non-`correct` `lureClass` values, and get the ranking reviewed by
   whoever authored the banks.
@@ -299,7 +305,18 @@ Only if `1b.8` says the effect is real.
 - `1b.5` — forward the renderer metrics that hosts currently drop
   (`apps/lab-system/shared/headless/useQuestionSession.ts:207-209` sends only `{ response, latencyMs }`).
   Store them before anything consumes them.
-- `3.2` — decide where session state lives: caller-held and signed, or DynamoDB. Needed before `3.5`.
+- ~~`3.2` — decide where session state lives.~~ **RESOLVED 8 Aug 2026 (Felipe): caller-held, no table.**
+  `packages/qbank/src/portable.ts` — `sealSession` / `openSession` / `resumeFrom`, 16 tests.
+  **Sealed with AES-256-GCM, not signed.** Signing gives integrity and says nothing about confidentiality,
+  and a readable transcript tells the child whether each answer was right — the one thing every item in the
+  catalogue refuses to say, asserted three times in `scripts/check-practice.py`. The token carries the
+  transcript, the config and the stop reason; **no posterior**, since 3.1 proved belief replays from the
+  transcript bit for bit. Config is sealed *inside* so a client cannot lower its own bar mid-session.
+  **Measured sizes bind `3.4`:** 4.6 KB at Standard, 10.7 KB at Thorough — too big for a cookie and for most
+  proxy header limits, so the token goes in the request **body**. Two limitations crypto does not remove, for
+  `3.5` to rule on: a token can be replayed to retry a wrong answer, and resuming against a narrowed pool
+  would drop evidence (`resumeFrom` refuses rather than replaying a truncated history). Full reasoning in
+  the 3.2 entry of `engine-portability-todo.md`.
 - `3.3` — cold-start bank loading. `loadBanks()` reads 19 MB at startup. Selection needs item
   metadata only, never content.
 - `3.5` — the Lambdas themselves. Thin wrappers over `3.1`. One IaC approach; do not add a third
