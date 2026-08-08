@@ -328,6 +328,17 @@ export function Game() {
     el?.requestPointerLock?.();
   }, []);
 
+  // Escape always frees the keeper, no matter what state a station thinks it is in. A child who
+  // cannot get out of a question will not come back, so this is deliberately unconditional and sits
+  // above every other handler.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setEngaged(null);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, []);
+
   useEffect(() => {
     const onChange = () => setLocked(!!document.pointerLockElement);
     document.addEventListener('pointerlockchange', onChange);
@@ -374,8 +385,13 @@ export function Game() {
             verbId={engaged}
             report={setLive}
             onDone={() => {
-              // The station owns the leaving beat, so only the item is cleared here.
+              // THE TRAP BUG. This used to clear only the item and leave `engaged` set, on the
+              // assumption that the station would release. When the session closes itself on the last
+              // question the station has no reason to fire onLeave, so the child was left docked with
+              // no item, unable to walk, with nothing on screen to press. Releasing here is the
+              // guarantee; the delay is only so the hatch has time to play.
               setLive(null);
+              window.setTimeout(() => setEngaged(null), 2600);
             }}
           />
         </div>

@@ -150,6 +150,81 @@ function spindle(profile: (t: number) => number, rows = 12, segments = 14): THRE
 }
 
 /**
+ * A ROUND TUBE SWEPT ALONG AN ARBITRARY CURVE, with a taper — the one primitive the thirteen could not
+ * be built without.
+ *
+ * `lens` at thickness 1 already gives a bent tube, but it bends along a fixed parabola (`curl · v²`) and
+ * a lot of the new features are defined by the SHAPE OF THEIR CENTRELINE rather than by their outline:
+ * air's spiral is a helix, sleepy's nightcap flops over sideways and then hangs, bomb's fuse curls up and
+ * over, a cat's tail stands up and hooks. None of those is a parabola, and faking them by rotating a
+ * parabola is how you get a fuse that looks like a bent stick.
+ *
+ * The frame is rebuilt at every row from the local tangent rather than parallel-transported, which is the
+ * cheap version and is correct here because none of these curves doubles back on itself. The up-vector
+ * fallback is the part that matters: when the tangent is near-vertical — which it is for most of a
+ * nightcap and all of a fuse's root — crossing with world up gives a zero-length normal and the whole
+ * ring collapses, so it switches reference axis before that happens rather than after.
+ *
+ * `radius(1)` SHOULD RETURN ZERO through a blunt profile (a `sqrt`-ish falloff, never a linear one), the
+ * same rule `spindle` follows: that closes the tip as a dome instead of a needle, and it is the only way
+ * this builder stays inside "nothing jagged on a silhouette".
+ */
+function tube(
+  path: (t: number) => [number, number, number],
+  radius: (t: number) => number,
+  rows = 16,
+  segments = 9,
+): THREE.BufferGeometry {
+  const verts: number[] = [];
+  const idx: number[] = [];
+  const TAU = Math.PI * 2;
+  const P = new THREE.Vector3();
+  const A = new THREE.Vector3();
+  const B = new THREE.Vector3();
+  const Tn = new THREE.Vector3();
+  const Nn = new THREE.Vector3();
+  const Bn = new THREE.Vector3();
+  const up = new THREE.Vector3();
+
+  for (let r = 0; r <= rows; r += 1) {
+    const t = r / rows;
+    const e = 0.5 / rows;
+    P.set(...path(t));
+    A.set(...path(Math.max(0, t - e)));
+    B.set(...path(Math.min(1, t + e)));
+    Tn.subVectors(B, A);
+    if (Tn.lengthSq() < 1e-12) Tn.set(0, 1, 0);
+    Tn.normalize();
+    // The fallback described above: pick whichever reference axis is least parallel to the tangent.
+    up.set(0, 1, 0);
+    if (Math.abs(Tn.dot(up)) > 0.9) up.set(0, 0, 1);
+    Nn.crossVectors(up, Tn).normalize();
+    Bn.crossVectors(Tn, Nn).normalize();
+    const rad = radius(t);
+    for (let c = 0; c <= segments; c += 1) {
+      const a = (c / segments) * TAU;
+      const cs = Math.cos(a) * rad;
+      const sn = Math.sin(a) * rad;
+      verts.push(P.x + Nn.x * cs + Bn.x * sn, P.y + Nn.y * cs + Bn.y * sn, P.z + Nn.z * cs + Bn.z * sn);
+    }
+  }
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < segments; c += 1) {
+      const a = r * (segments + 1) + c;
+      const b = a + 1;
+      const d = a + segments + 1;
+      const e2 = d + 1;
+      idx.push(a, d, b, b, d, e2);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+/**
  * A weathered stone that is round everywhere: a lumpy potato with no flat spots.
  *
  * Detail 2 rather than 3 — these are props a fifth the size of the body and 320 triangles of smooth
@@ -294,8 +369,27 @@ function skin(
    the bake — parts in, two buffers out
    ========================================================================== */
 
-/** Where a part goes: the opaque `trim` mesh or the translucent `glaze` mesh. */
-type Layer = 'trim' | 'glaze';
+/**
+ * Where a part goes: the opaque `trim` mesh, the translucent `glaze` mesh, or `aura`.
+ *
+ * `aura` IS THE ONE STRUCTURAL ADDITION THE THIRTEEN NEEDED, and it is worth being explicit about the
+ * cost because the performance budget is the tightest constraint on this directory.
+ *
+ * Four families have a part that must move independently of the body: fire's flame crown licks, the
+ * radioactive trefoil throbs, air's spiral turns, sleepy's Z drifts upward. A merged buffer cannot do
+ * that — the whole point of merging is that everything shares one transform — so those parts go into a
+ * THIRD buffer with its own origin, which `Slime.tsx` animates as a single group.
+ *
+ * That makes those four families three draw calls instead of two. FIFTEEN OF NINETEEN ARE UNAFFECTED and
+ * still bake to at most two, because `bake` returns null for an empty layer and the component skips the
+ * mesh entirely. So the extra call is paid only by the families that actually animate, and only when one
+ * of them is on screen.
+ *
+ * The aura parts are baked RELATIVE TO `auraOrigin` rather than to the body, so a scale applied to the
+ * group happens about the base of the flame instead of about the slime's feet — which is the difference
+ * between a flame that licks and a flame that grows out of the floor.
+ */
+type Layer = 'trim' | 'glaze' | 'aura';
 
 interface Part {
   geo: THREE.BufferGeometry;
@@ -505,6 +599,210 @@ const mossShape = () => shape('moss', () => stone(0.66, 2.3));
 const butterShape = () => shape('butter', () => roundCube(0.82));
 const bulbShape = () => shape('bulb', () => new THREE.SphereGeometry(1, 8, 6));
 
+/* ----------------------------------------------------------------------------------------------------
+   SHAPES FOR THE THIRTEEN.
+
+   All cached in the same `shapes` map as the six's, so a shape shared by two families — the round tuft
+   that is a bunny's tail AND a lion's tail tip AND a nightcap's pom-pom, the broad leaf that is wood's
+   and mango's — is built once for the page no matter how many families or stages want it.
+   -------------------------------------------------------------------------------------------------- */
+
+/**
+ * AIR's spiral: a tapered tube swept along a helix of one and a half turns.
+ *
+ * The radius goes to zero at BOTH ends, which is what makes it a wisp of moving air rather than a spring.
+ * One and a half turns is the count that reads as a spiral from every angle — at one turn it looks like a
+ * bent hoop from the side, and past two it closes up into a solid cylinder of coil at any distance.
+ */
+const helixShape = () =>
+  shape('helix', () =>
+    tube(
+      (t) => {
+        const a = t * Math.PI * 3.1;
+        const rr = 0.52 * (1 - t * 0.36);
+        return [Math.sin(a) * rr, t, Math.cos(a) * rr];
+      },
+      (t) => 0.115 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.72)), 0.55),
+      34,
+      7,
+    ),
+  );
+
+/**
+ * A BUNNY EAR. Long, narrow, cupped, and blunt at the tip.
+ *
+ * The proportion is the whole thing: at anything under about three times as long as it is wide an "ear"
+ * is a leaf. The `cup` is high (0.5) because a real ear is a channel, and the cup is also what catches a
+ * different amount of light on each ear and stops the pair reading as one flat shape.
+ */
+const earLongShape = () =>
+  shape('earLong', () =>
+    lens((v) => 0.3 * Math.pow(1 - Math.pow(v, 3.4), 0.4) * (0.52 + 0.48 * Math.sqrt(v)), 0.3, 0.16, 6, 13, 0.5, 1.6),
+  );
+
+/** A CAT EAR: wide at the base, short, drawn to a tip that still rounds over. Nothing jagged. */
+const earTriShape = () =>
+  shape('earTri', () => lens((v) => 0.52 * Math.pow(1 - Math.pow(v, 1.5), 0.42), 0.34, 0.06, 6, 8, 0.24, 1.5));
+
+/** A LION EAR: a small round tab, mostly buried in the mane. */
+const earRoundShape = () =>
+  shape('earRound', () => lens((v) => 0.44 * Math.pow(Math.sin(Math.PI * (v * 0.82 + 0.18)), 0.5), 0.5, 0.1, 5, 6, 0.2));
+
+/** A MANE LOCK: a tapered, slightly curled tuft with a blunt end. Many of these make the halo. */
+const maneLockShape = () =>
+  shape('maneLock', () =>
+    lens((v) => 0.36 * Math.pow(1 - Math.pow(v, 2.2), 0.45) * (0.68 + 0.32 * Math.sqrt(v)), 0.45, 0.3, 5, 8, 0.12, 1.4),
+  );
+
+/**
+ * A TAIL that stands up and hooks forward — the question-mark curl, and half of cat's identification.
+ *
+ * `y` eases off toward the top and `z` accelerates, so the curl happens in the last third instead of the
+ * whole tail being one bland arc. That is what makes it read as a cat's tail rather than as a handle.
+ */
+const tailShape = () =>
+  shape('tail', () =>
+    tube(
+      (t) => [0, Math.sin(t * 1.36) / Math.sin(1.36), 0.46 * ((1 - Math.cos(t * 2.3)) / (1 - Math.cos(2.3)))],
+      (t) => 0.115 * (1 - 0.42 * t) * Math.pow(Math.max(0, 1 - Math.pow(t, 7)), 0.4),
+      18,
+      8,
+    ),
+  );
+
+/** A soft round tuft: a bunny's tail, a lion's tail tip, a nightcap's pom-pom. Lumpy, so it reads fluffy. */
+const tuftShape = () => shape('tuft', () => stone(0.92, 5.1));
+
+/**
+ * ONE LOBE OF THE TREFOIL. Zero width at the hub, fanning out, blunt at the rim: a fat rounded sector.
+ *
+ * Three of these at 120° on a short post is the radiation trefoil, and it is the only SYMBOL in the game.
+ * It survives being a 3D object — rather than a flat badge that would vanish edge-on — because the lobes
+ * are thick (`thickness: 0.5`) and splayed slightly upward, so from any angle you see two or three of
+ * them and the three-lobed arrangement is unmistakable.
+ */
+const trefoilLobeShape = () =>
+  shape('trefoilLobe', () => lens((v) => 0.6 * Math.pow(v, 0.42) * Math.pow(1 - Math.pow(v, 7), 0.38), 0.5, 0, 7, 8));
+
+/** A short stub of a post, for the trefoil to sit on and the crown band to stand off. */
+const postShape = () => shape('post', () => tube((t) => [0, t, 0], (t) => 0.095 * (1 - 0.22 * t), 5, 8));
+
+/** A WOODY TWIG: a gently curving taper. Used three times — one trunk, two forks — to make the branch. */
+const twigShape = () =>
+  shape('twig', () =>
+    tube(
+      (t) => [0.13 * t * t, t, 0.05 * t],
+      (t) => 0.1 * Math.pow(Math.max(0, 1 - Math.pow(t, 3.4)), 0.34) * (1 - 0.32 * t),
+      10,
+      7,
+    ),
+  );
+
+/** A BROAD LEAF, blunt at both ends and bowed across its width. wood's pair, and mango's single one. */
+const leafShape = () =>
+  shape('leaf', () =>
+    lens((v) => 0.42 * Math.pow(Math.sin(Math.PI * Math.pow(v, 0.82)), 0.7), 0.15, -0.2, 7, 9, 0.22, 1.4),
+  );
+
+/**
+ * A FLAME, AND THIS IS THE ONE SHAPE IN THE FILE THAT HAD A BRIEF OF ITS OWN: "reads as flame, not a cone".
+ *
+ * A cone's outline is a straight line. A flame's outline is an S, and it is an S for a physical reason —
+ * the burning gas necks in above the fuel and swells again as it expands. So the outline is a taper
+ * MULTIPLIED BY A SINE: wide at the root, pinched at about 40% of the height, swelling again at 65%, then
+ * drawn off to a blunt tip. That, plus a hard `curl` so the whole thing leans over, is the difference
+ * between fire and a party hat, and it is entirely in these two lines.
+ *
+ * The tip is blunt (`0.45` exponent) like every other tip here, which sounds wrong for fire and is not:
+ * a needle-sharp flame tip is one pixel wide at any distance a child sees it, so it contributes nothing to
+ * the silhouette and only risks the "nothing jagged" rule. The CURL is what reads as licking, not the point.
+ */
+const flameShape = () =>
+  shape('flame', () =>
+    lens(
+      (v) =>
+        Math.max(
+          0.001,
+          0.38 * Math.pow(Math.max(0, 1 - Math.pow(v, 2.6)), 0.45) * (1 + 0.44 * Math.sin(v * Math.PI * 2.1 - 0.42)),
+        ),
+      0.62,
+      0.58,
+      7,
+      13,
+      0.1,
+      1.5,
+    ),
+  );
+
+/**
+ * AN ICE SHARD. A prism, not a spindle: SIX radial segments instead of fourteen.
+ *
+ * This is how ice looks faceted while staying smooth-shaded, which is the constraint the brief set. Six
+ * segments with averaged vertex normals gives a form whose SILHOUETTE has flat sides and whose SHADING is
+ * continuous — no hard normal breaks anywhere, nothing to catch a highlight on an edge. The tip still
+ * rounds over at exponent 0.44, exactly as frost's spires do, so a child cannot be poked by it.
+ *
+ * Against `spireShape`, which is frost's: that one is round (fourteen segments), fatter, and symmetric.
+ * This one is angular, narrower and always used in an unmatched cluster.
+ */
+const shardShape = () =>
+  shape('shard', () => spindle((t) => 0.2 * Math.pow(Math.max(0, 1 - Math.pow(t, 2.0)), 0.44), 9, 6));
+
+/** GOLD's crown: the band it stands on, a rounded point, and a bead for the top of each point. */
+const crownBandShape = () => shape('crownBand', () => new THREE.TorusGeometry(1, 0.14, 7, 26));
+const crownPointShape = () =>
+  shape('crownPoint', () => spindle((t) => 0.3 * Math.pow(Math.max(0, 1 - Math.pow(t, 1.8)), 0.5), 7, 9));
+
+/**
+ * SLEEPY's NIGHTCAP: a wide soft cone whose centreline FLOPS SIDEWAYS AND THEN DROPS.
+ *
+ * The only feature in the game that hangs out past the body's own silhouette on one side, which is
+ * precisely why it was chosen — it makes sleepy the only asymmetric outline apart from mango's lean, and
+ * unlike a lean it is unmistakable even head-on. `y` rises, peaks and comes back down while `x` runs away
+ * from the head, so the cap has a real bend in it rather than being a straight cone pointed sideways.
+ */
+const nightcapShape = () =>
+  shape('nightcap', () =>
+    tube(
+      (t) => [0.92 * Math.pow(t, 1.55), 0.6 * (Math.sin(t * 1.5) / Math.sin(1.5)) - 0.34 * Math.pow(t, 3.2), 0.1 * t * t],
+      (t) => 0.4 * (1 - t * 0.9) * Math.pow(Math.max(0, 1 - Math.pow(t, 9)), 0.34),
+      18,
+      10,
+    ),
+  );
+
+/** BOMB's fuse: a rope that leaves the collar, leans over and straightens. */
+const fuseShape = () =>
+  shape('fuse', () =>
+    tube(
+      (t) => [0.36 * Math.sin(t * 2.1), t, 0.06 * Math.sin(t * 3.4)],
+      (t) => 0.06 * (1 - 0.22 * t) * Math.pow(Math.max(0, 1 - Math.pow(t, 12)), 0.34),
+      14,
+      7,
+    ),
+  );
+
+/** BOMB's brass collar: a chunky ring at the top, which is most of what makes it a cartoon bauble. */
+const collarShape = () => shape('collar', () => new THREE.TorusGeometry(1, 0.3, 7, 18));
+
+/**
+ * A CHEEK. A flattened ellipsoid of blush, and the only one in the game.
+ *
+ * It exists for `bomb` alone and it is the single most effective thing in this file per triangle spent:
+ * two soft rosy patches under big eyes is the whole visual grammar of "this is a friendly cartoon", and it
+ * is what took bomb from reading as a prop to reading as a pet.
+ */
+const cheekShape = () => shape('cheek', () => new THREE.SphereGeometry(1, 10, 7));
+
+/** STRAWBERRY's calyx leaf: narrow, pointed-but-blunt, splaying out and slightly down. */
+const calyxLeafShape = () =>
+  shape('calyxLeaf', () =>
+    lens((v) => 0.3 * Math.pow(1 - Math.pow(v, 1.7), 0.42) * (0.66 + 0.34 * Math.sqrt(v)), 0.13, -0.16, 5, 8, 0.16, 1.4),
+  );
+
+/** One stroke of SLEEPY's floating Z. A rounded bar, so the letter has no sharp corners anywhere. */
+const zBarShape = () => shape('zBar', () => roundCube(0.55));
+
 /* ============================================================================
    the six
    ========================================================================== */
@@ -518,6 +816,21 @@ interface Build {
   height: number;
   radiusAt: (t: number) => number;
   parts: Part[];
+  /**
+   * Where the `aura` layer's own origin sits, in body units. Whatever a builder puts in the aura layer is
+   * re-based to this point, so `Slime.tsx` can scale or spin the group about something meaningful — the
+   * root of the flames, the hub of the trefoil, the bottom of the spiral.
+   */
+  auraOrigin: [number, number, number];
+  /**
+   * Where a family's sparkles should hang, in body units, if they are anchored to a POINT rather than
+   * orbiting the whole body.
+   *
+   * Added for `bomb`, whose one spark belongs on the tip of its fuse and nowhere else. Everything else
+   * that sparkles — fairy, air, fire, radioactive, ice, gold — leaves this undefined and gets the
+   * original orbit, which is what those families want.
+   */
+  sparkAt?: [number, number, number];
 }
 
 function push(b: Build, layer: Layer, geo: THREE.BufferGeometry, at: THREE.Matrix4, color: string, to?: string, span?: number) {

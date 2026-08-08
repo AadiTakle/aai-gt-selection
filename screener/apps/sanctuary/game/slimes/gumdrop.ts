@@ -69,6 +69,17 @@ export interface GumdropProfile {
   skirt: number;
   /** Radius of the fillet where the wall meets the flat base, in body units. */
   fillet: number;
+  /**
+   * Sideways SHEAR, in body units at the crown. Omitted means a body that stands up straight, which is
+   * eighteen of nineteen.
+   *
+   * `mango` is the exception and this is its whole identification. The shear is applied about the BASE —
+   * offset scales as (y/height)^1.3, so the footprint does not move and every collision number in this
+   * file stays true — which leans the body over without lifting it off the ground or making it slide
+   * inside its own collider. It is the only family whose silhouette is asymmetric about its own axis, so
+   * it is the only one identifiable at 25 m from the body alone, from any angle, with no crest at all.
+   */
+  lean?: number;
 }
 
 /**
@@ -100,6 +111,53 @@ export const GUMDROP: Record<Family, GumdropProfile> = {
   fairy: { width: 0.6, height: 1.86, shoulder: 2.2, peak: 0.62, skirt: -0.08, fillet: 0.18 },
   /** Frost: an upright ice mound for the spires, wide enough at the base to wear a rime skirt. 1.00 */
   frost: { width: 0.78, height: 1.56, shoulder: 2.6, peak: 0.66, skirt: 0.04, fillet: 0.17 },
+
+  /* ----------------------------------------------------------------------------------------------
+     THE THIRTEEN. The spread stays deliberately narrow for the same reason it did for the six — the
+     crests carry the identification and the bodies only have to support them — with three considered
+     exceptions where the BODY is doing identification work, and those three are worth knowing about:
+
+       strawberry  the only body in the game that is NOT a gumdrop. A strongly negative `skirt` moves
+                   its widest point up to the shoulder and tucks the base in, which is a berry in
+                   outline before a seed is drawn.
+       mango       the only body that is not symmetric about its own axis, via `lean`.
+       bomb        the roundest. `shoulder: 2.05` with `peak: 0.5` is very nearly a pure half-circle
+                   profile, i.e. a ball — nothing else here is within a mile of it, and it is what makes
+                   the family read as a bauble rather than as a weapon.
+
+     Ratios are height/(2·width) as above. rock still owns the bottom of the range at 0.57 and fairy the
+     top at 1.55, so the six's spread was not disturbed by fitting thirteen more inside it.
+     -------------------------------------------------------------------------------------------- */
+
+  /** Air: tall and slender, on a tucked foot, so the spiral above looks like it is lifting it. 1.25 */
+  air: { width: 0.68, height: 1.7, shoulder: 2.3, peak: 0.66, skirt: -0.06, fillet: 0.16 },
+  /** Bunny: a plain upright egg, on purpose. Two long ears need no help from the body. 0.97 */
+  bunny: { width: 0.74, height: 1.44, shoulder: 2.9, peak: 0.5, skirt: 0.04, fillet: 0.2 },
+  /** Lion: broad and low-shouldered, so the mane ring has a wide chest to sit on. 0.71 */
+  lion: { width: 0.95, height: 1.34, shoulder: 3.2, peak: 0.46, skirt: 0.05, fillet: 0.24 },
+  /** Cat: a neat upright sitting shape, narrower than lion so the mane/ears contrast is unmissable. 0.91 */
+  cat: { width: 0.78, height: 1.42, shoulder: 2.8, peak: 0.52, skirt: 0.03, fillet: 0.18 },
+  /** Radioactive: a wide-crowned drum, flat enough on top to carry a trefoil on a post. 0.83 */
+  radioactive: { width: 0.84, height: 1.4, shoulder: 3.0, peak: 0.5, skirt: 0.06, fillet: 0.2 },
+  /** Wood: a stump. Straight-walled and flat-crowned, which is what a sawn trunk looks like. 0.95 */
+  wood: { width: 0.8, height: 1.52, shoulder: 3.4, peak: 0.42, skirt: 0.07, fillet: 0.22 },
+  /** Fire: narrowing upward, so the body itself already tapers into the flame crown. 1.06 */
+  fire: { width: 0.72, height: 1.52, shoulder: 2.5, peak: 0.6, skirt: 0.02, fillet: 0.16 },
+  /** Ice: taller and narrower than frost, and on a tucked foot rather than a flared one. 1.20 */
+  ice: { width: 0.7, height: 1.68, shoulder: 2.4, peak: 0.7, skirt: -0.04, fillet: 0.14 },
+  /** Gold: a plump ingot of a body — the mirror finish wants broad unbroken surfaces to reflect in. 0.85 */
+  gold: { width: 0.82, height: 1.4, shoulder: 3.1, peak: 0.5, skirt: 0.04, fillet: 0.2 },
+  /** Sleepy: the second-squattest, and slumped. A body that has given up standing. 0.69 */
+  sleepy: { width: 0.9, height: 1.24, shoulder: 3.5, peak: 0.36, skirt: 0.1, fillet: 0.28 },
+  /**
+   * Strawberry: THE INVERTED ONE. `skirt: -0.32` pulls the base in to two thirds of the wall, which
+   * moves the widest point up to about a third of the height — a berry, not a gumdrop. 0.89
+   */
+  strawberry: { width: 0.84, height: 1.5, shoulder: 2.3, peak: 0.6, skirt: -0.32, fillet: 0.12 },
+  /** Mango: a teardrop, and the only one that leans. 1.01 */
+  mango: { width: 0.78, height: 1.58, shoulder: 2.6, peak: 0.62, skirt: -0.05, fillet: 0.16, lean: 0.3 },
+  /** Bomb: the roundest body in the game. `shoulder` at 2.05 is all but a half-circle profile. 0.83 */
+  bomb: { width: 0.86, height: 1.42, shoulder: 2.05, peak: 0.5, skirt: 0, fillet: 0.3 },
 };
 
 /** Radius of the wall at a height fraction `t`, 0 at the base and 1 at the crown, before `width`. */
@@ -216,6 +274,57 @@ function mossField(nx: number, ny: number, nz: number, x: number, y: number, z: 
   return up * back * smoothstep(-0.35, 0.8, blob);
 }
 
+/* ----------------------------------------------------------------------------------------------------
+   THE TEN FIELDS THE THIRTEEN ADDED.
+
+   Same two rules as the five above and they are not negotiable. Every field is SMOOTH — built from sines
+   and smoothsteps, with no `floor`, no `round` and no quantising of any kind — because a quantised height
+   field grows visible facets on a silhouette, which is the one thing this game may not have. And every
+   field is PERIODIC WITH AN INTEGER FREQUENCY IN `u`, so the duplicated seam ring that `LatheGeometry`
+   leaves at the back of every body lands on the same value from both sides and there is no visible join.
+
+   `facet` is where both rules are under the most pressure, since ice is supposed to LOOK faceted. It gets
+   there with `tanh`, which is smooth everywhere but saturates — so the field spends most of its range on
+   plateaus (flat panels) joined by short smooth ramps (soft edges). That is a faceted-looking surface with
+   a continuous derivative, which is exactly the trick the brief asked for.
+   -------------------------------------------------------------------------------------------------- */
+
+/** Deep vertical fissures. Fourteen around, wandering slightly with height so they are not a comb. */
+function barkField(u: number, v: number): number {
+  return smoothstep(0, 0.42, cell(u * 14 + Math.sin(v * 3.1) * 0.22));
+}
+
+/**
+ * Strawberry seeds, as a quincunx: `cell(u·12)` and a row term whose phase is skewed by `u`, so
+ * alternate rows are offset by half a cell instead of sitting in a square grid. A square grid of seeds
+ * reads as a golf ball; an offset one reads as a berry.
+ */
+function seedField(u: number, v: number): number {
+  return smoothstep(0.66, 0.99, cell(u * 12) * cell(v * 9 - u * 6));
+}
+
+/** Broad crystal PLATES. `tanh` saturates the lobes into plateaus joined by short smooth ramps. */
+function facetField(x: number, y: number, z: number): number {
+  return Math.tanh(boulderField(x * 1.5, y * 1.4, z * 1.5) * 1.9);
+}
+
+/** A fine soft nap, for anything plush. Deliberately tiny in amplitude: fur is a texture, not a shape. */
+function furField(u: number, v: number): number {
+  return Math.sin(u * Math.PI * 2 * 26) * 0.5 + Math.sin(v * 34 + u * 9) * 0.34;
+}
+
+/** Broad soft tabby bands, wavering with height so they wrap like markings rather than like hoops. */
+function tabbyField(u: number, v: number): number {
+  return Math.pow(Math.abs(Math.sin(u * Math.PI * 2 * 7 + Math.sin(v * 4.2) * 1.15)), 0.55);
+}
+
+/** Wet bright blotches, for radioactive. Three lobes, no threshold sharp enough to show an edge. */
+function oozeField(x: number, y: number, z: number): number {
+  return (
+    Math.sin(x * 4.2 + 1.1) * Math.sin(z * 4.6 - 0.4) + Math.sin(y * 5.1 + x * 2.6) * 0.7
+  );
+}
+
 /**
  * Applies a family's relief to a freshly revolved body, in one pass, and bakes its vertex colours.
  *
@@ -297,6 +406,96 @@ function applyRelief(geometry: THREE.BufferGeometry, family: Family, height: num
         tint.lerp(new THREE.Color(look.inner), smoothstep(0.45, 1, v) * 0.16);
         break;
       }
+      /* ---- the thirteen ---- */
+
+      case 'bark': {
+        const ridge = barkField(u, v);
+        push = -look.reliefDepth * (1 - ridge);
+        // Grooves go dark and ridges catch the light, which is the whole read of timber. Stronger than
+        // waffle's lattice on purpose: a fissure is deeper than a griddle mark.
+        tint.lerp(accent, (1 - ridge) * 0.82);
+        tint.multiplyScalar(0.92 + ridge * 0.14);
+        break;
+      }
+      case 'seeded': {
+        const seed = seedField(u, v);
+        // Seeds sit IN shallow pits, which is what a strawberry actually does — and a pit catches a
+        // shadow, so the seeds read at distance as speckle rather than needing to be geometry.
+        push = -look.reliefDepth * seed;
+        tint.lerp(trim, seed * 0.92);
+        break;
+      }
+      case 'facet': {
+        const plate = facetField(x, y, z);
+        push = look.reliefDepth * plate * 0.5;
+        // Panels facing up take the pale `inner`, the ramps between them darken. That value break is
+        // what makes a smooth surface read as cut rather than as melted, and it is the whole difference
+        // between ice and frost on the hide.
+        tint.lerp(new THREE.Color(look.inner), smoothstep(0.1, 1, plate) * 0.42);
+        tint.lerp(accent, smoothstep(-0.1, -1, plate) * 0.36);
+        break;
+      }
+      case 'fur':
+      case 'tabby': {
+        const nap = furField(u, v);
+        push = look.reliefDepth * nap * 0.5;
+        tint.lerp(accent, (0.5 - nap * 0.5) * 0.18);
+        if (look.relief === 'tabby') {
+          // Broad bands over the nap. Kept off the FACE by fading the stripes out toward +z: a stripe
+          // running across two big eyes reads as a bruise, which is the same lesson rock's moss taught.
+          const band = tabbyField(u, v);
+          const front = 1 - smoothstep(0.35, 0.92, nz) * 0.8;
+          tint.lerp(accent, (1 - band) * 0.6 * front);
+        }
+        // A PALE BELLY, for every plush family. Low on the body and toward the front, running to `inner`.
+        // It is the cheapest way to make a round body read as an animal rather than as a ball, because
+        // countershading is what nearly every real animal has and what every picture book draws.
+        const belly = smoothstep(0.15, 0.9, nz) * smoothstep(0.52, 0.04, v);
+        tint.lerp(new THREE.Color(look.inner), belly * 0.55);
+        break;
+      }
+      case 'wisp': {
+        // Barely anything, which is the point: air is defined by what is ABOVE it, and a body with a
+        // busy surface would compete with its own spiral.
+        const swirl = Math.sin(u * Math.PI * 2 * 3 + v * 6.5);
+        push = look.reliefDepth * swirl * 0.5;
+        tint.lerp(accent, (0.5 - swirl * 0.5) * 0.14);
+        tint.lerp(new THREE.Color(look.inner), smoothstep(0.2, 1, v) * 0.3);
+        break;
+      }
+      case 'ember': {
+        // Dark at the foot, bright at the shoulder, as if lit from above by its own crown. A fire slime
+        // whose body is evenly lit looks like a plastic toy of a fire slime.
+        const lift = smoothstep(0.02, 0.62, v);
+        tint.copy(accent).lerp(skin, lift);
+        tint.lerp(new THREE.Color(look.inner), smoothstep(0.55, 1, v) * 0.7);
+        push = look.reliefDepth * Math.sin(u * Math.PI * 2 * 9 + v * 5) * 0.5;
+        break;
+      }
+      case 'ooze': {
+        const blob = oozeField(x * 1.6, y * 1.6, z * 1.6);
+        push = look.reliefDepth * blob * 0.4;
+        // Bright acid patches. Toward `crest` rather than `inner` because the crest colour is the
+        // trefoil's, and a body sharing its crest's brightest note is what makes the whole thing read
+        // as one glowing object.
+        tint.lerp(new THREE.Color(look.crest), smoothstep(-0.25, 1.05, blob) * 0.6);
+        break;
+      }
+      case 'ripen': {
+        // Gold at the base running to red at the shoulder. Half of mango's identification, and the only
+        // relief in the file whose entire purpose is a two-tone rather than a surface.
+        tint.copy(new THREE.Color(look.crest)).lerp(skin, smoothstep(0.1, 0.74, v));
+        push = look.reliefDepth * Math.sin(u * Math.PI * 2 * 5 + v * 3) * 0.5;
+        break;
+      }
+      case 'polish': {
+        // No displacement at all — a mirror needs an unbroken surface, and so does a glass bauble.
+        // A broad band of light across the upward faces, and a darkened foot so the body sits.
+        tint.lerp(new THREE.Color(look.inner), smoothstep(0.45, 1, ny) * 0.3);
+        tint.lerp(accent, smoothstep(0.34, 0, v) * 0.55);
+        break;
+      }
+
       case 'none':
       default:
         break;
@@ -359,6 +558,28 @@ export function gumdropGeometry(family: Family, detail: 'near' | 'far' = 'near')
   // the relief pass below needs a trustworthy normal to displace along.
   geometry.computeVertexNormals();
   applyRelief(geometry, family, p.height);
+
+  /**
+   * THE LEAN, for mango and nothing else.
+   *
+   * Applied AFTER the relief, so the relief field is evaluated on the upright body and the two-tone
+   * `ripen` band stays level with the ground rather than tilting with the fruit — a leaning gradient
+   * reads as a rendering mistake, a level one reads as ripeness.
+   *
+   * The offset scales as (y/height)^1.3, which is zero AND has zero slope at the base. So the flat
+   * bottom stays flat and stays where it was: the body leans without lifting a heel off the ground, and
+   * every collision number in this file — all of which are taken at the base — remains true.
+   */
+  if (p.lean) {
+    const pos = geometry.getAttribute('position') as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i += 1) {
+      const y = pos.getY(i);
+      const f = Math.pow(Math.max(0, y / p.height), 1.3);
+      pos.setX(i, pos.getX(i) + p.lean * p.width * f);
+    }
+    pos.needsUpdate = true;
+  }
+
   // Again, because the displacement moved the surface: the shading has to follow the dimples or the
   // lattice is invisible.
   geometry.computeVertexNormals();
@@ -382,6 +603,17 @@ interface EyeParts {
   sclera: THREE.SphereGeometry;
   iris: THREE.SphereGeometry;
   catchlight: THREE.SphereGeometry;
+  /**
+   * A CLOSED eye, for `sleepy`: a partial torus, which is a curved tube and therefore a drawn line with
+   * real thickness and no ends to leave flat.
+   *
+   * The arc is 0.8π rather than a full half turn so the line stops short of a semicircle — a closed eye
+   * drawn as a full half-circle reads as a cartoon "dead" eye. Posed bowing DOWNWARD in `Slime.tsx`,
+   * which is the difference between contentedly asleep and unconscious.
+   */
+  closed: THREE.TorusGeometry;
+  /** One eyelash. A capsule, so both ends are round and there is nothing to catch on a silhouette. */
+  lash: THREE.CapsuleGeometry;
 }
 
 let eyeParts: EyeParts | null = null;
@@ -405,8 +637,77 @@ export function faceGeometry(): EyeParts {
     sclera: new THREE.SphereGeometry(1, 20, 14),
     iris: new THREE.SphereGeometry(1, 16, 11),
     catchlight: new THREE.SphereGeometry(1, 8, 6),
+    // Unit radius, tube a tenth of it, and only used by one family — but built here with the rest of the
+    // face so it is one shared buffer across every sleepy on the page, like everything else in this file.
+    closed: new THREE.TorusGeometry(1, 0.1, 6, 16, Math.PI * 0.8),
+    lash: new THREE.CapsuleGeometry(0.5, 1.1, 3, 6),
   };
   return eyeParts;
+}
+
+/* ============================================================================
+   something for the metal to reflect
+   ========================================================================== */
+
+let envTex: THREE.DataTexture | null = null;
+
+/**
+ * A SKY, GENERATED IN CODE, so `gold` can be metal without shipping an image file.
+ *
+ * WHY THIS IS NOT OPTIONAL. A `metalness: 1` surface has no diffuse response at all — everything you see
+ * on it is a reflection. Give it nothing to reflect and it samples black, and a gold slime renders as a
+ * dark grey slime with a yellow rim. Every "my metal material is black" bug is this one, and the usual
+ * fix is an HDRI, which this directory is not allowed to have: no image files, no external assets.
+ *
+ * So the environment is three stops of a vertical gradient — the same sky, horizon and grass the preview
+ * and the ranch are lit by — plus one soft warm sun blob, written into a 128x64 equirectangular
+ * `DataTexture`. That is 8 kB, it is built once for the life of the page, and it is only ever touched by
+ * the two or three families whose `metal` is above zero. It is a cheap lie and it is completely
+ * convincing on a curved body, because a curved mirror mostly shows you the horizon line, and a horizon
+ * line is exactly what this has.
+ *
+ * `SRGBColorSpace` matters: without it the gradient is sampled as linear and the gold comes out pale and
+ * chalky. Mipmaps are on and the size is a power of two so the rough-ish families (`ice` at 0.06, `bomb`
+ * at 0.18) get a filtered read rather than a sparkling one.
+ */
+export function reflectionEnvironment(): THREE.DataTexture {
+  if (envTex) return envTex;
+  const W = 128;
+  const H = 64;
+  const data = new Uint8Array(W * H * 4);
+  // The preview's own lighting, as colours: a pale sky, a warm horizon and the grass underfoot.
+  const sky = new THREE.Color('#cfeaf8');
+  const horizon = new THREE.Color('#fff0d2');
+  const ground = new THREE.Color('#8fc46b');
+  const c = new THREE.Color();
+
+  for (let y = 0; y < H; y += 1) {
+    // 0 at the top of the sphere, 1 at the bottom.
+    const v = y / (H - 1);
+    if (v < 0.5) c.copy(sky).lerp(horizon, smoothstep(0.12, 0.5, v));
+    else c.copy(horizon).lerp(ground, smoothstep(0.5, 0.72, v));
+    for (let x = 0; x < W; x += 1) {
+      const u = x / (W - 1);
+      // One soft sun, up and to the side, matching the preview's directional light. A metal body with a
+      // gradient but no highlight looks like painted plastic; the highlight is what says "polished".
+      const du = Math.min(Math.abs(u - 0.68), 1 - Math.abs(u - 0.68));
+      const sun = Math.exp(-((du * du) / 0.0016 + ((v - 0.26) * (v - 0.26)) / 0.0016));
+      const i = (y * W + x) * 4;
+      data[i] = Math.min(255, (c.r + sun * 1.5) * 255);
+      data[i + 1] = Math.min(255, (c.g + sun * 1.42) * 255);
+      data[i + 2] = Math.min(255, (c.b + sun * 1.2) * 255);
+      data[i + 3] = 255;
+    }
+  }
+
+  envTex = new THREE.DataTexture(data, W, H, THREE.RGBAFormat);
+  envTex.mapping = THREE.EquirectangularReflectionMapping;
+  envTex.colorSpace = THREE.SRGBColorSpace;
+  envTex.magFilter = THREE.LinearFilter;
+  envTex.minFilter = THREE.LinearMipmapLinearFilter;
+  envTex.generateMipmaps = true;
+  envTex.needsUpdate = true;
+  return envTex;
 }
 
 const bodyMaterials = new Map<Family, THREE.MeshPhysicalMaterial>();
@@ -444,12 +745,23 @@ export function bodyMaterial(family: Family): THREE.MeshPhysicalMaterial {
   const hit = bodyMaterials.get(family);
   if (hit) return hit;
   const look = FAMILY_LOOK[family];
+  const metal = look.metal ?? 0;
   const m = new THREE.MeshPhysicalMaterial({
     // White, because the family colour is baked into the vertex attribute along with its relief tint.
     color: '#ffffff',
     vertexColors: true,
     roughness: look.roughness,
-    metalness: 0,
+    /**
+     * ZERO FOR SIXTEEN OF NINETEEN, which keeps the approved six bit-for-bit what they were.
+     *
+     * The three that are not zero — `gold` at 0.95, `bomb` at 0.3, `ice` at 0.12 — are the only families
+     * that take the procedural environment above, and they only take it because they are metal: a
+     * dielectric body here gets its gleam from `clearcoat`, which needs no reflection to look wet. Adding
+     * the env map to all nineteen would have looked better and would have changed six approved looks, so
+     * it is gated on exactly the thing that requires it.
+     */
+    metalness: metal,
+    ...(metal > 0 ? { envMap: reflectionEnvironment(), envMapIntensity: 1.15 } : {}),
     clearcoat: look.coat,
     // Broad rather than tight: a tight clearcoat put one small hard hotspot on every body, which is the
     // signature of moulded plastic. A softer, larger gleam is what a sweet does.
@@ -460,7 +772,9 @@ export function bodyMaterial(family: Family): THREE.MeshPhysicalMaterial {
     // The stand-in for subsurface: a body that lets light through glows faintly in its own inner colour.
     // Fairy is genuinely lit; the rest take a whisper of it so no shadow side goes dead.
     emissive: new THREE.Color(look.inner),
-    emissiveIntensity: 0.04 + look.translucency * 0.1 + look.glow * 0.3,
+    // Damped by metalness. Metal does not transmit light, so a self-lit gold body reads as painted
+    // plastic with a lamp inside it — which is the exact look the reflection is there to replace.
+    emissiveIntensity: (0.04 + look.translucency * 0.1 + look.glow * 0.3) * (1 - metal * 0.85),
   });
   bodyMaterials.set(family, m);
   return m;
@@ -479,11 +793,15 @@ export function trimMaterial(family: Family): THREE.MeshStandardMaterial {
   const hit = trimMaterials.get(family);
   if (hit) return hit;
   const look = FAMILY_LOOK[family];
+  // A gold slime's CROWN has to be gold too, and a bomb's brass collar with it. Same gate as the body:
+  // only the families that declare `metal` pay for the environment lookup.
+  const metal = look.metal ?? 0;
   const m = new THREE.MeshStandardMaterial({
     color: '#ffffff',
     vertexColors: true,
     roughness: look.partRoughness,
-    metalness: 0,
+    metalness: metal,
+    ...(metal > 0 ? { envMap: reflectionEnvironment(), envMapIntensity: 1.1 } : {}),
     /**
      * DOUBLE-SIDED, and this was a real bug rather than a preference.
      *
