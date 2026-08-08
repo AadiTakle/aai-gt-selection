@@ -178,10 +178,24 @@ document is for non-TypeScript adopters, with a test that the committed copy mat
 schemas sit beside the types rather than being derived from them, so a TS-to-JSON-Schema step is the fix if
 the spec ever becomes load-bearing externally. Full write-up in the 3.4 entry of the todo doc.
 
-### 7. `3.6` — Add CI
+### 7. `3.6` — Add CI — **HALF DONE 8 Aug 2026. Needs Aadi to finish.**
 - `screener/` has no `.github/workflows`.
 - Run `npm run verify` on every push.
-- **Done when:** a red test blocks a merge.
+- **Done when:** a red test blocks a merge. ← **not met, and not reachable from this side**
+
+`.github/workflows/verify.yml` at the repo root. `verify` job runs `npm ci` + `npm run verify` on a Node
+20/24 matrix (20 is the `engines` floor, 24 is what the work was done on, `fail-fast: false`). A separate
+`build` job runs `npm run build`, because `verify` does not build and the build is the **only** check that
+stops `node:fs` being bundled into the web app — a thing that has happened before.
+
+Confirmed by running CI's exact sequence locally from a clean `npm ci`: install, verify, build all exit 0.
+That turned up that npm 11 blocks esbuild's postinstall and the build succeeds anyway, so the warning is
+noise rather than a blocker.
+
+**The acceptance criterion needs a repo setting, not a file.** A required status check is branch protection,
+and Felipe has `push` but `admin: false` on `AadiTakle/aai-gt-selection` — checked. **Only Aadi can enable
+it.** The exact `gh api` calls, for `main` and `dev` both, are in the 3.6 entry of the todo doc. Until then
+CI reports and nothing enforces.
 
 ### 8. `1b.3` — Rapid-guess detection
 - `latencyMs` is already captured and stored (the attempt record built in `session.ts` `submit`) and

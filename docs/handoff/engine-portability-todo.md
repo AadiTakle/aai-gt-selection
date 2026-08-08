@@ -883,6 +883,61 @@ approach; do not add a third alongside the archive's Terraform.
 harness and nothing runs them automatically. Before anyone deploys anything, `npm run verify` should
 run on every push.
 
+**HALF DONE 8 Aug 2026, and the other half is not mine to do.**
+
+`.github/workflows/verify.yml` at the repository root. Two jobs, because they fail for different reasons
+and the distinction is worth seeing at a glance:
+
+- **verify** — `npm ci` then `npm run verify` (typecheck, 264 tests, the simulation, the end-to-end smoke
+  suite) on a Node **20 and 24** matrix with `fail-fast: false`. 20 is the floor `package.json` declares
+  under `engines`; 24 is what the work was actually done on. Testing one of them leaves either the
+  declaration or the reality unchecked, and knowing a failure is version-specific is most of the diagnosis.
+- **build** — `npm run build`. Separate on purpose: **`verify` does not build, and the build is the only
+  check that protects the browser boundary.** `packages/qbank/index.ts` is browser-safe and `server.ts` is
+  the one that reaches the filesystem; re-exporting the wrong thing from the wrong file bundles `node:fs`
+  into the web app, which has happened before and is recorded in that file's own header. A typecheck does
+  not notice. A build does.
+
+`smoke.sh` needed nothing: it starts its own API on port 5199, waits for it and tears it down, and its
+header already said it was written to run in CI. It shells out to `python3` and `curl`, both present on
+`ubuntu-latest`.
+
+**Verified by running CI's exact sequence locally from a clean `npm ci`** rather than by reading the YAML
+and hoping: install, verify and build all exited 0. Worth doing because `npm ci` is not `npm install` —
+and it turned up one thing. npm 11 declines to run esbuild's `postinstall` without approval and prints a
+warning; the build **still** succeeded, because modern esbuild ships its platform binaries as optional
+dependencies rather than fetching them in a script. So the warning is noise rather than a CI blocker, on
+npm 11 and on the npm 10 that Node 20 ships. It would not have been obvious from the file.
+
+One YAML detail worth knowing rather than rediscovering: `on:` is quoted, because in YAML 1.1 a bare `on`
+is the boolean `true`, so `yaml.safe_load` returns a key of `True` and not `"on"`. GitHub's own parser
+accepts either. Nothing else reading the file should have to know that.
+
+**The acceptance criterion cannot be met by anyone on this side.** "A red test blocks a merge" needs a
+required status check, which is branch protection, which is a repository setting rather than a file. Felipe's
+account has `push` on `AadiTakle/aai-gt-selection` and **`admin: false`, `maintain: false`** — checked, not
+assumed. **Only Aadi can turn it on.** Until he does, the workflow reports and nothing enforces, which is
+strictly better than today and is not what the task asked for.
+
+What Aadi needs to do, once one run has gone green so the check names exist — note `main` **and** `dev`,
+since `dev` is what feature branches actually merge into:
+
+```bash
+for BRANCH in main dev; do
+  gh api -X PUT "repos/AadiTakle/aai-gt-selection/branches/$BRANCH/protection" \
+    -F "required_status_checks[strict]=true" \
+    -F "required_status_checks[contexts][]=verify (node 20)" \
+    -F "required_status_checks[contexts][]=verify (node 24)" \
+    -F "required_status_checks[contexts][]=web build" \
+    -F "enforce_admins=false" \
+    -F "required_pull_request_reviews=null" \
+    -F "restrictions=null"
+done
+```
+
+`enforce_admins=false` deliberately: this is a two-person project and locking an admin out of their own
+`main` at 2am is a worse failure than a bypassed check. Raise it when the team is bigger than the room.
+
 ---
 
 ## Suggested order
