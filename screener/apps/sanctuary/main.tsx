@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { Game } from './game/Game';
+import { AudioProvider } from './game/audio';
 import './game/game.css';
 
 /**
@@ -13,6 +14,8 @@ import './game/game.css';
  */
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Game />
+    <AudioProvider>
+      <Game />
+    </AudioProvider>
   </StrictMode>,
 );

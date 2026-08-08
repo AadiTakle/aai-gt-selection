@@ -1,0 +1,132 @@
+<!doctype html>
+<!--
+  TEMPORARY preview harness for the audio track. Not part of the app, not linked from it, safe to delete
+  once the integrator has wired `useAudio` into `Game.tsx`.
+
+  Served by the existing sanctuary vite config (root is apps/sanctuary), so it needs no config change and
+  touches no file this track does not own:
+
+      http://127.0.0.1:5230/game/audio/preview.html
+
+  A button per sound, so each can be heard in isolation, plus a hold-to-suck pad and a MEASURE button that
+  renders every graph in an OfflineAudioContext and prints peak/RMS/discontinuity figures. `verify.mjs`
+  drives that same button headlessly.
+
+  Query flags
+      ?quiet=1   pretend prefers-reduced-motion, to check the page starts muted
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>audio · preview</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #eec89a;
+        font: 14px/1.5 ui-rounded, 'Nunito', 'Quicksand', system-ui, sans-serif;
+        color: #4b3626;
+      }
+      #root {
+        padding: 1.4rem 1.4rem 4rem;
+        max-width: 62rem;
+      }
+      h1 {
+        font-size: 1.3rem;
+        margin: 0 0 0.2rem;
+      }
+      p.lead {
+        margin: 0 0 1.2rem;
+        color: #7a5c3f;
+        max-width: 44rem;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem;
+        margin: 0 0 1.1rem;
+      }
+      button.snd {
+        border: 0;
+        border-radius: 999px;
+        background: #fdf8ee;
+        box-shadow: 0 5px 0 #d9bd93;
+        color: #4a3218;
+        font: inherit;
+        font-weight: 800;
+        padding: 0.85rem 1.4rem;
+        cursor: pointer;
+      }
+      button.snd:active {
+        transform: translateY(2px);
+        box-shadow: 0 3px 0 #d9bd93;
+      }
+      button.snd.wide {
+        background: #ffd76b;
+        box-shadow: 0 5px 0 #e0ac3a;
+      }
+      button.snd.hold {
+        background: #b6e0c0;
+        box-shadow: 0 5px 0 #86b892;
+        padding: 1.3rem 2.4rem;
+      }
+      .card {
+        background: #fdf8eecc;
+        border-radius: 16px;
+        padding: 0.9rem 1.2rem;
+        margin: 0 0 1.1rem;
+        box-shadow: 0 6px 18px #8a5a3b22;
+      }
+      .card h2 {
+        font-size: 0.95rem;
+        margin: 0 0 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #8a7355;
+      }
+      pre {
+        margin: 0;
+        overflow-x: auto;
+        font: 12px/1.45 ui-monospace, 'SF Mono', Menlo, monospace;
+        color: #3f3226;
+      }
+      code {
+        background: #fff6e4;
+        border-radius: 5px;
+        padding: 0.05rem 0.3rem;
+      }
+      .state b {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!--
+      `?quiet=1` fakes prefers-reduced-motion, to check that the page starts muted.
+
+      IT HAS TO BE A CLASSIC SCRIPT IN THE MARKUP, not the top of `preview.tsx`, and this was a real mistake
+      worth leaving a note about: ES module imports are hoisted, so `mute.ts` is evaluated — and reads the
+      media query, once, at module scope — before any statement in the entry module's body runs. A patch at
+      the top of `preview.tsx` looks like it happens first and does not.
+
+      It also clears the stored preference, because a stored choice deliberately wins over the media query
+      (see `mute.ts`), so without this the flag would do nothing on any browser that had already been used
+      to press the mute button.
+    -->
+    <script>
+      if (new URLSearchParams(location.search).get('quiet') === '1') {
+        try {
+          localStorage.removeItem('gt-sanctuary:muted');
+        } catch {}
+        const real = window.matchMedia.bind(window);
+        window.matchMedia = (query) =>
+          query.includes('prefers-reduced-motion')
+            ? { matches: true, media: query, addEventListener() {}, removeEventListener() {} }
+            : real(query);
+      }
+    </script>
+    <script type="module" src="./preview.tsx"></script>
+  </body>
+</html>

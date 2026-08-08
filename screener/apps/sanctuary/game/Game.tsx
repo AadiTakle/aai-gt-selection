@@ -15,6 +15,8 @@ import { Slime, pushOutOfSlimes } from './slimes/Slime';
 import { Stations, STATION_SOLIDS } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
+import { useAudio, MuteButton } from './audio';
+import { useVacpackTank } from './vacpack';
 import { FAMILY_BATTERY, type Family as Fam } from './contract';
 
 /**
@@ -255,6 +257,48 @@ export function Game() {
   const { coins, earn, spend } = useCoins();
   const [flight, setFlight] = useState(0);
   const paidFor = useRef(0);
+  const audio = useAudio();
+  const { held } = useVacpackTank();
+  const heldWas = useRef(0);
+
+  /**
+   * The release sound.
+   *
+   * The vacpack reports a capture and a landing but never the launch itself, and `onRelease` fires at
+   * the END of the bounce, so it is the landing rather than the plop. The tank is shifted at launch,
+   * so a drop in what it holds IS a release. This also correctly stays silent when the button is
+   * pressed with an empty tank, where the game deliberately makes no sound.
+   */
+  useEffect(() => {
+    if (held.length < heldWas.current) audio.plop();
+    heldWas.current = held.length;
+  }, [held.length, audio]);
+
+  /**
+   * Suction, gated on exactly the same condition as the vacpack itself. The stop must also fire when
+   * that condition goes false, or engaging a station mid-draw leaves the loop running under the
+   * question. It is idempotent, so stopping defensively costs nothing.
+   */
+  const canVac = locked && !engaged && !shopOpen;
+  useEffect(() => {
+    if (!canVac) {
+      audio.suckStop();
+      return;
+    }
+    const down = (e: MouseEvent) => {
+      if (e.button === 0) audio.suckStart();
+    };
+    const up = (e: MouseEvent) => {
+      if (e.button === 0) audio.suckStop();
+    };
+    window.addEventListener('mousedown', down);
+    window.addEventListener('mouseup', up);
+    return () => {
+      window.removeEventListener('mousedown', down);
+      window.removeEventListener('mouseup', up);
+      audio.suckStop();
+    };
+  }, [canVac, audio]);
   const [live, setLive] = useState<LiveItem | null>(null);
   const [cares, setCares] = useState(0);
 
@@ -435,8 +479,15 @@ export function Game() {
         />
         <Vacpack
           enabled={locked && !engaged && !shopOpen}
-          onCapture={takeSlime}
-          onRelease={(family, position) => putSlime(family, position)}
+          onCapture={(id) => {
+            audio.squish();
+            takeSlime(id);
+          }}
+          // Fires at the end of the bounce, so this is the landing rather than the launch.
+          onRelease={(family, position) => {
+            audio.land();
+            putSlime(family, position);
+          }}
         />
         <Stations
           engaged={engaged}
@@ -462,6 +513,7 @@ export function Game() {
               if (n <= paidFor.current) return;
               paidFor.current = n;
               earn(EARN.perAnswer);
+              audio.coin?.();
               setFlight((f) => f + 1);
             }}
             report={setLive}
@@ -473,6 +525,8 @@ export function Game() {
               // guarantee; the delay is only so the hatch has time to play.
               setLive(null);
               earn(EARN.perRound);
+              audio.coin?.();
+              audio.hatch?.();
               setFlight((f) => f + 1);
               paidFor.current = 0;
               window.setTimeout(() => setEngaged(null), 2600);
@@ -485,6 +539,7 @@ export function Game() {
       {!engaged && !shopOpen && (
         <div className="bh-hud">
           <Purse />
+          <MuteButton />
           <p className="bh-cares">{cares} looked after</p>
           <p className="bh-cares">Walk up to the barn wall, the spring or the log</p>
         </div>

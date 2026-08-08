@@ -2,7 +2,6 @@ import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef, type JSX } from 'react';
 import {
   CylinderGeometry,
-  DoubleSide,
   MeshStandardMaterial,
   Shape,
   ShapeGeometry,
@@ -14,6 +13,18 @@ import {
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 import { breath } from '../screener/theme';
+import {
+  churnGeometry,
+  churnMaterial,
+  fallGeometry,
+  fallingStream,
+  flowingWater,
+  foamRingMaterial,
+  splashRing,
+  splashRingGeometry,
+  useWaterClock,
+  waterClock,
+} from '../world/water';
 import type { StationSite } from './sites';
 
 /**
@@ -611,23 +622,77 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
       flume: new RoundedBoxGeometry(1.15, 0.16, 0.38, 2, 0.06),
       flumePost: new CylinderGeometry(0.09, 0.12, 1, 8),
       nozzle: new CylinderGeometry(0.06, 0.075, 0.22, 10),
-      fall: new CylinderGeometry(0.045, 0.07, 1, 8, 1, true),
-      splash: new TorusGeometry(0.16, 0.022, 6, 20),
+      fall: fallGeometry(),
+      /** The inner thread, narrower and scrolling faster. See `spring` below. */
+      thread: fallGeometry(0.022, 0.014),
+      splash: splashRingGeometry(),
+      churn: churnGeometry(),
       stone: new SphereGeometry(0.26, 10, 8),
       reed: new CylinderGeometry(0.018, 0.032, 0.8, 5),
     }),
     [basin.w, basin.d, basin.wall, basin.height],
   );
 
-  useFrame(({ clock }) => {
-    if (reduced || !surface.current) return;
-    // A slow swell rather than a scrolling normal map: eight millimetres, which is all a fed basin does
-    // and enough that the surface is never mistaken for a painted lid.
-    surface.current.position.y = waterY + Math.sin(clock.elapsedTime * 0.9) * 0.008;
-  });
-
   /** Where the flume's nozzle sits, and therefore how far the water falls. */
   const nozzleY = waterY + 0.92;
+
+  /**
+   * THE SPRING, WHICH NOW RUNS. Everything about how it moves lives in `world/water.ts`; what belongs
+   * here is only the arithmetic that connects the water to this particular basin.
+   *
+   * The one number that has to be got right is the impact point, and it has to be expressed in the pool
+   * mesh's own frame rather than the station's. The pool is a `ShapeGeometry` laid flat by a -90° turn
+   * about X, so its UVs are metres in its local X/Y, and that turn maps local `+Y` to world `-Z`. The
+   * flume group stands at station-local x = `-basin.w/2 - 0.25` and the fall hangs at `+0.63` inside it,
+   * while the pool mesh's origin sits at z = `basin.z`. Hence `u` is the station-local x of the fall and
+   * `v` is `basin.z` minus its station-local z — a subtraction, not an addition, and getting that sign
+   * wrong puts the ripple rings 26cm downstream of the splash they are supposed to be caused by.
+   *
+   * Derived from the same expressions that place the meshes below rather than typed as constants, so the
+   * rings cannot drift away from the fall if the flume is ever nudged.
+   */
+  const fallAt = { x: -basin.w / 2 - 0.25 + 0.63, z: basin.z + 0.15 - 0.02 };
+  const spring = useMemo(() => {
+    const inner = { w: basin.w - basin.wall * 2 + 0.06, d: basin.d - basin.wall * 2 + 0.06 };
+    return {
+      surface: flowingWater({
+        impact: [fallAt.x, basin.z - fallAt.z],
+        half: [inner.w / 2, inner.d / 2],
+        impactRadius: 0.3,
+        // Downstream is away from the flume, which stands at the basin's -X end, and a touch across.
+        flow: [1, 0.2],
+      }),
+      fall: fallingStream(),
+      churn: churnMaterial(),
+      // One material per ring, not one shared between them: they carry different opacities at any
+      // instant, and sharing would make the second ring overwrite the first every frame so both pulsed
+      // as one. Two `MeshBasicMaterial`s is a rounding error against being able to see the effect.
+      foam: [foamRingMaterial(), foamRingMaterial()],
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [basin.w, basin.d, basin.wall, basin.z, fallAt.x, fallAt.z]);
+
+  /** One tick for every piece of water in the world. */
+  useWaterClock(reduced);
+  const rings = useRef<(Mesh | null)[]>([null, null]);
+
+  useFrame(() => {
+    const t = waterClock().value;
+    // The swell stays, at eight millimetres, because a fed basin does rise and fall — but it is the one
+    // thing here that OSCILLATES, so `prefers-reduced-motion` takes it and leaves the flow running.
+    if (surface.current) {
+      surface.current.position.y = reduced ? waterY : waterY + Math.sin(t * 0.9) * 0.008;
+    }
+    // Two foam rings leaving the impact, half a period apart, driven from the same clock as the shader's
+    // rings so the physical ring and the shaded one are the same piece of water.
+    rings.current.forEach((ring, i) => {
+      if (!ring) return;
+      const { radius, opacity } = splashRing(t, i, reduced);
+      ring.scale.set(radius, radius, 1);
+      const mat = spring.foam[i];
+      if (mat) mat.opacity = opacity;
+    });
+  });
 
   return (
     <group>
@@ -659,10 +724,11 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
         position={[0, waterY - 0.24, basin.z]}
         receiveShadow
       />
+      {/* The surface. One draw call, and everything that makes it read as running is in its material. */}
       <mesh
         ref={surface}
         geometry={g.water}
-        material={m.water}
+        material={spring.surface.material}
         position={[0, waterY, basin.z]}
         rotation={[-Math.PI / 2, 0, 0]}
       />
@@ -701,25 +767,52 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
           castShadow
         />
         <mesh geometry={g.nozzle} material={m.timberDeep} position={[0.56, nozzleY + 0.02, -0.02]} rotation={[0, 0, 0.3]} />
+
+        {/*
+          THE FALL, as two nested tubes rather than one.
+          The outer one is the body of the water and the inner thread runs 1.6x faster and is offset a
+          centimetre forward, so the two slide past each other. That parallax is the whole reason there
+          are two: a single tube, however well shaded, moves as one rigid object, and one rigid object
+          moving downward reads as a lift rather than as a liquid. It costs one extra draw call.
+        */}
         <mesh
           geometry={g.fall}
+          material={spring.fall.material}
           position={[0.63, (nozzleY + waterY) / 2, -0.02]}
           scale={[1, Math.max(0.1, nozzleY - waterY), 1]}
-        >
-          <meshStandardMaterial
-            color="#bfe2ee"
-            roughness={0.12}
-            metalness={0}
-            transparent
-            opacity={0.6}
-            side={DoubleSide}
+        />
+        <mesh
+          geometry={g.thread}
+          material={spring.fall.material}
+          position={[0.655, (nozzleY + waterY) / 2 + 0.03, 0.005]}
+          scale={[1, Math.max(0.1, nozzleY - waterY) * 0.94, 1]}
+        />
+
+        {/*
+          Where it lands: a churning patch, and two foam rings leaving it.
+          The travelling ripples and the specular arcs that race away from here are drawn by the surface's
+          own shader, from the same impact point and the same clock — so these meshes add the bright
+          physical churn the shader cannot show and nothing is drawn twice.
+        */}
+        <mesh
+          geometry={g.churn}
+          material={spring.churn.material}
+          position={[0.63, waterY + 0.008, -0.02]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          scale={[0.27, 0.27, 1]}
+        />
+        {[0, 1].map((i) => (
+          <mesh
+            key={i}
+            ref={(mesh) => {
+              rings.current[i] = mesh;
+            }}
+            geometry={g.splash}
+            material={spring.foam[i]}
+            position={[0.63, waterY + 0.014, -0.02]}
+            rotation={[-Math.PI / 2, 0, 0]}
           />
-        </mesh>
-        {/* Where it lands. One ring is enough; it is the only thing in the basin that tells a child the
-            water is moving. */}
-        <mesh geometry={g.splash} position={[0.63, waterY + 0.012, -0.02]} rotation={[-Math.PI / 2, 0, 0]}>
-          <meshStandardMaterial color="#e6f4f8" roughness={0.3} transparent opacity={0.65} />
-        </mesh>
+        ))}
       </group>
 
       {/* Reeds at the far corners. Nothing structural: they are how the eye reads "water" from a distance
