@@ -64,6 +64,39 @@ describe('the option count comes off the item', () => {
     for (const c of counts) expect(c).not.toBeNull();
   });
 
+  it('finds the option list when the type calls it something other than options', () => {
+    /**
+     * Three types hold a perfectly ordinary keyed option list under their own field name. Treating them
+     * as unenumerable puts them on the unguessable floor, which is wrong by a lot: FLU-DEDUCE-01 offers
+     * between four and eight candidates and a child picking blind is right up to a quarter of the time.
+     */
+    const shapes: [string, string][] = [
+      ['FLU-DEDUCE-01', 'candidates'],
+      ['FLU-ODDPAIR-01', 'rows'],
+      ['GB-FLAWFINDER-01', 'claims'],
+    ];
+    for (const [typeCode, field] of shapes) {
+      const counts = new Set<number | null>();
+      for (const item of itemsOf(typeCode)) {
+        const expected = (item.content[field] as unknown[]).length;
+        expect(optionCountOf(item), `${typeCode} ${item.itemId}`).toBe(expected);
+        counts.add(expected);
+      }
+      // Each of the three varies across its items, so a per-type constant would be wrong too.
+      expect(counts.size, `${typeCode} should not have one fixed count`).toBeGreaterThan(1);
+    }
+  });
+
+  it('counts a compound yes/no response as its whole response space', () => {
+    // FLU-CONCEPT-01 asks three yes/no probes and keys the lot as one string, 'YNN'. Marking is
+    // all-or-nothing, so a child answering at random is right one time in eight, not one in three.
+    for (const item of itemsOf('FLU-CONCEPT-01')) {
+      const probes = (item.content.probes as unknown[]).length;
+      expect(probes).toBe(3);
+      expect(optionCountOf(item), item.itemId).toBe(8);
+    }
+  });
+
   it('says null rather than guessing when the content enumerates no options', () => {
     // SPA-MAZE-01 answers are paths and SPA-TANGRAM-01 answers are placements. Neither has an option
     // set, so there is no 1/n to report and inventing one is the bug this test exists to prevent.
@@ -124,6 +157,25 @@ describe('both call sites use that count', () => {
 
     expect(asTwo.mean()).not.toBeCloseTo(asFour.mean(), 6);
     expect(session.state().estimate).toBeCloseTo(asTwo.mean(), 10);
+  });
+
+  it('treats an item that enumerates no options as unguessable', () => {
+    /**
+     * Decided by Felipe, 8 Aug 2026: an answer that is an assignment, a path, a set of rotations or a
+     * placement is assumed unguessable, so c is 0 rather than the 1/4 that a four-option default
+     * implied. `paramsFor` already yields c = 0 when handed no options.
+     */
+    for (const typeCode of ['SPA-MAZE-01', 'CX-check-01']) {
+      const serve = sessionOver(typeCode).nextItem();
+      expect(serve, `expected ${typeCode} to be servable`).not.toBeNull();
+
+      const b = toLogits(serve!.difficulty);
+      const unguessable = information(CONFIG.abilityThreshold, paramsFor(b, 0, 1.5));
+      const asFour = information(CONFIG.abilityThreshold, paramsFor(b, 4, 1.5));
+
+      expect(unguessable).not.toBeCloseTo(asFour, 6);
+      expect(serve!.informationAtThreshold, typeCode).toBeCloseTo(unguessable, 10);
+    }
   });
 
   it('leaves the posterior alone on a wrong answer, whatever the option count', () => {

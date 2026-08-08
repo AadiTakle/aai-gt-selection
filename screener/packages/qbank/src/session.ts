@@ -166,19 +166,25 @@ const DOMAINS: readonly Domain[] = ['quantitative', 'verbal', 'spatial', 'fluid'
 const FIXED_DISCRIMINATION = 1.5;
 
 /**
- * What to assume when an item does not enumerate its options.
+ * What to assume when an item does not enumerate its options: that it cannot be guessed.
  *
- * Four types answer with something that is not a choice from a list — CX-check-01 assigns tokens to
- * bins, SPA-MAZE-01 traces a path, SPA-PIPES-01 sets rotations, SPA-TANGRAM-01 places pieces — and
- * `optionCountOf` returns null for their 420 servable items. A uniform guess over n options is not the
- * right model for any of them, and the honest floor is probably nearer 0 than 0.25.
+ * **Decided by Felipe, 8 Aug 2026.** Four types answer with something that is not a choice from a list
+ * — `CX-check-01` assigns tokens to bins, `SPA-MAZE-01` traces a path, `SPA-PIPES-01` sets rotations,
+ * `SPA-TANGRAM-01` places pieces — and `optionCountOf` returns null for their 420 servable items. There
+ * is no n for a 1/n floor, so they are treated as unguessable and c is 0. `paramsFor` already returns
+ * `c = 0` when handed no options, which is why this is expressed as a count rather than a floor.
  *
- * Holding at 4 keeps those items behaving exactly as they did before the option count was threaded
- * through, so this change moves only the items whose count is known. **It is a placeholder, and it is
- * the one open decision in 1a.5.** Whoever settles it should record why, next to the config fields
- * that already carry the same warning.
+ * **This is an assumption, not a measurement, and it is deliberately generous.** A response space that
+ * is large is not a response space that is impossible: a small maze has few plausible routes and a
+ * six-token sort has 2^6 assignments, some of which a child will stumble into. c = 0 says none of that
+ * happens, so a lucky answer is read as knowledge. The consequence is that these items look more
+ * informative than any multiple-choice item at the same difficulty and selection prefers them
+ * accordingly — see the 1a.5 entry in `docs/handoff/engine-portability-todo.md` for how strongly.
+ *
+ * Revisit alongside `abilityThreshold` and `recommendProbability`, which carry the same warning: an
+ * unvalidated number chosen deliberately, in the direction of passing rather than rejecting.
  */
-const ASSUMED_OPTION_COUNT = 4;
+const UNGUESSABLE = 0;
 
 export class QbankSession {
   private readonly posterior = new Posterior();
@@ -219,7 +225,7 @@ export class QbankSession {
    * and corrupts the estimate rather than failing.
    */
   private paramsOf(b: number, record: BankRecord): ItemParams {
-    return paramsFor(b, optionCountOf(record) ?? ASSUMED_OPTION_COUNT, FIXED_DISCRIMINATION);
+    return paramsFor(b, optionCountOf(record) ?? UNGUESSABLE, FIXED_DISCRIMINATION);
   }
 
   getAttempts(): readonly QbankAttempt[] {

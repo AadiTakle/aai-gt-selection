@@ -209,22 +209,55 @@ transcript and wonders why the spatial types with eight options keep coming up.
    against the unfixed code, which is exactly the false negative TDD is meant to catch. Both directions
    are now pinned in `option-count.test.ts`.
 
-**The one open decision, left open deliberately.** 420 servable items across four types answer with
-something that is not a choice from a list — `CX-check-01` assigns tokens to bins, `SPA-MAZE-01` traces
-a path, `SPA-PIPES-01` sets rotations, `SPA-TANGRAM-01` places pieces. `optionCountOf` returns null for
-all of them and `session.ts` falls back to a named `ASSUMED_OPTION_COUNT = 4`, which keeps them behaving
-exactly as they did before this change. A uniform guess over four options is not the right model for any
-of them and the honest floor is probably nearer 0. I did not pick a number, because moving it changes
-who passes and that is a measurement decision, not a refactor. Note that `paramsFor(b, 0)` already
-yields `c = 0` if that is the answer.
+**RESOLVED: an item that enumerates nothing is treated as unguessable, c = 0.** Decided by Felipe,
+8 Aug 2026 — "assume they're unguessable for now". `session.ts` uses a named `UNGUESSABLE` and
+`paramsFor` already yields `c = 0` when handed no options. It applies to **528 items across five
+types**: `CX-check-01` (assigns tokens to bins), `SPA-MAZE-01` (a path), `SPA-PIPES-01` (rotations),
+`SPA-TANGRAM-01` (a placement) and `SPA-HIDDENCUBE-01` (a 0-60 stepper, so 61 outcomes and a true floor
+of 0.016, near enough to 0 to leave alone).
 
-Three further types are countable but only by reading a second field: `FLU-DEDUCE-01` has
-`candidates`/`candidateCount` (120 items), `FLU-ODDPAIR-01` has `rows`/`rowCount` (120), and
-`GB-FLAWFINDER-01` has `claims`/`claimCount` (120). `SPA-HIDDENCUBE-01` (108) answers over a numeric
-`response` range, and `FLU-CONCEPT-01` (78) gives three yes/no probes, so its response space is 8 and
-not 3. All five are left on the fallback: each is a modelling judgement rather than a lookup, and
-guessing at five of them to save one config decision is how the bank got a placement ratio marked as an
-option index in the first place.
+It is an assumption and a generous one. A large response space is not an impossible one: a small maze
+has few plausible routes, and a six-token sort has 2^6 assignments a child can stumble into. c = 0 says
+that never happens, so a lucky answer is read as knowledge. That is the same direction as everything
+else here — eager to pass, reluctant to rule out — but it should be revisited with
+`abilityThreshold` and `recommendProbability` rather than treated as settled.
+
+**Deciding this first exposed a bug in my own change, which is why it is worth writing down.** Five of
+the nine types that `optionCountOf` originally returned null for are perfectly ordinary multiple choice;
+they just named the list after the thing being chosen. Putting them on the unguessable floor was flatly
+wrong, and worse than the literal 4 it replaced — `FLU-DEDUCE-01` offers four to eight candidates, so
+the old default was accidentally exact for a third of them. Now read directly:
+
+| Type | Field | Counts | Items |
+|---|---|---|---|
+| `FLU-DEDUCE-01` | `candidates` | 4-8 | 120 |
+| `FLU-ODDPAIR-01` | `rows` | 4-6 | 120 |
+| `GB-FLAWFINDER-01` | `claims` | 3-4 | 120 |
+| `FLU-CONCEPT-01` | `probes`, 2^n | 8 | 78 |
+
+`FLU-CONCEPT-01` needed thought rather than a lookup: it asks three independent yes/no probes and keys
+all three as one string (`'YNN'`). Marking is all-or-nothing, so the space is 2^3 and reporting 3 would
+claim a child guesses right a third of the time when it is an eighth.
+
+**The consequence of c = 0, and it needs a decision of its own.** Across the whole pool, 2,542 of 5,034
+items now compute a different information than the old literal 4 did. The five unguessable types are
+**100% of the 20 and 50 most-informative items and 69% of the top 200**. Max information at c = 0 is
+`0.25a²` against `0.15a²` at c = 0.25, so an unguessable item beats every multiple-choice item at the
+same difficulty, by a lot. Left alone, greedy selection serves these five types almost exclusively in
+the spatial and fluid slots.
+
+**And all five are unmapped to CogAT.** `SPA-MAZE-01`, `SPA-PIPES-01`, `SPA-TANGRAM-01` and
+`SPA-HIDDENCUBE-01` are in the unmapped spatial list in section 2, and `CX-check-01` is in the unmapped
+context pair. So the honest guessing model points selection directly at the types with no CogAT
+alignment, which runs against requirement 2 and against the pool filter 2.3 is meant to add. The
+per-domain floor in `session.ts:222-226` limits the damage to the spatial and fluid slots and does
+nothing within them.
+
+Three ways out, none of them chosen here: give the stepper and the sort their real spaces (1/61, 1/2^n)
+so they stop being strictly dominant; land 2.3 and filter the pool to mapped types for any
+CogAT-aligned instrument; or cap per type as well as per domain. Worth settling before 1a.4, because
+per-domain intervals computed off a spatial slot made entirely of maze and tangram items will read as a
+spatial finding and will not be one.
 
 **Task 1a.6 — Calibrate discrimination from response data.** Needs real attempts. Until then keep it
 fixed and say so; `@gt/stats` already computes point-biserial per item

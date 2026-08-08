@@ -40,11 +40,20 @@ Only 2,373 of 5,034 servable items had four options. **1,695 items changed infor
 the 50 most-informative items survived** — selection now prefers many-option items, correctly, but it is
 a real change in what gets served. Full write-up in the 1a.5 entry of `engine-portability-todo.md`.
 
-**Open decision, not mine to make:** 420 items across `CX-check-01`, `SPA-MAZE-01`, `SPA-PIPES-01` and
-`SPA-TANGRAM-01` answer with an assignment, a path, rotations or a placement, not a choice from a list.
-They sit on a named `ASSUMED_OPTION_COUNT = 4` that preserves today's behaviour. The honest floor is
-probably nearer 0. Five more types (426 items) are countable only by reading a second field or by
-working out a compound response space; all are on the fallback pending the same decision.
+**Resolved 8 Aug (Felipe): an item that enumerates nothing is unguessable, c = 0.** Applies to 528 items
+across `CX-check-01`, `SPA-MAZE-01`, `SPA-PIPES-01`, `SPA-TANGRAM-01` and `SPA-HIDDENCUBE-01`, via a
+named `UNGUESSABLE` in `session.ts`. Four other types name their option list `candidates`, `rows` or
+`claims` and are now read directly; `FLU-CONCEPT-01` counts 2^probes because its three yes/no probes are
+keyed as one all-or-nothing string.
+
+**New decision this created, and it should be settled before task 3 (`1a.4`).** Those five unguessable
+types are **100% of the 50 most-informative items and 69% of the top 200**, because max information at
+c = 0 is `0.25a²` against `0.15a²` at c = 0.25. Greedy selection will serve them almost exclusively in
+the spatial and fluid slots. **All five are unmapped to CogAT** (see `2.2`), so the honest guessing model
+points selection at exactly the types with no alignment, against requirement 2. Options: give the
+stepper and the sort their real spaces (1/61, 1/2^n); land `2.3` and filter to mapped types; or cap per
+type as well as per domain. `1a.4`'s per-domain intervals will otherwise report a spatial band computed
+from maze and tangram items only.
 
 **Also found, and it blocks task 13:** `npm run sim` never touches qbank, so `1b.8` cannot baseline off
 it as written. See the 1a.5 entry.

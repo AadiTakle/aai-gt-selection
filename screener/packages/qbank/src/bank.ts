@@ -217,8 +217,27 @@ export function scoreResponse(record: BankRecord, response: unknown): boolean | 
  * inventing a number here.
  */
 export function optionCountOf(record: BankRecord): number | null {
-  const options = record.content?.options;
-  if (Array.isArray(options) && options.length > 0) return options.length;
+  const content = record.content ?? {};
+
+  /**
+   * The 53 types were written independently and three of them named their option list after the thing
+   * being chosen rather than calling it `options`. They are ordinary keyed lists — `FLU-DEDUCE-01`
+   * offers 4 to 8 candidates, `FLU-ODDPAIR-01` 4 to 6 rows, `GB-FLAWFINDER-01` 3 or 4 claims — so
+   * missing them would put 360 perfectly guessable items on the unguessable floor.
+   */
+  for (const field of ['options', 'candidates', 'rows', 'claims']) {
+    const list = content[field];
+    if (Array.isArray(list) && list.length > 0) return list.length;
+  }
+
+  /**
+   * `FLU-CONCEPT-01` asks three independent yes/no probes and keys all three as one string (`'YNN'`).
+   * Marking is all-or-nothing, so the space a blind answer is drawn from is 2^probes, and reporting 3
+   * here would say a child guesses right a third of the time when it is an eighth.
+   */
+  const probes = content.probes;
+  if (Array.isArray(probes) && probes.length > 0) return 2 ** probes.length;
+
   return null;
 }
 
