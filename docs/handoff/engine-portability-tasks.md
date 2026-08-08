@@ -23,13 +23,31 @@ three invariant tests in `numeric-key.test.ts`, not a one-off script. Full write
 counts it corrected and a scope change it found for `1b.6`, is in the `1b.7` entry of
 `engine-portability-todo.md`.
 
-### 2. `1a.5` — Pass the real option count
+### 2. `1a.5` — Pass the real option count — **DONE 8 Aug 2026**
 - `packages/qbank/src/session.ts:231` and the `submit()` update call both hardcode
   `paramsFor(..., 4, 1.5)`.
 - Read the option count off item content; thread it through to `paramsFor`.
 - Leave discrimination at 1.5 and comment that it is fixed, not calibrated.
 - **Done when:** no literal `4` for option count remains in selection or update, and tests cover a
   non-4-option type.
+
+`optionCountOf` in `bank.ts` reads `content.options` and returns null when nothing is enumerated. Both
+sites go through one private `paramsOf` so selection and the update cannot diverge. Discrimination is
+now `FIXED_DISCRIMINATION` with the 1a.6 comment. Tests in `option-count.test.ts` cover 2-, 5- and
+mixed-count types; 206 tests pass.
+
+Only 2,373 of 5,034 servable items had four options. **1,695 items changed information, and only 7 of
+the 50 most-informative items survived** — selection now prefers many-option items, correctly, but it is
+a real change in what gets served. Full write-up in the 1a.5 entry of `engine-portability-todo.md`.
+
+**Open decision, not mine to make:** 420 items across `CX-check-01`, `SPA-MAZE-01`, `SPA-PIPES-01` and
+`SPA-TANGRAM-01` answer with an assignment, a path, rotations or a placement, not a choice from a list.
+They sit on a named `ASSUMED_OPTION_COUNT = 4` that preserves today's behaviour. The honest floor is
+probably nearer 0. Five more types (426 items) are countable only by reading a second field or by
+working out a compound response space; all are on the fallback pending the same decision.
+
+**Also found, and it blocks task 13:** `npm run sim` never touches qbank, so `1b.8` cannot baseline off
+it as written. See the 1a.5 entry.
 
 ### 3. `1a.4` — Hold and report a confidence interval per domain
 - Four `Posterior` instances, one per domain, each updated only by its own domain's items.
@@ -109,6 +127,13 @@ Numbers below marked *(measured 8 Aug)* were taken during `1b.7`; the rest still
 
 ### 13. `1b.8` — Measure whether lure weighting is worth doing, before doing it
 Gates `1b.2` and `1b.1`. Throwaway code; do not merge the weighting itself from this task.
+
+**Blocked as written (found 8 Aug during `1a.5`).** The *Baseline* step below says to run
+`packages/engine/src/harness/` unchanged. That harness contains no reference to `qbank`,
+`QbankSession` or `loadBanks` — it simulates the generator engine, so it cannot measure a change to
+bank scoring. Proof: a change that reordered 1,695 bank items left `npm run sim` byte-identical. Either
+give the harness a bank-backed mode first, or measure through `apps/lab-system/verify-showcase.ts`,
+which does play real bank sessions per age band. Settle this before starting.
 
 - **Coverage.** 6,928 of 7,319 items carry `answer.distractorRationales`, but that is the count that
   *carries* the data, not the count where you can look up the class the child picked. On the 21

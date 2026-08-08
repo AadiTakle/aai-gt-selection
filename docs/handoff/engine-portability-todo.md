@@ -165,6 +165,67 @@ is and a 6-option item as harder. Discrimination is invented outright.
 **Task 1a.5 — Pass the real option count.** It is available on the item content. Cheap, and it makes
 every probability in the model less wrong.
 
+**DONE 8 Aug 2026 — cheap to write, and it moves selection much more than "less wrong" suggests.**
+
+`optionCountOf` in `bank.ts` reads the count off `content.options` and returns **null** rather than a
+number when the content enumerates nothing. Both call sites now go through one private `paramsOf` in
+`session.ts`, so selection and the posterior update cannot drift apart — if they ever computed the
+guessing floor differently the engine would choose an item under one model and score it under another,
+which fails invisibly. Discrimination stays at 1.5 behind a named `FIXED_DISCRIMINATION` with the
+comment 1a.6 will need.
+
+**How wrong the literal 4 was.** Of the 5,034 servable records only **2,373 have four options**.
+Counts run 2 to 8. `QUANT-DOTS-01` is 120 left/right comparisons — a coin flip modelled as a 25% guess.
+`FLU-OPCHAIN-01` is 468 five-option items, `SPA-XFORM-01` another 234.
+
+**The measured effect on selection, which is larger than I expected:**
+
+| | |
+|---|---|
+| Items whose information changed | **1,695 of 5,034** |
+| First pick, whole pool at threshold 1.0 | `CX-check-01` → `SPA-VIEW-01` (8 options) |
+| Overlap in the 50 most-informative items | **7 of 50** |
+
+More options means less guessing contamination means more information, so **the engine now
+systematically prefers items with more options.** That is the correct consequence of a correct model,
+but it is a real change in what a child is shown, and it interacts with the coverage floor in
+`session.ts:222-226` rather than being neutral to it. Worth a look before anyone reads a session
+transcript and wonders why the spatial types with eight options keep coming up.
+
+**Two things this turned up that are not about 1a.5.**
+
+1. **`npm run sim` does not exercise the qbank engine at all.** `packages/engine/src/harness/` contains
+   no reference to `qbank`, `QbankSession` or `loadBanks`; it simulates the generator engine. The
+   simulation output was byte-identical before and after a change that reorders most of the bank's
+   selection, which is how I noticed. **This breaks 1b.8's plan as written** — it says to take a
+   baseline off the simulation harness and report the change in pass rate per age band, but lure
+   weighting is a qbank scoring change and the harness never runs qbank. Either the harness grows a
+   bank-backed mode first, or 1b.8 measures through `verify-showcase.ts` instead. Decide before
+   starting 1b.8; the task is otherwise unrunnable.
+2. **The guessing floor cannot affect a wrong answer.** For an incorrect response the 3PL likelihood is
+   `(1-c)(1-logistic)`, and `(1-c)` is constant in theta, so it divides out in normalisation. The option
+   count therefore changes the posterior **only on items the candidate got right**, and changes selection
+   on every item. My first version of the test asserted a difference after a wrong answer and passed
+   against the unfixed code, which is exactly the false negative TDD is meant to catch. Both directions
+   are now pinned in `option-count.test.ts`.
+
+**The one open decision, left open deliberately.** 420 servable items across four types answer with
+something that is not a choice from a list — `CX-check-01` assigns tokens to bins, `SPA-MAZE-01` traces
+a path, `SPA-PIPES-01` sets rotations, `SPA-TANGRAM-01` places pieces. `optionCountOf` returns null for
+all of them and `session.ts` falls back to a named `ASSUMED_OPTION_COUNT = 4`, which keeps them behaving
+exactly as they did before this change. A uniform guess over four options is not the right model for any
+of them and the honest floor is probably nearer 0. I did not pick a number, because moving it changes
+who passes and that is a measurement decision, not a refactor. Note that `paramsFor(b, 0)` already
+yields `c = 0` if that is the answer.
+
+Three further types are countable but only by reading a second field: `FLU-DEDUCE-01` has
+`candidates`/`candidateCount` (120 items), `FLU-ODDPAIR-01` has `rows`/`rowCount` (120), and
+`GB-FLAWFINDER-01` has `claims`/`claimCount` (120). `SPA-HIDDENCUBE-01` (108) answers over a numeric
+`response` range, and `FLU-CONCEPT-01` (78) gives three yes/no probes, so its response space is 8 and
+not 3. All five are left on the fallback: each is a modelling judgement rather than a lookup, and
+guessing at five of them to save one config decision is how the bank got a placement ratio marked as an
+option index in the first place.
+
 **Task 1a.6 — Calibrate discrimination from response data.** Needs real attempts. Until then keep it
 fixed and say so; `@gt/stats` already computes point-biserial per item
 (`screener/packages/stats/src/index.ts:85-115`), which is the input.
