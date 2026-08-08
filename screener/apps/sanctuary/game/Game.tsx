@@ -3,9 +3,10 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import * as THREE from 'three';
 
 import { toRef } from '../shared/ItemStage';
-import { typesFor, verbFor, type Battery } from '../shared/batteries';
+import { VERBS, typesFor, verbFor, type Battery } from '../shared/batteries';
 import { useSortie } from '../shared/useSortie';
 import { FAMILIES, type Family } from './contract';
+import { PodWall } from './screener/PodWall';
 
 /**
  * A deliberately self-contained playable slice.
@@ -203,7 +204,7 @@ function Ranch() {
 }
 
 /** First person: WASD, mouse look on pointer lock, space to jump. Tuned gentle for a child. */
-function Keeper({ locked }: { locked: boolean }) {
+function Keeper({ locked, viewing = false }: { locked: boolean; viewing?: boolean }) {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
   const vy = useRef(0);
@@ -232,6 +233,18 @@ function Keeper({ locked }: { locked: boolean }) {
 
   useFrame((_, dt) => {
     const step = Math.min(dt, 0.05);
+
+    // While an item is up, glide to a fixed vantage that frames it. A child should never have to
+    // aim the camera to find the thing they are being asked about.
+    if (viewing) {
+      const target = new THREE.Vector3(0, 3.0, -4.6);
+      camera.position.lerp(target, Math.min(1, step * 3.2));
+      yaw.current += (0 - yaw.current) * Math.min(1, step * 3.2);
+      pitch.current += (-0.06 - pitch.current) * Math.min(1, step * 3.2);
+      camera.rotation.set(pitch.current, yaw.current, 0, 'YXZ');
+      return;
+    }
+
     camera.rotation.set(pitch.current, yaw.current, 0, 'YXZ');
     if (!locked) return;
 
@@ -268,8 +281,26 @@ function Keeper({ locked }: { locked: boolean }) {
  * score, correct or wrong, and nothing here can react to correctness because `useSortie` deletes it
  * before returning. Options are drawn as large tiles a child can hit without precision.
  */
-function Beat({ battery, onDone }: { battery: Battery; onDone: () => void }) {
-  const types = useMemo(() => typesFor(battery), [battery]);
+export interface LiveItem {
+  serve: NonNullable<ReturnType<typeof useSortie>['serve']>;
+  asking: boolean;
+  answer: ReturnType<typeof useSortie>['answer'];
+}
+
+function Beat({
+  verbId,
+  onDone,
+  report,
+}: {
+  verbId: string;
+  onDone: () => void;
+  report: (live: LiveItem | null) => void;
+}) {
+  const verb = useMemo(() => VERBS.find((v) => v.id === verbId), [verbId]);
+  const battery: Battery = verb?.battery ?? 'Nonverbal';
+  // One type per verb. Coverage of a battery comes from doing its several verbs across visits, not
+  // from mixing types inside one sitting.
+  const types = useMemo(() => (verb ? [verb.typeCode] : typesFor(battery)), [verb, battery]);
   const s = useSortie({ battery, types, threshold: -1.5, precisionIndex: 0, settleMs: 900 });
 
   useEffect(() => {
@@ -282,6 +313,11 @@ function Beat({ battery, onDone }: { battery: Battery; onDone: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.phase]);
 
+  useEffect(() => {
+    report(s.serve ? { serve: s.serve, asking: s.phase === 'asking', answer: s.answer } : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.serve, s.phase]);
+
   if (s.phase === 'error') {
     return <p className="bh-beat-note">The hollow is quiet just now. {s.error}</p>;
   }
@@ -289,28 +325,32 @@ function Beat({ battery, onDone }: { battery: Battery; onDone: () => void }) {
 
   const content = s.serve.served.content;
   const options = Array.isArray(content.options) ? (content.options as Record<string, unknown>[]) : [];
-  const verb = verbFor(s.serve.typeCode);
+  // Drawn in the world by the 3D layer. Only types without an in-world presentation fall back to the
+  // flat tile row, and that fallback is a gap to close rather than a design.
+  const inWorld = s.serve.typeCode === 'FLU-MATRIX-01';
 
   return (
-    <div className="bh-beat">
-      <p className="bh-beat-title">{verb?.title ?? 'Something to do'}</p>
-      <div className="bh-beat-options">
-        {options.map((o, i) => {
-          const handed = typeof o.key === 'string' ? o.key : String(i);
-          return (
-            <button
-              key={i}
-              type="button"
-              className="bh-opt"
-              disabled={s.phase !== 'asking'}
-              onClick={() => void s.answer(toRef(content, handed))}
-              aria-label={`Choice ${i + 1}`}
-            >
-              {i + 1}
-            </button>
-          );
-        })}
-      </div>
+    <div className={inWorld ? 'bh-beat bh-beat-slim' : 'bh-beat'}>
+      <p className="bh-beat-title">{verb?.title ?? verbFor(s.serve.typeCode)?.title ?? 'Something to do'}</p>
+      {inWorld ? null : (
+        <div className="bh-beat-options">
+          {options.map((o, i) => {
+            const handed = typeof o.key === 'string' ? o.key : String(i);
+            return (
+              <button
+                key={i}
+                type="button"
+                className="bh-opt"
+                disabled={s.phase !== 'asking'}
+                onClick={() => void s.answer(toRef(content, handed))}
+                aria-label={`Choice ${i + 1}`}
+              >
+                {i + 1}
+              </button>
+            );
+          })}
+        </div>
+      )}
       <p className="bh-beat-note">
         {s.answered} of about 4 · {battery}
       </p>
@@ -320,7 +360,8 @@ function Beat({ battery, onDone }: { battery: Battery; onDone: () => void }) {
 
 export function Game() {
   const [locked, setLocked] = useState(false);
-  const [beat, setBeat] = useState<Battery | null>(null);
+  const [beat, setBeat] = useState<string | null>(null);
+  const [live, setLive] = useState<LiveItem | null>(null);
   const [cares, setCares] = useState(0);
 
   const slimes = useMemo(
@@ -333,6 +374,11 @@ export function Game() {
           position: [Math.cos(a) * r, 0, Math.sin(a) * r] as [number, number, number],
           scale: 0.55 + (i % 3) * 0.28,
         };
+      }).filter((sl) => {
+        // The apron in front of the pod wall stays empty.
+        const dx = sl.position[0] - 0;
+        const dz = sl.position[2] - -13;
+        return Math.hypot(dx, dz) > 7;
       }),
     [],
   );
@@ -367,7 +413,17 @@ export function Game() {
             <Slime key={i} {...sl} />
           ))}
         </Suspense>
-        <Keeper locked={locked} />
+        {live && live.serve.typeCode === 'FLU-MATRIX-01' ? (
+          <group position={[0, 3.6, -13]}>
+            <pointLight position={[0, 1.5, 5]} intensity={22} distance={16} color="#fff4de" />
+            <PodWall
+              content={live.serve.served.content}
+              disabled={!live.asking}
+              onPick={(key) => void live.answer(toRef(live.serve.served.content, key))}
+            />
+          </group>
+        ) : null}
+        <Keeper locked={locked && !beat} viewing={!!live} />
       </Canvas>
 
       {!locked && !beat && (
@@ -379,9 +435,11 @@ export function Game() {
       {beat && (
         <div className="bh-overlay">
           <Beat
-            battery={beat}
+            verbId={beat}
+            report={setLive}
             onDone={() => {
               setBeat(null);
+              setLive(null);
               setCares((n) => n + 1);
             }}
           />
@@ -392,9 +450,9 @@ export function Game() {
         <div className="bh-hud">
           <p className="bh-cares">{cares} looked after</p>
           <div className="bh-calls">
-            {(['Nonverbal', 'Quantitative', 'Verbal'] as Battery[]).map((b) => (
-              <button key={b} type="button" className="bh-call" onClick={() => setBeat(b)}>
-                {b === 'Nonverbal' ? 'Tend a coat' : b === 'Quantitative' ? 'Set the tide-line' : 'Write the log'}
+            {['coat', 'tide-line', 'log'].map((id) => (
+              <button key={id} type="button" className="bh-call" onClick={() => setBeat(id)}>
+                {VERBS.find((v) => v.id === id)?.title ?? id}
               </button>
             ))}
           </div>
