@@ -46,9 +46,10 @@ export const LS_COINS = 'gt-sanctuary:coins';
  * The two payouts, and why these two numbers.
  *
  * A round is about four questions, so a round is worth about eight coins: four for the questions and
- * four for having seen it through. That makes the cheapest slimes (3) affordable inside a child's FIRST
- * round — which matters more than anything else here, because a shop that pays out nothing on the first
- * visit is a shop a five-year-old never goes back to — and the dearest (14) about two rounds away.
+ * four for having seen it through. That makes the cheapest slimes (2) affordable after the child's SECOND
+ * QUESTION EVER — which matters more than anything else here, because a shop that pays out nothing on the
+ * first visit is a shop a five-year-old never goes back to — and the dearest (10) about a round and a half
+ * away, which is close enough to be worth saving for and far enough to be worth something.
  *
  * The round bonus is paid for FINISHING, which in this game means the session closed itself or the child
  * walked away having answered at least one thing. It is not a bonus for accuracy and it is not withheld
@@ -77,42 +78,53 @@ export const EARN = {
  * price, and can be given its own later.
  *
  * FOUR TIERS, and the tiers are about how special a thing FEELS rather than about anything mechanical.
- * Every family is the same to look after and none is better than another; a gold slime costs more than a
- * grass slime for the same reason a gold sticker costs more than a green one.
+ * Every family is the same to look after, none is better than another, and NO FAMILY IS EVER WITHHELD: a
+ * price is a number of coins to collect, not a gate, and the dearest thing in the shop is about a round and
+ * a half of questions away. A gold slime costs more than a grass slime for the same reason a gold sticker
+ * costs more than a green one, and for no other reason.
+ *
+ * NOTHING COSTS MORE THAN TEN, and that ceiling is a legibility constraint rather than a balance one. A
+ * price is drawn as literally that many coins (see `coinPile` in `carpentry.ts`), in rows of five, and two
+ * rows of five is the most that fits in a cubby at a size a child can still count. A price of fourteen
+ * would have to be drawn in coins too small to tell apart, at which point it has become a numeral with
+ * extra steps.
  */
 export const PRICES: Record<string, number> = {
-  /* Everyday — the ones a child can have on their first visit. */
-  grass: 3,
-  rock: 3,
-  wood: 3,
-  air: 3,
-  waffle: 3,
+  /* Everyday — two questions each, so a child owns a slime of their own choosing on their first visit. */
+  grass: 2,
+  rock: 2,
+  wood: 2,
+  air: 2,
+  waffle: 2,
 
   /* A treat. */
-  bunny: 4,
-  cat: 4,
-  strawberry: 4,
-  mango: 4,
-  sleepy: 4,
+  bunny: 3,
+  cat: 3,
+  strawberry: 3,
+  mango: 3,
+  sleepy: 3,
 
   /* Special. */
-  rose: 6,
-  frost: 6,
-  ice: 6,
-  fire: 6,
-  lion: 6,
+  rose: 5,
+  frost: 5,
+  ice: 5,
+  fire: 5,
+  lion: 5,
 
   /* Really something. */
-  fairy: 9,
-  bomb: 9,
-  radioactive: 9,
+  fairy: 7,
+  bomb: 7,
+  radioactive: 7,
 
   /* The one that is actually made of gold. */
-  gold: 14,
+  gold: 10,
 };
 
 /** For a family nobody has priced yet. Middle of the range, so a new arrival is never out of reach. */
-export const DEFAULT_PRICE = 5;
+export const DEFAULT_PRICE = 4;
+
+/** The dearest anything may be, so a price always fits in a cubby as coins a child can count. */
+export const MAX_PRICE = 10;
 
 export function priceOf(family: Family | string): number {
   const p = PRICES[family];

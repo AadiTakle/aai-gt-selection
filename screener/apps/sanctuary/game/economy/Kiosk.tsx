@@ -87,15 +87,15 @@ export function Kiosk({
       slat: new RoundedBoxGeometry(W * 2 - 0.18, 0.1, 0.52, 2, 0.045),
       head: new RoundedBoxGeometry(W * 2 + 0.5, 0.32, 0.62, 2, 0.1),
       brace: new RoundedBoxGeometry(Math.hypot(0.72, 0.72), 0.16, 0.16, 1, 0.06),
-      stripe: new RoundedBoxGeometry(0.62, 0.11, 1.72, 2, 0.05),
+      stripe: new RoundedBoxGeometry(0.62, 0.11, 1.44, 2, 0.05),
       // The valance. A scalloped edge hanging off the awning's front lip, which is the single most
       // recognisable thing about a market stall and costs one flat disc per stripe.
-      scallop: new CylinderGeometry(0.2, 0.2, 0.055, 14),
+      scallop: new CylinderGeometry(0.15, 0.15, 0.055, 14),
       signBoard: new RoundedBoxGeometry(1.9, 1.05, 0.13, 3, 0.15),
-      chain: new CylinderGeometry(0.022, 0.022, 1, 6),
-      plate: new RoundedBoxGeometry(0.64, 0.82, 0.07, 3, 0.09),
-      slotMouth: new RoundedBoxGeometry(0.4, 0.075, 0.1, 1, 0.03),
-      tray: new CylinderGeometry(0.3, 0.24, 0.07, 18),
+      signPost: new CylinderGeometry(0.075, 0.095, 1, 9),
+      plate: new RoundedBoxGeometry(0.92, 1.02, 0.08, 3, 0.11),
+      slotMouth: new RoundedBoxGeometry(0.58, 0.095, 0.11, 1, 0.035),
+      tray: new CylinderGeometry(0.34, 0.27, 0.075, 18),
       hook: new CylinderGeometry(0.035, 0.035, 0.3, 8),
       cap: new CylinderGeometry(0.19, 0.13, 0.12, 10),
       globe: new SphereGeometry(0.17, 16, 12),
@@ -135,11 +135,11 @@ export function Kiosk({
     const k = wash.current;
     const b = breath(t, 3.2, reduced);
     if (head.current) head.current.emissiveIntensity = k * 0.5;
-    if (counter.current) counter.current.emissiveIntensity = k * 0.45;
+    if (counter.current) counter.current.emissiveIntensity = k * 0.2;
     // The slot breathes whether or not anybody is near, because it is the one thing on the stall that has
     // to say "put something in here" from a distance. `screener/theme.ts` establishes the convention: the
     // only thing in the world that moves on its own is the place where something is missing.
-    if (slot.current) slot.current.emissiveIntensity = 1.1 + b * 0.9 + k * 1.6;
+    if (slot.current) slot.current.emissiveIntensity = 0.22 + b * 0.18 + k * 0.5;
     if (signCoin.current) {
       signCoin.current.rotation.y = reduced ? 0.5 : t * 0.42;
     }
@@ -147,7 +147,7 @@ export function Kiosk({
       if (!globe) continue;
       (globe.material as MeshStandardMaterial).emissiveIntensity = 1.1 + b * 0.5 + k * 3.2;
     }
-    if (lamp.current) lamp.current.intensity = 8 + k * 16;
+    if (lamp.current) lamp.current.intensity = 7 + k * 11;
   });
 
   return (
@@ -244,24 +244,24 @@ export function Kiosk({
           that gives something back rather than as a money box. */}
       <group position={[0, COUNTER_TOP - 0.55, 0.83]}>
         <mesh geometry={g.plate} material={m.brass} castShadow />
-        <mesh geometry={g.slotMouth} position={[0, 0.19, 0.06]}>
+        <mesh geometry={g.slotMouth} position={[0, 0.25, 0.06]}>
           <meshStandardMaterial
             ref={slot}
-            color="#7a5526"
+            color="#5f4223"
             emissive={HONEY}
-            emissiveIntensity={1.2}
-            roughness={0.5}
-            metalness={0.3}
-            toneMapped={false}
+            emissiveIntensity={0.25}
+            roughness={0.62}
+            metalness={0.1}
           />
         </mesh>
         {/* A coin sitting in the slot, half in. Nothing explains a slot faster than a coin already in it. */}
-        <group position={[0, 0.21, 0.1]} scale={0.075} rotation={[Math.PI / 2, 0, 0]}>
+        <group position={[0, 0.315, 0.12]} scale={0.095} rotation={[Math.PI / 2, 0, 0]}>
           <mesh geometry={coin.disc} material={m.brass} />
           <mesh geometry={coin.rim} material={m.brassDeep} rotation={[Math.PI / 2, 0, 0]} />
         </group>
         {/* The chute mouth, and the dish it delivers into. */}
-        <mesh geometry={g.slotMouth} position={[0, -0.24, 0.06]} scale={[1.05, 1.9, 1]} material={m.brassDeep} />
+<mesh geometry={g.slotMouth} position={[0, -0.28, 0.055]} scale={[1.02, 2.2, 1]} material={m.timberDeep} />
+        <mesh geometry={g.slotMouth} position={[0, -0.12, 0.075]} scale={[1.1, 0.45, 1]} material={m.brassDeep} />
       </group>
       <mesh
         geometry={g.tray}
@@ -272,7 +272,7 @@ export function Kiosk({
       />
 
       {/* ── the awning, striped, with a scalloped valance ───────────────────────────────────────── */}
-      <group position={[0, HEAD + 0.34, 0.52]} rotation={[0.32, 0, 0]}>
+      <group position={[0, HEAD + 0.4, 0.4]} rotation={[0.32, 0, 0]}>
         {stripes.map((s) => (
           <mesh
             key={s.x}
@@ -289,7 +289,7 @@ export function Kiosk({
             key={`v${s.x}`}
             geometry={g.scallop}
             material={s.warm ? m.canvasWarm : m.canvasPale}
-            position={[s.x, -0.06, 0.9]}
+            position={[s.x, -0.05, 0.74]}
             rotation={[Math.PI / 2, 0, 0]}
             scale={[s.scale, 1, 1]}
             castShadow
@@ -297,21 +297,25 @@ export function Kiosk({
         ))}
       </group>
 
-      {/* ── the sign: one enormous coin ─────────────────────────────────────────────────────────
-          Hung on two chains off the head beam, so it has an edge and a shadow and reads as an object at
-          twenty metres where a painted board reads as a stain. The coin turns slowly, which is the only
-          reason a flat disc catches the eye from across a meadow. */}
-      <group position={[0, HEAD + 0.02, 0.95]}>
-        {([-1, 1] as const).map((side) => (
-          <mesh
-            key={side}
-            geometry={g.chain}
-            material={m.timberDeep}
-            position={[side * 0.66, -0.34, -0.08]}
-            scale={[1, 0.68, 1]}
-          />
-        ))}
-        <group position={[0, -1.05, 0]}>
+      {/* ── the sign: one enormous coin, ON A POST ABOVE THE AWNING ────────────────────────────
+          THIS MOVED, AND A SCREENSHOT IS WHY. The first pass hung it on two chains off the head beam, where
+          a pub sign goes — which put a 1.9m board squarely in front of the top row. Three of the nineteen
+          slimes were behind their own shop sign, and the middle of the shelf, which is the best part of it,
+          was the part a child could not see. A stall's sign belongs ABOVE its awning on a post, which is
+          also where every real market stall puts it: from the arrival at 21.6m it is 10.6° up and
+          comfortably in frame, and from the counter it is over the child's head, which is exactly when they
+          have stopped needing it. Nothing is covered from either place.
+
+          The coin turns slowly, which is the only reason a flat disc catches the eye across a meadow. */}
+      <group position={[0, HEAD + 0.62, 0.2]}>
+        <mesh
+          geometry={g.signPost}
+          material={m.timber}
+          position={[0, 0.62, 0]}
+          scale={[1, 1.24, 1]}
+          castShadow
+        />
+        <group position={[0, 1.72, 0]}>
           <mesh geometry={g.signBoard} material={m.paint} castShadow receiveShadow />
           <group ref={signCoin} position={[0, 0, 0.12]} scale={0.4} rotation={[Math.PI / 2, 0, 0]}>
             <mesh geometry={coin.disc} material={m.brass} castShadow />

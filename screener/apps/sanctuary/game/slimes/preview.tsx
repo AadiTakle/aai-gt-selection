@@ -112,58 +112,78 @@ const BOUNDS_BIG = { center: [0, 0] as [number, number], radius: 16 };
 
 function Scene() {
   if (mode === 'lineup') {
-    // Six families, one stage, evenly spaced, all seeded differently: the headings must differ.
-    const bounds = { center: [0, 0] as [number, number], radius: 24 };
+    /**
+     * All NINETEEN families, one stage, in three rows.
+     *
+     * Three rows rather than one because nineteen in a line at a readable size is off both edges of any
+     * window. The rows step BACK as well as up the screen and the camera is lifted, so no slime is hidden
+     * behind the one in front and every silhouette is against sky or grass rather than against another
+     * slime — which is the only way this view answers the question it exists to answer.
+     */
+    const bounds = { center: [0, 0] as [number, number], radius: 30 };
+    const rows = [FAMILIES.slice(0, 7), FAMILIES.slice(7, 13), FAMILIES.slice(13, 19)];
     return (
       <>
-        <Rig at={[0, 1.5, 7.4]} look={[0, 0.5, 0]} />
-        <Ground r={24} />
-        {FAMILIES.map((f, i) => (
-          <Slime
-            key={f}
-            family={f}
-            stage="crested"
-            position={[(i - 2.5) * 1.9, 0, 0]}
-            seed={101 + i * 7}
-            bounds={bounds}
-            // Posed to camera so this view judges silhouette and face, not heading. `pen` is where
-            // heading variety and movement are checked.
-            facing={0}
-            wander={false}
-          />
-        ))}
+        {/* Lifted and pulled back from the first attempt, where the three rows overlapped in screen space
+            and half the roster was hidden behind the other half. Rows are further apart in z AND each is
+            offset sideways by half a spacing, so every silhouette has clear sky or grass behind it. */}
+        <Rig at={[0, 5.6, 13.5]} look={[0, 0.5, -3.4]} />
+        <Ground r={30} />
+        {rows.map((row, ri) =>
+          row.map((f, i) => (
+            <Slime
+              key={f}
+              family={f}
+              stage="crested"
+              position={[(i - (row.length - 1) / 2) * 2.4 + (ri % 2) * 1.2, 0, 2.2 - ri * 4.2]}
+              seed={101 + FAMILIES.indexOf(f) * 7}
+              bounds={bounds}
+              // Posed to camera so this view judges silhouette and face, not heading. `pen` is where
+              // heading variety and movement are checked.
+              facing={0}
+              wander={false}
+            />
+          )),
+        )}
       </>
     );
   }
 
   if (mode === 'far') {
-    // Far enough that a crested slime is around forty screen pixels tall. THE test view: if a family is
-    // not nameable here, its signature feature is a texture and needs to become geometry.
-    const bounds = { center: [0, 0] as [number, number], radius: 40 };
+    /**
+     * THE TEST VIEW, and the one the whole brief turns on: all nineteen at about 25 m, where a crested
+     * slime is roughly forty screen pixels tall. If a family is not nameable HERE, its signature feature
+     * is a texture and has to become geometry.
+     *
+     * Two ranks, the back one offset by half a spacing so nothing occludes anything, and the back one
+     * TURNED AWAY — because most of what a child sees of a wandering slime is its back and three-quarter,
+     * and that is exactly where a feature placed on the front disappears.
+     */
+    const bounds = { center: [0, 0] as [number, number], radius: 50 };
+    const front = FAMILIES.slice(0, 10);
+    const back = FAMILIES.slice(10, 19);
     return (
       <>
-        <Rig at={[0, 2.3, 20]} look={[0, 0.7, 0]} />
-        <Ground r={40} />
-        {FAMILIES.map((f, i) => (
+        <Rig at={[0, 3.4, 25]} look={[0, 0.9, -3.5]} />
+        <Ground r={50} />
+        {front.map((f, i) => (
           <Slime
             key={f}
             family={f}
             stage="crested"
-            position={[(i - 2.5) * 2.5, 0, 0]}
+            position={[(i - (front.length - 1) / 2) * 2.95, 0, 0]}
             seed={101 + i * 7}
             bounds={bounds}
             facing={0.5}
             wander={false}
           />
         ))}
-        {/* A second rank further back and turned away, because most of a wandering slime is seen from
-            behind and three quarters, and that is where a front-loaded feature disappears. */}
-        {FAMILIES.map((f, i) => (
+        {back.map((f, i) => (
           <Slime
             key={`${f}-back`}
             family={f}
             stage="warden"
-            position={[(i - 2.5) * 3.4, 0, -11]}
+            position={[(i - (back.length - 1) / 2) * 2.95 + 1.48, 0, -7.5]}
             seed={7 + i * 13}
             bounds={bounds}
             facing={Math.PI + 0.6}
@@ -175,16 +195,24 @@ function Scene() {
   }
 
   if (mode === 'grow') {
-    // Two families through all four stages, close enough to judge whether the feature grows with the
-    // creature rather than the creature growing into a costume.
+    /**
+     * Any number of families through all four stages, close enough to judge whether the feature grows with
+     * the creature rather than the creature growing into a costume.
+     *
+     * Generalised from exactly two to any count for the nineteen-family pass, because the brief asks for
+     * four stages of three of the NEW families and hard-coding a pair made that impossible.
+     */
     const bounds = { center: [0, 0] as [number, number], radius: 30 };
-    const pair = ((q.get('fams') ?? 'waffle,fairy').split(',') as Family[]).filter((f) =>
+    const asked = ((q.get('fams') ?? 'waffle,fairy').split(',') as Family[]).filter((f) =>
       (FAMILIES as readonly string[]).includes(f),
     );
-    const fams = pair.length === 2 ? pair : (['waffle', 'fairy'] as Family[]);
+    const fams = asked.length > 0 ? asked : (['waffle', 'fairy'] as Family[]);
+    // Pulled back as rows are added, so three families frame as well as two did.
+    const depth = 2.7;
+    const back = 4.4 + fams.length * 2.2;
     return (
       <>
-        <Rig at={[0, 1.9, 8.2]} look={[0, 0.7, -0.4]} />
+        <Rig at={[0, 2.4 + fams.length * 0.5, back]} look={[0, 0.7, -0.4]} />
         <Ground r={30} />
         {fams.map((f, fi) =>
           STAGES.map((s, si) => (
@@ -192,7 +220,7 @@ function Scene() {
               key={`${f}${s}`}
               family={f}
               stage={s}
-              position={[(si - 1.5) * 1.85, 0, (fi - 0.5) * 2.6]}
+              position={[(si - 1.5) * 1.95, 0, ((fams.length - 1) / 2 - fi) * depth]}
               seed={fi * 17 + si * 3 + 5}
               bounds={bounds}
               facing={0}
@@ -205,18 +233,20 @@ function Scene() {
   }
 
   if (mode === 'stages') {
-    const bounds = { center: [0, 0] as [number, number], radius: 30 };
+    // Nineteen columns by four rows. Pulled well back and up from the six-family version, which framed
+    // twenty-four slimes and would have cropped six of these off each edge.
+    const bounds = { center: [0, 0] as [number, number], radius: 60 };
     return (
       <>
-        <Rig at={[0, 4.6, 10.5]} look={[0, 0.1, -0.8]} />
-        <Ground r={30} />
+        <Rig at={[0, 13, 25]} look={[0, 0.1, -1.4]} />
+        <Ground r={60} />
         {FAMILIES.map((f, fi) =>
           STAGES.map((s, si) => (
             <Slime
               key={`${f}${s}`}
               family={f}
               stage={s}
-              position={[(fi - 2.5) * 2.1, 0, (si - 1.5) * 2.4]}
+              position={[(fi - (FAMILIES.length - 1) / 2) * 2.35, 0, (si - 1.5) * 2.6]}
               seed={fi * 17 + si * 3 + 5}
               bounds={bounds}
               facing={0}
@@ -285,9 +315,9 @@ if (labels) {
       : mode === 'far'
         ? `silhouette test at ~25 m · front rank crested, back rank warden facing away · ${FAMILIES.join(' · ')}`
         : mode === 'grow'
-          ? 'two families, pip → tuffet → crested → warden'
+          ? `${q.get('fams') ?? 'waffle,fairy'} · pip → tuffet → crested → warden`
           : mode === 'stages'
-            ? 'columns: the six families · rows: pip · tuffet · crested · warden'
+            ? `columns: the ${FAMILIES.length} families · rows: pip · tuffet · crested · warden`
             : 'wandering inside the ring, avoiding the posts and each other';
 }
 

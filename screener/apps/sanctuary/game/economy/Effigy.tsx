@@ -116,9 +116,32 @@ export interface EffigyProps {
   seed: number;
   /** 0 resting, 1 leaning forward and up — the cubby the crosshair is on. */
   lift?: number;
+  /**
+   * Whether to build the face, and it is the whole of this component's level of detail.
+   *
+   * THE STOCK HAS TO BE VISIBLE FROM THE ARRIVAL. That was the most useful thing a screenshot from the spawn
+   * point produced: the stall at 21.6m with empty shelves reads as a shop that is SHUT, which is the exact
+   * opposite of what it is for, and the first attempt at a frame budget gated the whole of the stock on being
+   * within sixteen metres — so the shop looked closed from the one place every child stands on their first
+   * frame.
+   *
+   * The eyes are the honest thing to drop instead. Two spheres, two irises and two catchlights per slime is
+   * six of the nine meshes a portrait costs, and at twenty metres a half-metre slime's eye is under a pixel.
+   * Dropping them past eleven metres takes a full shelf from about 170 draw calls to about 57 and removes
+   * nothing anybody could have seen. What survives at distance is silhouette and colour, which `look.ts`
+   * argues at length is the entire identification anyway.
+   */
+  eyes?: boolean;
 }
 
-export function Effigy({ family, height, reduced, seed, lift = 0 }: EffigyProps): JSX.Element {
+export function Effigy({
+  family,
+  height,
+  reduced,
+  seed,
+  lift = 0,
+  eyes = true,
+}: EffigyProps): JSX.Element {
   const p = useMemo(() => portrait(family), [family]);
   const face = useMemo(() => faceGeometry(), []);
   const shell = useRef<Group>(null);
@@ -148,7 +171,7 @@ export function Effigy({ family, height, reduced, seed, lift = 0 }: EffigyProps)
     }
   });
 
-  const eye = p.eye;
+  const eye = eyes ? p.eye : null;
 
   return (
     <group ref={root}>

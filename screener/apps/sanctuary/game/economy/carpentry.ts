@@ -1,13 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
-import {
-  CylinderGeometry,
-  MeshBasicMaterial,
-  MeshStandardMaterial,
-  SphereGeometry,
-  TorusGeometry,
-} from 'three';
-import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { CylinderGeometry, MeshStandardMaterial, SphereGeometry, TorusGeometry } from 'three';
 
 /**
  * THE STALL'S MATERIALS, AND THE COIN.
@@ -35,19 +28,33 @@ const PIG = {
   /** The stall's painted front. Warmer and lighter than the stations' plank sign, so it reads as new. */
   paint: '#e8c98d',
   paintDeep: '#c99a52',
-  /** The awning. Cream and honey stripes, which is the universal picture of a market stall. */
+  /**
+   * The inside of a cubby, and it is DELIBERATELY THE DARKEST TIMBER ON THE STALL.
+   *
+   * The first pass painted the cubby backs in the same pale `paint` as the stall front, and everything in
+   * them disappeared: a cream slime on a cream board with cream coins under it is one cream rectangle. A
+   * cubby is a recess, a recess is in shadow, and that shadow is what every slime and every coin on this
+   * shelf is read against.
+   */
+  cubby: '#7c5b3c',
+  /**
+   * The awning. Cream and a soft barn red rather than cream and honey, which was the other thing a
+   * screenshot settled: against a golden-hour meadow, cream-and-honey stripes are two shades of the same
+   * colour and the stall read as one pale mass. The barn thirteen metres away is `#9a4030`, so borrowing a
+   * lighter relative of it ties the newest building on the ranch to the oldest and gives the stall the one
+   * strong colour it needs to be picked out from the arrival.
+   */
   canvasPale: '#f6e9cf',
-  canvasWarm: '#e2a34c',
+  canvasWarm: '#c8604a',
   honey: '#e0a63f',
-  brass: '#dcae4d',
-  brassDeep: '#a97c2c',
+  brass: '#e0ae42',
+  brassDeep: '#9e6f24',
   burlap: '#c9ad80',
   /** The gauze over a cubby a child has not saved up for yet. Never grey, never a shutter. */
-  gauze: '#fbf1dc',
+  gauze: '#fdf6e6',
 } as const;
 
 export const HONEY = PIG.honey;
-export const BRASS = PIG.brass;
 
 type MatName =
   | 'timber'
@@ -58,6 +65,7 @@ type MatName =
   | 'stoneDeep'
   | 'paint'
   | 'paintDeep'
+  | 'cubby'
   | 'canvasPale'
   | 'canvasWarm'
   | 'brass'
@@ -81,15 +89,32 @@ export function mats(): Record<MatName, MeshStandardMaterial> {
     stoneDeep: make(PIG.stoneDeep, 0.9),
     paint: make(PIG.paint, 0.66),
     paintDeep: make(PIG.paintDeep, 0.68),
+    cubby: make(PIG.cubby, 0.86),
     canvasPale: make(PIG.canvasPale, 0.9),
     canvasWarm: make(PIG.canvasWarm, 0.9),
     /**
-     * The only metal in the hollow. Roughness is kept high for a metal — 0.34 rather than the 0.1 that
-     * would give a mirror — because at this sun elevation a smooth metal disc catches one tiny hard
-     * highlight and reads as plastic everywhere else on its face. A slightly worn brass reads as brass.
+     * The coin, and the ONE MATERIAL HERE THAT HAD TO BE RETUNED AFTER LOOKING AT A SCREENSHOT.
+     *
+     * The first pass ran brass at `metalness: 0.72`, which is roughly what brass physically is, and half the
+     * coins on the shelf came out WHITE. The reason is specific and worth writing down so nobody puts it
+     * back: a metal has no diffuse colour, so everything you see on it is reflected environment — and this
+     * scene has no environment map. There is a sun, a hemisphere light and one warm lamp on the stall, so a
+     * metallic disc shows a blown highlight where it happens to catch one of them and almost nothing where
+     * it does not. Whether a given coin read as gold or as a white blob came down to which way its cubby
+     * faced, and a PRICE may not depend on that.
+     *
+     * So the coin is mostly dielectric with a hint of metal. Its colour now comes from its albedo, which is
+     * reliable under any light, and a little metalness keeps a warm sheen travelling across the face as a
+     * child moves their head.
+     *
+     * THE ROUGHNESS IS THE SECOND HALF OF THE SAME FIX. At 0.36 the residual specular was still tight enough
+     * that the cubbies nearest the stall's lamp — which hangs 1.85m in front of the middle of the shelf —
+     * blew their coins to white while cubbies at the ends stayed gold. A price is the one thing on this shelf
+     * that must look identical everywhere, so the lobe is broadened until no cubby can catch a hot spot.
+     * 0.55 is matte enough to be lamp-proof and glossy enough to still be metal.
      */
-    brass: new MeshStandardMaterial({ color: PIG.brass, roughness: 0.34, metalness: 0.72 }),
-    brassDeep: new MeshStandardMaterial({ color: PIG.brassDeep, roughness: 0.42, metalness: 0.66 }),
+    brass: new MeshStandardMaterial({ color: PIG.brass, roughness: 0.55, metalness: 0.15 }),
+    brassDeep: new MeshStandardMaterial({ color: PIG.brassDeep, roughness: 0.62, metalness: 0.12 }),
     burlap: make(PIG.burlap, 0.95),
     /**
      * The gauze. Transparent and NOT depth-writing, so the slime behind it stays plainly visible through
@@ -101,7 +126,7 @@ export function mats(): Record<MatName, MeshStandardMaterial> {
       roughness: 0.94,
       metalness: 0,
       transparent: true,
-      opacity: 0.62,
+      opacity: 0.74,
       depthWrite: false,
     }),
   };
@@ -155,10 +180,7 @@ export function coinGeometry(): CoinParts {
  */
 export const COINS_PER_ROW = 5;
 
-export function coinPile(
-  price: number,
-  radius: number,
-): { at: [number, number][]; width: number; height: number } {
+export function coinPile(price: number, radius: number): { at: [number, number][] } {
   const n = Math.max(1, Math.round(price));
   const rows = Math.ceil(n / COINS_PER_ROW);
   const pitch = radius * 2.24;
@@ -174,11 +196,7 @@ export function coinPile(
       ((rows - 1) / 2 - r) * pitch * 0.92,
     ]);
   }
-  return {
-    at,
-    width: Math.min(n, COINS_PER_ROW) * pitch,
-    height: rows * pitch * 0.92,
-  };
+  return { at };
 }
 
 /* ------------------------------------------------------------------ *\
@@ -186,37 +204,15 @@ export function coinPile(
 \* ------------------------------------------------------------------ */
 
 interface ShopShapes {
-  plaque: RoundedBoxGeometry;
-  slat: RoundedBoxGeometry;
-  bolt: SphereGeometry;
+  /** A unit ring, scaled per use. The one shape the shop needs that is not a coin. */
   ring: TorusGeometry;
 }
 
 let shapes: ShopShapes | null = null;
 
-/** Unit boxes and a unit ring, scaled per instance. Everything rounded, per the world's own rule. */
 export function shopShapes(): ShopShapes {
-  shapes ??= {
-    plaque: new RoundedBoxGeometry(1, 1, 0.08, 3, 0.12),
-    slat: new RoundedBoxGeometry(1, 1, 1, 2, 0.06),
-    bolt: new SphereGeometry(0.06, 10, 8),
-    ring: new TorusGeometry(1, 0.055, 8, 26),
-  };
+  shapes ??= { ring: new TorusGeometry(1, 0.055, 8, 26) };
   return shapes;
-}
-
-/** An unlit honey wash, for anything that should look emitted rather than lit. */
-let glowMat: MeshBasicMaterial | null = null;
-export function glow(): MeshBasicMaterial {
-  glowMat ??= new MeshBasicMaterial({
-    color: PIG.honey,
-    transparent: true,
-    opacity: 0.55,
-    toneMapped: false,
-    fog: false,
-    depthWrite: false,
-  });
-  return glowMat;
 }
 
 /**

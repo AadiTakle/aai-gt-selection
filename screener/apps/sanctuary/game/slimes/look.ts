@@ -427,14 +427,27 @@ export const FAMILY_LOOK: Record<Family, FamilyLook> = {
    * matched pair of uprights is a plant, an asymmetric pair is an animal.
    */
   bunny: {
-    skin: '#f3e0d4',
-    inner: '#fff8f1',
-    accent: '#c2a08c',
-    crest: '#f9efe6',
+    skin: '#f2d7b8',
+    /**
+     * OVER-WARMED AFTER THE FIRST RENDER, and this will happen again to anyone adding a pale family, so:
+     *
+     * These started at `#f3e0d4` / `#f9efe6` — a perfectly good warm cream ON PAPER — and bunny rendered
+     * COLD GREY. A near-white dielectric has almost no colour of its own left to assert; what it shows is
+     * its lighting, and the lighting here is a `hemisphereLight` with a pale blue sky in it plus a
+     * `sheenColor` taken from `rim`. The paler a family is, the more of the sky it wears, and at cream it
+     * wears nearly all of it.
+     *
+     * So the table is deliberately pushed until it looks a little too peachy in the source and lands
+     * correct on screen. That is the standard correction for a light material under a cool key, and the
+     * note about `rock` at the top of this file is the same lesson from the other end of the value range.
+     */
+    inner: '#fff2e2',
+    accent: '#c2977a',
+    crest: '#f7e0c4',
     trim: '#f7a8bd',
-    glaze: '#fff8f2',
-    core: '#fffaf4',
-    rim: '#fff4ea',
+    glaze: '#fff4ea',
+    core: '#fff8ee',
+    rim: '#ffeeda',
     translucency: 0.3,
     roughness: 0.68,
     coat: 0.12,

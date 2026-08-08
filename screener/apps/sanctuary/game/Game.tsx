@@ -341,7 +341,21 @@ export function Game() {
     });
   }, []);
 
-  const grant = useCallback((family: Fam) => {
+  /**
+   * A round finished, so a slime joins the ranch.
+   *
+   * The station proposes a family, but it chooses from a literal pair per site, so on its own it can
+   * only ever grant the original six. The roster is nineteen now, so the family is re-drawn here from
+   * every family mapped to that station's battery. Without this the thirteen new ones are unreachable
+   * in play and only ever appear in a shop.
+   *
+   * Granted for having taken part, never for having been right: correctness is deleted before it
+   * reaches this layer, so there is nothing here to branch on even if we wanted to.
+   */
+  const grant = useCallback((proposed: Fam) => {
+    const battery = FAMILY_BATTERY[proposed];
+    const pool = (Object.keys(FAMILY_BATTERY) as Fam[]).filter((f) => FAMILY_BATTERY[f] === battery);
+    const family = pool.length ? pool[Math.floor(Math.random() * pool.length)]! : proposed;
     setSlimes((prev) => {
       const pen = PENS[prev.length % PENS.length]!;
       const a = prev.length * 1.7;
@@ -359,8 +373,6 @@ export function Game() {
     });
     setCares((n) => n + 1);
   }, []);
-
-  void FAMILY_BATTERY;
 
   const lock = useCallback(() => {
     const el = document.querySelector('canvas');

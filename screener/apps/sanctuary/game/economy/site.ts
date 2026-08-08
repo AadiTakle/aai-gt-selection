@@ -39,7 +39,7 @@
  * a depth behind it, where a face dead-on reads as a flat rectangle.
  */
 
-import { STOCK } from './purse';
+import { STOCK } from './coins';
 
 /* ------------------------------------------------------------------ *\
    The site

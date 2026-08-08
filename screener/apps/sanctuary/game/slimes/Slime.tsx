@@ -148,6 +148,14 @@ export function Slime({
   const gazeL = useRef<THREE.Group>(null);
   const gazeR = useRef<THREE.Group>(null);
   const sparks = useRef<THREE.InstancedMesh>(null);
+  /**
+   * The group holding whatever moves on its own: fire's flame crown, radioactive's trefoil, air's spiral,
+   * sleepy's Z. Not mounted for the fifteen families whose `aura` buffer is null, and never touched at all
+   * when `prefers-reduced-motion` is set — which is the whole of the reduced-motion story for the new
+   * families. Left alone, the group sits at its rest pose, which every one of the four was authored to
+   * look correct in.
+   */
+  const aura = useRef<THREE.Group>(null);
 
   const reduced = useMemo(
     () =>
@@ -401,7 +409,10 @@ export function Slime({
        perfectly periodic blink reads as a machine. */
     const b = blink.current;
     const e = eyes.current;
-    if (e && !reduced) {
+    // A closed eye does not blink, and squashing the group in y would flatten the lash arc into a line.
+    // `sleepy` is the only family this applies to; see `eyesClosed` in `look.ts`.
+    if (e && look.eyesClosed) e.scale.y = 1;
+    else if (e && !reduced) {
       if (b.closing >= 0) {
         b.closing += dt;
         const T = 0.16;
@@ -456,23 +467,99 @@ export function Slime({
       eye.position.y += (wantY - eye.position.y) * ease;
     }
 
+    /**
+     * WHAT MOVES ON ITS OWN, for the four families that have any. See `Motion` in `look.ts`.
+     *
+     * The clock is only advanced when motion is allowed, and the group is only written when motion is
+     * allowed, so under `prefers-reduced-motion` this whole block is one boolean test and the aura stays
+     * exactly where `crests.ts` put it. That is deliberately stronger than freezing the clock: a frozen
+     * clock still writes a transform every frame, and the requirement was that these hold still.
+     */
+    /**
+     * The clock is advanced HERE, once, rather than inside the sparkle block where it used to live.
+     *
+     * It has to be, now that motion and sparkles are no longer the same families: `sleepy` has an aura and
+     * zero sparkles, so a clock advanced only when sparkles exist left its Z frozen at the bottom of its
+     * travel forever. Anything that reads `clock.current` below is downstream of this line.
+     */
+    if (!reduced) clock.current += dt;
+
+    const au = aura.current;
+    if (au && !reduced) {
+      const time = clock.current;
+      switch (look.motion) {
+        case 'flicker': {
+          // Two incommensurate sines, so the flicker never repeats on a beat a child could count. The
+          // horizontal squeeze is the opposite sign to the vertical stretch, which is the same
+          // volume-preserving idea the body's squash uses — a flame that only grows taller looks inflated.
+          const f = 1 + 0.17 * Math.sin(time * 9.3) + 0.1 * Math.sin(time * 15.7 + 1.3);
+          const side = 1 - (f - 1) * 0.45;
+          au.scale.set(side, f, side);
+          au.rotation.y = Math.sin(time * 2.1) * 0.07;
+          break;
+        }
+        case 'throb': {
+          const s = 1 + 0.075 * Math.sin(time * 2.2);
+          au.scale.set(s, s, s);
+          // A slow turn as well, so the trefoil presents all three lobes over time rather than hiding one.
+          au.rotation.y = time * 0.5;
+          break;
+        }
+        case 'turn':
+          au.rotation.y = time * 0.62;
+          break;
+        case 'rise': {
+          /**
+           * Sleepy's Z: drifts up, shrinking away, then loops back to the bottom.
+           *
+           * Shrinking to nothing rather than fading, because a fade needs per-slime opacity and therefore
+           * a material per slime — the same reason the sparkles twinkle by SIZE. A Z that shrinks as it
+           * rises reads as one drifting away, and it costs one scale write.
+           */
+          const p = (time * 0.32) % 1;
+          au.position.y = feature.auraOrigin[1] + p * 0.55;
+          const s = Math.max(0.02, 1 - p);
+          au.scale.set(s, s, s);
+          break;
+        }
+        default:
+          break;
+      }
+    }
+
     /* sparkles. One instanced mesh of three motes, drifting on slow independent orbits and twinkling
-       out of phase with each other. Three matrices a frame, and only for fairy. */
+       out of phase with each other. Three matrices a frame, and only for the families that have any. */
     const motes = sparks.current;
     if (motes && feature.sparks > 0) {
-      if (!reduced) clock.current += dt;
       const time = clock.current;
       const R = bake.halfWidth;
+      const anchor = feature.sparkAt;
       for (let i = 0; i < feature.sparks; i += 1) {
         const ph = i * 2.27;
         const a = ph + time * (0.42 + i * 0.13);
         const rr = R * (1.3 + 0.34 * Math.sin(time * 0.71 + ph));
-        P.set(Math.sin(a) * rr, bake.height * (0.5 + 0.42 * Math.sin(time * 0.53 + ph * 1.7)), Math.cos(a) * rr);
+        /**
+         * ANCHORED, for bomb, whose one spark belongs on the tip of its fuse and nowhere else.
+         *
+         * A spark that orbits the body is a firefly, and a firefly circling a bomb is a different and much
+         * worse idea than a bomb with a lit fuse. The jitter is a hundredth of a body unit — enough to look
+         * alive, far too small to look like travel.
+         */
+        if (anchor) {
+          P.set(
+            anchor[0] + Math.sin(time * 5.3 + ph) * 0.012,
+            anchor[1] + Math.cos(time * 6.1 + ph) * 0.012,
+            anchor[2],
+          );
+        } else P.set(Math.sin(a) * rr, bake.height * (0.5 + 0.42 * Math.sin(time * 0.53 + ph * 1.7)), Math.cos(a) * rr);
         // Twinkle by SIZE rather than by opacity: the material is shared by every fairy on the page, so
         // per-mote opacity would need a material each. A mote that shrinks to a quarter reads as a mote
         // that has dimmed, and costs nothing.
         const tw = 0.34 + 0.66 * Math.abs(Math.sin(time * 1.7 + ph * 2.3));
-        const s = R * 0.085 * tw;
+        // An ANCHORED spark is nearly twice the size of an orbiting mote. A drifting sparkle is one of
+        // several and reads as atmosphere; bomb's is the single brightest point on the creature and has to
+        // read as the lit end of a fuse, which at mote size it did not.
+        const s = R * (anchor ? 0.155 : 0.085) * tw;
         K.set(s, s, s);
         motes.setMatrixAt(i, AT.compose(P, Q, K));
       }
@@ -507,32 +594,79 @@ export function Slime({
             more truthful and one less pass over four wings, thirteen spires and a syrup cap. */}
         {feature.glaze ? <mesh geometry={feature.glaze} material={glazeMaterial(family)} /> : null}
 
+        {/* What moves on its own — fire's flames, radioactive's trefoil, air's spiral, sleepy's Z. Mounted
+            only for the four families that have an aura buffer, so the other fifteen still cost exactly
+            the two draw calls they always did. Positioned at the aura's own origin so the animation in
+            `useFrame` scales and spins about something meaningful on the creature. */}
+        {feature.aura ? (
+          <group ref={aura} position={feature.auraOrigin}>
+            <mesh geometry={feature.aura} material={glazeMaterial(family)} />
+          </group>
+        ) : null}
+
         {/* The face. `eyes` is scaled in y to blink; the pieces inside it never change size. */}
         <group ref={eyes} position={[0, layout.y, 0]}>
           {([-1, 1] as const).map((side) => (
             <group key={side} position={[side * layout.gap, 0, layout.depth]}>
-              {/* Sclera. Warm off-white, never #fff, so it stays soft next to a saturated body. */}
-              <mesh geometry={face.sclera} material={scleraMaterial()} scale={eyeR} />
-              {/* Iris and catchlight travel together, so the sparkle stays on the pupil as it looks
-                  around. Physically the catchlight belongs to the cornea, but a sparkle that tracks
-                  the gaze is what a picture book draws, and this is a picture book. */}
-              <group ref={side < 0 ? gazeL : gazeR}>
-                <mesh
-                  geometry={face.iris}
-                  material={irisMaterial(family)}
-                  position={[0, 0, eyeR * 0.56]}
-                  // Two thirds of the eye, not a half. A doe eye is mostly IRIS with a thin rim of
-                  // sclera; a small pupil in a wide white is a cartoon googly eye, which is a cheaper
-                  // and much less warm kind of cute.
-                  scale={eyeR * 0.66}
-                />
-                <mesh
-                  geometry={face.catchlight}
-                  material={catchlightMaterial()}
-                  position={[eyeR * 0.24 * side * -1, eyeR * 0.34, eyeR * 0.9]}
-                  scale={eyeR * 0.26}
-                />
-              </group>
+              {look.eyesClosed ? (
+                /**
+                 * CLOSED EYES, and `sleepy` is the only family that has them.
+                 *
+                 * The arc is convex UP — a ⌒ rather than a ‿ — and that is the whole difference between
+                 * contentedly asleep and unconscious. It is also flattened to half its height, because a
+                 * closed eye drawn as a deep semicircle reads as a cartoon "dead" eye; a shallow curve
+                 * reads as a lid. Both the arc and the lashes are in the family's own warm iris brown, so
+                 * the face is the same value it would have been with eyes open and the palette rule that
+                 * forbids black still holds here.
+                 *
+                 * The lashes are what make it charming rather than merely closed. Three, fanning up and
+                 * OUTWARD from the outer corner, which is where every illustrator puts them.
+                 */
+                <>
+                  <mesh
+                    geometry={face.closed}
+                    material={irisMaterial(family)}
+                    // 0.1π turns the torus arc so its midpoint is at the top. See `faceGeometry`.
+                    rotation={[0, 0, Math.PI * 0.1]}
+                    scale={[eyeR * 0.82, eyeR * 0.46, eyeR * 0.82]}
+                  />
+                  {[0, 1, 2].map((li) => (
+                    <mesh
+                      key={li}
+                      geometry={face.lash}
+                      material={irisMaterial(family)}
+                      position={[side * eyeR * (0.5 + li * 0.07), eyeR * (0.06 + li * 0.11), 0]}
+                      rotation={[0, 0, side * -(0.55 + li * 0.4)]}
+                      scale={[eyeR * 0.045, eyeR * 0.2, eyeR * 0.045]}
+                    />
+                  ))}
+                </>
+              ) : (
+                <>
+                  {/* Sclera. Warm off-white, never #fff, so it stays soft next to a saturated body. */}
+                  <mesh geometry={face.sclera} material={scleraMaterial()} scale={eyeR} />
+                  {/* Iris and catchlight travel together, so the sparkle stays on the pupil as it looks
+                      around. Physically the catchlight belongs to the cornea, but a sparkle that tracks
+                      the gaze is what a picture book draws, and this is a picture book. */}
+                  <group ref={side < 0 ? gazeL : gazeR}>
+                    <mesh
+                      geometry={face.iris}
+                      material={irisMaterial(family)}
+                      position={[0, 0, eyeR * 0.56]}
+                      // Two thirds of the eye, not a half. A doe eye is mostly IRIS with a thin rim of
+                      // sclera; a small pupil in a wide white is a cartoon googly eye, which is a cheaper
+                      // and much less warm kind of cute.
+                      scale={eyeR * 0.66}
+                    />
+                    <mesh
+                      geometry={face.catchlight}
+                      material={catchlightMaterial()}
+                      position={[eyeR * 0.24 * side * -1, eyeR * 0.34, eyeR * 0.9]}
+                      scale={eyeR * 0.26}
+                    />
+                  </group>
+                </>
+              )}
             </group>
           ))}
         </group>
