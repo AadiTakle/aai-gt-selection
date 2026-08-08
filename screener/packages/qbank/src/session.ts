@@ -122,6 +122,17 @@ export interface QbankSessionConfig {
    * `DEFAULT_MIN_MULTIPLE_CHOICE_SHARE`; set 0 to select on information alone.
    */
   readonly minMultipleChoiceShare?: number;
+  /**
+   * The higher bar a single domain must clear to pass on its own. Defaults to `DEFAULT_DOMAIN_BAR`.
+   * **Unvalidated**, exactly as `abilityThreshold` is.
+   */
+  readonly domainBar?: number;
+  /**
+   * How much of a domain's posterior must sit above `domainBar` — the `p` in
+   * `P(theta_domain > domainBar) >= p`. Defaults to `DEFAULT_DOMAIN_RECOMMEND_PROBABILITY`.
+   * Set 0 to disable the domain route entirely. **Unvalidated**, as `recommendProbability` is.
+   */
+  readonly domainRecommendProbability?: number;
 }
 
 export interface QbankServe {
@@ -164,6 +175,22 @@ export interface DomainBand {
   readonly itemsScored: number;
 }
 
+/**
+ * Which route produced a recommendation. Null unless the decision is `recommend`.
+ *
+ * **A domain-triggered pass is not evidence of a domain strength and must never be reported as one.** The
+ * band that let the child through rests on two to four items and is 2-3 logits wide. Passing generously
+ * on a noisy signal is right when a false positive is cheap; *claiming* the child is strong in that
+ * domain is a measurement claim the data does not support. Pass on it, do not narrate it.
+ *
+ * Every domain that cleared is listed rather than a single strongest one, because picking a winner out of
+ * four-item posteriors would be a ranking, and the order is fixed rather than sorted by probability so
+ * nothing in the shape of this invites reading one.
+ */
+export type PassRoute =
+  | { readonly via: 'composite' }
+  | { readonly via: 'domain'; readonly domains: readonly Domain[] };
+
 export interface QbankState {
   readonly stopped: boolean;
   readonly stopReason: StopReason | null;
@@ -183,6 +210,16 @@ export interface QbankState {
    * it in.
    */
   readonly domains: Readonly<Partial<Record<Domain, DomainBand>>>;
+  /**
+   * What produced a `recommend`, or null.
+   *
+   * Note the consequence for anything rendering a session: `stopReason` describes the **composite's**
+   * confidence, so `stopReason: 'confident-below'` alongside `decision: 'recommend'` is now a reachable
+   * and correct combination — the battery as a whole ruled the child out and a single domain carried them
+   * anyway. That is the entire point of the rule, and it will read as a contradiction to anyone shown both
+   * without explanation.
+   */
+  readonly passRoute: PassRoute | null;
 }
 
 const DOMAINS: readonly Domain[] = ['quantitative', 'verbal', 'spatial', 'fluid'];
@@ -246,6 +283,35 @@ const UNGUESSABLE = 0;
  */
 export const DEFAULT_MIN_MULTIPLE_CHOICE_SHARE = 0.5;
 
+/**
+ * The bar a single domain must clear to pass a candidate the composite would reject, and how much of that
+ * domain's posterior has to sit above it.
+ *
+ * **Both unvalidated against real children**, like `abilityThreshold` and `recommendProbability`. They were
+ * chosen against simulated cohorts on 8 Aug 2026 rather than picked for roundness. At Careful precision
+ * with four items per domain, the domain route recommends:
+ *
+ * | Cohort | bar 1.0 / p 0.30 | **bar 1.5 / p 0.45** | bar 1.5 / p 0.60 |
+ * |---|---|---|---|
+ * | true spatial spike +2.5 | 96% | **78%** | 0% |
+ * | true spatial spike +2.0 | 87% | **59%** | 0% |
+ * | uniformly average, theta 0 | 19% | **1%** | 0% |
+ * | uniformly weak, theta -0.5 | 9% | **1%** | 0% |
+ *
+ * The composite route recommends **0%** of all four cohorts, which is the finding that justifies the rule:
+ * a real spike is currently rejected `confident-below` with the evidence sitting in the transcript.
+ *
+ * Two things to know before changing either number. There is a cliff just above p = 0.5 — at 0.60 the rule
+ * stops firing for anybody, because four items cannot put that much mass past the bar — so p is doing
+ * nearly all the work and a bar of 2.0 never fires at all. And the rule's power is a function of
+ * `perDomainMinimum`: fewer items per domain means a flatter posterior and a rule that cannot fire.
+ *
+ * `p` is deliberately below a half, for the reason `recommendProbability` is: the cost-optimal threshold is
+ * the false-positive share of total error cost, and a missed child costs far more than an extra review.
+ */
+export const DEFAULT_DOMAIN_BAR = 1.5;
+export const DEFAULT_DOMAIN_RECOMMEND_PROBABILITY = 0.45;
+
 export class QbankSession {
   private readonly posterior = new Posterior();
   private readonly attempts: QbankAttempt[] = [];
@@ -307,11 +373,13 @@ export class QbankSession {
   state(): QbankState {
     const pAbove = this.posterior.probabilityAbove(this.config.abilityThreshold);
     const stopped = this.stopReason !== null;
+    const passRoute = stopped ? this.passRouteFor(pAbove) : null;
     return {
       stopped,
       stopReason: this.stopReason,
       pAbove,
-      decision: stopped ? (pAbove >= this.config.recommendProbability ? 'recommend' : 'no-recommendation') : null,
+      decision: stopped ? (passRoute ? 'recommend' : 'no-recommendation') : null,
+      passRoute,
       itemsServed: this.attempts.length,
       unscorable: this.unscorable,
       estimate: this.posterior.mean(),
@@ -319,6 +387,35 @@ export class QbankSession {
       perDomain: Object.fromEntries(this.perDomain),
       domains: this.domainBands(),
     };
+  }
+
+  /**
+   * The disjunctive pass rule: the composite clears its threshold, **or** any single domain clears a
+   * higher one.
+   *
+   * The composite is checked first and wins when it succeeds, so a candidate the whole battery passed is
+   * never reported as having been carried by one domain.
+   *
+   * `P(theta_domain > domainBar) >= p` rather than a comparison of means, because the bands are 2-3 logits
+   * wide and at that width it is the probability threshold and not the bar that does the work. Both numbers
+   * are stated in config with a comment saying they are unvalidated.
+   *
+   * **Only domains that scored something are eligible.** An untouched domain still holds its prior, and a
+   * prior has real mass above any modest bar, so skipping this check would let a low `p` recommend a child
+   * on the strength of a domain nobody asked them about — a false positive manufactured from nothing.
+   */
+  private passRouteFor(pAbove: number): PassRoute | null {
+    if (pAbove >= this.config.recommendProbability) return { via: 'composite' };
+
+    const bar = this.config.domainBar ?? DEFAULT_DOMAIN_BAR;
+    const p = this.config.domainRecommendProbability ?? DEFAULT_DOMAIN_RECOMMEND_PROBABILITY;
+    if (p <= 0) return null;
+
+    // DOMAINS order, not probability order: this is a record of what cleared, never a ranking.
+    const cleared = DOMAINS.filter(
+      (d) => (this.domainScored.get(d) ?? 0) > 0 && this.domainPosteriors.get(d)!.probabilityAbove(bar) >= p,
+    );
+    return cleared.length > 0 ? { via: 'domain', domains: cleared } : null;
   }
 
   /**

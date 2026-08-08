@@ -92,8 +92,8 @@ Bands are 2.05 to 3.30 logits wide and a single-item band is barely off the prio
 does must show the interval and the count. Full numbers in the 1a.4 entry of
 `engine-portability-todo.md`.
 
-### 4. `1a.7` — Disjunctive pass rule
-- Blocked on `1a.4`.
+### 4. `1a.7` — Disjunctive pass rule — **DONE 8 Aug 2026**
+- ~~Blocked on `1a.4`.~~ Unblocked and done.
 - Pass if the composite clears its threshold, **or** if `P(theta_domain > domainBar) >= p` for any
   single domain.
 - Add `domainBar` and `p` to config alongside `abilityThreshold` / `recommendProbability`, with a
@@ -102,6 +102,30 @@ does must show the interval and the count. Full numbers in the 1a.4 entry of
 - Do not report a domain-triggered pass as a domain strength.
 - **Done when:** a simulated spiky candidate (high one domain, low elsewhere) passes, and the result
   says which route did it.
+
+`passRouteFor` in `session.ts`, `passRoute` on `QbankState`, and `domainBar` / `domainRecommendProbability`
+in config defaulting to **1.5** and **0.45** — chosen against simulated cohorts, both commented as
+unvalidated. Tests in `disjunctive-pass.test.ts`; 229 tests pass.
+
+**The composite recommends 0% of true spatial spikes** — 150 simulated candidates at +2.5 spatial and
+-1.0 elsewhere, every one rejected `confident-below` at pAbove ≈ 0.019. With the rule: 78% recommended,
+all via the domain route, against 1% of uniformly weak candidates and 0% domain-route firing for the
+uniformly strong (they pass on the composite, as they should).
+
+`p` does nearly all the work, as predicted: a cliff just above 0.5 kills the rule entirely, and a bar of
+2.0 never fires, because four items cannot put that much mass past it. **The rule's power depends on
+`perDomainMinimum`**, so lowering that disables this.
+
+`passRoute` lists every domain that cleared in `DOMAINS` order, never a strongest one, and only domains
+that actually scored are eligible — an untouched domain's prior would otherwise manufacture a pass.
+
+**Two things to own before anything renders a result:**
+- `stopReason: 'confident-below'` beside `decision: 'recommend'` is now reachable and correct. It is the
+  rule working, and it looks like a bug to anyone shown both without explanation.
+- The domain route is in practice a **single-domain** rule: two domains at +2.0 lift the composite to
+  pAbove 0.86, so the composite claims them first.
+
+Full numbers in the 1a.7 entry of `engine-portability-todo.md`.
 
 ### 5. `3.1` — Make the engine stateless
 - Pure refactor, existing tests green throughout.

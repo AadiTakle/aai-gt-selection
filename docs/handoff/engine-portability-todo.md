@@ -205,6 +205,67 @@ verbal and quantitative composites (`brainlifting/talent-screening-brainlift/`, 
 composite-only threshold reproduces exactly that miss, which is the single largest quantified gap in
 that research and the reason this rule exists.
 
+**DONE 8 Aug 2026.** `passRouteFor` in `session.ts`; `passRoute` on `QbankState`; `domainBar` and
+`domainRecommendProbability` in config with defaults of **1.5** and **0.45**. Tests in
+`disjunctive-pass.test.ts` simulate whole cohorts against a true ability per domain. 229 tests pass.
+
+**The miss is real and it is total.** Simulated at Careful precision with four items per domain, 150
+candidates per cohort, the composite route recommends **0%** of true spatial spikes. Not a few — none.
+A child at +2.5 spatial and -1.0 elsewhere is rejected `confident-below` at pAbove ≈ 0.019 with the
+spike sitting in the transcript. Project TALENT's 70% is reproduced here as 100%, because our composite
+is four domains wide and averages harder than a two-battery composite does.
+
+**With the rule, at the shipped defaults:**
+
+| Cohort | Recommended | via composite | via domain |
+|---|---|---|---|
+| spiky spatial +2.5, rest -1.0 | **78%** | 0% | 78% |
+| uniformly weak, -0.5 | 1% | 0% | 1% |
+| uniformly strong, +1.8 | 99% | 99% | 0% |
+
+The two routes divide cleanly: the composite carries the uniformly strong and never fires for a spike,
+the domain route carries the spike and almost never fires for anyone flat. A worked session:
+
+```
+stopReason=confident-below   composite pAbove=0.019   decision=recommend
+passRoute={"via":"domain","domains":["spatial"]}
+  quantitative  -0.47 [-1.85, 0.75] n=4
+  verbal         0.52 [-0.95, 1.75] n=4
+  spatial        1.47 [ 0.35, 2.65] n=4
+  fluid         -0.83 [-2.10, 0.25] n=7
+```
+
+**How the two numbers were chosen.** Against simulated cohorts rather than for roundness, and the grid
+is in the comment beside them. `p` is doing nearly all the work, as this entry predicted: there is a
+cliff just above 0.5 where the rule stops firing for anybody, because four items cannot put that much
+mass past the bar, and a bar of 2.0 never fires at all. `bar 1.0 / p 0.30` reaches 96% sensitivity but
+recommends 19% of uniformly average children; `bar 1.5 / p 0.45` takes 78% at 1%. Both unvalidated.
+**The rule's power is a function of `perDomainMinimum`** — fewer items per domain is a flatter posterior
+and a rule that cannot fire — so anyone lowering that is also disabling this.
+
+**Consequence 1 is enforced structurally.** `passRoute` lists *every* domain that cleared, in `DOMAINS`
+order rather than by probability, so there is no "strongest domain" field to misread. The type comment
+says a domain-triggered pass is not evidence of a domain strength. Only domains that actually scored are
+eligible: an untouched domain still holds its prior, and a prior has real mass above a modest bar, so a
+low `p` would otherwise recommend a child on a domain nobody asked them about — a false positive
+manufactured out of the prior. There is a test for exactly that.
+
+**A presentational hazard this creates, and it needs owning before anything renders a result.**
+`stopReason` describes the *composite's* confidence, so `stopReason: 'confident-below'` beside
+`decision: 'recommend'` is now reachable and correct — the battery ruled the child out and one domain
+carried them anyway. That is the rule working. Shown to a parent or an admissions reader without
+explanation it looks like a bug, or worse, like the tool contradicting itself.
+
+**One thing the simulation settled that this entry left open: the domain route is in practice a
+single-domain rule.** Two domains at +2.0 lift the composite to pAbove 0.86, so the composite claims
+those candidates first. The multi-domain branch is only reachable with an artificially low bar. Worth
+knowing before anyone designs a display around "which domains carried this".
+
+**And the caution from 1a.4 applies here with more force.** There is no per-type diversity rule, so the
+four spatial items that carry a pass can all be one type. A pass triggered by four `SPA-VIEW-01` items
+is a pass on one task, not on spatial ability. That does not undermine the rule — being generous on a
+noisy signal is the stated intent — but it is a second reason never to narrate which domain did it.
+
 ### A calibration problem you will hit immediately
 
 `session.ts:231` passes `paramsFor(entry.b, 4, 1.5)`: **every item is assumed to have 4 options and a
