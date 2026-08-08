@@ -14,6 +14,7 @@ import { Lighting } from './world/Lighting';
 import { Slime, pushOutOfSlimes } from './slimes/Slime';
 import { Stations, STATION_SOLIDS } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
+import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
 import { FAMILY_BATTERY, type Family as Fam } from './contract';
 
 /**
@@ -112,7 +113,7 @@ function Keeper({ locked }: { locked: boolean }) {
     // Push out of anything solid. SOLIDS is a chain of small circles per structure rather than one
     // circle per building, so a child can walk up to a barn door instead of being stopped short of it,
     // and gate openings are deliberately left empty so every pen is walkable.
-    for (const solid of [...SOLIDS, ...STATION_SOLIDS]) {
+    for (const solid of [...SOLIDS, ...STATION_SOLIDS, ...SHOP_SOLIDS]) {
       const dx = camera.position.x - solid.position[0];
       const dz = camera.position.z - solid.position[1];
       const d = Math.hypot(dx, dz);
@@ -170,10 +171,12 @@ function Beat({
   verbId,
   onDone,
   report,
+  onAnswered,
 }: {
   verbId: string;
   onDone: () => void;
   report: (live: LiveItem | null) => void;
+  onAnswered: (n: number) => void;
 }) {
   const verb = useMemo(() => VERBS.find((v) => v.id === verbId), [verbId]);
   const battery: Battery = verb?.battery ?? 'Nonverbal';
@@ -191,6 +194,14 @@ function Beat({
     if (s.phase === 'closed') onDone();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.phase]);
+
+  // Paid per question ANSWERED, never per question answered correctly. Correctness is deleted before
+  // it reaches this layer, and a payout on accuracy would teach a child to guess fast for coins,
+  // which is exactly the behaviour the ability estimate depends on not happening.
+  useEffect(() => {
+    onAnswered(s.answered);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.answered]);
 
   useEffect(() => {
     report(s.serve ? { serve: s.serve, asking: s.phase === 'asking', answer: s.answer } : null);
@@ -240,6 +251,10 @@ function Beat({
 export function Game() {
   const [locked, setLocked] = useState(false);
   const [engaged, setEngaged] = useState<string | null>(null);
+  const [shopOpen, setShopOpen] = useState(false);
+  const { coins, earn, spend } = useCoins();
+  const [flight, setFlight] = useState(0);
+  const paidFor = useRef(0);
   const [live, setLive] = useState<LiveItem | null>(null);
   const [cares, setCares] = useState(0);
 
@@ -409,8 +424,17 @@ export function Game() {
         </Suspense>
         {/* Suck, carry, plop. Disabled while a station is engaged so a click means "choose" there
             and "hoover" everywhere else, with no mode the child has to learn. */}
+        <Shop
+          engaged={shopOpen}
+          onEngage={() => setShopOpen(true)}
+          onLeave={() => setShopOpen(false)}
+          onBuy={(family) => {
+            // Bought slimes land just outside the stall, so the child sees what they paid for.
+            if (spend(PRICES[family] ?? 5)) putSlime(family, [-2.5, 0, -11.6]);
+          }}
+        />
         <Vacpack
-          enabled={locked && !engaged}
+          enabled={locked && !engaged && !shopOpen}
           onCapture={takeSlime}
           onRelease={(family, position) => putSlime(family, position)}
         />
@@ -421,7 +445,7 @@ export function Game() {
           onLeave={() => setEngaged(null)}
           onGrant={grant}
         />
-        <Keeper locked={locked && !engaged} />
+        <Keeper locked={locked && !engaged && !shopOpen} />
       </Canvas>
 
       {!locked && !engaged && (
@@ -434,6 +458,12 @@ export function Game() {
         <div className="bh-overlay">
           <Beat
             verbId={engaged}
+            onAnswered={(n) => {
+              if (n <= paidFor.current) return;
+              paidFor.current = n;
+              earn(EARN.perAnswer);
+              setFlight((f) => f + 1);
+            }}
             report={setLive}
             onDone={() => {
               // THE TRAP BUG. This used to clear only the item and leave `engaged` set, on the
@@ -442,14 +472,19 @@ export function Game() {
               // no item, unable to walk, with nothing on screen to press. Releasing here is the
               // guarantee; the delay is only so the hatch has time to play.
               setLive(null);
+              earn(EARN.perRound);
+              setFlight((f) => f + 1);
+              paidFor.current = 0;
               window.setTimeout(() => setEngaged(null), 2600);
             }}
           />
         </div>
       )}
 
-      {!engaged && (
+      <CoinFlight trigger={flight} />
+      {!engaged && !shopOpen && (
         <div className="bh-hud">
+          <Purse />
           <p className="bh-cares">{cares} looked after</p>
           <p className="bh-cares">Walk up to the barn wall, the spring or the log</p>
         </div>
