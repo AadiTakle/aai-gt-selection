@@ -8,6 +8,18 @@ import { ScreenerSession, defaultScreenerConfig, prototypeSurfaces } from '@gt/e
 import { bySurface, effectivenessStats, generatorStats, screenerStats } from '@gt/stats';
 import { PracticeSession, defaultPracticeConfig } from '@gt/practice';
 import { QbankSession, loadBanks, precisionAt, PRECISION_STEPS } from '@gt/qbank/server';
+/**
+ * The wire contract, from the browser-safe entry so the same declarations serve the server and every client.
+ * These annotations are what make the contract enforced rather than described: a handler whose response stops
+ * matching stops compiling, which is the only kind of spec that does not drift.
+ */
+import type {
+  AnswerResponse,
+  BankCatalogueResponse,
+  CreateSessionResponse,
+  DebugResponse,
+  NextResponse,
+} from '@gt/qbank';
 import { Store } from './store.js';
 
 const PORT = Number(process.env.PORT ?? 5181);
@@ -177,7 +189,7 @@ app.get('/api/bank', (_req, res) => {
     difficultyRange: b.difficultyRange,
     ageBands: b.ageBands,
   }));
-  res.json({
+  const catalogue: BankCatalogueResponse = {
     types: types.sort((a, b) => a.typeCode.localeCompare(b.typeCode)),
     typeCount: types.length,
     scorable: types.reduce((n, t) => n + t.scorable, 0),
@@ -185,7 +197,8 @@ app.get('/api/bank', (_req, res) => {
     precisionSteps: PRECISION_STEPS,
     // Stated so nobody has to read source to find out how the bank scale became logits.
     difficultyMapping: { midpoint: 10.5, divisor: 3, note: 'a rescaling of the bank 1-20 scale, not a calibration' },
-  });
+  };
+  res.json(catalogue);
 });
 
 app.post('/api/bank/sessions', (req, res) => {
@@ -225,17 +238,20 @@ app.post('/api/bank/sessions', (req, res) => {
   }
   const id = `bank-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
   bankSessions.set(id, session);
-  return res.json({ sessionId: id, poolSize: session.poolSize, config, state: session.state() });
+  const created: CreateSessionResponse = { sessionId: id, poolSize: session.poolSize, config, state: session.state() };
+  return res.json(created);
 });
 
 app.get('/api/bank/sessions/:id/next', (req, res) => {
   const session = bankSessions.get(req.params.id);
   if (!session) return res.status(404).json({ error: 'unknown bank session' });
-  if (session.state().stopped) return res.json({ done: true, state: session.state() });
+  const finished = (): NextResponse => ({ done: true, state: session.state() });
+  if (session.state().stopped) return res.json(finished());
   const serve = session.nextItem();
-  if (!serve) return res.json({ done: true, state: session.state() });
+  if (!serve) return res.json(finished());
   // `served` has had answer, scoring and provenance removed by toServed before reaching here.
-  return res.json({ done: false, ...serve, state: session.state() });
+  const next: NextResponse = { done: false, ...serve, state: session.state() };
+  return res.json(next);
 });
 
 app.post('/api/bank/sessions/:id/answer', (req, res) => {
@@ -244,7 +260,8 @@ app.post('/api/bank/sessions/:id/answer', (req, res) => {
   try {
     const state = session.submit(req.body?.response, Number(req.body?.latencyMs ?? 0));
     const last = session.getAttempts().at(-1);
-    return res.json({ state, correct: last?.correct ?? null, difficulty: last?.difficulty ?? null });
+    const answered: AnswerResponse = { state, correct: last?.correct ?? null, difficulty: last?.difficulty ?? null };
+    return res.json(answered);
   } catch (err) {
     return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
   }
@@ -311,7 +328,12 @@ app.post('/api/bank/practice/:id/answer', (req, res) => {
 app.get('/api/bank/sessions/:id/debug', (req, res) => {
   const session = bankSessions.get(req.params.id);
   if (!session) return res.status(404).json({ error: 'unknown bank session' });
-  return res.json({ ...session.debug(), state: session.state(), thresholdInBankScale: (session.debug().threshold * 3) + 10.5 });
+  const debug: DebugResponse = {
+    ...session.debug(),
+    state: session.state(),
+    thresholdInBankScale: session.debug().threshold * 3 + 10.5,
+  };
+  return res.json(debug);
 });
 
 // --- practice: a second consumer of the same library -------------------------

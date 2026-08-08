@@ -159,11 +159,24 @@ from the same posterior replayed from its history. Two hosts would have disagree
 `node:fs`. Irrelevant on Lambda, relevant to a browser bundle. Severing it means splitting the pure record
 helpers out of the loader — the same seam `3.3` opens. Do them together.
 
-### 6. `3.4` — Write the wire contract
+### 6. `3.4` — Write the wire contract — **DONE 8 Aug 2026**
 - No OpenAPI spec exists; the contract lives in Express handlers and is re-declared by hand in each
   client (for example `apps/web/src/BankScreener.tsx:18-54`).
 - Write the spec, then generate or hand-write one typed client and use it in every app.
 - **Done when:** no app declares its own request/response types.
+
+`packages/qbank/src/wire.ts` (contract), `client.ts` (the one typed client), `openapi.ts` → committed at
+`docs/api/bank-engine.openapi.json` via `npm run api:spec`. 264 tests; web bundle unchanged at 245.95 kB, so
+the browser boundary held. No app declares a wire type any more; the last two projections are
+`Pick<QbankState, ...>` so they cannot drift.
+
+**The four hand-written copies had already fallen behind:** none knew about `domains` or `passRoute` from
+1a.4/1a.7, so every client was discarding fields the server returned.
+
+The **enforced** half is the handler annotations — a response that stops matching stops compiling. The OpenAPI
+document is for non-TypeScript adopters, with a test that the committed copy matches the generator. Its
+schemas sit beside the types rather than being derived from them, so a TS-to-JSON-Schema step is the fix if
+the spec ever becomes load-bearing externally. Full write-up in the 3.4 entry of the todo doc.
 
 ### 7. `3.6` — Add CI
 - `screener/` has no `.github/workflows`.

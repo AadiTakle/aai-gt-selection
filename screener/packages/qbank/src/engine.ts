@@ -29,7 +29,9 @@ import {
   toServed,
 } from './bank.js';
 
-export type { Domain };
+/** `ServedItem` is part of this module's surface — it is what `QbankServe.served` is — so it is re-exported
+ * rather than leaving a consumer to reach into `bank.ts` for half of a response type. */
+export type { Domain, ServedItem };
 
 export const DOMAINS: readonly Domain[] = ['quantitative', 'verbal', 'spatial', 'fluid'];
 
