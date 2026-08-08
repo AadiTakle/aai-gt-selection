@@ -14,7 +14,7 @@ this repo can use them.
 
 | Requirement | State |
 |---|---|
-| 1a. Next-item selection as a Lambda | Algorithm works, **wrong objective** (info-at-threshold, not MEPV), not a Lambda, no battery choice |
+| 1a. Next-item selection as a Lambda | Algorithm works, **objective settled** (info-at-threshold — see below), not a Lambda, no per-domain reporting yet |
 | 1b. Grading as a Lambda | Binary marking works, **no mistake weighting, no guess protection**, not a Lambda |
 | 2. Every type maps to a CogAT subtest | **17 of 53 mapped.** Verbal Analogies has zero direct coverage |
 | 3. This document | Done |
@@ -37,54 +37,123 @@ already portable; only bank loading touches disk.
 It takes exactly the inputs the requirement asks for: the items already answered, whether each was
 right, and the running ability estimate with its uncertainty.
 
-### What is wrong: the objective is not MEPV
+### RESOLVED: the objective is a binary pass/fail classifier, not MEPV
 
-`session.ts:231` selects by maximising **Fisher information at the decision threshold**:
+**Decided by Aadi and Felipe, 6 Aug 2026. MEPV is not being implemented.**
+
+The product is a binary pass/fail classifier. It answers "is this child above the line" and never
+reports an ability score, so `session.ts:231` is already selecting on the right objective:
 
 ```ts
 const info = information(threshold, paramsFor(entry.b, 4, 1.5));
 ```
 
-That is a deliberate choice for a pass/fail classifier — it picks the item that best separates above
-the line from below it. **MEPV is a different objective.** MEPV picks the item whose expected
-posterior variance, averaged over the possible responses weighted by how likely each is, comes out
-lowest. It reduces uncertainty in the *score*; information-at-threshold sharpens a *decision*.
+Maximising **Fisher information at the decision threshold** picks the item that best separates above
+the line from below it, which is exactly what a classifier wants. It is also the cheaper of the two.
 
-There is no MEPV code anywhere in the repo. Searching for `mepv`, `expected posterior`, and
-`posterior variance` returns nothing.
+Kept for the record, because it will be asked again: MEPV picks the item whose expected posterior
+variance — averaged over the possible responses, weighted by how likely each is — comes out lowest.
+It reduces uncertainty in the *score*. Information-at-threshold sharpens a *decision*. We are only
+ever making a decision, so the score-shaped objective buys nothing and costs items.
 
-Which one we want is a product question, not a technical one, and it is worth settling before you
-write code. If we report an ability score with an interval, MEPV is right. If we only ever say
-"recommend / do not recommend", the current criterion is better and cheaper. My read is that we want
-both, selectable per session, because the screener wants a decision and any prep product wants a
-score.
+There is no MEPV code anywhere in the repo and none is wanted. If a future product does need a
+reported ability score with an interval, this is the entry to reopen — add MEPV alongside the current
+criterion behind a config field rather than replacing it, and re-read the two tasks below in the
+history of this file.
 
-**Task 1a.1 — Implement MEPV alongside the current criterion.** For each candidate item, compute the
-posterior you would hold after a correct response and after an incorrect one, take each variance,
-weight them by the predicted probability of each response under the current posterior, and pick the
-item with the smallest expected variance. The posterior is already a grid, so this is a loop over the
-grid per candidate and needs no new maths library. Put the criterion behind a config field
-(`selection: 'mepv' | 'threshold-information'`) rather than replacing what is there.
+**Task 1a.1 — Implement MEPV alongside the current criterion. — DROPPED.** Superseded by the decision
+above.
 
-**Task 1a.2 — Make it not O(pool) per item.** MEPV over 5,425 items means two posterior updates each,
-per question. Restrict candidates before scoring them: current practice is to consider only items
-within a difficulty window around the estimate. Measure it before optimising; it may well be fine.
+**Task 1a.2 — Make it not O(pool) per item. — DROPPED.** Only existed to make MEPV affordable.
+Information-at-threshold is one cheap evaluation per candidate, so the pool size is not a problem
+today. If selection ever gets slow, the fix is the same difficulty-window restriction described here
+before, and it should be measured before it is written.
 
-### What is missing: choosing a battery
+### Domain handling, and the spike question
 
 There is no battery selection. What exists is a hard coverage floor: `session.ts:222-226` finds
 domains below `perDomainMinimum` and serves those first, then falls through to pure information
 greed. Domains are the four internal ones (`quantitative`, `verbal`, `spatial`, `fluid`) from
 `domainOf` in `bank.ts`, **not** CogAT's three batteries.
 
-**Task 1a.3 — Add battery as a first-class concept.** CogAT has Verbal, Quantitative and Nonverbal.
-Our four domains do not map onto those three cleanly, and `fluid` in particular is a bucket for
-everything that did not fit (`bank.ts` says so). Decide the mapping, then select a battery by which
-one currently carries the most uncertainty, rather than by a fixed floor.
+**Task 1a.3 — Add battery as a first-class concept. — DROPPED.** Decided by Aadi and Felipe,
+6 Aug 2026: we keep our own four domains (`quantitative`, `verbal`, `spatial`, `fluid`) and do not
+introduce CogAT's three batteries as a selection concept. The existing coverage floor
+(`session.ts:222-226`) stays as the mechanism. Note the consequence for requirement 2: CogAT
+alignment is now carried entirely by the per-type mapping in section 2, not by the domain structure,
+so `cogat.ts` is the only place that claim lives.
 
-**Task 1a.4 — Report per-battery ability, not just overall.** CogAT reports a profile across three
-batteries and that is much of what makes it useful for placement. Today there is one posterior. Three
-posteriors plus a composite is a bigger change than it sounds and should be scoped on its own.
+**Task 1a.4 — Hold and report a confidence interval per domain.** Rescoped by Aadi and Felipe,
+6 Aug 2026. Prerequisite for 1a.7, which reads these to let a domain spike pass on its own.
+
+**The product is the binary pass/fail, and every question feeds it.** The composite posterior is
+updated by every scored item regardless of domain, and that composite is the primary route to a pass.
+The per-domain posteriors are a second readout over the same evidence, not a competing use of it — no
+item is spent on a domain estimate at the composite's expense.
+
+Hold four posteriors, one per domain, each updated only by its own items, and report mean plus 90%
+interval for each. `Posterior` already has `interval(0.9)`, so this is four instances and a switch on
+`serve.domain` in `submit()`. No hierarchical model, no change to the stop rule or selection.
+
+**Report the bands even when they are very wide, which they usually will be.** A session runs 8-16
+items, so a domain sees 2-4 and its interval will often be 2-3 logits — close to the prior. Report it
+anyway: it is an honest account of what was covered, and nothing hangs on it. Two rules:
+
+- Never render a per-domain mean without its interval. A bare number off two items reads as a finding.
+- Show items served per domain, and suppress rather than print a domain that got none. **A K-1 session
+  cannot currently be served a single verbal item** (`perDomain.verbal` is structurally 0 at that band,
+  confirmed by both app loops), so a K-1 verbal band would be the prior with a label on it.
+
+**Task 1a.7 — Let a domain spike pass on its own: disjunctive rule.** Decided by Aadi and Felipe,
+6 Aug 2026. Blocked on 1a.4, which computes the per-domain posteriors this reads.
+
+**The problem.** Today there is one posterior and every item updates it with no domain conditioning
+(`session.ts:272`), so a child at +2.5 in spatial and −1.0 in verbal has the spike averaged away and
+lands mid-scale. A composite threshold cannot express "exceptional in one thing".
+
+**The rule.** Pass if the composite clears its threshold, **or** if any single domain clears a
+higher one. Two things still need specifying and both should be written down when they are chosen:
+the domain bar itself, and what "clears" means given the bands are wide — with a 2-3 logit interval
+it is the probability threshold, not the bar, that does most of the work, so state it as
+`P(theta_domain > domainBar) >= p` and pick `p` deliberately rather than defaulting to 0.5.
+
+**Why this is defensible: the errors are not symmetric, and the output is not definitive.** A false
+negative is a capable child the programme never learns about. A false positive is a review and an
+afternoon. The tool recommends and never rejects, so being generous costs little and being strict
+costs the thing we are trying to prevent. Tune the rule to miss as few children as possible and
+accept the extra recommendations that come with it.
+
+This is not a new posture — the engine already encodes it twice, so the disjunctive rule extends an
+asymmetry rather than introducing one:
+
+- `defaultScreenerConfig` sets `confidenceAbove: 0.75` against `confidenceBelow: 0.97`
+  (`engine/src/configs.ts`), and the stop logic reads the second as `pAbove <= 0.03`
+  (`qbank/src/session.ts:302-303`). It takes far more evidence to rule a child out than to let one in.
+  The config's own comment says so: *"Eager to pass a candidate through, reluctant to rule one out."*
+- Every surface sets `recommendProbability` between 0.30 and 0.40 — deliberately below a half,
+  because the cost-optimal threshold is the false-positive share of total error cost and here those
+  costs are nowhere near equal. The comment records that an earlier draft used 0.55 and *"quietly
+  contradicted the proposal it came from."*
+
+**Three consequences, all of them binding.**
+
+1. **A domain-triggered pass is not evidence of a domain strength, and must never be reported as
+   one.** The band that let the child through is 2-4 items wide. Passing generously on a noisy signal
+   is fine when a false positive is cheap; *claiming* the child is strong in spatial on that basis is
+   a measurement claim the data does not support. Pass on it, do not narrate it.
+2. **This holds only while the output is a recommendation.** If a "no recommendation" is ever used to
+   turn a child away, the asymmetry inverts, false positives start costing someone something, and
+   this entry has to be reopened. It would also re-raise the exposure that produced the ban on an
+   in-house cognitive test in the first place, so it is not only a measurement question.
+3. **Lakin's objection is answered, not dodged.** "An 'OR' rule does not manufacture diversity
+   without lowering the bar" (`brainlifting/gifted-assessment-quality-brainlift/`, Insight 12) is
+   correct and lands against anyone claiming an OR rule is *more accurate*. We are not claiming that.
+   We are widening the net on purpose because we have named which error is expensive. Say it that way.
+
+**The case for.** Wai's Project TALENT figure: 70% of the spatial top 1% did not qualify on the
+verbal and quantitative composites (`brainlifting/talent-screening-brainlift/`, SPOV 4). A
+composite-only threshold reproduces exactly that miss, which is the single largest quantified gap in
+that research and the reason this rule exists.
 
 ### A calibration problem you will hit immediately
 
@@ -139,6 +208,30 @@ any `.ts` or `.tsx` file. It is authored, validated, shipped to the bank, and th
 deliberately stripped before reaching the browser (see the `LEAKY` regex in the item HTML), so it is
 safe to use server-side.
 
+**But 6,928 is the wrong number to plan against.** It counts items that *carry* the data, not items
+where the class the child picked can be looked up at scoring time. Measured on the 21 showcase types,
+7 Aug 2026: 9 types (1,114 items) join cleanly on option key; 3 more (312 items) hold distractors only
+and need one line to handle; 5 types (602 items) have `content.options` of `null` so there is nothing
+to key on; and 4 types (400 items) have options carrying no `key` field, which is the same defect that
+already makes `VER-RELPAIR-01` unmarkable. **So 12 of 21 served types, around 1,426 items, are usable
+today.** It also only fires on wrong answers, so in an 8-16 item session it touches perhaps three to
+five responses. Worth doing, possibly, but it is a refinement and not a transformation — which is why
+1b.8 exists.
+
+**Task 1b.8 — Measure the effect before building it.** Gates 1b.1 and 1b.2. Re-run the coverage join
+across all 53 types, take a baseline off the simulation harness, then spike fractional scoring behind
+a flag — `likelihood = p^s * (1-p)^(1-s)`, `s = 1` correct, `s = 0` unclassifiable, a provisional
+ordering in between — and report three numbers per age band: the share of scored responses that got a
+non-binary `s`, the change in pass rate, and the change in mean estimate.
+
+The third is the one to watch. Every wrong answer now costs less than it did, so estimates drift
+**upward** and the effective threshold moves without anyone editing `abilityThreshold`. Given the
+asymmetric-loss position in 1a.7 that direction is probably wanted, but it should be chosen rather
+than absorbed. Measure the drift first, then decide whether to recalibrate against it.
+
+If the shift is lost in the noise of a 12-item session, close 1b.1 and 1b.2 rather than arguing about
+the ordering.
+
 **Task 1b.1 — Grade wrong answers by lure class.** A `local_fit` error means the child had the right
 idea and missed a constraint; a `global_mismatch` means they did not engage the rule at all. Those are
 not the same evidence. The clean way to use it is in the likelihood: instead of `1 - p` for any wrong
@@ -192,12 +285,61 @@ start there rather than from scratch.
 
 **Task 1b.7 — I shipped a scoring bug today and fixed it; check my fix.** `QUANT-GLYPHNUM-01`
 declares `deterministic_key` but stores a placement *ratio* (`0.235294`) to be marked against a
-tolerance. When I widened the loader to accept numeric keys, 204 of those items entered the pool and
-the index comparison truncated the ratio to `0`, so picking the first option marked correct on every
-item and everything else marked wrong. Fixed by requiring a numeric key to be a non-negative integer
-in both the loader and `scoreResponse`, and the type is now held back. Tests in
+tolerance. When I widened the loader to accept numeric keys, all 391 of those items entered the pool
+and the index comparison truncated the ratio to `0`, so picking the first option marked correct on
+every item and everything else marked wrong. Fixed by requiring a numeric key to be a non-negative
+integer in both the loader and `scoreResponse`, and the type is now held back. Tests in
 `numeric-key.test.ts`. **The lesson worth keeping: `scoring.mode` in the bank data is not always
 true.** Treat it as a claim to verify, not a fact.
+
+**VERIFIED 8 Aug 2026 — the fix holds, and the sweep is clean. PASS.**
+
+The fix itself is sound. `bank.ts:139` refuses a numeric key that is not a whole non-negative integer
+at load, `bank.ts:191` refuses the same in `scoreResponse`, and the two paths agree, so an item that
+slipped past one would still be unscorable rather than marked wrongly.
+
+Swept all 53 banks, 7,319 records, reading the raw JSONL and cross-checking against `loadBanks()`:
+
+| `scoring.mode` | Records |
+|---|---|
+| `deterministic_key` | 5,425 |
+| `computed_solver` | 1,774 |
+| `model_judge_deferred` | 120 |
+
+Of the 5,425 `deterministic_key` records: 4,534 carry a letter key, 500 carry an option index
+(exactly the five verbal types, all servable, so the widening still buys what it was for), and 391
+carry a non-integer number. **All 391 are `QUANT-GLYPHNUM-01` and all 391 are held back**
+(`excluded: {"non-index-numeric-key": 391}`). No other type declares `deterministic_key` over a key
+that is not an option index, and there are no negative keys anywhere. Sampled GLYPHNUM items mark
+`null` against index 0, index 1, and the truncated ratio.
+
+The sweep is now a test rather than a terminal session — three cases in `numeric-key.test.ts` under
+*the whole library, not just the type that broke*. They assert the **invariant** (nothing with a
+non-index numeric key is ever servable; every servable item marks both right and wrong) rather than a
+count, because a count assertion goes red on every legitimate bank change and trains people to bump
+the number without reading why. 198 tests pass, up from 195.
+
+**Three counts in this document are wrong, and I measured the right ones today.** Feeds 2.5:
+
+| Claim | Where | Says | Measured 8 Aug |
+|---|---|---|---|
+| GLYPHNUM items that entered the pool | this entry | 204 | **391** (corrected above) |
+| Scorable items | 2.5 below, `tasks.md` | 5,425 | **5,034** |
+| Items dropped at load | 1b.6 below, `tasks.md` | 1,894 | **2,285** |
+| Test count | *Running it*, `tasks.md` | 195 | **198** |
+
+5,425 is the `deterministic_key` count, not the servable count — it includes the 391 GLYPHNUM items
+the fix holds back. Servable is 5,034, and `npm run smoke` has been printing exactly that
+(`5034 of 7319 records can be marked host-side`) the whole time, so the doc disagreed with the
+codebase's own output rather than with something unmeasured. `README.md:148-149` says 4,534 markable
+and 2,785 not; both predate index keys and both are now wrong.
+
+**One finding that changes 1b.6's scope, not just its numbers.** 1b.6 says 1,894 items are dropped
+and names two missing modes. There is a **third** shape: GLYPHNUM's 391 items declare
+`deterministic_key` and carry `answer.tolerance` (`0.025`), so they need a numeric comparison within a
+tolerance — neither a solver nor a judge. That is 2,285 dropped in total, in three categories not two,
+and the 391 are the cheapest of the three to make servable since the rule is one comparison and the
+data is already there. Worth pulling forward ahead of the solver work.
 
 ---
 
@@ -315,14 +457,21 @@ run on every push.
 ## Suggested order
 
 1. **1b.7 verification** and **1a.5** (real option count) — small, and both are current wrongness.
-2. **3.1** stateless refactor — unblocks everything in section 3 and is valuable alone.
-3. **3.4** wire contract, then **3.6** CI.
-4. **1b.3** rapid-guess, using the latency already stored.
-5. **2.2 / 2.3** CogAT mapping and enforcement — mostly judgement, little code, and it is a stated
+2. **1a.4** per-domain intervals, then **1a.7** the disjunctive pass rule it unblocks. Both small,
+   and together they are the change that stops a spiky child being averaged out.
+3. **3.1** stateless refactor — unblocks everything in section 3 and is valuable alone.
+4. **3.4** wire contract, then **3.6** CI.
+5. **1b.3** rapid-guess, using the latency already stored.
+6. **2.2 / 2.3** CogAT mapping and enforcement — mostly judgement, little code, and it is a stated
    requirement.
-6. **1a.1** MEPV, once someone has decided score-vs-decision.
-7. **1b.1** lure-class weighting, once the ordering in 1b.2 is agreed.
+7. **1b.8** measure the lure-weighting effect, then **1b.1** / **1b.2** only if it is real.
 8. **1b.6** solver-scored types, largest and least urgent, but it is what unlocks Paper Folding.
+
+Still needing a decision rather than an implementer: the domain bar and the probability threshold in
+1a.7. Neither blocks writing the code — put them in config with a stated default and a comment saying
+they are unvalidated, the same way `abilityThreshold` and `recommendProbability` already are.
+
+*(MEPV was item 6 here. Dropped — see 1a.)*
 
 ## Running it
 
