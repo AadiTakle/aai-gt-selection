@@ -42,6 +42,14 @@ const BOUND = 34;
 /** How wide the keeper is, for pushing out of solids. */
 const KEEPER_RADIUS = 0.45;
 /** Pen centres, from the buildings track. */
+interface Slimelet {
+  family: Fam;
+  stage: 'pip' | 'tuffet' | 'crested' | 'warden';
+  position: [number, number, number];
+  seed: number;
+  bounds: { center: [number, number]; radius: number };
+}
+
 const PEN_RADIUS = 3.4;
 const PENS: [number, number][] = [
   [-6, 15.5],
@@ -268,6 +276,17 @@ export function Game() {
    * was put down on rather than by where it currently is: it never leaves its own pen, so family plus
    * stage plus nearest spawn is unambiguous.
    */
+  /**
+   * Slimes currently in the tank, keyed by family, oldest first.
+   *
+   * The vacpack's `onRelease` only reports a family and a landing spot, so without this the released
+   * slime had to be invented from scratch. That is what made a plopped slime shrink: it came back as a
+   * hardcoded `tuffet`, so a warden returned two stages smaller, and with a fresh seed, so it was a
+   * different creature wearing the same colour. Holding the record means what comes out is what went
+   * in.
+   */
+  const inTank = useRef<Map<string, Slimelet[]>>(new Map());
+
   const takeSlime = useCallback((capturedId: string) => {
     const t = capturedTrace(capturedId);
     if (!t) return;
@@ -279,12 +298,20 @@ export function Game() {
         const d = Math.hypot(sl.position[0] - t.x, sl.position[2] - t.z);
         if (d < bestD) { bestD = d; best = i; }
       });
-      return best < 0 ? prev : prev.filter((_, i) => i !== best);
+      if (best < 0) return prev;
+      const taken = prev[best]!;
+      const queue = inTank.current.get(taken.family) ?? [];
+      queue.push(taken);
+      inTank.current.set(taken.family, queue);
+      return prev.filter((_, i) => i !== best);
     });
   }, []);
 
   /** And back out again. Nothing is ever destroyed, so a release always restores one. */
   const putSlime = useCallback((family: Fam, position: [number, number, number]) => {
+    const queue = inTank.current.get(family) ?? [];
+    const held = queue.shift();
+    inTank.current.set(family, queue);
     setSlimes((prev) => {
       // Bounded to the pen it landed nearest, so its wander stays local wherever it was plopped.
       let pen = PENS[0]!;
@@ -293,12 +320,24 @@ export function Game() {
         const d = Math.hypot(position[0] - c[0], position[2] - c[1]);
         if (d < bestD) { bestD = d; pen = c; }
       }
+      // Bounded to wherever it was put down, so it wanders locally instead of walking home. The
+      // radius grows to cover the distance from the nearest pen, which is what lets a slime live
+      // outside a pen at all.
       const loose = Math.max(PEN_RADIUS, bestD + 1.5);
-      return [...prev, {
-        family, stage: 'tuffet' as const, position,
-        seed: 9001 + prev.length * 211,
-        bounds: { center: pen, radius: loose },
-      }];
+      return [
+        ...prev,
+        held
+          ? { ...held, position, bounds: { center: pen, radius: loose } }
+          : {
+              // Only reachable if a release arrives with nothing recorded, e.g. the tank flushing on
+              // unmount after a reload. Keep it whole rather than dropping the slime.
+              family,
+              stage: 'tuffet' as const,
+              position,
+              seed: 9001 + prev.length * 211,
+              bounds: { center: pen, radius: loose },
+            },
+      ];
     });
   }, []);
 
