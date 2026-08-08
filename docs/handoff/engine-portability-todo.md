@@ -104,6 +104,56 @@ anyway: it is an honest account of what was covered, and nothing hangs on it. Tw
   cannot currently be served a single verbal item** (`perDomain.verbal` is structurally 0 at that band,
   confirmed by both app loops), so a K-1 verbal band would be the prior with a label on it.
 
+**DONE 8 Aug 2026.** Four `Posterior` instances in `QbankSession`, each updated only by its own domain's
+scored items, reported through a new `domains` on `QbankState`. Composite untouched and still the pass
+route. No hierarchical model, no change to selection or the stop rule. Tests in `domain-bands.test.ts`
+rebuild each domain's posterior from its own attempts and check the session lands in the same place, and
+separately rebuild the composite from all attempts to prove it was not disturbed. 220 tests pass.
+
+`mean` and `interval` are both **required** fields on `DomainBand`, so there is no way to get a
+per-domain mean out of this type without its interval beside it. That is the "never emit a mean without
+its interval" rule made structural rather than remembered.
+
+**Suppression keys off items *scored*, not items served.** A domain served twice whose responses were
+both unmarkable holds exactly the prior it started with, and publishing that under a domain label is the
+same failure as publishing a domain nobody asked about — it just arrives by a different route. Both
+counts are reported so the gap is visible.
+
+**Correction: the K-1 claim above is wrong.** K-1 has **51 servable verbal items**, and a K-1 session
+with `perDomainMinimum: 1` serves one and returns a verbal band. Measured, not reasoned. Whatever was
+true in the app loops is not true of the engine, so the acceptance criterion "a K-1 session returns no
+verbal band" cannot be met and should not be. The real criterion, which does hold: **a domain that
+scored nothing returns no band, and a session that covered all four returns four.** Suppression is easy
+to reach without K-1 — with `perDomainMinimum: 0` greedy selection puts an entire session into one or two
+domains at every band, so a 16-item K-1 session returns exactly one band.
+
+**What the bands actually look like, and why the interval rule earns its keep.** A 16-item K-1 session at
+`perDomainMinimum: 1`:
+
+| Domain | Mean | 90% interval | Width | Scored |
+|---|---|---|---|---|
+| quantitative | 1.13 | [0.05, 2.35] | 2.30 | 13 |
+| verbal | 0.07 | [-1.50, 1.65] | 3.15 | 1 |
+| spatial | 0.07 | [-1.50, 1.65] | 3.15 | 1 |
+| fluid | 0.11 | [-1.40, 1.70] | 3.10 | 1 |
+
+Composite: 1.15, [0.05, 2.35]. Widths run 2.05 to 3.30 logits across every session tried, and a
+single-item band is barely distinguishable from the prior. **Read the third row as a reader would**:
+`verbal: 0.07` against a composite of 1.15 says this child is weak verbally. It says nothing of the kind
+— it is one item, and the interval covers everything from well below the threshold to well above it.
+Suppressing it would be worse, because then the session would silently claim verbal coverage it did not
+have. So it is reported, with its width and its count, and anything rendering it must show all three.
+
+**Nothing renders these yet, deliberately.** `state()` is the boundary the task asked for and 1a.7
+consumes it programmatically. Every host re-declares its own response types by hand (see 3.4), so adding
+a surface means picking a presentation for a number that is this easy to misread, and the rule above has
+to be enforced wherever that happens.
+
+**One hazard carried over from today's selection work.** There is no per-type diversity rule, so a
+domain's handful of items can all be one type — a spatial band whose evidence is five `SPA-VIEW-01` items
+is a statement about one type, not about spatial ability. 1a.7 already forbids reporting a
+domain-triggered pass as a domain strength; the same caution applies to these bands, for a second reason.
+
 **Task 1a.7 — Let a domain spike pass on its own: disjunctive rule.** Decided by Aadi and Felipe,
 6 Aug 2026. Blocked on 1a.4, which computes the per-domain posteriors this reads.
 

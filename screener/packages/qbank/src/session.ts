@@ -12,6 +12,9 @@ import {
   toServed,
 } from './bank.js';
 
+/** Re-exported so a consumer of `QbankState.domains` can name its keys without reaching for contracts. */
+export type { Domain };
+
 /**
  * An adaptive session over the real item banks.
  *
@@ -145,6 +148,22 @@ export interface QbankAttempt {
   readonly selectionReason: string;
 }
 
+/**
+ * One domain's readout, over that domain's items only.
+ *
+ * `mean` and `interval` are both required, which is the point: a per-domain mean off two items reads as a
+ * finding when it is not one, so there is no way to obtain one from this type without its interval beside
+ * it. Read the counts before either number.
+ */
+export interface DomainBand {
+  readonly mean: number;
+  /** 90% credible interval. Usually 2-3 logits wide, which is close to the prior. Report it anyway. */
+  readonly interval: readonly [number, number];
+  readonly itemsServed: number;
+  /** Items that could actually be marked. The band rests on these, not on `itemsServed`. */
+  readonly itemsScored: number;
+}
+
 export interface QbankState {
   readonly stopped: boolean;
   readonly stopReason: StopReason | null;
@@ -155,6 +174,15 @@ export interface QbankState {
   readonly estimate: number;
   readonly interval: readonly [number, number];
   readonly perDomain: Readonly<Record<string, number>>;
+  /**
+   * A band per domain, absent for any domain that scored nothing.
+   *
+   * A second readout over the same evidence as `estimate`, never a competing use of it: every scored item
+   * updates the composite as well, nothing here changes selection or the stop rule, and the composite
+   * stays the route to a decision. Absence means the child was not measured in that domain — do not fill
+   * it in.
+   */
+  readonly domains: Readonly<Partial<Record<Domain, DomainBand>>>;
 }
 
 const DOMAINS: readonly Domain[] = ['quantitative', 'verbal', 'spatial', 'fluid'];
@@ -223,6 +251,16 @@ export class QbankSession {
   private readonly attempts: QbankAttempt[] = [];
   private readonly usedItemIds = new Set<string>();
   private readonly perDomain = new Map<Domain, number>(DOMAINS.map((d) => [d, 0]));
+  /**
+   * One posterior per domain, each updated only by its own domain's scored items.
+   *
+   * Four independent instances and nothing more — no hierarchical model, no pooling, no shrinkage toward
+   * the composite. With two to four items per domain a hierarchical model would be inventing structure to
+   * make the numbers look narrower than the evidence is.
+   */
+  private readonly domainPosteriors = new Map<Domain, Posterior>(DOMAINS.map((d) => [d, new Posterior()]));
+  /** Scored items per domain. A domain that scored nothing has a prior, and a prior is not reported. */
+  private readonly domainScored = new Map<Domain, number>(DOMAINS.map((d) => [d, 0]));
   private pending: { record: BankRecord; serve: QbankServe } | null = null;
   private stopReason: StopReason | null = null;
   private unscorable = 0;
@@ -279,7 +317,32 @@ export class QbankSession {
       estimate: this.posterior.mean(),
       interval: this.posterior.interval(0.9),
       perDomain: Object.fromEntries(this.perDomain),
+      domains: this.domainBands(),
     };
+  }
+
+  /**
+   * The per-domain readout, omitting any domain that scored nothing.
+   *
+   * Suppression keys off scored items rather than served ones. A domain served twice whose responses were
+   * both unmarkable holds exactly the prior it started with, and publishing that under a domain label
+   * would be a claim about a child nobody managed to measure — the same failure as publishing a domain
+   * that was never asked about, arriving by a different route.
+   */
+  private domainBands(): Readonly<Partial<Record<Domain, DomainBand>>> {
+    const out: Partial<Record<Domain, DomainBand>> = {};
+    for (const domain of DOMAINS) {
+      const scored = this.domainScored.get(domain) ?? 0;
+      if (scored === 0) continue;
+      const posterior = this.domainPosteriors.get(domain)!;
+      out[domain] = {
+        mean: posterior.mean(),
+        interval: posterior.interval(0.9),
+        itemsServed: this.perDomain.get(domain) ?? 0,
+        itemsScored: scored,
+      };
+    }
+    return out;
   }
 
   /**
@@ -375,7 +438,15 @@ export class QbankSession {
     const correct = scoreResponse(record, rawResponse);
 
     if (correct === null) this.unscorable += 1;
-    else this.posterior.update(this.paramsOf(toLogits(record.difficulty), record), correct);
+    else {
+      const params = this.paramsOf(toLogits(record.difficulty), record);
+      // The composite first and unconditionally: it is the pass route, and it is updated by every scored
+      // item whatever domain the item came from. The domain readout is the same evidence counted again,
+      // not evidence taken away from here.
+      this.posterior.update(params, correct);
+      this.domainPosteriors.get(serve.domain)!.update(params, correct);
+      this.domainScored.set(serve.domain, (this.domainScored.get(serve.domain) ?? 0) + 1);
+    }
 
     const pAfter = this.posterior.probabilityAbove(threshold);
     this.usedItemIds.add(record.itemId);

@@ -65,13 +65,32 @@ Superseded by information-per-expected-second once `1b.5` forwards `latencyMs`.
 **Also found, and it blocks task 13:** `npm run sim` never touches qbank, so `1b.8` cannot baseline off
 it as written. See the 1a.5 entry.
 
-### 3. `1a.4` — Hold and report a confidence interval per domain
+### 3. `1a.4` — Hold and report a confidence interval per domain — **DONE 8 Aug 2026**
 - Four `Posterior` instances, one per domain, each updated only by its own domain's items.
 - Composite posterior stays exactly as it is and remains the primary pass route.
 - Extend `state()` to return per domain: mean, 90% interval, items served.
 - Suppress a domain that received zero items rather than emitting the prior.
 - Never emit a mean without its interval.
-- **Done when:** a K-1 session returns no verbal band, and a full session returns four.
+- ~~**Done when:** a K-1 session returns no verbal band, and a full session returns four.~~
+- **Done when (corrected):** a domain that scored nothing returns no band, and a session that covered all
+  four returns four.
+
+New `domains` on `QbankState`, keyed by domain, each entry carrying mean, 90% interval, items served and
+items scored. `mean` and `interval` are both required on `DomainBand`, so the "never a mean without its
+interval" rule is structural rather than remembered. Suppression keys off items *scored*, since a domain
+whose responses were all unmarkable holds the prior just as surely as one never asked. Tests in
+`domain-bands.test.ts` rebuild each domain from its own attempts and the composite from all of them; 220
+tests pass.
+
+**The original acceptance criterion was wrong and is struck through above.** K-1 has 51 servable verbal
+items and a K-1 session with `perDomainMinimum: 1` serves one, so it does return a verbal band. Measured,
+not reasoned. Suppression is reachable without K-1: at `perDomainMinimum: 0` greedy selection puts a whole
+session into one or two domains at every band.
+
+Bands are 2.05 to 3.30 logits wide and a single-item band is barely off the prior — a K-1 session reports
+`verbal: 0.07 [-1.50, 1.65]` off one item against a composite of 1.15. Nothing renders them yet; whatever
+does must show the interval and the count. Full numbers in the 1a.4 entry of
+`engine-portability-todo.md`.
 
 ### 4. `1a.7` — Disjunctive pass rule
 - Blocked on `1a.4`.
