@@ -417,6 +417,10 @@ export function Game() {
           <group position={[0, 3.6, -13]}>
             <pointLight position={[0, 1.5, 5]} intensity={22} distance={16} color="#fff4de" />
             <PodWall
+              // Keyed on the item so the wall remounts per question. Without this its internal
+              // `picked` state survives into the next item and every further click is swallowed,
+              // which made the game unplayable after the first round.
+              key={live.serve.served.itemId}
               content={live.serve.served.content}
               disabled={!live.asking}
               onPick={(key) => void live.answer(toRef(live.serve.served.content, key))}
