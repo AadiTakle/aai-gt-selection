@@ -135,7 +135,7 @@ export function createWander(opts: {
   radius: number;
   /** Overrides the seeded heading, for a slime posed on purpose (a lineup, a card, a corral gate). */
   facing?: number | undefined;
-  /** Body height, so the hop is proportional: a tall kite hops higher than a flat bellow. */
+  /** Body height, so the hop is proportional: a tall fairy hops higher than a flat rock. */
   height: number;
   /** Family wobble multiplier from `look.ts`. A heavy slime is slower and wobbles less. */
   jiggle: number;
@@ -458,7 +458,7 @@ export function holdWander(s: WanderState, dt: number): void {
  * The hop, the landing squash, and the resting breath.
  *
  * A slime that slides is a texture on a stick; the hop is what makes it a creature. It is small — under
- * a tenth of body height — because a big hop on a wide flat bellow looks like a bouncing ball, and
+ * a tenth of body height — because a big hop on a wide flat rock looks like a bouncing ball, and
  * because forty things bouncing high at once is visual noise. The landing compression is the half that
  * actually reads: the eye is much better at seeing something squash against the ground than at seeing
  * it rise off it.

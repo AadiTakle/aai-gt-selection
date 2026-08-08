@@ -6,9 +6,16 @@ import type { Battery } from '../shared/batteries';
  * Slimes, world and screener are built in parallel against these types, so they must be stable.
  */
 
-/** Six silhouette families, keyed to what the child has been doing. */
-export type Family = 'bellow' | 'rill' | 'cobble' | 'ember' | 'fern' | 'kite';
-export const FAMILIES: readonly Family[] = ['bellow', 'rill', 'cobble', 'ember', 'fern', 'kite'];
+/**
+ * Six slime families, each tied to a concrete thing rather than an abstract silhouette word.
+ *
+ * The earlier names (bellow, rill, cobble, ember, fern, kite) described shapes and meant nothing to a
+ * child. A five-year-old sorts and remembers by object: a waffle slime is a waffle slime. Each family
+ * therefore owns a material, a palette and a signature prop, and its silhouette follows from the
+ * object rather than the object being painted onto a silhouette.
+ */
+export type Family = 'waffle' | 'rose' | 'grass' | 'rock' | 'fairy' | 'frost';
+export const FAMILIES: readonly Family[] = ['waffle', 'rose', 'grass', 'rock', 'fairy', 'frost'];
 
 /** Growth advances on visits and care performed, NEVER on correctness. */
 export type Stage = 'pip' | 'tuffet' | 'crested' | 'warden';
@@ -19,12 +26,12 @@ export const STAGES: readonly Stage[] = ['pip', 'tuffet', 'crested', 'warden'];
  * Two families per battery. This is flavour, not measurement: nothing about a slime feeds the estimate.
  */
 export const FAMILY_BATTERY: Record<Family, Battery> = {
-  fern: 'Verbal',
-  kite: 'Verbal',
-  cobble: 'Quantitative',
-  bellow: 'Quantitative',
-  rill: 'Nonverbal',
-  ember: 'Nonverbal',
+  grass: 'Verbal',
+  fairy: 'Verbal',
+  waffle: 'Quantitative',
+  rock: 'Quantitative',
+  frost: 'Nonverbal',
+  rose: 'Nonverbal',
 };
 
 export interface Slime {

@@ -1,0 +1,471 @@
+import { useFrame } from '@react-three/fiber';
+import { useEffect, useMemo, useRef, type JSX } from 'react';
+import {
+  CylinderGeometry,
+  DoubleSide,
+  MeshStandardMaterial,
+  SphereGeometry,
+  TorusGeometry,
+  type Group,
+  type Mesh,
+} from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+
+import type { Family } from '../contract';
+import {
+  bodyMaterial,
+  catchlightMaterial,
+  faceGeometry,
+  gumdropGeometry,
+  irisMaterial,
+  scleraMaterial,
+  worldScale,
+} from '../slimes/gumdrop';
+import { HONEY, SHELL_SPECK, mats } from './carpentry';
+import { penFor, type StationSite } from './sites';
+
+/**
+ * THE REASON TO DO IT AT ALL: an egg on a post, and the slime that comes out of it.
+ *
+ * The owner's third criticism was the one with no partial credit in it — "no immediate benefit ... maybe
+ * it must be a physical thing ... that you can come back to or answer and it gives you a slime or
+ * something?" — and this file is the answer, so it is worth being exact about the two rules it obeys.
+ *
+ * RULE ONE: IT IS EARNED BY TAKING PART, NEVER BY BEING RIGHT. The five pips on the post light one at a
+ * time as the child hands something over, and the egg rocks each time. That is the whole of the
+ * accounting: how many times this child chose something, and nothing else. The egg hatches at the end of
+ * a round regardless of what was chosen, and a child who picks the same option four times in a row gets
+ * exactly the same slime as a child who picks four different ones.
+ *
+ * This is not merely a policy choice, it is the only implementable one. `shared/useSortie.ts` deletes
+ * correctness before it returns — nothing in the browser is ever told whether a choice was the keyed one
+ * — so there is no signal here to be tempted by and no way to reintroduce one by accident. The stronger
+ * reason is the one in the brief: a reward that tracks accuracy is a score, a score is a verdict, and a
+ * five-year-old being handed a verdict on their reasoning is the thing this whole app exists not to do.
+ *
+ * RULE TWO: NOTHING CAN BE LOST. Leaving a station mid-question drops the pips and takes nothing away;
+ * the egg is still there when the child comes back. There is no state in which a station is spent,
+ * failed, or closed.
+ *
+ * WHICH family arrives depends on the STATION, from `FAMILY_BATTERY` in `contract.ts` — two families per
+ * battery, alternating per visit — so a child's collection ends up visibly reflecting where they have
+ * been. That is flavour. Nothing about a slime feeds anything.
+ */
+
+/** The nest's height above the grass. Chest height on a five-year-old, so the egg is a thing you meet. */
+const NEST_Y = 1.05;
+/** How many pips the post carries. A round is about four items, so five is never all lit. */
+const PIPS = 5;
+
+export type CradlePhase = 'resting' | 'hatching';
+
+/**
+ * When the world is told to add the slime, and when the theatre is over.
+ *
+ * The grant lands while the hatchling is still bounding away, so the permanent slime `Game.tsx` puts in
+ * the pen appears while the child's eye is following something moving. Handing over at the end instead
+ * makes one creature visibly become another.
+ */
+export function hatchTiming(reduced: boolean): { grantAt: number; endAt: number } {
+  return reduced ? { grantAt: 1000, endAt: 1700 } : { grantAt: 3150, endAt: 4000 };
+}
+
+/* ============================================================================
+   the hatchling
+   ========================================================================== */
+
+/**
+ * One newly hatched slime, built from the slime track's own shared bakes.
+ *
+ * NOT the `<Slime>` component, and the reason is worth writing down: that component registers itself in
+ * the live herd so the player can collide with it, and it drives its own position from its own wander
+ * brain. Both are exactly right for a resident of a pen and exactly wrong for two seconds of theatre —
+ * it would leave a phantom collider standing next to the cradle and it could not be moved along a path.
+ * So the geometry, the materials and the eyes come from `slimes/gumdrop.ts` (shared, cached, one bake per
+ * family for the whole page) and the motion is local to this file.
+ */
+function Hatchling({ family }: { family: Family }): JSX.Element {
+  const bake = useMemo(() => gumdropGeometry(family), [family]);
+  const face = useMemo(() => faceGeometry(), []);
+  const scale = worldScale('pip');
+
+  /**
+   * Where the eyes go, by the same construction `Slime.tsx` argues for: set radially INTO the hide so
+   * only the front cap is out, low on the body rather than up the dome, and capped within about thirty
+   * degrees of dead ahead so the bulge that does show points forward at the child.
+   */
+  const eye = useMemo(() => {
+    const t = 0.44;
+    const ring = bake.radiusAt(t);
+    const r = Math.min(bake.halfWidth * 0.6, ring * 0.48);
+    const gap = Math.min(Math.max(r * 1.04, ring * 0.5), Math.max(r * 1.04, ring * 1.02 - r));
+    const phi = Math.min(0.55, Math.asin(Math.min(0.94, gap / Math.max(ring, 1e-4))));
+    const dist = Math.max(r * 0.2, ring - r * 0.78);
+    return { r, across: Math.sin(phi) * dist, depth: Math.cos(phi) * dist, y: t * bake.height };
+  }, [bake]);
+
+  return (
+    <group scale={scale}>
+      <mesh geometry={bake.geometry} material={bodyMaterial(family)} castShadow receiveShadow />
+      <group position={[0, eye.y, 0]}>
+        {([-1, 1] as const).map((side2) => (
+          <group key={side2} position={[side2 * eye.across, 0, eye.depth]}>
+            <mesh geometry={face.sclera} material={scleraMaterial()} scale={eye.r} />
+            <mesh
+              geometry={face.iris}
+              material={irisMaterial(family)}
+              position={[0, 0, eye.r * 0.56]}
+              scale={eye.r * 0.66}
+            />
+            <mesh
+              geometry={face.catchlight}
+              material={catchlightMaterial()}
+              position={[eye.r * 0.24 * side2 * -1, eye.r * 0.34, eye.r * 0.9]}
+              scale={eye.r * 0.26}
+            />
+          </group>
+        ))}
+      </group>
+    </group>
+  );
+}
+
+/* ============================================================================
+   the cradle
+   ========================================================================== */
+
+export function Cradle({
+  site,
+  pips,
+  phase,
+  family,
+  startedAt,
+  reduced,
+}: {
+  site: StationSite;
+  /** How many things the child has handed over this round. Participation, never accuracy. */
+  pips: number;
+  phase: CradlePhase;
+  /** Which family is hatching. Null while resting. */
+  family: Family | null;
+  /** `performance.now()` at the moment the round finished. */
+  startedAt: number;
+  reduced: boolean;
+}): JSX.Element {
+  const m = mats();
+  const groundY = -site.at[1];
+  const nestY = NEST_Y - site.at[1];
+
+  const egg = useRef<Group>(null);
+  const shellL = useRef<Group>(null);
+  const shellR = useRef<Group>(null);
+  const baby = useRef<Group>(null);
+  const babyInner = useRef<Group>(null);
+  const eggMat = useRef<MeshStandardMaterial>(null);
+  const glowRing = useRef<Mesh>(null);
+  const pipMats = useRef<MeshStandardMaterial[]>([]);
+  /** Set when a pip lights, so the egg gives one rock per thing handed over. */
+  const nudged = useRef(-1e9);
+  const openRef = useRef(0);
+
+  const g = useMemo(
+    () => ({
+      post: new CylinderGeometry(0.075, 0.11, 1, 10),
+      nest: new CylinderGeometry(0.34, 0.24, 0.24, 16, 1, true),
+      nestFloor: new CylinderGeometry(0.24, 0.24, 0.05, 16),
+      weave: new TorusGeometry(0.31, 0.028, 6, 22),
+      egg: new SphereGeometry(0.19, 20, 16),
+      // A cracked half. `phiLength` a hair over π so the two halves overlap and no seam shows while shut.
+      half: new SphereGeometry(0.19, 20, 12, 0, Math.PI * 1.06),
+      speck: new SphereGeometry(0.022, 8, 6),
+      board: new RoundedBoxGeometry(0.62, 0.16, 0.07, 2, 0.03),
+      pip: new CylinderGeometry(0.032, 0.032, 0.035, 12),
+      ring: new TorusGeometry(0.3, 0.022, 8, 26),
+    }),
+    [],
+  );
+
+  useEffect(() => {
+    if (pips > 0) nudged.current = performance.now();
+  }, [pips]);
+
+  const hop = useMemo(() => {
+    // Which way the hatchling leaves: toward the nearest fenced pen, in the station's own local frame.
+    const pen = penFor(site);
+    const world = Math.atan2(pen[0] - site.at[0], pen[1] - site.at[2]);
+    const local = world - site.yaw;
+    return { angle: local, dx: Math.sin(local), dz: Math.cos(local) };
+  }, [site]);
+
+  useFrame(() => {
+    const now = performance.now();
+    const t = phase === 'hatching' ? (now - startedAt) / 1000 : -1;
+
+    /* --- the pips ---------------------------------------------------------- */
+    pipMats.current.forEach((mat, i) => {
+      if (!mat) return;
+      const on = i < pips;
+      // Eased rather than switched, so lighting one is a small event rather than a state change.
+      const want = on ? 1.7 : 0;
+      mat.emissiveIntensity += (want - mat.emissiveIntensity) * 0.12;
+    });
+
+    /* --- the ring under the nest ------------------------------------------ */
+    if (glowRing.current) {
+      const mat = glowRing.current.material as MeshStandardMaterial;
+      const filling = pips > 0 ? 0.5 + pips * 0.35 : 0.25;
+      mat.emissiveIntensity += (filling - mat.emissiveIntensity) * 0.08;
+    }
+
+    /* --- resting: one rock per thing handed over -------------------------- */
+    if (phase !== 'hatching') {
+      const since = (now - nudged.current) / 1000;
+      const rock = since < 0.9 && !reduced ? Math.sin(since * 22) * 0.28 * Math.exp(-since * 3.4) : 0;
+      if (egg.current) {
+        egg.current.visible = true;
+        egg.current.rotation.z = rock;
+        egg.current.position.y = Math.abs(rock) * 0.03;
+        egg.current.scale.setScalar(1);
+      }
+      if (shellL.current) shellL.current.visible = false;
+      if (shellR.current) shellR.current.visible = false;
+      if (baby.current) baby.current.visible = false;
+      if (eggMat.current) eggMat.current.emissiveIntensity = pips > 0 ? 0.1 + pips * 0.12 : 0;
+      openRef.current = 0;
+      return;
+    }
+
+    /* --- hatching --------------------------------------------------------- */
+    const wobbleEnd = reduced ? 0 : 0.75;
+    const openEnd = wobbleEnd + (reduced ? 0.25 : 0.5);
+    const greetEnd = openEnd + (reduced ? 0.35 : 0.45);
+    const hopEnd = greetEnd + (reduced ? 0 : 1.6);
+    const fadeEnd = hopEnd + (reduced ? 0.6 : 0.7);
+
+    const whole = egg.current;
+    const left = shellL.current;
+    const right = shellR.current;
+    const kid = baby.current;
+
+    if (t < wobbleEnd) {
+      // Building rocking. The one moment in the sequence with suspense in it.
+      const k = t / Math.max(wobbleEnd, 1e-3);
+      const rock = Math.sin(t * 26) * 0.1 * (0.3 + k * 1.6);
+      if (whole) {
+        whole.visible = true;
+        whole.rotation.z = rock;
+        whole.position.y = Math.abs(rock) * 0.05;
+        whole.scale.setScalar(1 + Math.abs(rock) * 0.12);
+      }
+      if (left) left.visible = false;
+      if (right) right.visible = false;
+      if (kid) kid.visible = false;
+      if (eggMat.current) eggMat.current.emissiveIntensity = 0.4 + k * 1.2;
+      return;
+    }
+
+    if (whole) whole.visible = false;
+    if (eggMat.current) eggMat.current.emissiveIntensity = 0;
+
+    // The shell, parting. Each half tips outward and down, and stays in the nest afterwards — a hatched
+    // egg leaves its shell behind, and the shell is the evidence that this happened.
+    const part = Math.min(1, (t - wobbleEnd) / Math.max(openEnd - wobbleEnd, 1e-3));
+    const ease = 1 - Math.pow(1 - part, 3);
+    for (const [ref, sign] of [
+      [left, -1],
+      [right, 1],
+    ] as const) {
+      if (!ref) continue;
+      ref.visible = true;
+      ref.rotation.z = sign * ease * 1.15;
+      ref.position.x = sign * ease * 0.11;
+      ref.position.y = -ease * 0.05;
+    }
+
+    if (!kid) return;
+    kid.visible = t >= wobbleEnd;
+
+    // Inflating, with a small overshoot so the arrival has a bounce in it.
+    const grow = Math.min(1, (t - wobbleEnd) / Math.max(openEnd - wobbleEnd, 1e-3));
+    openRef.current = reduced ? grow : grow * (1 + Math.sin(grow * Math.PI) * 0.22);
+
+    if (t < greetEnd) {
+      // In the nest, facing the child, with two small bounces of hello.
+      const s = Math.max(0, t - openEnd);
+      kid.position.set(0, nestY + 0.12 + (reduced ? 0 : Math.abs(Math.sin(s * 7.5)) * 0.06), 0);
+      if (babyInner.current) babyInner.current.rotation.y = 0;
+      return;
+    }
+
+    if (t < hopEnd) {
+      // Three hops toward the pen. Leaves the nest on the first one, so the arc reads as getting down.
+      const s = (t - greetEnd) / Math.max(hopEnd - greetEnd, 1e-3);
+      const hops = 3;
+      const which = Math.min(hops - 1, Math.floor(s * hops));
+      const inHop = s * hops - which;
+      const dist = (which + inHop) * 0.72;
+      const arc = Math.sin(inHop * Math.PI) * 0.2;
+      const fromNest = Math.max(0, 1 - (which + inHop) * 1.4);
+      const y = groundY + arc + fromNest * (nestY - groundY + 0.12);
+      kid.position.set(hop.dx * dist, y, hop.dz * dist);
+      if (babyInner.current) {
+        babyInner.current.rotation.y = hop.angle;
+        // Squash on landing, stretch at the top: the whole of what makes a hop feel like weight.
+        const sq = reduced ? 1 : 1 + Math.sin(inHop * Math.PI) * 0.14 - (inHop < 0.1 ? 0.12 : 0);
+        babyInner.current.scale.set(1 / Math.sqrt(sq), sq, 1 / Math.sqrt(sq));
+      }
+      return;
+    }
+
+    // Away over the grass. The permanent slime is already in the pen by now.
+    const s = Math.min(1, (t - hopEnd) / Math.max(fadeEnd - hopEnd, 1e-3));
+    const dist = 3 * 0.72 + s * 0.5;
+    kid.position.set(hop.dx * dist, groundY, hop.dz * dist);
+    kid.scale.setScalar(Math.max(0.001, 1 - s));
+    if (s >= 1) kid.visible = false;
+  });
+
+  return (
+    <group position={[site.bay.halfW + 0.95, 0, 0.3]}>
+      {/* The post. */}
+      <mesh
+        geometry={g.post}
+        material={m.timber}
+        position={[0, groundY + (nestY - groundY) / 2, 0]}
+        scale={[1, nestY - groundY, 1]}
+        castShadow
+        receiveShadow
+      />
+
+      {/* The pips: five carved dots on a board, one lighting for each thing handed over. Deliberately
+          not a bar and deliberately not a number — a row of little lights that only ever gets fuller. */}
+      <group position={[0, nestY - 0.42, 0.14]}>
+        <mesh geometry={g.board} material={m.timberDeep} castShadow />
+        {Array.from({ length: PIPS }, (_, i) => (
+          <mesh
+            key={i}
+            geometry={g.pip}
+            position={[(i - (PIPS - 1) / 2) * 0.115, 0, 0.05]}
+            rotation={[Math.PI / 2, 0, 0]}
+          >
+            <meshStandardMaterial
+              ref={(el) => {
+                if (el) pipMats.current[i] = el;
+              }}
+              color="#e8dcc2"
+              emissive={HONEY}
+              emissiveIntensity={0}
+              roughness={0.6}
+              metalness={0}
+            />
+          </mesh>
+        ))}
+      </group>
+
+      {/* The nest, woven. */}
+      <group position={[0, nestY, 0]}>
+        <mesh geometry={g.nestFloor} material={m.basket} position={[0, -0.09, 0]} receiveShadow />
+        <mesh geometry={g.nest} material={m.basket} castShadow receiveShadow />
+        {[-0.06, 0.03, 0.1].map((y) => (
+          <mesh key={y} geometry={g.weave} material={m.rope} position={[0, y, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1 - y * 0.4, 1 - y * 0.4, 1]} />
+        ))}
+        {/* A ring of honey under the rim that fills as the pips do. From a distance this is the only part
+            of the cradle that is legible, and it is the part that says "something is happening here". */}
+        <mesh ref={glowRing} geometry={g.ring} position={[0, -0.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <meshStandardMaterial
+            color={HONEY}
+            emissive={HONEY}
+            emissiveIntensity={0.25}
+            roughness={0.5}
+            metalness={0}
+            toneMapped={false}
+          />
+        </mesh>
+
+        {/* The egg, whole. */}
+        <group ref={egg} position={[0, 0.12, 0]}>
+          <mesh geometry={g.egg} scale={[1, 1.28, 1]} castShadow>
+            <meshStandardMaterial
+              ref={eggMat}
+              color="#f6ead3"
+              emissive={HONEY}
+              emissiveIntensity={0}
+              roughness={0.55}
+              metalness={0}
+            />
+          </mesh>
+          {[
+            [0.09, 0.06, 0.13],
+            [-0.11, -0.05, 0.09],
+            [0.02, 0.16, -0.12],
+            [-0.05, -0.14, -0.11],
+          ].map((p, i) => (
+            <mesh
+              key={i}
+              geometry={g.speck}
+              position={[p[0] ?? 0, p[1] ?? 0, p[2] ?? 0]}
+              scale={0.8 + (i % 3) * 0.3}
+            >
+              <meshStandardMaterial color={SHELL_SPECK} roughness={0.7} />
+            </mesh>
+          ))}
+        </group>
+
+        {/* The two halves it becomes. Left and right, mirrored. */}
+        {([-1, 1] as const).map((side) => (
+          <group
+            key={side}
+            ref={side < 0 ? shellL : shellR}
+            position={[0, 0.12, 0]}
+            visible={false}
+          >
+            <mesh
+              geometry={g.half}
+              rotation={[0, side < 0 ? Math.PI * 0.47 : -Math.PI * 0.53, 0]}
+              scale={[1, 1.28, 1]}
+              castShadow
+            >
+              <meshStandardMaterial color="#f6ead3" roughness={0.55} metalness={0} side={DoubleSide} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+
+      {/* The hatchling. Parked outside the nest group so it can walk away from it. */}
+      <group ref={baby} visible={false}>
+        <group ref={babyInner}>{family ? <HatchlingBody family={family} openRef={openRef} /> : null}</group>
+      </group>
+    </group>
+  );
+}
+
+/**
+ * The hatchling's body, re-rendered only when the family changes.
+ *
+ * `openRef` rather than a prop, because the inflation runs at frame rate and a prop would re-render React
+ * sixty times a second to animate one scale. Volume-preserving on the overshoot — taller means narrower
+ * by the square root — which is the one line that separates jelly from a balloon.
+ */
+function HatchlingBody({
+  family,
+  openRef,
+}: {
+  family: Family;
+  openRef: { current: number };
+}): JSX.Element {
+  const shell = useRef<Group>(null);
+  useFrame(() => {
+    const g = shell.current;
+    if (!g) return;
+    const k = openRef.current;
+    const size = Math.max(0.001, Math.min(1, k));
+    const stretch = 1 + Math.max(0, k - 1);
+    const side = size / Math.sqrt(stretch);
+    g.scale.set(side, size * stretch, side);
+  });
+  return (
+    <group ref={shell}>
+      <Hatchling family={family} />
+    </group>
+  );
+}

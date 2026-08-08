@@ -12,9 +12,18 @@ import { createRoot } from 'react-dom/client';
 import * as THREE from 'three';
 
 import { FAMILIES, STAGES, type Family, type Stage } from '../contract';
-import { Slime, SLIME_RADIUS, slimeColliders } from './Slime';
+import { FAMILY_FEATURE, Slime, SLIME_RADIUS, slimeColliders } from './Slime';
 
-type Mode = 'lineup' | 'stages' | 'pen' | 'stress';
+/**
+ * `far` and `grow` were added for the re-theme, and `far` is the one that matters.
+ *
+ * The whole claim of the object families is that each is identifiable IN SILHOUETTE from across the
+ * ranch, and that claim cannot be checked in a close-up — every one of them is obvious at arm's length.
+ * `far` puts the camera far enough back that a crested slime is about forty screen pixels tall, which is
+ * roughly what a child sees looking across the pen, and it is the view that killed two earlier versions
+ * of the frost crown.
+ */
+type Mode = 'lineup' | 'far' | 'stages' | 'grow' | 'pen' | 'stress';
 const q = new URLSearchParams(location.search);
 const mode = ((q.get('mode') as Mode) ?? 'lineup') || 'lineup';
 /** Extra renders per frame. Wall-clock fps is vsync-capped, so cost has to be measured by saturation. */
@@ -127,6 +136,74 @@ function Scene() {
     );
   }
 
+  if (mode === 'far') {
+    // Far enough that a crested slime is around forty screen pixels tall. THE test view: if a family is
+    // not nameable here, its signature feature is a texture and needs to become geometry.
+    const bounds = { center: [0, 0] as [number, number], radius: 40 };
+    return (
+      <>
+        <Rig at={[0, 2.3, 20]} look={[0, 0.7, 0]} />
+        <Ground r={40} />
+        {FAMILIES.map((f, i) => (
+          <Slime
+            key={f}
+            family={f}
+            stage="crested"
+            position={[(i - 2.5) * 2.5, 0, 0]}
+            seed={101 + i * 7}
+            bounds={bounds}
+            facing={0.5}
+            wander={false}
+          />
+        ))}
+        {/* A second rank further back and turned away, because most of a wandering slime is seen from
+            behind and three quarters, and that is where a front-loaded feature disappears. */}
+        {FAMILIES.map((f, i) => (
+          <Slime
+            key={`${f}-back`}
+            family={f}
+            stage="warden"
+            position={[(i - 2.5) * 3.4, 0, -11]}
+            seed={7 + i * 13}
+            bounds={bounds}
+            facing={Math.PI + 0.6}
+            wander={false}
+          />
+        ))}
+      </>
+    );
+  }
+
+  if (mode === 'grow') {
+    // Two families through all four stages, close enough to judge whether the feature grows with the
+    // creature rather than the creature growing into a costume.
+    const bounds = { center: [0, 0] as [number, number], radius: 30 };
+    const pair = ((q.get('fams') ?? 'waffle,fairy').split(',') as Family[]).filter((f) =>
+      (FAMILIES as readonly string[]).includes(f),
+    );
+    const fams = pair.length === 2 ? pair : (['waffle', 'fairy'] as Family[]);
+    return (
+      <>
+        <Rig at={[0, 1.9, 8.2]} look={[0, 0.7, -0.4]} />
+        <Ground r={30} />
+        {fams.map((f, fi) =>
+          STAGES.map((s, si) => (
+            <Slime
+              key={`${f}${s}`}
+              family={f}
+              stage={s}
+              position={[(si - 1.5) * 1.85, 0, (fi - 0.5) * 2.6]}
+              seed={fi * 17 + si * 3 + 5}
+              bounds={bounds}
+              facing={0}
+              wander={false}
+            />
+          )),
+        )}
+      </>
+    );
+  }
+
   if (mode === 'stages') {
     const bounds = { center: [0, 0] as [number, number], radius: 30 };
     return (
@@ -201,14 +278,17 @@ function Pen({ count }: { count: number }) {
 
 const labels = document.getElementById('labels');
 if (labels) {
+  const named = FAMILIES.map((f) => `${f} (${FAMILY_FEATURE[f]})`).join(' · ');
   labels.textContent =
     mode === 'lineup'
-      ? 'bellow · rill · cobble · ember · fern · kite   (player collision radius ' +
-        SLIME_RADIUS('crested').toFixed(2) +
-        ')'
-      : mode === 'stages'
-        ? 'columns: the six families · rows: pip · tuffet · crested · warden'
-        : 'wandering inside the ring, avoiding the posts and each other';
+      ? `${named}   —   player collision radius ${SLIME_RADIUS('crested').toFixed(2)}`
+      : mode === 'far'
+        ? `silhouette test at ~25 m · front rank crested, back rank warden facing away · ${FAMILIES.join(' · ')}`
+        : mode === 'grow'
+          ? 'two families, pip → tuffet → crested → warden'
+          : mode === 'stages'
+            ? 'columns: the six families · rows: pip · tuffet · crested · warden'
+            : 'wandering inside the ring, avoiding the posts and each other';
 }
 
 createRoot(document.getElementById('root')!).render(

@@ -2,8 +2,9 @@
  * WHAT A SLIME LOOKS LIKE — the whole art direction as data, with no three.js in it.
  *
  * Twenty-four looks come out of two orthogonal tables and nothing else, which is the only way twenty
- * four stay maintainable: a FAMILY decides hue, silhouette profile and what grows out of the body; a
- * STAGE decides proportion, and above all the eye-to-body ratio. Neither table knows about the other.
+ * four stay maintainable: a FAMILY decides hue, material feel, surface relief and what grows out of the
+ * body; a STAGE decides proportion, and above all the eye-to-body ratio. Neither table knows about the
+ * other.
  *
  * ONE RULE INHERITED FROM `world/palette.ts`, AND IT IS THE IMPORTANT ONE: there is no black here.
  * The darkest value any slime is allowed is `BARK`, a warm brown. A #000 iris on a saturated toy is
@@ -11,38 +12,43 @@
  * brown. Values are duplicated rather than imported because `world/` is another track's file and this
  * one must not break when they retune a season.
  *
- * WHY THE SILHOUETTES ARE SHAPED THE WAY THEY ARE. A five-year-old sorts by outline before colour, so
- * a family has to survive being a black shape at thirty pixels. The six are pulled apart on the two
- * axes a blob has — how tall it is, and where its mass sits:
- *
- *            squat  ·  waist  ·  tall            mass low        mass high
- *   bellow   ▓▓▓▓▓▓                              heavy skirt     —
- *   cobble   ▓▓▓▓                                broad facets    —
- *   rill              ▓▓▓▓                       round belly     drawn to a point
- *   fern              ▓▓▓▓                       —               leaf crest
- *   ember                    ▓▓▓▓                narrow foot     flame taper
- *   kite                     ▓▓▓▓▓▓              tiny foot       fins
- *
- * No two of those share both a height class and a mass placement, so no two share a silhouette.
+ * THERE IS ALSO NO NEUTRAL GREY, and `rock` is where that rule earns its keep. A stone slime wants to
+ * read as grey, and the temptation is `#999`. A flat neutral next to five saturated bodies reads as an
+ * ABSENCE of colour — as an untextured placeholder — so rock's greys are all pulled toward violet. They
+ * still read as stone; they just belong to the same world as the others.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────────────────
- * WHAT OF THIS FILE IS STILL LIVE, after the gumdrop rework. Most of it, and the important half:
+ * WHY THESE SIX, AND WHY THEY ARE OBJECTS NOW.
  *
- *   LIVE   · every colour, including the rule that nothing may be black or neutral grey — `BARK` is the
- *            darkest value in the hollow and it is why even the pupils are a warm brown.
- *   LIVE   · `STAGE_LOOK` and `resolveStage`, and above all the `eye` ratio falling from 1.0 at pip to
- *            0.46 at warden. That one number is what makes a baby read as a baby, and the rework kept it.
- *   LIVE   · `jiggle`, which sets how fast a family wobbles and how briskly it wanders.
- *   DEAD   · `Profile` and `FamilyLook.profile`. Those waist curves were evaluated over a sphere, and a
- *            sphere is what the owner rejected. Silhouettes now come from `GUMDROP` in `gumdrop.ts`,
- *            which is a lathed 2D outline and owes nothing to a sphere.
- *   DEAD   · `CrestKind` and `FamilyLook.crestKind`. Replaced by `FAMILY_CREST` in `crests.ts`, whose
- *            geometry is smooth everywhere; the old pebble was visibly faceted.
- *   UNUSED YET · `resolveMarks`. Nothing has asked for coats yet; it is left ready for the care verbs.
+ * The families used to be named after silhouette words — bellow, rill, cobble, ember, fern, kite — and
+ * that table was built on a defensible idea: pull the six apart on the two axes a blob has, height and
+ * where its mass sits, and no two will share an outline. It worked, and it still was not enough. A
+ * five-year-old does not sort by "squat with a heavy skirt"; a child sorts by OBJECT. Six coloured
+ * gumdrops of slightly different proportion are six coloured gumdrops.
  *
- * The dead fields are left in place rather than deleted because they are pure data and the tables read
- * better with them: `profile` documents the intent each family's outline is meant to serve, and the
- * gumdrop table was tuned to keep those intents.
+ * So each family is now a THING, and the thing owns three of the four channels a creature has:
+ *
+ *              colour                   material              signature feature (breaks the OUTLINE)
+ *   waffle     golden brown             baked, waxy sheen     wavy syrup drip line + a butter pat
+ *   rose       deep pink                soft petal bloom      a rosette of petal tips + sepals below
+ *   grass      fresh green              leafy, low gloss      a tuft of tall blades + a daisy
+ *   rock       violet-grey              dry, unlit stone      squattest body, mossy mounds, boulders
+ *   fairy      violet, lit from within  translucent, glowing  a pair of wings + antennae
+ *   frost      pale ice blue            wet ice, high coat    a crown of ice spires + a rime skirt
+ *
+ * THE SILHOUETTE TEST IS THE WHOLE JOB. A texture cannot be seen from across the ranch, so every
+ * signature feature above is GEOMETRY that changes the outline: a child at thirty pixels sees a block on
+ * top (waffle), a scalloped crown (rose), thin blades (grass), a wide low lump (rock), wings (fairy),
+ * spires over a flared skirt (frost). Colour and material are the confirmation up close, never the read.
+ *
+ * WHAT SURVIVED THE RE-THEME UNTOUCHED, because the owner approved it: `STAGE_LOOK` and `resolveStage`,
+ * and above all the `eye` ratio falling from 1.0 at pip to 0.46 at warden. That one number is what makes
+ * a baby read as a baby. `jiggle` likewise, and every rule about the ink.
+ *
+ * The old `Profile` and `CrestKind` types are GONE rather than rekeyed. They were already dead — bodies
+ * come from `GUMDROP` in `gumdrop.ts` and features from `featureGeometry` in `crests.ts` — and carrying six
+ * sets of dead waist curves under six new names would have documented an intent nothing implements.
+ * `relief` replaces them as the live field: the one surface treatment the body itself carries.
  */
 import type { Family, Stage } from '../contract';
 
@@ -52,59 +58,62 @@ import type { Family, Stage } from '../contract';
 
 /** The darkest value in the hollow. Nothing here may be darker, and nothing may be neutral grey. */
 export const BARK = '#4b3626';
-/** Where light pools: the paper-white used for gleams and sclera. Never #fff. */
+/** Where light pools: the paper-white used for gleams, sclera and daisy petals. Never #fff. */
 export const MIST = '#fdf8ee';
+/** A daisy's eye, and the only pure yellow in the set. Shared because two families reach for it. */
+export const POLLEN = '#f2c94a';
 
 /* ============================================================================
    family
    ========================================================================== */
 
 /**
- * A body profile, evaluated over the unit sphere when the geometry is baked.
+ * The one treatment the BODY carries, as opposed to the parts bolted onto it.
  *
- * `waist` is the whole silhouette trick. It is a list of (height, radius-multiplier) stops read as a
- * smooth curve from the bottom of the body to the top, so a droplet, a barrel and a pear are the same
- * eight lines of code with different numbers in them.
+ * Kept to four kinds on purpose. Each is a smooth displacement field plus a matching vertex tint, both
+ * evaluated in `gumdrop.ts` when the shared body buffer is baked, so a relief costs nothing per frame
+ * and nothing per slime — forty waffles share one dimpled lathe.
+ *
+ *   none     · a plain gumdrop wall. rose, fairy.
+ *   lattice  · a grid of soft square dimples with darkened grooves. THE waffle read up close, and it
+ *              scallops the outline just enough to be visible at the rim.
+ *   boulder  · broad smooth facet planes and moss patches on the upward faces. rock.
+ *   crystal  · faint wide crystal panels, and a rime that whitens toward the base. frost.
+ *   blade    · a soft vertical grain, as if the hide were fibrous. grass.
  */
-export interface Profile {
-  /** Radius multiplier at heights -1 (bottom) through +1 (top). Read as a smooth spline. */
-  waist: readonly number[];
-  /** Overall height against width. <1 squat, >1 tall. */
-  aspect: number;
-  /** How much the bottom flattens where it meets the ground, 0..1. */
-  sit: number;
-  /** Broad rounded facets, for stone. Amplitude of a quantised low-frequency lump field. */
-  facet: number;
-  /** Soft organic lumpiness. Amplitude of a smooth three-lobe field. */
-  lump: number;
-  /** Turns per unit height, for a flame's lean. */
-  twist: number;
-}
-
-/** What sprouts from the body. Every family gets a different kit so the top halves differ too. */
-export type CrestKind = 'none' | 'leaf' | 'fin' | 'pebble' | 'flame' | 'droplet' | 'fold';
+export type Relief = 'none' | 'lattice' | 'boulder' | 'crystal' | 'blade';
 
 export interface FamilyLook {
   /** Body colour, mid-tone. */
   skin: string;
   /** What the light looks like coming through the body. Lighter and MORE saturated than `skin`. */
   inner: string;
-  /** Contour, markings, crest undersides. A darkened relative of `skin`, never a grey. */
+  /** Contour, grooves, crevices, the shaded half of a relief. A darkened relative of `skin`. */
   accent: string;
-  /** Crest / fin / leaf top colour. */
+  /** The signature feature's main colour: petals, blades, spires, wings, butter, boulders. */
   crest: string;
+  /** The secondary feature's colour: sepals, daisy, moss, rime. */
+  trim: string;
+  /** The wet or translucent layer: syrup, wing membrane, ice. Also the sparkle colour. */
+  glaze: string;
   /** The nucleus suspended in the jelly. */
   core: string;
-  /** Added rim colour. Ember's is hot; everything else takes the paper-light. */
+  /** Added rim colour. Fairy's is lit; everything else takes the paper-light. */
   rim: string;
-  /** How much light bleeds through the body, 0..1. Watery high, stony low. */
+  /** How much light bleeds through the body, 0..1. Fairy and frost high, rock nil. */
   translucency: number;
-  /** Wet gleam tightness. Stone is broad and dull, water is tight and bright. */
-  gloss: number;
-  /** Self-lit warmth, 0 for everything but ember. */
+  /** Body roughness. Stone is dry and high, ice and jelly are wet and low. */
+  roughness: number;
+  /** Clearcoat strength, 0..1. What separates a glazed sweet from a dry stone. */
+  coat: number;
+  /** Self-lit warmth, 0..1. Fairy is the only one genuinely lit from inside. */
   glow: number;
-  profile: Profile;
-  crestKind: CrestKind;
+  /** How rough the SIGNATURE PARTS are. Petals and moss are matte; butter and boulders are not. */
+  partRoughness: number;
+  /** Which body treatment, from the four above. */
+  relief: Relief;
+  /** Relief amplitude in body units. Zero is the same as `relief: 'none'`. */
+  reliefDepth: number;
   /** Wobble speed multiplier. A heavy slime wobbles slowly. */
   jiggle: number;
   /** Iris colour. Warm browns and greens only. */
@@ -112,106 +121,174 @@ export interface FamilyLook {
 }
 
 export const FAMILY_LOOK: Record<Family, FamilyLook> = {
-  /** Low, wide, heavy. A bellows in a forge: sits like a beanbag and has a skirt where it meets the ground. */
-  bellow: {
-    skin: '#dfa03a',
-    inner: '#ffe4a6',
-    accent: '#a3652a',
-    crest: '#c8832c',
-    core: '#fff1cd',
-    rim: '#fdf1d4',
-    translucency: 0.5,
-    gloss: 42,
+  /**
+   * A WAFFLE. Golden brown, squat, a lattice of squares pressed into the hide, a wavy line of syrup
+   * over the crown and a pat of butter sitting in it.
+   *
+   * The most food-like of the six by a distance, and deliberately: one family being obviously EDIBLE is
+   * what tells a child the set is made of things rather than of colours. `translucency` is near the floor
+   * because light does not pass through a waffle; what it keeps is a waxy `coat`, which is the syrup
+   * sitting on top of it.
+   */
+  waffle: {
+    skin: '#d99a4f',
+    inner: '#ffdda4',
+    accent: '#96581f',
+    crest: '#fbe795',
+    trim: '#c98a3c',
+    glaze: '#a4561a',
+    core: '#ffeec8',
+    rim: '#ffe6bc',
+    translucency: 0.12,
+    roughness: 0.42,
+    coat: 0.55,
     glow: 0,
-    profile: { waist: [1.02, 1.1, 1.06, 0.94, 0.74, 0.48], aspect: 0.62, sit: 0.5, facet: 0, lump: 0.05, twist: 0 },
-    crestKind: 'fold',
-    jiggle: 0.72,
+    partRoughness: 0.36,
+    relief: 'lattice',
+    reliefDepth: 0.055,
+    jiggle: 0.78,
     iris: '#4b3626',
   },
 
-  /** Smooth droplet. The one family with no lumps at all: a single unbroken curve drawn to a point. */
-  rill: {
-    skin: '#57a2bb',
-    inner: '#bdeef7',
-    accent: '#2f6580',
-    crest: '#79c9dd',
-    core: '#e6fbff',
-    rim: '#eaf9ff',
-    translucency: 0.95,
-    gloss: 130,
+  /**
+   * A ROSE. Deep pink, with layered petals wrapping the crown and a small green sepal at the base.
+   *
+   * The petals are the entire silhouette: a rosette of overlapping tips turns the crown into a scalloped
+   * edge, which is a shape no other family has. Body colour sits DARKER than the petals so the rosette
+   * reads as a separate object sitting on the creature rather than as the top of its head.
+   */
+  rose: {
+    skin: '#d24278',
+    inner: '#ffb8d6',
+    accent: '#8e2450',
+    crest: '#f7749f',
+    trim: '#5d9a4c',
+    glaze: '#ffd3e4',
+    core: '#ffe3ee',
+    rim: '#ffdcea',
+    translucency: 0.42,
+    roughness: 0.34,
+    coat: 0.62,
     glow: 0,
-    profile: { waist: [0.78, 1.0, 1.02, 0.9, 0.62, 0.16], aspect: 1.06, sit: 0.28, facet: 0, lump: 0, twist: 0 },
-    crestKind: 'droplet',
-    jiggle: 1.25,
-    iris: '#2f5568',
+    partRoughness: 0.68,
+    relief: 'none',
+    reliefDepth: 0,
+    jiggle: 0.98,
+    iris: '#7a2a4a',
   },
 
-  /** Chunky and stony. Rounded facets, never sharp ones, and a shelf of pebbles round the shoulder. */
-  cobble: {
-    skin: '#c48f6b',
-    inner: '#f3d3b0',
-    accent: '#7a5334',
-    crest: '#a5754f',
-    core: '#ffe9cc',
-    rim: '#f7e3cc',
-    translucency: 0.3,
-    gloss: 18,
+  /**
+   * GRASS. Fresh green, with tufts and blades sprouting from the top and a daisy tucked among them.
+   *
+   * The blades are thin, tall and many, which is a silhouette nothing else in the set comes near — the
+   * only other family with anything upright on its crown is frost, whose spires are few, fat and
+   * straight. The daisy is the up-close reward and the reason a child calls this one the flower slime.
+   */
+  grass: {
+    skin: '#6bab41',
+    inner: '#d5f293',
+    accent: '#3d6b2c',
+    crest: '#7fc94a',
+    trim: '#fdf8ee',
+    glaze: '#e8f9c4',
+    core: '#f0ffd2',
+    rim: '#eaf8d6',
+    translucency: 0.48,
+    roughness: 0.46,
+    coat: 0.4,
     glow: 0,
-    profile: { waist: [0.98, 1.08, 1.04, 1.0, 0.86, 0.5], aspect: 0.78, sit: 0.42, facet: 0.11, lump: 0.05, twist: 0 },
-    crestKind: 'pebble',
-    jiggle: 0.62,
-    iris: '#4b3626',
-  },
-
-  /** Upright and warm, tapering like a held flame, lit softly from inside. */
-  ember: {
-    skin: '#d75f3c',
-    inner: '#ffb877',
-    accent: '#993326',
-    crest: '#f39152',
-    core: '#ffd7a0',
-    rim: '#ffb271',
-    translucency: 0.8,
-    gloss: 70,
-    glow: 0.55,
-    profile: { waist: [0.7, 0.98, 1.04, 0.92, 0.66, 0.3], aspect: 1.2, sit: 0.3, facet: 0, lump: 0.04, twist: 0.16 },
-    crestKind: 'flame',
-    jiggle: 1.05,
-    iris: '#5c2a1e',
-  },
-
-  /** Botanical. A round seed body under a crest of real leaves, plus a bud at the shoulder. */
-  fern: {
-    skin: '#6da04c',
-    inner: '#d3ec9b',
-    accent: '#3c6738',
-    crest: '#8fb45c',
-    core: '#f0ffd0',
-    rim: '#eef7d8',
-    translucency: 0.62,
-    gloss: 34,
-    glow: 0,
-    profile: { waist: [0.9, 1.06, 1.05, 0.96, 0.78, 0.42], aspect: 0.9, sit: 0.4, facet: 0, lump: 0.07, twist: 0 },
-    crestKind: 'leaf',
-    jiggle: 0.95,
+    partRoughness: 0.72,
+    relief: 'blade',
+    reliefDepth: 0.02,
+    jiggle: 1.06,
     iris: '#3c5c30',
   },
 
-  /** Light and tall on a small foot, with paired fins. The only family that reads as ready to lift. */
-  kite: {
-    skin: '#8d78b6',
-    inner: '#e6d4f7',
-    accent: '#574179',
-    crest: '#b49ad8',
-    core: '#f6ecff',
-    rim: '#f0e6ff',
-    translucency: 0.85,
-    gloss: 95,
-    glow: 0.08,
-    profile: { waist: [0.5, 0.86, 1.02, 1.0, 0.82, 0.34], aspect: 1.34, sit: 0.2, facet: 0, lump: 0.03, twist: -0.08 },
-    crestKind: 'fin',
-    jiggle: 1.45,
-    iris: '#453163',
+  /**
+   * ROCK. Violet-grey and heavy, on the lowest widest body of the six, with moss on its upward faces
+   * and a couple of small boulders sitting on its shoulder.
+   *
+   * The only family whose silhouette read is the BODY rather than a part: it is squatter and broader than
+   * anything else here, and it has nothing tall on it at all. That absence is the identifier, which is
+   * why the moss mounds are kept low and wide. Stony but never faceted on the outline: the facet planes
+   * are a smooth low-frequency field, so the profile stays a curve.
+   */
+  rock: {
+    skin: '#9c96a3',
+    inner: '#d8d2de',
+    accent: '#5f5766',
+    crest: '#8b8492',
+    trim: '#8ec257',
+    glaze: '#cfc8d6',
+    core: '#e8e2ee',
+    rim: '#e2dce8',
+    translucency: 0.04,
+    roughness: 0.88,
+    coat: 0.12,
+    glow: 0,
+    partRoughness: 0.9,
+    relief: 'boulder',
+    reliefDepth: 0.055,
+    jiggle: 0.54,
+    iris: '#4b3626',
+  },
+
+  /**
+   * A FAIRY. Violet, translucent, faintly lit from inside, with gossamer wings and a pair of antennae,
+   * and one or two sparkles drifting near it.
+   *
+   * Wings are the strongest silhouette in the set and the tallest slenderest body carries them, so the
+   * outline is unmistakable from any distance. It is also the only family that is genuinely emissive:
+   * `glow` here is what makes the body look lit rather than painted, and the wings are the one part in
+   * the whole directory that is actually transparent.
+   */
+  fairy: {
+    skin: '#9b7ad4',
+    inner: '#e8d6ff',
+    accent: '#5b3f8f',
+    crest: '#cba6f2',
+    trim: '#f0e2ff',
+    glaze: '#e9d8ff',
+    core: '#f8efff',
+    rim: '#f2e4ff',
+    translucency: 0.92,
+    roughness: 0.2,
+    coat: 0.7,
+    glow: 0.5,
+    partRoughness: 0.3,
+    relief: 'none',
+    reliefDepth: 0,
+    jiggle: 1.46,
+    iris: '#4a3168',
+  },
+
+  /**
+   * FROST. Pale ice blue, wet and high-gloss, with a crown of ice spires and a rime of frost flared
+   * around its base.
+   *
+   * Two features rather than one, because a spire cluster alone could be mistaken for grass at distance:
+   * the flared wavy skirt at the ground is a shape only this family has, and it reads at any size. The
+   * spires are smooth tapered forms with tips that ROUND OVER — an ice slime is the family most likely
+   * to break the "nothing jagged" rule and the tip profile is where it would happen.
+   */
+  frost: {
+    skin: '#84c2dd',
+    inner: '#d6f4ff',
+    accent: '#3f7e9c',
+    crest: '#dcf3fc',
+    trim: '#fbfeff',
+    glaze: '#cbeafa',
+    core: '#eafbff',
+    rim: '#e6f7ff',
+    translucency: 0.72,
+    roughness: 0.12,
+    coat: 1,
+    glow: 0.06,
+    partRoughness: 0.16,
+    relief: 'crystal',
+    reliefDepth: 0.03,
+    jiggle: 0.86,
+    iris: '#2f5568',
   },
 };
 
@@ -228,7 +305,11 @@ export const FAMILY_LOOK: Record<Family, FamilyLook> = {
  * nearly as wide as its whole face.
  *
  * `lid` is the second half of it. A pip's eye is uncovered, wide and startled; a warden carries a
- * heavy lid and a brow, which is the entire difference between "cute" and "dignified" on one mesh.
+ * heavy lid, which is the entire difference between "cute" and "dignified" on one mesh.
+ *
+ * NOTHING IN THIS TABLE MOVED FOR THE RE-THEME. `crestScale` and `crestCount` now drive petals, blades,
+ * spires and wings instead of leaves and fins, and they drive them well, because the question they
+ * answer — how much feature does a creature this age carry — did not change with the subject matter.
  */
 export interface StageLook {
   /** World-units tall, before `growth`. */
@@ -245,9 +326,9 @@ export interface StageLook {
   lid: number;
   /** Brow presence above the eye, 0..1. */
   brow: number;
-  /** Crest size against the body. Pips have a nub. */
+  /** Feature size against the body. Pips wear a nub of theirs. */
   crestScale: number;
-  /** How many crest pieces. */
+  /** How many feature pieces: petals in the outer ring, blades in the tuft, spires in the crown. */
   crestCount: number;
   /** Nucleus visibility. Invisible in a pip, defined in a warden. */
   coreShow: number;
@@ -292,7 +373,7 @@ export const STAGE_LOOK: Record<Stage, StageLook> = {
     markScale: 0.8,
     jiggle: 1.2,
   },
-  /** Adolescent, and the reference silhouette: the family profile at full strength, crest up. */
+  /** Adolescent, and the reference silhouette: the family profile at full strength, feature up. */
   crested: {
     size: 0.98,
     round: 1.0,
@@ -331,7 +412,7 @@ const ORDER: readonly Stage[] = ['pip', 'tuffet', 'crested', 'warden'];
 /**
  * The look for one slime, with `growth` easing it toward what it is about to become.
  *
- * Growth is deliberately partial: size and crest move most of the way to the next stage, eye ratio
+ * Growth is deliberately partial: size and feature move most of the way to the next stage, eye ratio
  * moves only a third. A slime that is nearly ready to grow should look like it is outgrowing its
  * proportions, which is what a child actually notices about a pet, and the eyes are the last thing to
  * catch up.

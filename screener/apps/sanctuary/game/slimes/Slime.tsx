@@ -17,21 +17,32 @@
  *        → `wander.ts`. A full random heading from the seed, and a rest/choose/walk/rest loop that
  *          cannot leave `bounds` — steered away from the rim, and hard-clamped as a guarantee.
  *
+ * And then the fourth note, which is what the six families now are:
+ *
+ *   "the slimes should be more distinct in that they have a clear element, theme, object ... like
+ *   waffles, roses, grass, rock, fairy"
+ *        → `crests.ts`. Each family owns a signature feature that changes its OUTLINE, because a child
+ *          sees these from across a ranch where a texture is four pixels of mush: a butter pat on the
+ *          skyline, a scalloped rosette, a tuft of blades, a low broad mossy lump, wings, ice spires over
+ *          a rime skirt. `look.ts` owns the colour and material that confirm it up close.
+ *
  * WHAT WAS KEPT because it already worked: the big glossy doe eyes with a catchlight, the physical
  * jelly material, and the idle squash. The squash now preserves volume (y up means x and z in by the
  * square root), which is the entire difference between jelly and a pulsing balloon — a balloon changes
- * volume, jelly does not.
+ * volume, jelly does not. All six families keep the doe eyes; they are the charm and they are not
+ * negotiable.
  *
  * PERFORMANCE, because forty of these are on screen. Every buffer and every material is created once
  * per family and shared: a family's body is one `LatheGeometry` (`gumdrop.ts`), the face is three unit
- * spheres shared by all twenty-four looks, and the six crests are cached in `crests.ts`. Forty slimes
- * therefore allocate no geometry, no material and — in the frame loop — no objects at all. Nothing in
- * `useFrame` calls `new`; even the per-frame neighbour and obstacle lists are reused arrays.
+ * spheres shared by all twenty-four looks, and a family's signature feature is MERGED into at most two
+ * buffers per stage in `crests.ts` — so a warden rose draws its sixteen petals and four sepals in one
+ * call, and costs exactly what a pip waffle does. Forty slimes allocate no geometry, no material and —
+ * in the frame loop — no objects at all. Nothing in `useFrame` calls `new`; even the per-frame neighbour
+ * lists and the sparkle matrices are reused.
  *
  * WHAT THIS DIRECTORY SUPERSEDED. `geometry.ts` is gone: its bodies were deformed icospheres, which is
  * the shape the owner rejected, and its crests included a visibly faceted pebble. `look.ts` STAYS and is
- * the source of every colour, the eye-to-body ratio and the stage proportions — but its `Profile` and
- * `crestKind` fields are dead, replaced by `GUMDROP` and `FAMILY_CREST`.
+ * the source of every colour, every material feel, the eye-to-body ratio and the stage proportions.
  *
  * WHAT THE INTEGRATOR CALLS. `SLIME_RADIUS(stage)` to size a collider, and `pushOutOfSlimes(pos, r)`
  * from the player controller after its own movement integration. See `herd.ts`.
@@ -42,20 +53,23 @@ import { useEffect, useMemo, useRef, type JSX } from 'react';
 import * as THREE from 'three';
 
 import type { Family, Stage } from '../contract';
-import { FAMILY_CREST, crestGeometry } from './crests';
+import { FAMILY_FEATURE, featureGeometry } from './crests';
 import {
   GUMDROP,
   SLIME_RADIUS,
   bodyMaterial,
   catchlightMaterial,
-  crestMaterial,
   faceGeometry,
+  glazeMaterial,
   gumdropGeometry,
   irisMaterial,
   scleraMaterial,
   slimeHeight,
   slimeRadius,
+  sparkGeometry,
+  sparkMaterial,
   stageScale,
+  trimMaterial,
   worldScale,
 } from './gumdrop';
 import { FAMILY_LOOK, resolveStage } from './look';
@@ -63,6 +77,7 @@ import { joinHerd, leaveHerd, slimeColliders, type SlimeCollider } from './herd'
 import { createWander, holdWander, rngFor, stepWander, type Circle, type WanderWorld } from './wander';
 
 export { SLIME_RADIUS, slimeRadius, slimeHeight, GUMDROP, stageScale, worldScale };
+export { FAMILY_FEATURE } from './crests';
 export {
   pushOutOfSlimes,
   slimeColliders,
@@ -74,6 +89,17 @@ export {
 const NOTICE = 9;
 /** Assumed player radius, only for the slime's own gentle yielding. The controller passes its own. */
 const PLAYER_R = 0.45;
+
+/**
+ * Frame scratch for the sparkle instances, at module scope.
+ *
+ * Safe because `useFrame` bodies never overlap — there is one render thread — and it is the difference
+ * between forty slimes allocating nothing per frame and forty slimes allocating four objects each.
+ */
+const AT = new THREE.Matrix4();
+const P = new THREE.Vector3();
+const Q = new THREE.Quaternion();
+const K = new THREE.Vector3();
 
 export interface SlimeProps {
   family: Family;
@@ -106,8 +132,12 @@ export function Slime({
   const st = useMemo(() => resolveStage(stage, 0), [stage]);
   const bake = useMemo(() => gumdropGeometry(family), [family]);
   const face = useMemo(() => faceGeometry(), []);
-  const kind = FAMILY_CREST[family];
-  const crest = useMemo(() => crestGeometry(kind), [kind]);
+  /**
+   * The signature feature — syrup and butter, petals, blades, boulders, wings, spires — already merged
+   * into one opaque buffer and one translucent one by `crests.ts`, and shared by every slime of this
+   * family at this stage. Two draw calls however many petals a rose has.
+   */
+  const feature = useMemo(() => featureGeometry(family, stage), [family, stage]);
 
   const scale = worldScale(stage);
   const radius = slimeRadius(family, stage);
@@ -117,6 +147,7 @@ export function Slime({
   const eyes = useRef<THREE.Group>(null);
   const gazeL = useRef<THREE.Group>(null);
   const gazeR = useRef<THREE.Group>(null);
+  const sparks = useRef<THREE.InstancedMesh>(null);
 
   const reduced = useMemo(
     () =>
@@ -129,7 +160,7 @@ export function Slime({
   /* --- the face, laid out on the actual surface -----------------------------
      Placed from `radiusAt` rather than from a guessed offset, so an eye sits ON the hide of whichever
      family this is. Guessing works for a sphere and fails immediately for six different profiles: on
-     a squat cobble a fixed offset floats the eyes in front of the face, and on a slender kite it buries
+     a squat rock a fixed offset floats the eyes in front of the face, and on a slender fairy it buries
      them. Everything here is in body units and scales with the stage as one number. */
   const layout = useMemo(() => {
     // LOW on the body, not high. `eyeRise` is a -1..1 coordinate in `look.ts` and the first pass read
@@ -145,7 +176,7 @@ export function Slime({
     // suddenly read as beady. The face has to grow with the whole creature, not with one axis of it.
     //
     // The `ring` cap is the second half of it, and it is what keeps the narrow families honest: on a
-    // kite the widest part of the body is nowhere near the face, so sizing the eyes off `halfWidth`
+    // fairy the widest part of the body is nowhere near the face, so sizing the eyes off `halfWidth`
     // alone put two spheres wider than the head on the front of it. Capping against the local radius
     // means an eye is always a fraction of the surface it is actually sitting on.
     const eyeR = Math.min(bake.halfWidth * st.eye * 0.62, ring * 0.48);
@@ -196,6 +227,15 @@ export function Slime({
       bounds: { cx: bounds.center[0], cz: bounds.center[1], r: bounds.radius },
     }),
   );
+
+  /**
+   * The sparkle clock, offset per slime so a field of fairies does not twinkle in unison.
+   *
+   * It is only advanced when motion is allowed, which is the whole of the `prefers-reduced-motion`
+   * handling for the sparkles: the matrices are still written every frame, they just stop describing a
+   * different arrangement, so the motes hang in the air exactly where they were.
+   */
+  const clock = useRef((seed % 977) * 0.031);
 
   /* --- blink --------------------------------------------------------------- */
   const blink = useRef(
@@ -415,105 +455,36 @@ export function Slime({
       eye.position.x += (wantX - eye.position.x) * ease;
       eye.position.y += (wantY - eye.position.y) * ease;
     }
+
+    /* sparkles. One instanced mesh of three motes, drifting on slow independent orbits and twinkling
+       out of phase with each other. Three matrices a frame, and only for fairy. */
+    const motes = sparks.current;
+    if (motes && feature.sparks > 0) {
+      if (!reduced) clock.current += dt;
+      const time = clock.current;
+      const R = bake.halfWidth;
+      for (let i = 0; i < feature.sparks; i += 1) {
+        const ph = i * 2.27;
+        const a = ph + time * (0.42 + i * 0.13);
+        const rr = R * (1.3 + 0.34 * Math.sin(time * 0.71 + ph));
+        P.set(Math.sin(a) * rr, bake.height * (0.5 + 0.42 * Math.sin(time * 0.53 + ph * 1.7)), Math.cos(a) * rr);
+        // Twinkle by SIZE rather than by opacity: the material is shared by every fairy on the page, so
+        // per-mote opacity would need a material each. A mote that shrinks to a quarter reads as a mote
+        // that has dimmed, and costs nothing.
+        const tw = 0.34 + 0.66 * Math.abs(Math.sin(time * 1.7 + ph * 2.3));
+        const s = R * 0.085 * tw;
+        K.set(s, s, s);
+        motes.setMatrixAt(i, AT.compose(P, Q, K));
+      }
+      motes.instanceMatrix.needsUpdate = true;
+    }
   });
 
-  /* --- what grows out of the top ------------------------------------------
-     The crest is what stops the six from being one shape in six colours once they are wandering and
-     you only ever see them from behind. Geometry comes from the shared cache in `crests.ts` — six
-     buffers for the whole page — and only the placement is decided here. */
-  const crests = useMemo(() => {
-    const n = Math.max(1, Math.round(st.crestCount));
-    // Crests grow with the stage, but not all the way. `crestScale` runs to 1.34 at warden and at full
-    // strength that made a warden's fins and leaves large enough to compete with its own body for the
-    // outline. A grown slime should have a BIGGER crest, not a costume.
-    const k = Math.min(st.crestScale, 1.12);
-    const out: { pos: [number, number, number]; rot: [number, number, number]; s: [number, number, number] }[] = [];
-
-    switch (kind) {
-      case 'leaf': {
-        // A small sprig at the crown, fanned back and out. Three leaves at most: the first pass put a
-        // leaf the size of the whole slime on its head and the creature disappeared under its salad.
-        const leaves = Math.min(3, n);
-        for (let i = 0; i < leaves; i += 1) {
-          const a = ((i - (leaves - 1) / 2) / Math.max(1, leaves)) * 3.2;
-          out.push({
-            pos: [0, bake.height * 0.88, -bake.radiusAt(0.88) * 0.1],
-            // Fanned wide and leaned well over, so three leaves read as a sprig and not as one stalk.
-            rot: [-0.75, a, 0],
-            s: [k * 0.62, k * 0.7, k * 0.62],
-          });
-        }
-        break;
-      }
-      case 'fin': {
-        // Paired, swept BACK and DOWN along the wall. High and upright, which is where the first pass
-        // put them, is where a pair of anything on a head reads as horns.
-        const t = 0.56;
-        const r = bake.radiusAt(t);
-        for (const side of [-1, 1]) {
-          out.push({
-            pos: [side * r * 0.82, bake.height * t, -r * 0.24],
-            rot: [-0.35, side * 1.2, side * 0.7],
-            s: [k * 0.52, k * 0.54, k * 0.52],
-          });
-        }
-        break;
-      }
-      case 'flame': {
-        // A warm tuft on the peak: WIDER than the body is at that height, so it reads as a soft flame
-        // sitting on the slime. Narrower than the body — which is what the first two passes had — and it
-        // is a stalk growing out of its head instead.
-        out.push({ pos: [0, bake.height * 0.82, 0], rot: [0, 0, 0], s: [k * 0.76, k * 0.62, k * 0.76] });
-        break;
-      }
-      case 'bead': {
-        // A dew drop balanced on the peak. Same rule as the flame: wide and low, never tall and thin.
-        out.push({ pos: [0, bake.height * 0.9, 0], rot: [0, 0, 0], s: [k * 0.46, k * 0.34, k * 0.46] });
-        break;
-      }
-      case 'stone': {
-        // A few small stones on the shoulder, at real surface height so they sit on the hide. Kept to
-        // the BACK half so they never crowd the face.
-        const stones = Math.min(3, n);
-        for (let i = 0; i < stones; i += 1) {
-          // Spread from one flank round the back to the other, so at least one is in view from any
-          // angle. Tucked entirely behind the shoulder they were invisible from the front, which made
-          // cobble the one family with no distinguishing feature at all.
-          // Asymmetric on purpose: an even fan put one stone on each flank at exactly the same height,
-          // and a symmetrical pair either side of a head reads as EARS whatever it is made of.
-          const a = Math.PI + 0.45 + ((i - (stones - 1) / 2) / Math.max(1, stones)) * 2.3;
-          const t = 0.68 + (i % 2) * 0.1;
-          // Sat ON the surface, not inside it: at 0.82 of the radius a stone this size never broke the
-          // hide at all and cobble shipped with an invisible crest.
-          const r = bake.radiusAt(t) * 0.94;
-          out.push({
-            pos: [Math.sin(a) * r, t * bake.height, Math.cos(a) * r],
-            rot: [0.1, a, 0.18],
-            s: [k * 0.26, k * 0.2, k * 0.26],
-          });
-        }
-        break;
-      }
-      case 'bun': {
-        // A rounded knob rising out of the crown.
-        //
-        // The rule that finally got this right, after a brim and a lid: THE BLOB'S OWN EQUATOR MUST BE
-        // BURIED. Its widest circle has to sit at a height where the body is wider than it is, or that
-        // circle pokes out sideways and its outline crosses the body's outline at an angle — which is
-        // read, correctly, as a hard edge. So the centre goes well down inside the body and only the top
-        // of the sphere is allowed out.
-        // And it has to be TALLER than it is wide where it emerges. A wide blob whose top clears the
-        // crown by only a tenth of body height shows a broad shallow cap, and a broad shallow cap on a
-        // curved surface is read as a flat plate no matter how round the thing making it is.
-        const mid = 0.82;
-        const w = bake.radiusAt(mid) * 0.44 * k;
-        const yr = bake.height * (1 - mid) + bake.height * 0.22 * k;
-        out.push({ pos: [0, bake.height * mid, 0], rot: [0, 0, 0], s: [w, yr, w] });
-        break;
-      }
-    }
-    return out;
-  }, [kind, bake, st.crestCount, st.crestScale]);
+  /* --- what grows out of the body -----------------------------------------
+     Nothing is placed here any more, and that is the point. Every petal, blade, boulder, wing, spire,
+     drip and pat of butter is positioned, coloured and MERGED in `crests.ts`, once per family per stage,
+     against the same profile curve the body is baked from. This component just draws the two buffers
+     that come back, so a warden rose with thirteen petals costs exactly what a pip waffle does. */
 
   const eyeR = layout.eyeR;
 
@@ -523,17 +494,18 @@ export function Slime({
         {/* The gumdrop. One shared lathe per family. */}
         <mesh geometry={bake.geometry} material={bodyMaterial(family)} castShadow receiveShadow />
 
-        {crests.map((c, i) => (
-          <mesh
-            key={i}
-            geometry={crest}
-            material={crestMaterial(family)}
-            position={c.pos}
-            rotation={c.rot}
-            scale={c.s}
-            castShadow
-          />
-        ))}
+        {/* The opaque half of the signature feature: petals and sepals, blades and daisy, boulders and
+            moss, the butter, the rime. One buffer, one draw call, colours baked per vertex. */}
+        {feature.trim ? (
+          <mesh geometry={feature.trim} material={trimMaterial(family)} castShadow receiveShadow />
+        ) : null}
+
+        {/* The translucent half: syrup, wings, ice spires. Drawn after the opaque pass, which is what
+            lets a wing be see-through and still be occluded correctly by the body in front of it. */}
+        {/* No `castShadow`: a shadow cast by a translucent thing is drawn at full strength by a depth-only
+            pass, so a see-through wing lays down an opaque black wing on the grass. Dropping it is both
+            more truthful and one less pass over four wings, thirteen spires and a syrup cap. */}
+        {feature.glaze ? <mesh geometry={feature.glaze} material={glazeMaterial(family)} /> : null}
 
         {/* The face. `eyes` is scaled in y to blink; the pieces inside it never change size. */}
         <group ref={eyes} position={[0, layout.y, 0]}>
@@ -565,6 +537,18 @@ export function Slime({
           ))}
         </group>
       </group>
+
+      {/* Motes of light, for the one family that has them. OUTSIDE the shell group on purpose: a
+          sparkle is in the air, not on the slime, so the body's squash must not stretch it. One
+          instanced mesh means three motes cost one draw call. */}
+      {feature.sparks > 0 ? (
+        <instancedMesh
+          ref={sparks}
+          args={[sparkGeometry(), sparkMaterial(family), feature.sparks]}
+          scale={scale}
+          frustumCulled={false}
+        />
+      ) : null}
     </group>
   );
 }
