@@ -181,9 +181,14 @@ export function bodyGeometry(family: Family, detail: 2 | 3 | 4 = 4): BodyBake {
   const height = maxY - minY || 1;
   const k = 1 / height;
   for (let i = 0; i < count; i += 1) {
-    pos[i * 3] *= k;
-    pos[i * 3 + 1] = (pos[i * 3 + 1] - minY) * k;
-    pos[i * 3 + 2] *= k;
+    // Read through locals: indexing a typed array is `number | undefined` under
+    // noUncheckedIndexedAccess, and the in-place compound assignment trips it.
+    const x = pos[i * 3] ?? 0;
+    const y = pos[i * 3 + 1] ?? 0;
+    const z = pos[i * 3 + 2] ?? 0;
+    pos[i * 3] = x * k;
+    pos[i * 3 + 1] = (y - minY) * k;
+    pos[i * 3 + 2] = z * k;
   }
   halfWidth *= k;
 

@@ -1,18 +1,18 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { SortieHarness } from './SortieHarness';
-import './styles.css';
+import { Game } from './game/Game';
+import './game/game.css';
 
 /**
- * M0 mounts the harness rather than the game.
+ * Brackenhollow.
  *
- * The order is deliberate: the sortie loop, the marking of both key families and the per-battery pool
- * restriction are the parts that can be wrong in ways a game shell would hide. The hollow arrives at
- * M5, on top of a loop already proven.
+ * `SortieHarness.tsx` still exists and is what to mount when checking the measurement rather than the
+ * game: it shows served type, unscorable count and stop reason, all of which the game deliberately
+ * hides from the child.
  */
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <SortieHarness />
+    <Game />
   </StrictMode>,
 );
