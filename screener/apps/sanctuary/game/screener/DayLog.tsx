@@ -699,10 +699,12 @@ export function DayLog({
 
                 THESE NO LONGER HAVE TO BE FOUND FOR THE ITEM TO MAKE SENSE. Speaking one sentence on
                 hover was the whole voice of this presentation and it is not any more — the log tells the
-                story by itself. What is left here is a magnifier: the slab under the crosshair lifts out
-                of the row so its picture can be studied on its own. That is also the voiceless
-                fallback's only channel, which is why it lifts further when there is no voice, and why a
-                tap still tries to say the sentence in case one arrived late. */}
+                story by itself, and the horn tells it again. What is left here is the FALLBACK, and only
+                the fallback: where there is no voice, the slab under the crosshair lifts clear of the row
+                and enlarges so each picture can be studied on its own, and a tap still tries to say the
+                sentence in case a voice arrived late. Where there IS a voice none of that fires, because
+                deforming a row that the child is being asked to read as an ORDERING costs more than it
+                pays once the story has already been told out loud. */}
             {o.order.map((eventIndex, slot) => {
               const cell = events[eventIndex];
               if (!cell) return null;
