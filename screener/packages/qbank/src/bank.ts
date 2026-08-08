@@ -203,6 +203,25 @@ export function scoreResponse(record: BankRecord, response: unknown): boolean | 
   return candidate.trim().toUpperCase() === expected.trim().toUpperCase();
 }
 
+/**
+ * How many options the candidate was choosing between, or null when the content does not enumerate any.
+ *
+ * This feeds the guessing floor, which `paramsFor` pins to 1/optionCount. Both call sites in
+ * `session.ts` used to pass a literal 4 for every item in the bank, and measured across the 5,034
+ * servable records only 2,373 actually have four options: counts run from 2 to 8, and QUANT-DOTS-01 is
+ * 120 two-option items that were modelled as a 25% guess when the truth is a coin flip.
+ *
+ * Null is a real answer and not a failure. Four types answer with something that is not a choice from
+ * a list — an assignment of tokens to bins, a path, a set of pipe rotations, a placement — so there is
+ * no n for 1/n to be computed from. Returning null puts that decision at the call site instead of
+ * inventing a number here.
+ */
+export function optionCountOf(record: BankRecord): number | null {
+  const options = record.content?.options;
+  if (Array.isArray(options) && options.length > 0) return options.length;
+  return null;
+}
+
 /** Domain labels the banks use, mapped to the four the engine blueprints against. */
 export function domainOf(record: BankRecord | LoadedBank): 'quantitative' | 'verbal' | 'spatial' | 'fluid' {
   const code = ('typeCode' in record ? record.typeCode : '').toUpperCase();

@@ -1,10 +1,11 @@
 import type { Domain, StopReason } from '@gt/contracts';
-import { Posterior, information, paramsFor } from '@gt/engine';
+import { type ItemParams, Posterior, information, paramsFor } from '@gt/engine';
 import {
   type BankRecord,
   type LoadedBank,
   type ServedItem,
   domainOf,
+  optionCountOf,
   scoreResponse,
   toLogits,
   toServed,
@@ -152,6 +153,33 @@ export interface QbankState {
 
 const DOMAINS: readonly Domain[] = ['quantitative', 'verbal', 'spatial', 'fluid'];
 
+/**
+ * Discrimination, held at 1.5 for every item.
+ *
+ * **This is fixed, not calibrated.** No item in this bank has been fitted against real attempts, so
+ * there is no per-item discrimination to use; 1.5 is a moderately discriminating item by convention and
+ * nothing more. `@gt/stats` already computes point-biserial per item
+ * (`packages/stats/src/index.ts:85-115`), which is the input once real response data exists — that is
+ * task 1a.6. Until then this number is an assumption applied uniformly, and any claim that one item
+ * separates candidates better than another is not supported by anything here.
+ */
+const FIXED_DISCRIMINATION = 1.5;
+
+/**
+ * What to assume when an item does not enumerate its options.
+ *
+ * Four types answer with something that is not a choice from a list — CX-check-01 assigns tokens to
+ * bins, SPA-MAZE-01 traces a path, SPA-PIPES-01 sets rotations, SPA-TANGRAM-01 places pieces — and
+ * `optionCountOf` returns null for their 420 servable items. A uniform guess over n options is not the
+ * right model for any of them, and the honest floor is probably nearer 0 than 0.25.
+ *
+ * Holding at 4 keeps those items behaving exactly as they did before the option count was threaded
+ * through, so this change moves only the items whose count is known. **It is a placeholder, and it is
+ * the one open decision in 1a.5.** Whoever settles it should record why, next to the config fields
+ * that already carry the same warning.
+ */
+const ASSUMED_OPTION_COUNT = 4;
+
 export class QbankSession {
   private readonly posterior = new Posterior();
   private readonly attempts: QbankAttempt[] = [];
@@ -181,6 +209,17 @@ export class QbankSession {
 
   get poolSize(): number {
     return this.pool.length;
+  }
+
+  /**
+   * The IRT parameters for one item, used by selection and by the posterior update alike.
+   *
+   * Both go through here on purpose. If the two ever computed the guessing floor differently the engine
+   * would choose an item under one model and score it under another, which is invisible from the outside
+   * and corrupts the estimate rather than failing.
+   */
+  private paramsOf(b: number, record: BankRecord): ItemParams {
+    return paramsFor(b, optionCountOf(record) ?? ASSUMED_OPTION_COUNT, FIXED_DISCRIMINATION);
   }
 
   getAttempts(): readonly QbankAttempt[] {
@@ -228,7 +267,7 @@ export class QbankSession {
     for (const entry of this.pool) {
       if (this.usedItemIds.has(entry.record.itemId)) continue;
       if (short.length > 0 && !short.includes(entry.domain)) continue;
-      const info = information(threshold, paramsFor(entry.b, 4, 1.5));
+      const info = information(threshold, this.paramsOf(entry.b, entry.record));
       if (!best || info > best.info) best = { record: entry.record, domain: entry.domain, info };
     }
 
@@ -270,7 +309,7 @@ export class QbankSession {
     const correct = scoreResponse(record, rawResponse);
 
     if (correct === null) this.unscorable += 1;
-    else this.posterior.update(paramsFor(toLogits(record.difficulty), 4, 1.5), correct);
+    else this.posterior.update(this.paramsOf(toLogits(record.difficulty), record), correct);
 
     const pAfter = this.posterior.probabilityAbove(threshold);
     this.usedItemIds.add(record.itemId);
