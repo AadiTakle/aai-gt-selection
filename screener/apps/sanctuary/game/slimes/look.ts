@@ -24,6 +24,25 @@
  *   kite                     ▓▓▓▓▓▓              tiny foot       fins
  *
  * No two of those share both a height class and a mass placement, so no two share a silhouette.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────────────────────────────
+ * WHAT OF THIS FILE IS STILL LIVE, after the gumdrop rework. Most of it, and the important half:
+ *
+ *   LIVE   · every colour, including the rule that nothing may be black or neutral grey — `BARK` is the
+ *            darkest value in the hollow and it is why even the pupils are a warm brown.
+ *   LIVE   · `STAGE_LOOK` and `resolveStage`, and above all the `eye` ratio falling from 1.0 at pip to
+ *            0.46 at warden. That one number is what makes a baby read as a baby, and the rework kept it.
+ *   LIVE   · `jiggle`, which sets how fast a family wobbles and how briskly it wanders.
+ *   DEAD   · `Profile` and `FamilyLook.profile`. Those waist curves were evaluated over a sphere, and a
+ *            sphere is what the owner rejected. Silhouettes now come from `GUMDROP` in `gumdrop.ts`,
+ *            which is a lathed 2D outline and owes nothing to a sphere.
+ *   DEAD   · `CrestKind` and `FamilyLook.crestKind`. Replaced by `FAMILY_CREST` in `crests.ts`, whose
+ *            geometry is smooth everywhere; the old pebble was visibly faceted.
+ *   UNUSED YET · `resolveMarks`. Nothing has asked for coats yet; it is left ready for the care verbs.
+ *
+ * The dead fields are left in place rather than deleted because they are pure data and the tables read
+ * better with them: `profile` documents the intent each family's outline is meant to serve, and the
+ * gumdrop table was tuned to keep those intents.
  */
 import type { Family, Stage } from '../contract';
 

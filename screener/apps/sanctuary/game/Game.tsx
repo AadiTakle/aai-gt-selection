@@ -7,6 +7,10 @@ import { VERBS, typesFor, verbFor, type Battery } from '../shared/batteries';
 import { useSortie } from '../shared/useSortie';
 import { FAMILIES, type Family } from './contract';
 import { PodWall } from './screener/PodWall';
+import { TideLine } from './screener/TideLine';
+import { DayLog } from './screener/DayLog';
+import { Buildings, SOLIDS } from './world/Buildings';
+import { Lighting } from './world/Lighting';
 
 /**
  * A deliberately self-contained playable slice.
@@ -31,6 +35,14 @@ const WALK = 4.2;
 const GRAVITY = -18;
 const JUMP = 6.4;
 const BOUND = 34;
+/** How wide the keeper is, for pushing out of solids. */
+const KEEPER_RADIUS = 0.45;
+/** Pen centres, from the buildings track. */
+const PENS: [number, number][] = [
+  [-6, 15.5],
+  [11.4, 4.2],
+  [-15.5, -16.5],
+];
 
 /** Warm, saturated but not neon. One hue per family so a child sorts by colour after silhouette. */
 const FAMILY_HUE: Record<Family, string> = {
@@ -145,64 +157,6 @@ function Slime({
   );
 }
 
-/** Ground, corrals and a few soft props. Everything rounded. */
-function Ranch() {
-  const corrals = useMemo(
-    () =>
-      Array.from({ length: 6 }, (_, i) => {
-        const a = (i / 6) * Math.PI * 2;
-        return [Math.cos(a) * 15, 0, Math.sin(a) * 15] as [number, number, number];
-      }),
-    [],
-  );
-
-  return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <circleGeometry args={[BOUND + 6, 64]} />
-        <meshStandardMaterial color="#8fc46b" roughness={0.95} />
-      </mesh>
-
-      {corrals.map((p, i) => (
-        <group key={i} position={p}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
-            <circleGeometry args={[4.2, 40]} />
-            <meshStandardMaterial color="#d8c9a5" roughness={0.9} />
-          </mesh>
-          <mesh position={[0, 0.35, 0]}>
-            <torusGeometry args={[4.2, 0.22, 12, 48]} />
-            <meshStandardMaterial color="#a2795a" roughness={0.7} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Keeper's hut, rounded. */}
-      <group position={[0, 0, -6]}>
-        <mesh position={[0, 1.4, 0]} castShadow>
-          <capsuleGeometry args={[2.1, 1.4, 8, 24]} />
-          <meshStandardMaterial color="#f0e0c8" roughness={0.85} />
-        </mesh>
-        <mesh position={[0, 3.3, 0]} castShadow>
-          <coneGeometry args={[2.9, 1.7, 26]} />
-          <meshStandardMaterial color="#c4694f" roughness={0.75} />
-        </mesh>
-      </group>
-
-      {/* A soft boundary of fern clumps so the edge reads as a place rather than a wall. */}
-      {Array.from({ length: 40 }, (_, i) => {
-        const a = (i / 40) * Math.PI * 2;
-        const r = BOUND + 2.5;
-        return (
-          <mesh key={i} position={[Math.cos(a) * r, 0.8, Math.sin(a) * r]} castShadow>
-            <sphereGeometry args={[1.5, 16, 12]} />
-            <meshStandardMaterial color="#5d9c4f" roughness={0.9} />
-          </mesh>
-        );
-      })}
-    </group>
-  );
-}
-
 /** First person: WASD, mouse look on pointer lock, space to jump. Tuned gentle for a child. */
 function Keeper({ locked, viewing = false }: { locked: boolean; viewing?: boolean }) {
   const { camera, gl } = useThree();
@@ -263,6 +217,21 @@ function Keeper({ locked, viewing = false }: { locked: boolean; viewing?: boolea
       vy.current = 0;
     }
 
+    // Push out of anything solid. SOLIDS is a chain of small circles per structure rather than one
+    // circle per building, so a child can walk up to a barn door instead of being stopped short of it,
+    // and gate openings are deliberately left empty so every pen is walkable.
+    for (const solid of SOLIDS) {
+      const dx = camera.position.x - solid.position[0];
+      const dz = camera.position.z - solid.position[1];
+      const d = Math.hypot(dx, dz);
+      const min = solid.radius + KEEPER_RADIUS;
+      if (d < min && d > 1e-4) {
+        const push = (min - d) / d;
+        camera.position.x += dx * push;
+        camera.position.z += dz * push;
+      }
+    }
+
     // Soft bound rather than a wall.
     const r = Math.hypot(camera.position.x, camera.position.z);
     if (r > BOUND) {
@@ -281,6 +250,24 @@ function Keeper({ locked, viewing = false }: { locked: boolean; viewing?: boolea
  * score, correct or wrong, and nothing here can react to correctness because `useSortie` deletes it
  * before returning. Options are drawn as large tiles a child can hit without precision.
  */
+/**
+ * Item types that have an in-world presentation. Anything absent falls back to the flat tile row,
+ * which draws none of the item's content and is a gap rather than a design: the owner's report that
+ * the tide-line was "pressing random numbers for no reason" was exactly this fallback.
+ */
+export const IN_WORLD: Record<
+  string,
+  React.ComponentType<{
+    content: Record<string, unknown>;
+    onPick: (handed: string) => void;
+    disabled?: boolean;
+  }>
+> = {
+  'FLU-MATRIX-01': PodWall,
+  'QUANT-SERIES-01': TideLine,
+  'VER-SEQUENCE-01': DayLog,
+};
+
 export interface LiveItem {
   serve: NonNullable<ReturnType<typeof useSortie>['serve']>;
   asking: boolean;
@@ -327,7 +314,7 @@ function Beat({
   const options = Array.isArray(content.options) ? (content.options as Record<string, unknown>[]) : [];
   // Drawn in the world by the 3D layer. Only types without an in-world presentation fall back to the
   // flat tile row, and that fallback is a gap to close rather than a design.
-  const inWorld = s.serve.typeCode === 'FLU-MATRIX-01';
+  const inWorld = !!IN_WORLD[s.serve.typeCode];
 
   return (
     <div className={inWorld ? 'bh-beat bh-beat-slim' : 'bh-beat'}>
@@ -366,20 +353,18 @@ export function Game() {
 
   const slimes = useMemo(
     () =>
-      Array.from({ length: 18 }, (_, i) => {
-        const a = (i / 18) * Math.PI * 2 + 0.3;
-        const r = 6 + (i % 4) * 3.4;
-        return {
-          family: FAMILIES[i % FAMILIES.length]!,
-          position: [Math.cos(a) * r, 0, Math.sin(a) * r] as [number, number, number],
-          scale: 0.55 + (i % 3) * 0.28,
-        };
-      }).filter((sl) => {
-        // The apron in front of the pod wall stays empty.
-        const dx = sl.position[0] - 0;
-        const dz = sl.position[2] - -13;
-        return Math.hypot(dx, dz) > 7;
-      }),
+      // Inside the three pens the buildings track actually placed, five to a pen.
+      PENS.flatMap((pen, p) =>
+        Array.from({ length: 5 }, (_, k) => {
+          const a = (k / 5) * Math.PI * 2 + p * 1.1;
+          const r = 1.1 + (k % 3) * 0.85;
+          return {
+            family: FAMILIES[(p * 5 + k) % FAMILIES.length]!,
+            position: [pen[0] + Math.cos(a) * r, 0, pen[1] + Math.sin(a) * r] as [number, number, number],
+            scale: 0.55 + (k % 3) * 0.28,
+          };
+        }),
+      ),
     [],
   );
 
@@ -397,34 +382,32 @@ export function Game() {
   return (
     <div className="bh-root">
       <Canvas shadows camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
-        <color attach="background" args={['#bfe4f2']} />
-        <fog attach="fog" args={['#cfe9f4', 40, 130]} />
-        <hemisphereLight args={['#dff0ff', '#7fa860', 0.75]} />
-        <directionalLight
-          position={[18, 26, 12]}
-          intensity={2.1}
-          color="#fff2d8"
-          castShadow
-          shadow-mapSize={[1024, 1024]}
-        />
+        <color attach="background" args={['#eec89a']} />
         <Suspense fallback={null}>
-          <Ranch />
+          <Lighting />
+          <Buildings />
           {slimes.map((sl, i) => (
             <Slime key={i} {...sl} />
           ))}
         </Suspense>
-        {live && live.serve.typeCode === 'FLU-MATRIX-01' ? (
+        {live && IN_WORLD[live.serve.typeCode] ? (
           <group position={[0, 3.6, -13]}>
             <pointLight position={[0, 1.5, 5]} intensity={22} distance={16} color="#fff4de" />
-            <PodWall
-              // Keyed on the item so the wall remounts per question. Without this its internal
-              // `picked` state survives into the next item and every further click is swallowed,
-              // which made the game unplayable after the first round.
-              key={live.serve.served.itemId}
-              content={live.serve.served.content}
-              disabled={!live.asking}
-              onPick={(key) => void live.answer(toRef(live.serve.served.content, key))}
-            />
+            {(() => {
+              const Presentation = IN_WORLD[live.serve.typeCode]!;
+              const content = live.serve.served.content;
+              return (
+                <Presentation
+                  // Keyed on the item so the presentation remounts per question. Without this its
+                  // internal `picked` state survives into the next item and every further click is
+                  // swallowed, which made the game unplayable after the first round.
+                  key={live.serve.served.itemId}
+                  content={content}
+                  disabled={!live.asking}
+                  onPick={(handed: string) => void live.answer(toRef(content, handed))}
+                />
+              );
+            })()}
           </group>
         ) : null}
         <Keeper locked={locked && !beat} viewing={!!live} />

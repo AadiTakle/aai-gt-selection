@@ -1,0 +1,64 @@
+<!doctype html>
+<!--
+  TEMPORARY preview harness for the slime track. Not part of the app, not linked from it, and safe to
+  delete once the integrator has wired Slime.tsx into Game.tsx.
+
+  Served by the existing sanctuary vite config (root is apps/sanctuary) at
+      http://127.0.0.1:5230/game/slimes/preview.html?mode=lineup
+  so it needs no config change and touches no file this track does not own.
+
+  Modes: lineup (six families) · stages (four ages) · pen (wandering, bounded) · stress (40 wandering)
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>slimes · preview</title>
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        height: 100%;
+        background: #bfe4f2;
+        font: 13px/1.4 ui-rounded, system-ui, sans-serif;
+        color: #4b3626;
+      }
+      #hud {
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        z-index: 5;
+        background: #fdf8eecc;
+        border-radius: 12px;
+        padding: 8px 12px;
+      }
+      #hud a {
+        color: #4b3626;
+        margin-right: 8px;
+      }
+      #fps {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+      #labels {
+        position: fixed;
+        inset: auto 0 12px 0;
+        text-align: center;
+        z-index: 5;
+        color: #4b3626;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hud">
+      <div>
+        <a href="?mode=lineup">lineup</a><a href="?mode=stages">stages</a><a href="?mode=pen">pen</a
+        ><a href="?mode=stress">stress 40</a>
+      </div>
+      <div id="fps">—</div>
+    </div>
+    <div id="labels"></div>
+    <div id="root"></div>
+    <script type="module" src="./preview.tsx"></script>
+  </body>
+</html>
