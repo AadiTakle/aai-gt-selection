@@ -7,7 +7,7 @@
  * completely healthy from the outside. These tests exist to hold that door shut.
  */
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -91,6 +91,69 @@ describe('the two key styles never cross', () => {
     expect(scoreResponse(item, { key })).toBe(true);
     expect(scoreResponse(item, key.toLowerCase())).toBe(true);
     expect(scoreResponse(item, { key: key === 'A' ? 'B' : 'A' })).toBe(false);
+  });
+});
+
+describe('the whole library, not just the type that broke', () => {
+  /**
+   * 1b.7 asked whether QUANT-GLYPHNUM-01 was the only type declaring `deterministic_key` over a key
+   * that is not an option index. Answering it once in a terminal proves nothing about the next bank
+   * import, and the lesson of that bug is that `scoring.mode` is a claim and not a fact. So the sweep
+   * lives here.
+   *
+   * The invariant, not the count: a record whose numeric key is not a whole option index must never be
+   * servable, whatever its type and whatever its mode says. Asserting the count instead would go red on
+   * every legitimate bank change and teach everyone to update the number without reading why.
+   */
+  const banks = loadBanks();
+
+  function nonIndexNumericKeyed(record: BankRecord): boolean {
+    const key = record.answer?.correctKey;
+    return typeof key === 'number' && (!Number.isInteger(key) || key < 0);
+  }
+
+  it('serves no item whose numeric key is not a whole option index', () => {
+    const offenders: string[] = [];
+    for (const bank of banks.values()) {
+      for (const item of bank.scorable) {
+        if (nonIndexNumericKeyed(item)) {
+          offenders.push(`${bank.typeCode} ${item.itemId} key=${item.answer.correctKey}`);
+        }
+      }
+    }
+    expect(offenders, `these are in the pool and cannot be marked as an index`).toEqual([]);
+  });
+
+  it('cannot mark a non-index numeric key, whichever index is reported', () => {
+    // Read the raw files rather than the pool, since the pool is the thing that excluded them.
+    for (const file of readdirSync(BANK_DIR).filter((f) => f.endsWith('.jsonl'))) {
+      for (const line of readFileSync(join(BANK_DIR, file), 'utf8').split('\n')) {
+        if (!line.trim()) continue;
+        const record = JSON.parse(line) as BankRecord;
+        if (record.scoring?.mode !== 'deterministic_key' || !nonIndexNumericKeyed(record)) continue;
+        const where = `${record.typeCode} ${record.itemId}`;
+        const truncated = Math.trunc(record.answer.correctKey as number);
+        expect(scoreResponse(record, { selectedIndex: 0 }), where).toBeNull();
+        expect(scoreResponse(record, { selectedIndex: truncated }), where).toBeNull();
+      }
+    }
+  });
+
+  it('every servable item can actually be marked both ways', () => {
+    // The other half of the guard: holding back the unmarkable is only correct if what remains marks.
+    for (const bank of banks.values()) {
+      for (const item of bank.scorable) {
+        const key = item.answer.correctKey;
+        const where = `${bank.typeCode} ${item.itemId}`;
+        if (typeof key === 'number') {
+          expect(scoreResponse(item, { selectedIndex: key }), where).toBe(true);
+          expect(scoreResponse(item, { selectedIndex: key + 1 }), where).toBe(false);
+        } else {
+          expect(scoreResponse(item, { key }), where).toBe(true);
+          expect(scoreResponse(item, { key: key === 'A' ? 'B' : 'A' }), where).toBe(false);
+        }
+      }
+    }
   });
 });
 
