@@ -36,7 +36,7 @@
  * WHAT THE INTEGRATOR CALLS. `SLIME_RADIUS(stage)` to size a collider, and `pushOutOfSlimes(pos, r)`
  * from the player controller after its own movement integration. See `herd.ts`.
  */
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 // `JSX` is no longer a global namespace under @types/react 19; it is exported from 'react'.
 import { useEffect, useMemo, useRef, type JSX } from 'react';
 import * as THREE from 'three';
@@ -212,7 +212,19 @@ export function Slime({
     herd: [],
     player: { x: 0, z: 0, r: PLAYER_R },
   });
-  const herdScratch = useRef<Circle[]>([]);
+  /**
+   * The neighbour list, as a pool plus a view.
+   *
+   * `pool` holds the Circle objects and only ever grows; `view` is the array actually handed to the brain
+   * and is emptied and refilled each frame from the pool. Truncating the view does not release the pooled
+   * objects, so a slime that has seen six neighbours once never allocates a Circle again. Building this
+   * the obvious way — `near.push({ x, z, r })` — is forty small objects per slime per frame, which at
+   * forty slimes and sixty frames is ninety-six thousand short-lived objects a second and a collection
+   * pause every few seconds. On a game for a five-year-old that pause lands exactly when something
+   * interesting is happening.
+   */
+  const herdPool = useRef<Circle[]>([]);
+  const herdView = useRef<Circle[]>([]);
   const solidScratch = useRef<Circle[]>([]);
   /**
    * Which entries of `obstacles` are actually other slimes and must be ignored.
@@ -263,16 +275,25 @@ export function Slime({
 
     /* neighbours, live, minus self */
     const live = slimeColliders();
-    const near = herdScratch.current;
+    const pool = herdPool.current;
+    const near = herdView.current;
     near.length = 0;
     const self = collider.current;
     for (const o of live) {
       if (self && o.id === self.id) continue;
-      // Only what could matter this frame. Cheap distance reject: an interaction cannot start from
-      // further than a few metres at these speeds, and this turns the herd loop from 40x40 into
+      // Only what could matter this frame. Cheap box reject before any square root: an interaction cannot
+      // start from further than a few metres at these speeds, and this turns the herd loop from 40x40 into
       // 40x(a handful).
       if (Math.abs(o.x - s.x) > 4 || Math.abs(o.z - s.z) > 4) continue;
-      near.push({ x: o.x, z: o.z, r: o.r });
+      let c = pool[near.length];
+      if (!c) {
+        c = { x: 0, z: 0, r: 0 };
+        pool[near.length] = c;
+      }
+      c.x = o.x;
+      c.z = o.z;
+      c.r = o.r;
+      near.push(c);
     }
     w.herd = near;
 
@@ -398,8 +419,8 @@ export function Slime({
 
   /* --- what grows out of the top ------------------------------------------
      The crest is what stops the six from being one shape in six colours once they are wandering and
-     you only ever see them from behind. Geometry comes from the existing shared cache in
-     `geometry.ts` — six buffers for the whole page — and only the placement is decided here. */
+     you only ever see them from behind. Geometry comes from the shared cache in `crests.ts` — six
+     buffers for the whole page — and only the placement is decided here. */
   const crests = useMemo(() => {
     const n = Math.max(1, Math.round(st.crestCount));
     // Crests grow with the stage, but not all the way. `crestScale` runs to 1.34 at warden and at full
@@ -481,9 +502,12 @@ export function Slime({
         // circle pokes out sideways and its outline crosses the body's outline at an angle — which is
         // read, correctly, as a hard edge. So the centre goes well down inside the body and only the top
         // of the sphere is allowed out.
+        // And it has to be TALLER than it is wide where it emerges. A wide blob whose top clears the
+        // crown by only a tenth of body height shows a broad shallow cap, and a broad shallow cap on a
+        // curved surface is read as a flat plate no matter how round the thing making it is.
         const mid = 0.82;
-        const w = bake.radiusAt(mid) * 0.62 * k;
-        const yr = bake.height * (1 - mid) + bake.height * 0.1 * k;
+        const w = bake.radiusAt(mid) * 0.44 * k;
+        const yr = bake.height * (1 - mid) + bake.height * 0.22 * k;
         out.push({ pos: [0, bake.height * mid, 0], rot: [0, 0, 0], s: [w, yr, w] });
         break;
       }

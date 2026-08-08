@@ -11,6 +11,7 @@ import { TideLine } from './screener/TideLine';
 import { DayLog } from './screener/DayLog';
 import { Buildings, SOLIDS } from './world/Buildings';
 import { Lighting } from './world/Lighting';
+import { Slime, pushOutOfSlimes } from './slimes/Slime';
 
 /**
  * A deliberately self-contained playable slice.
@@ -38,124 +39,12 @@ const BOUND = 34;
 /** How wide the keeper is, for pushing out of solids. */
 const KEEPER_RADIUS = 0.45;
 /** Pen centres, from the buildings track. */
+const PEN_RADIUS = 3.4;
 const PENS: [number, number][] = [
   [-6, 15.5],
   [11.4, 4.2],
   [-15.5, -16.5],
 ];
-
-/** Warm, saturated but not neon. One hue per family so a child sorts by colour after silhouette. */
-const FAMILY_HUE: Record<Family, string> = {
-  bellow: '#e5834f',
-  rill: '#5ec8d8',
-  cobble: '#b3907a',
-  ember: '#ef6d5a',
-  fern: '#7cc06a',
-  kite: '#c79ae0',
-};
-
-/**
- * One slime.
- *
- * The eyes are the whole charm and get the most attention: large, glossy, forward-facing, with a
- * white catchlight and a soft dark iris. Eye-to-body ratio is what makes a small one read as a baby,
- * so it is driven by `scale` rather than fixed.
- */
-function Slime({
-  family,
-  position,
-  scale = 1,
-}: {
-  family: Family;
-  position: [number, number, number];
-  scale?: number;
-}) {
-  const body = useRef<THREE.Group>(null);
-  const hue = FAMILY_HUE[family];
-  const phase = useMemo(() => Math.random() * Math.PI * 2, []);
-  const reduced = useMemo(
-    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-    [],
-  );
-
-  // Idle squash and stretch. Volume is roughly preserved, which is what makes it read as jelly
-  // rather than as a pulsing ball.
-  useFrame(({ clock }) => {
-    if (!body.current || reduced) return;
-    const t = clock.elapsedTime * 1.7 + phase;
-    const squash = 1 + Math.sin(t) * 0.055;
-    body.current.scale.set(scale / Math.sqrt(squash), scale * squash, scale / Math.sqrt(squash));
-    body.current.position.y = position[1] + Math.abs(Math.sin(t * 0.5)) * 0.04 * scale;
-  });
-
-  // Silhouette per family, from primitives. Rounded everywhere: nothing here has a hard edge.
-  const shape = useMemo(() => {
-    switch (family) {
-      case 'bellow':
-        return { rx: 1.25, ry: 0.72, rz: 1.15 };
-      case 'rill':
-        return { rx: 0.92, ry: 1.06, rz: 0.92 };
-      case 'cobble':
-        return { rx: 1.05, ry: 0.95, rz: 1.05 };
-      case 'ember':
-        return { rx: 0.88, ry: 1.18, rz: 0.88 };
-      case 'fern':
-        return { rx: 1.0, ry: 1.0, rz: 1.0 };
-      case 'kite':
-        return { rx: 0.8, ry: 1.3, rz: 0.8 };
-    }
-  }, [family]);
-
-  const eye = 0.3;
-
-  return (
-    <group position={position}>
-      <group ref={body} scale={scale}>
-        {/* Body. Physical material with transmission gives the jelly read without custom GLSL. */}
-        <mesh castShadow position={[0, shape.ry, 0]} scale={[shape.rx, shape.ry, shape.rz]}>
-          <sphereGeometry args={[1, 48, 32]} />
-          <meshPhysicalMaterial
-            color={hue}
-            roughness={0.22}
-            clearcoat={1}
-            clearcoatRoughness={0.15}
-            transmission={0.35}
-            thickness={1.6}
-            ior={1.35}
-            sheen={0.6}
-            sheenColor={'#ffffff'}
-          />
-        </mesh>
-
-        {/* Eyes. Large, glossy, with a catchlight. */}
-        {[-0.34, 0.34].map((x) => (
-          <group key={x} position={[x * shape.rx, shape.ry * 1.08, shape.rz * 0.82]}>
-            <mesh>
-              <sphereGeometry args={[eye, 28, 20]} />
-              <meshStandardMaterial color="#ffffff" roughness={0.08} />
-            </mesh>
-            <mesh position={[0, 0, eye * 0.66]}>
-              <sphereGeometry args={[eye * 0.58, 24, 18]} />
-              <meshStandardMaterial color="#241c22" roughness={0.05} />
-            </mesh>
-            <mesh position={[eye * 0.22, eye * 0.3, eye * 0.9]}>
-              <sphereGeometry args={[eye * 0.19, 16, 12]} />
-              <meshBasicMaterial color="#ffffff" />
-            </mesh>
-          </group>
-        ))}
-
-        {/* A crest for the families whose silhouette needs one. */}
-        {(family === 'fern' || family === 'kite') && (
-          <mesh position={[0, shape.ry * 2.05, 0]} rotation={[0.2, 0, 0]}>
-            <coneGeometry args={[0.3, 0.55, 16]} />
-            <meshStandardMaterial color={family === 'fern' ? '#4e9c48' : '#a87fd0'} roughness={0.5} />
-          </mesh>
-        )}
-      </group>
-    </group>
-  );
-}
 
 /** First person: WASD, mouse look on pointer lock, space to jump. Tuned gentle for a child. */
 function Keeper({ locked, viewing = false }: { locked: boolean; viewing?: boolean }) {
@@ -216,6 +105,9 @@ function Keeper({ locked, viewing = false }: { locked: boolean; viewing?: boolea
       camera.position.y = KEEPER_HEIGHT;
       vy.current = 0;
     }
+
+    // Slimes are solid too: they slide rather than stick, and yield a little if you are inside one.
+    pushOutOfSlimes(camera.position, KEEPER_RADIUS);
 
     // Push out of anything solid. SOLIDS is a chain of small circles per structure rather than one
     // circle per building, so a child can walk up to a barn door instead of being stopped short of it,
@@ -353,15 +245,18 @@ export function Game() {
 
   const slimes = useMemo(
     () =>
-      // Inside the three pens the buildings track actually placed, five to a pen.
+      // Inside the three pens the buildings track actually placed, five to a pen. Each is bounded to
+      // its own pen so wandering never leaks across the ranch.
       PENS.flatMap((pen, p) =>
         Array.from({ length: 5 }, (_, k) => {
           const a = (k / 5) * Math.PI * 2 + p * 1.1;
           const r = 1.1 + (k % 3) * 0.85;
           return {
             family: FAMILIES[(p * 5 + k) % FAMILIES.length]!,
+            stage: (['pip', 'tuffet', 'crested', 'warden'] as const)[k % 4]!,
             position: [pen[0] + Math.cos(a) * r, 0, pen[1] + Math.sin(a) * r] as [number, number, number],
-            scale: 0.55 + (k % 3) * 0.28,
+            seed: p * 977 + k * 131 + 7,
+            bounds: { center: pen, radius: PEN_RADIUS },
           };
         }),
       ),
