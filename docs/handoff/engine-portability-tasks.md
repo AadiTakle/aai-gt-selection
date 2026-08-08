@@ -24,7 +24,8 @@ counts it corrected and a scope change it found for `1b.6`, is in the `1b.7` ent
 `engine-portability-todo.md`.
 
 ### 2. `1a.5` — Pass the real option count — **DONE 8 Aug 2026**
-- `packages/qbank/src/session.ts:231` and the `submit()` update call both hardcode
+- `packages/qbank/src/session.ts:231` (pre-3.1 location; now `engine.ts`) and the `submit()` update call
+  both hardcode
   `paramsFor(..., 4, 1.5)`.
 - Read the option count off item content; thread it through to `paramsFor`.
 - Leave discrimination at 1.5 and comment that it is fixed, not calibrated.
@@ -103,7 +104,7 @@ does must show the interval and the count. Full numbers in the 1a.4 entry of
 - **Done when:** a simulated spiky candidate (high one domain, low elsewhere) passes, and the result
   says which route did it.
 
-`passRouteFor` in `session.ts`, `passRoute` on `QbankState`, and `domainBar` / `domainRecommendProbability`
+`passRouteFor` (in `engine.ts` since task 5), `passRoute` on `QbankState`, and `domainBar` / `domainRecommendProbability`
 in config defaulting to **1.5** and **0.45** — chosen against simulated cohorts, both commented as
 unvalidated. Tests in `disjunctive-pass.test.ts`; 229 tests pass.
 
@@ -127,13 +128,36 @@ that actually scored are eligible — an untouched domain's prior would otherwis
 
 Full numbers in the 1a.7 entry of `engine-portability-todo.md`.
 
-### 5. `3.1` — Make the engine stateless
+### 5. `3.1` — Make the engine stateless — **DONE 8 Aug 2026**
 - Pure refactor, existing tests green throughout.
 - Two entry points:
   - `selectNext({ config, history, posterior }) -> { item, posterior, stopReason | null }`
   - `grade({ item, response, latencyMs, posterior }) -> { correct | null, posterior, flags }`
 - Keep `QbankSession` as a thin stateful wrapper so nothing downstream breaks.
 - **Done when:** both functions run with no server and no filesystem, and `apps/api` calls them.
+
+New `packages/qbank/src/engine.ts`; `session.ts` is now a thin wrapper — a 130-line class plus a
+re-export block keeping the moved types importable from their old path, so no consumer changed. 241 tests pass. `engine.test.ts` runs a whole session from eight inline records
+without touching `loadBanks`, which is the "no filesystem" claim made checkable.
+
+Two forced departures from the signatures above: `posterior` is `posteriors` (composite plus one per domain,
+since 1a.4 and 1a.7), and `selectNext` takes a `pool`, because no-filesystem means items arrive as an
+argument — `buildPool(records, ageBand)` is the engine's entire dependency on the item library. `flags` is
+empty until `1b.3` fills it; it is in the shape now because changing a published contract (3.4) costs more
+than reserving a field.
+
+Six private session fields became one derivation (`progressFrom`), so the counters can no longer disagree
+with the transcript. `Posterior` gained `fromSnapshot` and `clone` — it had `snapshot()` and no way back,
+which was the real obstacle to this task and to `3.2`.
+
+**A bug the new tests caught:** `clone()` went through `fromSnapshot`, which renormalises, so every `grade`
+perturbed belief by ~1e-16 including in untouched domains, and an incrementally-updated posterior drifted
+from the same posterior replayed from its history. Two hosts would have disagreed about the same child.
+`clone()` is exact now, with a test asserting incremental and replayed beliefs are bit-identical.
+
+**Not overclaimed:** the functions never read a file, but `engine.ts` imports `bank.ts`, which imports
+`node:fs`. Irrelevant on Lambda, relevant to a browser bundle. Severing it means splitting the pure record
+helpers out of the loader — the same seam `3.3` opens. Do them together.
 
 ### 6. `3.4` — Write the wire contract
 - No OpenAPI spec exists; the contract lives in Express handlers and is re-declared by hand in each
@@ -147,7 +171,9 @@ Full numbers in the 1a.7 entry of `engine-portability-todo.md`.
 - **Done when:** a red test blocks a merge.
 
 ### 8. `1b.3` — Rapid-guess detection
-- `latencyMs` is already captured and stored (`packages/qbank/src/session.ts:126-138`) and unused.
+- `latencyMs` is already captured and stored (the attempt record built in `session.ts` `submit`) and
+  unused. Grading now lives in `engine.ts` `grade`, which is where the floor check belongs; it already
+  returns a `flags` array reserved for exactly this.
 - Below a per-item-type latency floor, return the response as unscorable rather than wrong.
 - Unscorable already exists and is already excluded from the estimate.
 - **Done when:** floors are per type code, not global, and a sub-floor response leaves the posterior

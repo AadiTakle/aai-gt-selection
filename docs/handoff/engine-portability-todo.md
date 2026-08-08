@@ -22,6 +22,14 @@ this repo can use them.
 Read the three sections below before picking anything up. Several tasks look small and are not, and two
 of them are correctness bugs rather than features.
 
+> **Note on line references, 8 Aug 2026.** Task 3.1 moved all the measurement out of
+> `packages/qbank/src/session.ts` into `packages/qbank/src/engine.ts`; `session.ts` is now a thin stateful
+> wrapper. Every `session.ts:NNN` reference written before that date points at where the code *was* — the
+> observation it supports still holds, but look for the named function in `engine.ts`. Selection is
+> `selectNext`, grading is `grade`, the stop rule is `stopReasonFor`, the pass rule is `passRouteFor`, and
+> the derived counters are `progressFrom`. Line numbers are not restated here because they churn; the
+> function names will not.
+
 ---
 
 ## 1a. Next-item selection
@@ -104,7 +112,7 @@ anyway: it is an honest account of what was covered, and nothing hangs on it. Tw
   cannot currently be served a single verbal item** (`perDomain.verbal` is structurally 0 at that band,
   confirmed by both app loops), so a K-1 verbal band would be the prior with a label on it.
 
-**DONE 8 Aug 2026.** Four `Posterior` instances in `QbankSession`, each updated only by its own domain's
+**DONE 8 Aug 2026.** Four `Posterior` instances (now `Posteriors` in `engine.ts`), each updated only by its own domain's
 scored items, reported through a new `domains` on `QbankState`. Composite untouched and still the pass
 route. No hierarchical model, no change to selection or the stop rule. Tests in `domain-bands.test.ts`
 rebuild each domain's posterior from its own attempts and check the session lands in the same place, and
@@ -205,7 +213,7 @@ verbal and quantitative composites (`brainlifting/talent-screening-brainlift/`, 
 composite-only threshold reproduces exactly that miss, which is the single largest quantified gap in
 that research and the reason this rule exists.
 
-**DONE 8 Aug 2026.** `passRouteFor` in `session.ts`; `passRoute` on `QbankState`; `domainBar` and
+**DONE 8 Aug 2026.** `passRouteFor` (now in `engine.ts`); `passRoute` on `QbankState`; `domainBar` and
 `domainRecommendProbability` in config with defaults of **1.5** and **0.45**. Tests in
 `disjunctive-pass.test.ts` simulate whole cohorts against a true ability per domain. 229 tests pass.
 
@@ -279,8 +287,8 @@ every probability in the model less wrong.
 **DONE 8 Aug 2026 — cheap to write, and it moves selection much more than "less wrong" suggests.**
 
 `optionCountOf` in `bank.ts` reads the count off `content.options` and returns **null** rather than a
-number when the content enumerates nothing. Both call sites now go through one private `paramsOf` in
-`session.ts`, so selection and the posterior update cannot drift apart — if they ever computed the
+number when the content enumerates nothing. Both call sites now go through one `paramsForRecord`
+(since 3.1, in `engine.ts`), so selection and the posterior update cannot drift apart — if they ever computed the
 guessing floor differently the engine would choose an item under one model and score it under another,
 which fails invisibly. Discrimination stays at 1.5 behind a named `FIXED_DISCRIMINATION` with the
 comment 1a.6 will need.
@@ -321,7 +329,7 @@ transcript and wonders why the spatial types with eight options keep coming up.
    are now pinned in `option-count.test.ts`.
 
 **RESOLVED: an item that enumerates nothing is treated as unguessable, c = 0.** Decided by Felipe,
-8 Aug 2026 — "assume they're unguessable for now". `session.ts` uses a named `UNGUESSABLE` and
+8 Aug 2026 — "assume they're unguessable for now". `engine.ts` uses a named `UNGUESSABLE` and
 `paramsFor` already yields `c = 0` when handed no options. It applies to **528 items across five
 types**: `CX-check-01` (assigns tokens to bins), `SPA-MAZE-01` (a path), `SPA-PIPES-01` (rotations),
 `SPA-TANGRAM-01` (a placement) and `SPA-HIDDENCUBE-01` (a 0-60 stepper, so 61 outcomes and a true floor
@@ -679,6 +687,66 @@ each call takes the whole session state in and returns the new state out, with n
 This is worth doing on its own merits even if Lambda never happens: it makes the engine testable
 without a server and adoptable by anyone. Do it as a pure refactor with the existing tests green, then
 keep `QbankSession` as a thin stateful wrapper over it so nothing breaks.
+
+**DONE 8 Aug 2026.** New `packages/qbank/src/engine.ts` holds the measurement; `session.ts` is now a thin
+wrapper — a 130-line class plus a re-export block that keeps the moved types importable from their old
+path, so no consumer had to change. A pure refactor
+with the suite green throughout, then 12 new tests for the guarantees the old design made
+unrepresentable. 241 tests pass.
+
+```
+selectNext({ config, pool, history, posteriors }) -> { serve | null, stopReason | null }
+grade({ item, response, latencyMs, posteriors })  -> { correct | null, posteriors, flags }
+```
+
+Two departures from the signatures above, both forced by work done since they were written. `posterior`
+is `posteriors` — a composite plus one per domain — because 1a.4 and 1a.7 gave the engine four more
+beliefs to carry. And `selectNext` takes the `pool`, because "no filesystem" means the items have to
+arrive as an argument; `buildPool(records, ageBand)` is the whole of the engine's dependency on the item
+library, and a caller can hand it bank records, an S3 object, a prebuilt metadata index (3.3), or eight
+literal objects in a test.
+
+**`flags` is empty today.** It is in the shape now because the wire contract is the product (3.4) and
+adding a field to a published contract costs more than reserving one. 1b.3's rapid-guess detection is
+what fills it.
+
+**Six private fields became one derivation.** Used ids, per-domain counts, scored counts, the
+multiple-choice tally and the unscorable tally were all held on the session and kept in step by hand
+inside `submit`. They are now computed from the transcript by `progressFrom`. That is the change that
+makes the state model trustworthy rather than merely stateless: two places holding the same fact is how
+they come to disagree, and a caller replaying a history has to land exactly where the original session
+did.
+
+**`Posterior` gained the half it was missing.** It had `snapshot()` and no way back, so a belief could be
+read but never restored — the actual obstacle to both this task and 3.2. `Posterior.fromSnapshot()`
+validates and renormalises, `clone()` copies exactly, and the pair round-trips through JSON, which is
+what 3.2 will need whichever storage it picks.
+
+**A bug the new tests found, which the old ones could not.** `clone()` first went through
+`fromSnapshot`, which renormalises. Renormalising an already-normalised density only adds rounding, so
+every `grade` call perturbed belief at about 1e-16 — including in the three domains the item never
+touched — and a posterior updated one response at a time slowly drifted from the same posterior replayed
+from its transcript. Harmless in any single session and fatal to the property that makes caller-held
+state safe, since two hosts would then disagree about the same child. `clone()` is now an exact copy and
+there is a test asserting the incremental and replayed beliefs are bit-identical.
+
+**Where the stop rule went.** Extracted, not moved. `stopReasonFor` is pure and consulted in two places:
+`selectNext`, so a stateless caller learns the session is over without submitting anything, and the
+wrapper's `submit` at exactly the moment it used to, so observable behaviour is unchanged. `abandoned`
+stays on the wrapper — it is a caller's intent rather than a property of the evidence, so no function of
+the history can return it.
+
+**One thing not to overclaim.** The functions perform no filesystem access, and `engine.test.ts` proves
+it by building a pool from eight inline records without ever calling `loadBanks`. But `engine.ts` still
+*imports* `bank.ts` for `BankRecord`, `scoreResponse` and `optionCountOf`, and `bank.ts` imports
+`node:fs` at the top. Nothing reads a file on import — `BANK_DIR` is a `join` — so this is irrelevant on
+Lambda and matters only to a browser bundle, which is the boundary `index.ts` already documents. Severing
+it means splitting the pure record helpers out of the loader, which is the same seam 3.3 opens when it
+builds a metadata-only index. Do them together.
+
+**`apps/api` calls them.** Through the wrapper this entry asks for, and it holds no measurement logic of
+its own — no `Posterior`, no `paramsFor`, no `information`, no `scoreResponse`. What it still holds is
+`bankSessions`, a `Map`, which is 3.2 and not this task.
 
 **Task 3.2 — Decide where session state lives.** Either the caller holds it and passes it back (signed
 so it cannot be tampered with — a client that can edit its own posterior can hand itself any score), or
