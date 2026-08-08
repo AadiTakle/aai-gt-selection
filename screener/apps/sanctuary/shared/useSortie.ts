@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { Domain, OptionRef, Serve, SortieState } from './types';
+import type { Battery } from './batteries';
+import type { OptionRef, Serve, SortieState } from './types';
 
 /**
  * One sortie: a short single-battery measurement, dressed in-world as a care verb.
@@ -51,7 +52,7 @@ export interface Sortie {
 }
 
 export function useSortie(opts: {
-  domain: Domain;
+  battery: Battery;
   types: readonly string[];
   /** Where to concentrate information. The child's running per-battery mean, in logits. */
   threshold: number;
@@ -62,7 +63,7 @@ export function useSortie(opts: {
   precisionIndex?: number;
   settleMs?: number;
 }): Sortie {
-  const { domain, types, threshold, excludeItemIds, difficultyRange, precisionIndex = 1, settleMs = 900 } = opts;
+  const { types, threshold, excludeItemIds, difficultyRange, precisionIndex = 1, settleMs = 900 } = opts;
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [serve, setServe] = useState<Serve | null>(null);

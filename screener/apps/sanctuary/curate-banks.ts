@@ -30,18 +30,16 @@ const DEST = resolve(HERE, '..', '..', 'data', 'sanctuary', 'banks');
  *   VER-EVIDENCE-01   compound key (`A+s5`), so every attempt is marked wrong, silently
  */
 export const SANCTUARY_TYPES = [
-  // fluid
+  // Nonverbal (CogAT groups figural and spatial reasoning together)
   'FLU-MATRIX-01',
   'FLU-CARPET-01',
   'FLU-OPCHAIN-01',
-  // quantitative
+  // Quantitative
   'QUANT-SERIES-01',
   'QUANT-FUNC-01',
   'QUANT-BALANCE-01',
-  'QUANT-DOTS-01',
-  // spatial
   'SPA-XFORM-01',
-  // verbal
+  // Verbal
   'VER-RELPAIR-01',
   'VER-SORTBOT-01',
   'VER-SEQUENCE-01',

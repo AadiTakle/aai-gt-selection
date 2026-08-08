@@ -2,8 +2,7 @@ import { useMemo, useState } from 'react';
 
 import { ItemStage } from './shared/ItemStage';
 import { useSortie } from './shared/useSortie';
-import { DOMAINS, type Domain } from './shared/types';
-import { typesFor, verbFor } from './shared/batteries';
+import { BATTERIES, type Battery, typesFor, verbFor } from './shared/batteries';
 
 /**
  * M0's verifiable artefact: run one sortie per battery and watch it mark.
@@ -20,11 +19,11 @@ import { typesFor, verbFor } from './shared/batteries';
  * tracking the estimate, pAbove sits near 0.5 and the confidence bars never fire.
  */
 export function SortieHarness() {
-  const [domain, setDomain] = useState<Domain>('fluid');
+  const [battery, setBattery] = useState<Battery>('Nonverbal');
   const [threshold, setThreshold] = useState(0);
-  const types = useMemo(() => typesFor(domain), [domain]);
+  const types = useMemo(() => typesFor(battery), [battery]);
 
-  const s = useSortie({ domain, types, threshold, precisionIndex: 1 });
+  const s = useSortie({ battery, types, threshold, precisionIndex: 1 });
   const verb = s.serve ? verbFor(s.serve.typeCode) : undefined;
   const offPool = s.serve ? !types.includes(s.serve.typeCode) : false;
 
@@ -39,11 +38,11 @@ export function SortieHarness() {
         <label>
           Battery
           <select
-            value={domain}
-            onChange={(e) => setDomain(e.target.value as Domain)}
+            value={battery}
+            onChange={(e) => setBattery(e.target.value as Battery)}
             disabled={s.phase === 'asking' || s.phase === 'settling'}
           >
-            {DOMAINS.map((d) => (
+            {BATTERIES.map((d) => (
               <option key={d} value={d}>
                 {d} ({typesFor(d).length} types)
               </option>
