@@ -41,6 +41,12 @@ import '../game.css';
  * That is not a concession for the screenshot — it is the same property that lets a child answer a
  * question without ever touching Escape.
  *
+ * A GESTURE IS REQUIRED, THOUGH, AND A SCRIPT HAS TO SUPPLY ONE. Click the page once after load, before
+ * waiting on anything. The tour is held quiet until the page has been touched — see `gestured` in
+ * `store.ts` — because no browser will speak before that, and starting the tour into a mute tab loses her
+ * lines rather than delaying them. Headless Chrome is refused pointer lock, so a click is the only gesture
+ * available and without it a script will sit on the greeting for ever and read it as a hang.
+ *
  * Query parameters:
  *   ?at=arrive|shop|pen|board   where the keeper starts
  *   &yaw=N                      facing, in radians

@@ -202,7 +202,7 @@ function Preview(): JSX.Element {
 
   return (
     <>
-      <h1>Brackenhollow · audio</h1>
+      <h1>Bramblebrook · audio</h1>
       <div className="row">
         <button type="button" className="snd" data-role="mount" onClick={() => setMounted((m) => !m)}>
           {mounted ? 'unmount the provider · check teardown' : 'mount it again'}

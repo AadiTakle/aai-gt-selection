@@ -64,12 +64,31 @@ export function IntroPortrait(): JSX.Element | null {
    * Held back entirely while `quiet` — see the note on that field in `store.ts`; the cost of talking over
    * the verbal station is that the station's story is cancelled. When quiet lifts, whatever she was going
    * to say is said then, which is why this keys off a remembered `say` rather than off a transition.
+   *
+   * ══ QUIET DEFERS. IT MUST NEVER DROP ══════════════════════════════════════════════════════════════
+   *
+   * A line that is skipped because the queue was busy has failed exactly as completely as a line that was
+   * never written: the words sit on screen for a child who cannot read them and nothing is ever said. So
+   * both of the ways that could happen are closed, and neither of them is in this effect alone.
+   *
+   *   A LINE ISSUED DURING A SILENCE is not marked as spoken and `view.quiet` is in the dependency list,
+   *   so the effect runs again the moment quiet lifts and says it then. That is this file's half.
+   *
+   *   A LINE SUPERSEDED DURING A SILENCE cannot happen, because the tour's clock does not run while quiet
+   *   — see `useAttentionClock` in `IntroGuide.tsx`. There is only ever one line waiting, which is the
+   *   most this can hold: all it has is the current `say`.
+   *
+   * And a line CUT OFF by a silence starting mid-sentence is put back rather than counted as said. The
+   * mark is cleared, so quiet lifting says it again from the beginning. Half a sentence delivered to a
+   * child who was looking at a station at the time is not a line they have heard, and she is repeating
+   * herself to nobody: the only listener is the child who just walked away from whatever interrupted her.
    */
   useEffect(() => {
     if (view.quiet) {
       if (narration === 'speaking') {
         hushSpeech();
         setNarration('idle');
+        spoken.current = -1;
       }
       return;
     }

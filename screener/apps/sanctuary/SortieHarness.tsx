@@ -30,7 +30,7 @@ export function SortieHarness() {
   return (
     <main className="harness">
       <header>
-        <p className="kicker">Brackenhollow · M0 harness</p>
+        <p className="kicker">Bramblebrook · M0 harness</p>
         <h1>One sortie, one battery</h1>
       </header>
 

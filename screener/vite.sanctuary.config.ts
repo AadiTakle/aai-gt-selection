@@ -7,7 +7,7 @@ import { sanctuaryPlugin } from './apps/sanctuary/server-plugin';
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 /**
- * Brackenhollow, on its own config and its own ports so it touches no file another app owns.
+ * Bramblebrook, on its own config and its own ports so it touches no file another app owns.
  * `vite.review.config.ts` and `vite.lab-system.config.ts` are the precedent.
  *
  * Host pinned to 127.0.0.1 because Vite otherwise binds IPv6 localhost and anything probing

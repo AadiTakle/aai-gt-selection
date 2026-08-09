@@ -1,5 +1,5 @@
 /**
- * BRACKENHOLLOW'S SKIN — the file that turns the questions into the hollow.
+ * BRAMBLEBROOK'S SKIN — the file that turns the questions into the hollow.
  *
  * `shared/glyphs.tsx` explains the mechanism: a bank item names its parts abstractly
  * (`{shape:'star', color:'ink', count:1, rot:120}`) and nothing in the item says what a star looks
@@ -491,7 +491,7 @@ export function drawBracken(
    ========================================================================== */
 
 export const BRACKEN_SKIN: Skin = {
-  id: 'brackenhollow',
+  id: 'bramblebrook',
   color: brackenColor,
   /**
    * `opts` carries the modifiers that are part of what the item is ASKING. `hollow` is passed straight
@@ -510,5 +510,5 @@ export const BRACKEN_SKIN: Skin = {
  */
 {
   const missing = BANK_COLORS.filter((name) => !(name in { ink: 1, blue: 1, teal: 1, violet: 1, coral: 1, gold: 1 }));
-  if (missing.length) console.warn(`[brackenhollow] no hue for bank colour: ${missing.join(', ')}`);
+  if (missing.length) console.warn(`[bramblebrook] no hue for bank colour: ${missing.join(', ')}`);
 }

@@ -298,7 +298,7 @@ function Beat({
   }, [s.serve, s.phase]);
 
   if (s.phase === 'error') {
-    return <p className="bh-beat-note">The hollow is quiet just now. {s.error}</p>;
+    return <p className="bh-beat-note">Bramblebrook is quiet just now. {s.error}</p>;
   }
   if (!s.serve) return <p className="bh-beat-note">Looking…</p>;
 

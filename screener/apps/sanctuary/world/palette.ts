@@ -1,5 +1,5 @@
 /**
- * Brackenhollow's ink and light.
+ * Bramblebrook's ink and light.
  *
  * ONE RULE ABOVE ALL: there is no black here. The darkest value in the world is `bark`, a warm brown,
  * because a picture-book hollow lit by late sun has no true black in it and a #000 outline is the
@@ -19,7 +19,7 @@ export const HUE = {
   paperDeep: '#efe0c8',
   /** Where light pools. */
   mist: '#fdf8ee',
-  /** The darkest ink in Brackenhollow. */
+  /** The darkest ink in Bramblebrook. */
   bark: '#4b3626',
   barkSoft: '#7d654c',
   /** Growing things. */

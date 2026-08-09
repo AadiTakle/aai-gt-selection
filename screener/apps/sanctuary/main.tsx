@@ -6,7 +6,7 @@ import { AudioProvider } from './game/audio';
 import './game/game.css';
 
 /**
- * Brackenhollow.
+ * Bramblebrook.
  *
  * `SortieHarness.tsx` still exists and is what to mount when checking the measurement rather than the
  * game: it shows served type, unscorable count and stop reason, all of which the game deliberately

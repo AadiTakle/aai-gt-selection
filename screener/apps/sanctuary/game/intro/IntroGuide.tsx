@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 
 import { SHOP_AT, SHOP_YAW, balance, earn, shopDockPoint } from '../economy';
 import { useVacpackTank } from '../vacpack';
@@ -9,7 +9,7 @@ import { boardTaken, introSeen, markIntroSeen } from './keeper';
 import { PaddockFence } from './Paddock';
 import { skipRequests } from './signals';
 import { dockPoint, insideAPen, nearestPen } from './site';
-import { introUnlocked, publishBoard, publishTutorial } from './store';
+import { introQuiet, introUnlocked, publishBusy, publishTutorial } from './store';
 import { NO_SIGNALS, advance, begin, skip, type Mark, type Signals, type Tutorial } from './tutorial';
 import { Waypoint } from './Waypoint';
 
@@ -78,6 +78,47 @@ const START_AFTER_MS = 20000;
  */
 const NEST_EGG = 5;
 
+/**
+ * THE TOUR'S CLOCK STOPS WHILE SHE CANNOT SPEAK, and this is the difference between deferring a line and
+ * losing it.
+ *
+ * `IntroPortrait` holds a line back while `quiet` and says it when quiet lifts, which is correct as far as
+ * it goes — but it can only hold ONE, because all it has is the current `line` and the current `say`. If
+ * the machine keeps ticking while a station has the child, then every line the tour produces in that
+ * window overwrites the last one, and only the final survivor is ever spoken. Two minutes at the sorting
+ * gate is enough to burn a nudge and a whole step: the child comes back, hears the step AFTER the one they
+ * were on, and is never told the one they missed. It was on screen the whole time, dimmed, in text a
+ * five-year-old cannot read — which is precisely the failure the voice exists to prevent, arriving by a
+ * route that looks like it is working.
+ *
+ * Queueing the missed lines would be worse. They are instructions, they were about a moment that has now
+ * passed, and reciting a backlog at a child who has walked somewhere else is noise.
+ *
+ * So the clock is paused instead. Every threshold in `tutorial.ts` — `nudgeMs`, `skipMs` — is measured
+ * against a clock that only advances while Nan is actually able to be heard, so a step cannot expire and a
+ * nudge cannot fire during a silence. Nothing is missed because nothing happens. It is also the honest
+ * reading of what those timeouts mean: `skipMs` is "how long this child has been left on this step", and a
+ * child working through a station has not been left on anything.
+ *
+ * `at` is stamped from the same clock, so the machine never sees the two disagree.
+ */
+function useAttentionClock(): () => number {
+  const spentQuiet = useRef(0);
+  const quietSince = useRef<number | null>(null);
+  return useCallback(() => {
+    const now = performance.now();
+    if (introQuiet()) {
+      quietSince.current ??= now;
+    } else if (quietSince.current !== null) {
+      spentQuiet.current += now - quietSince.current;
+      quietSince.current = null;
+    }
+    // While quiet, the clock is frozen at the instant it began rather than merely slowed.
+    const frozen = quietSince.current === null ? 0 : now - quietSince.current;
+    return now - spentQuiet.current - frozen;
+  }, []);
+}
+
 export function IntroGuide({
   busy,
   onEarn,
@@ -124,6 +165,8 @@ export function IntroGuide({
   const mountedAt = useRef(performance.now());
   /** Whether the tour has begun. See `START_AFTER_MS`. */
   const started = useRef(false);
+  /** The clock the machine is driven by, which stops while Nan cannot be heard. See `useAttentionClock`. */
+  const attention = useAttentionClock();
 
   /** The stall's own front, where a bought slime lands, derived rather than copied from `Game.tsx`. */
   const stallFront = useMemo<[number, number]>(
@@ -188,11 +231,17 @@ export function IntroGuide({
 
     if (next !== s) signals.current = next;
 
+    /**
+     * The machine's own clock, which is NOT `now`. Read every frame, including the frames this function
+     * returns early on, because it is what accumulates the time spent quiet — see `useAttentionClock`.
+     */
+    const clock = attention();
+
     // Not yet. See `START_AFTER_MS`: the clock begins when the child is in the game, not when the page is.
     if (!started.current) {
       if (!document.pointerLockElement && now - mountedAt.current < START_AFTER_MS) return;
       started.current = true;
-      setTour(begin(now, seen));
+      setTour(begin(clock, seen));
       return;
     }
 
@@ -204,10 +253,22 @@ export function IntroGuide({
     const asked = skipRequests();
     if (asked !== sawSkips.current) {
       sawSkips.current = asked;
-      setTour((t) => skip(t, now));
+      setTour((t) => skip(t, clock));
       return;
     }
-    setTour((t) => advance(t, next, now));
+
+    /**
+     * Nothing while she cannot be heard.
+     *
+     * The clock is frozen anyway, so `advance` would return the same object on every tick and this is
+     * mostly an assertion of intent — with one case where it is not. `boardDone` arriving while the board
+     * still has the child would fire the closing line into a silence, and the closing line is the last
+     * thing she ever says: there is no later step to carry it. Held here, it is said the moment the board
+     * lets the child go, over the paddock gate they just opened, which is where it belongs.
+     */
+    if (introQuiet()) return;
+
+    setTour((t) => advance(t, next, clock));
   });
 
   /* ---------------------------------------------------------------- *\
@@ -234,9 +295,16 @@ export function IntroGuide({
     }
   }, [tour, seen, onEarn]);
 
-  /** Nan is silent while anything else has the child. See `quiet` in `store.ts`. */
+  /**
+   * Nan is silent while anything else has the child. See `quiet` in `store.ts`.
+   *
+   * Only half of it: this is the station-and-stall half, which is the half `Game.tsx` can see. The board's
+   * own half is published by `Board` from its own `engaged`, and the store ORs the two — because neither
+   * component can see the other's condition and a single shared field would have them cancelling each
+   * other's silence.
+   */
   useEffect(() => {
-    publishBoard({ quiet: busy });
+    publishBusy(busy);
   }, [busy]);
 
   /**
