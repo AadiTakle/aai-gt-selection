@@ -90,7 +90,24 @@ export interface PenSpec extends Placed {
 export const PENS: readonly PenSpec[] = [
   { x: -6.0, z: 15.5, rot: 0.14, halfW: 4.75, halfD: 3.5, cornerR: 1.6, gateAim: [0, 8] },
   { x: 11.4, z: 4.2, rot: -0.2, halfW: 4.75, halfD: 3.5, cornerR: 1.6, gateAim: [3, 2] },
-  { x: -15.5, z: -16.5, rot: 0.3, halfW: 5.0, halfD: 3.75, cornerR: 1.7, gateAim: [-7, -9] },
+  /**
+   * PEN 2'S GATE WAS RE-AIMED FROM (-7, -9) TO THE NORTH OF THE PEN, and it is the one layout change this
+   * job made to something nobody had complained about. It was forced by geometry rather than chosen.
+   *
+   * Aimed east-north-east, the gate sat at (-10.89, -14.05) and the only approach to it was a corridor
+   * between the shop stall's milk churn at (-6.0, -11.2) and the felled-log station's cradle post at
+   * (-7.7, -11.0). Those two are 1.71m apart, which is 1.01m of clear ground — and a keeper is 0.90m
+   * across. A child could squeeze through with five centimetres either side, which fails this codebase's
+   * own standard for an opening: the barn's doorway is deliberately four times a keeper's width "so a
+   * child never has to aim". Both props live in `stations/` and `economy/` and cannot be moved.
+   *
+   * So the gate goes where a track can actually reach it. Every aim north of the pen resolves to the same
+   * outline point — the north-west corner at (-17.54, -11.94) — whose approach at (-18.61, -9.57) has
+   * 4.77m of clearance all round, reached by a track running west along the ranch's southern edge, south
+   * of the barn and north of the log station. That route also passes the log station's standing spot, so
+   * the far pen and the station now share an approach instead of neither having one.
+   */
+  { x: -15.5, z: -16.5, rot: 0.3, halfW: 5.0, halfD: 3.75, cornerR: 1.7, gateAim: [-16.5, -8.5] },
 ];
 
 export interface Post {

@@ -51,6 +51,7 @@ import {
 import { Instanced, type Placement } from './instanced';
 import { usePrefersReducedMotion } from './motion';
 import { clamp, fbm, lerp, noise2, rng, smoothstep } from './noise';
+import { LANES, NETWORK, TRACK, distanceToTracks } from './paths';
 import { PIG, materials } from './pigment';
 import { chainOutline, roundedRectOutline, toWorld, type P2, type Placed, type Solid } from './plan';
 import { eaveCollarGeometry, gableRoofGeometry, gableWallGeometry, hipRoofGeometry } from './roofs';
@@ -166,75 +167,16 @@ const LEG_TOP_R = 0.34;
  * without either a cycle or a second hand-copied set of pen positions. This file draws all of it.
  */
 
-/** Worn tracks, as centrelines. Widths in `PATH_WIDTH`, index-matched. */
-const PATHS: readonly (readonly (readonly [number, number])[])[] = [
-  // The spine. Runs past the pens and stops at the pod wall's apron.
-  [
-    [1.4, 22],
-    [0.4, 16.5],
-    [-0.9, 10.5],
-    [0.3, 4],
-    [0.2, -3],
-    [0, -8.6],
-  ],
-  // To the barn doors.
-  [
-    [-0.6, 2.6],
-    [-3.6, 2.0],
-    [-6.7, 1.2],
-  ],
-  // To the hut door, which `toWorld(HUT, -0.9, 2.77)` puts at (13.45, -2.12).
-  [
-    [0.7, -1.2],
-    [4.8, -1.9],
-    [9.2, -2.3],
-    [12.3, -2.2],
-  ],
-  // To the near pen's gate.
-  [
-    [2.6, 4.0],
-    [5.4, 4.6],
-  ],
-];
-const PATH_WIDTH: readonly number[] = [2.7, 1.9, 1.9, 1.6];
-/** Which tracks are wide enough to have been driven rather than only walked. Index-matched. */
-const PATH_RUTTED: readonly boolean[] = [true, true, false, false];
-
 /**
- * THE WORN TRACK'S CROSS-SECTION, AND WHY IT IS BUILT UPWARD.
+ * THE WORN TRACK PLAN NOW LIVES IN `paths.ts`.
  *
- * The owner's complaint was two complaints. "Smudged" is the ground's fault and is answered where the
- * meadow is coloured — a six-metre-wide de-saturation either side of every centreline had turned the whole
- * yard into brown-green mush, and it is now a third of that width and a third of the strength. "Completely
- * flat" is this section's fault, and it is the real one: a worn track is a HOLLOW, and what a child reads
- * is not the dirt but the turf standing above it and breaking over its edges.
- *
- * SO THE HOLLOW IS MADE BY RAISING THE FIELD, NOT BY SINKING THE TRACK, and that is forced rather than
- * chosen. Two constraints point the same way:
- *
- *   The ground mesh is OPAQUE and lies at exactly y = 0 across the whole plateau. Anything modelled below
- *   that plane is behind it from every angle a child can stand at, so a trench would not be a subtle
- *   effect — it would be invisible, and the code would look right while the screen showed nothing.
- *
- *   `groundHeight` is flat inside `FLAT_R` because `Game.tsx` integrates the keeper against a plane at
- *   y = 0. Relief that rises above that plane is harmless — the camera walks at eye height and a 9cm turf
- *   shoulder is nothing to it — but relief that falls below it would leave anything standing on the ground
- *   FLOATING over the dip. Building upward cannot produce a floating fence post; digging downward can.
- *
- * The section below is therefore a shallow gully whose floor is level with the meadow and whose banks
- * stand 6-9cm above it: crown, two ruts, a toe, a turf crest, and a long soft fall back to the meadow.
- * `u` is the lateral offset as a multiple of the track's half-width up to the toe, then in metres past it.
+ * Moved for the reason the barn's plan and the fence's were: the owner reported that the dirt "isn't
+ * connected in some of the spots ... the brown dirty portion should be all cohesive and connected", and
+ * whether a region is connected is a question that has to be MEASURED rather than looked at. That module
+ * has no three.js and no React in it, so `paths.test.ts` can flood-fill the network and count the pieces.
+ * It also owns the cross-section, the junction arithmetic and the lane solver; this file colours what it
+ * hands back and draws it.
  */
-const TRACK = {
-  /** Distance from the toe of the bank out to the turf crest. */
-  bank: 0.32,
-  /** And from the crest back down to meadow level. Long, so the field reads as swelling away. */
-  fall: 1.15,
-  /** Crest height above the meadow, before the per-station variation. */
-  crest: 0.062,
-  /** How far the crest line and the toe wander, in metres, so no stretch of edge is a clean band. */
-  wander: 0.3,
-} as const;
 
 /* ------------------------------------------------------------------ *\
    Pigment and materials now live in `pigment.ts`
@@ -348,23 +290,6 @@ function insideOrientedRect(
   return Math.abs(lx) < halfW + pad && Math.abs(lz) < halfD + pad;
 }
 
-function distanceToPaths(x: number, z: number): number {
-  let best = Infinity;
-  for (const line of PATHS) {
-    for (let i = 0; i < line.length - 1; i += 1) {
-      const a = line[i];
-      const b = line[i + 1];
-      if (!a || !b) continue;
-      const vx = b[0] - a[0];
-      const vz = b[1] - a[1];
-      const len2 = vx * vx + vz * vz;
-      const t = len2 > 1e-6 ? clamp(((x - a[0]) * vx + (z - a[1]) * vz) / len2, 0, 1) : 0;
-      best = Math.min(best, Math.hypot(x - (a[0] + vx * t), z - (a[1] + vz * t)));
-    }
-  }
-  return best;
-}
-
 /**
  * True where nothing may be planted or dropped.
  *
@@ -381,7 +306,7 @@ function blocked(x: number, z: number, pad = 0): boolean {
   for (const pen of PENS) {
     if (insideOrientedRect(pen, pen.halfW, pen.halfD, x, z, 1.2 + pad)) return true;
   }
-  if (distanceToPaths(x, z) < 2.4 + pad) return true;
+  if (distanceToTracks(x, z) < 2.4 + pad) return true;
   // And off the boundary run, so nothing grows up through the rails. A trunk standing in a fence is the
   // one defect that makes a fence look painted on rather than built.
   if (onBoundary(x, z, pad)) return true;
@@ -617,7 +542,7 @@ function useGroundGeometry(): BufferGeometry {
        * past where the turf crest stands) and its falloff is broken up by the meadow's own fine noise, so
        * what is left is a hint of wear around a track rather than a halo painted on the grass.
        */
-      const dPath = distanceToPaths(x, z);
+      const dPath = distanceToTracks(x, z);
       if (dPath < 3.4) {
         scratch.copy(earth).lerp(grassPale, 0.45);
         c.lerp(scratch, (1 - smoothstep(2.2, 3.4 + fine * 0.9, dPath)) * 0.26);
@@ -659,55 +584,6 @@ function useGroundGeometry(): BufferGeometry {
     g.computeBoundingSphere();
     return g;
   }, []);
-}
-
-/**
- * A track's centreline resampled fine enough to carry relief, with a joint normal at every station.
- *
- * The original geometry put four quads on each hand-typed segment, so the spine was six stations long over
- * twenty-two metres — a resolution at which a wandering edge is a zigzag and a bank is a crease. Every
- * segment is therefore subdivided to about 45cm, with the two end normals interpolated across it, which
- * keeps the existing behaviour at the corners (an averaged joint normal, so a bend does not open a wedge of
- * grass down the middle of the track) and gives the length something to vary along.
- */
-function trackStations(line: readonly P2[]): { p: P2; n: P2; s: number }[] {
-  const joints: P2[] = line.map((_, i) => {
-    const prev = line[Math.max(0, i - 1)] ?? [0, 0];
-    const next = line[Math.min(line.length - 1, i + 1)] ?? [0, 0];
-    const dx = next[0] - prev[0];
-    const dz = next[1] - prev[1];
-    const len = Math.hypot(dx, dz) || 1;
-    return [-dz / len, dx / len];
-  });
-
-  const out: { p: P2; n: P2; s: number }[] = [];
-  let s = 0;
-  for (let i = 0; i < line.length - 1; i += 1) {
-    const p0 = line[i];
-    const p1 = line[i + 1];
-    const n0 = joints[i];
-    const n1 = joints[i + 1];
-    if (!p0 || !p1 || !n0 || !n1) continue;
-    const length = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
-    const steps = Math.max(1, Math.ceil(length / 0.45));
-    // The last station of a segment is the first of the next, so it is emitted once, at the top.
-    for (let k = 0; k < steps; k += 1) {
-      const t = k / steps;
-      const nx = n0[0] + (n1[0] - n0[0]) * t;
-      const nz = n0[1] + (n1[1] - n0[1]) * t;
-      const nl = Math.hypot(nx, nz) || 1;
-      out.push({
-        p: [p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t],
-        n: [nx / nl, nz / nl],
-        s: s + length * t,
-      });
-    }
-    s += length;
-    if (i === line.length - 2) {
-      out.push({ p: p1, n: n1, s });
-    }
-  }
-  return out;
 }
 
 /**
@@ -754,109 +630,87 @@ function useTrackGeometry(): BufferGeometry {
     const turfDeep = new Color(PIG.grassDeep);
     const turfLit = new Color(PIG.grassPale);
     const col = new Color();
+    /** What a lane's outer members turn into once a junction has flattened them: more trodden dust. */
+    const scuff = new Color(PIG.earthPale).lerp(new Color(PIG.earth), 0.42);
 
-    for (let li = 0; li < PATHS.length; li += 1) {
-      const line = PATHS[li];
-      if (!line) continue;
-      const half = (PATH_WIDTH[li] ?? 2) / 2;
-      const rutted = PATH_RUTTED[li] ?? false;
-      const stations = trackStations(line);
-      const seed = li * 37.1;
+    for (let li = 0; li < NETWORK.tracks.length; li += 1) {
+      const spec = NETWORK.tracks[li];
+      const stations = NETWORK.stations[li];
+      if (!spec || !stations) continue;
       const ring = position.length / 3;
-      /** Lateral stations, outermost -X first, so one strip of quads covers the whole section. */
-      const lanes = 13;
 
       for (const station of stations) {
-        const [px, pz] = station.p;
-        const [nx, nz] = station.n;
-        const s = station.s;
-
-        // Slow variation along the length. Sampled on arc length so it travels with the track.
-        const widthN = fbm(s * 0.13 + seed, seed * 2.3, 2);
-        const hw = half * (1 + widthN * 0.2);
-        const crest = TRACK.crest * (1 + fbm(s * 0.21 + seed, 5.5 + seed, 2) * 0.34);
-        const dustN = noise2(s * 0.29 + seed, 11.3 + seed);
-        // Which way the track leans this far along, so the centre of wear is not always the centreline.
-        const lean = fbm(s * 0.11 + seed, 19.7, 2) * 0.22;
-
-        for (let k = 0; k < lanes; k += 1) {
-          // -1 at the outer edge of the -X fall, +1 at the outer edge of the +X fall.
-          const sideIndex = k - (lanes - 1) / 2;
-          const sgn = Math.sign(sideIndex);
-          const rank = Math.abs(sideIndex);
-          // Per-side edge wobble, independent so the two edges never mirror each other.
-          const wob =
-            fbm(s * 0.62 + seed, sgn > 0 ? 41.2 : 77.9, 2) * TRACK.wander * (sgn === 0 ? 0 : 1);
-          const toe = hw + wob;
-
-          let u: number;
-          let y: number;
-          let alpha = 1;
-          if (rank === 0) {
+        /**
+         * THE SECTION IS SOLVED IN `paths.ts`, NOT HERE, and the split is what makes the owner's
+         * complaint testable. Where each lane sits, how high it stands, and how far it stands DOWN
+         * because another track's dirt is already there are all geometry, and geometry can be measured
+         * in node. What is left in this file is pigment, which only a screenshot can settle.
+         */
+        for (const v of NETWORK.section(li, station)) {
+          if (v.rank === 0) {
             // The crown, between the ruts.
-            u = 0;
-            y = rutted ? 0.021 : 0.009;
-            col.copy(dust).lerp(damp, 0.44 + dustN * 0.3);
-          } else if (rank === 1) {
+            col.copy(dust).lerp(damp, 0.44 + v.dust * 0.3);
+          } else if (v.rank === 1) {
             // The wheel track. Lowest point of the section, and the darkest.
-            u = sgn * toe * 0.42;
-            y = 0.004;
-            col.copy(rutted ? rutTone : dust).lerp(damp, 0.5 + dustN * 0.35);
-          } else if (rank === 2) {
-            u = sgn * toe * 0.79;
-            y = 0.013;
-            col.copy(dust).lerp(damp, 0.36 + dustN * 0.4);
-          } else if (rank === 3) {
+            col.copy(spec.rutted ? rutTone : dust).lerp(damp, 0.5 + v.dust * 0.35);
+          } else if (v.rank === 2) {
+            col.copy(dust).lerp(damp, 0.36 + v.dust * 0.4);
+          } else if (v.rank === 3) {
             /**
              * The toe, where dust meets turf, and where the interlock lives.
              *
              * Its colour runs from bare dust to full turf on a noise of its own, so the boundary is a
              * ragged mix along the length rather than a single blended edge everywhere.
              */
-            u = sgn * toe;
-            y = 0.03;
-            const grassIn = smoothstep(0.35, 0.75, noise2(s * 0.85 + seed, sgn > 0 ? 3.1 : 63.4));
-            col.copy(dust).lerp(damp, 0.46).lerp(turfDeep, 0.25 + grassIn * 0.55);
-          } else if (rank === 4) {
+            col.copy(dust).lerp(damp, 0.46).lerp(turfDeep, 0.25 + v.grassIn * 0.55);
+          } else if (v.rank === 4) {
             // The crest of the bank. Turf, and the brightest thing in the section under a low sun.
-            u = sgn * (toe + TRACK.bank);
-            y = crest;
-            col
-              .copy(turf)
-              .lerp(turfDeep, 0.35)
-              .lerp(turfLit, smoothstep(0.4, 0.85, noise2(s * 0.4 + seed, sgn > 0 ? 8.8 : 21.6)) * 0.5);
+            col.copy(turf).lerp(turfDeep, 0.35).lerp(turfLit, v.lit * 0.5);
           } else {
             // And the long fall back to the meadow, which is where the mesh ends and fades out.
-            u = sgn * (toe + TRACK.bank + TRACK.fall);
-            y = 0.004;
-            alpha = 0;
             col.copy(turf).lerp(turfDeep, 0.3);
           }
 
-          const off = u + lean;
-          const wx = px + nx * off;
-          const wz = pz + nz * off;
-          position.push(wx, y, wz);
-          uv.push(wx / GRAIN_METRES, wz / GRAIN_METRES);
-          rgba.push(col.r, col.g, col.b, alpha);
+          /**
+           * AND EVERY LANE GOES TO ONE SCUFFED TONE WHERE IT LIES OVER ANOTHER TRACK'S DIRT.
+           *
+           * TWO THINGS AT ONCE, and the second was caught by a screenshot of the crossroads.
+           *
+           * The obvious one is the banks: `paths.ts` has already collapsed them onto the toe and dropped
+           * them to the floor at a junction, so the shape is right — but a flattened bank still painted
+           * grass-green is a green stripe lying across a trodden mouth, which is the exact thing the
+           * owner reported. Shape and colour have to stand down together or neither is worth doing.
+           *
+           * The subtler one is the crown and the ruts. Two lanes crossing are two INDEPENDENT dust
+           * noises, and each carries its own vertical bias so they cannot z-fight — so whichever happens
+           * to sit higher wins, and the join showed as a faint patchwork of straight-edged rectangles in
+           * the middle of the junction. Straight edges are what give geometry away as geometry. Pulling
+           * every rank toward one scuff tone in proportion to how much other dirt is under it makes the
+           * overlap agree with itself, and the rectangles disappear into one trodden surface.
+           */
+          if (v.junction > 0) col.lerp(scuff, v.junction * (v.rank >= 3 ? 1 : 0.8));
+
+          position.push(v.x, v.y, v.z);
+          uv.push(v.x / GRAIN_METRES, v.z / GRAIN_METRES);
+          rgba.push(col.r, col.g, col.b, v.alpha);
         }
       }
 
       /**
        * Stitch the strip, wound for an UPWARD normal, and the winding is arithmetic rather than a guess.
        *
-       * `n = (-tz, tx)` for a tangent `t`, and in three dimensions `T × N` is straight DOWN — so a triangle
+       * `n = (-tz, tx)` for a tangent `t`, and in three dimensions `T x N` is straight DOWN — so a triangle
        * whose first edge runs along the track and whose second runs across it faces the floor. The first
        * attempt at this wound exactly that way and the entire track network vanished behind back-face
        * culling: correct geometry, correct colours, nothing on screen. It is the same silent failure the
        * note on the `decal` material records, which is why it is written down again here in the terms that
-       * fix it: lane first, station second — `(a, b, d)` and `(a, d, c)` — giving `N × T`, which is up.
+       * fix it: lane first, station second — `(a, b, d)` and `(a, d, c)` — giving `N x T`, which is up.
        */
       for (let i = 0; i < stations.length - 1; i += 1) {
-        for (let k = 0; k < lanes - 1; k += 1) {
-          const a = ring + i * lanes + k;
+        for (let k = 0; k < LANES - 1; k += 1) {
+          const a = ring + i * LANES + k;
           const b = a + 1;
-          const c = a + lanes;
+          const c = a + LANES;
           const d = c + 1;
           index.push(a, b, d, a, d, c);
         }
@@ -898,14 +752,15 @@ function useTrackDressing(): { stones: Placement[]; tufts: Placement[] } {
     // `grassPale` came out as pale pebbles lying beside the track instead of grass growing over it.
     const leafLit = new Color(PIG.grass).lerp(new Color(PIG.grassPale), 0.3);
 
-    for (let li = 0; li < PATHS.length; li += 1) {
-      const line = PATHS[li];
-      if (!line) continue;
-      const half = (PATH_WIDTH[li] ?? 2) / 2;
-      for (const station of trackStations(line)) {
+    for (let li = 0; li < NETWORK.tracks.length; li += 1) {
+      const stations = NETWORK.stations[li];
+      if (!stations) continue;
+      for (const station of stations) {
         const [px, pz] = station.p;
         const [nx, nz] = station.n;
-        const hw = half * (1 + fbm(station.s * 0.13 + li * 37.1, li * 85.3, 2) * 0.2);
+        // The lane's own half-width, read from the plan rather than recomputed, so the dressing follows
+        // a flared junction mouth out instead of sitting in a line down the middle of it.
+        const hw = NETWORK.halfWidth(li, station.s);
 
         // A stone every few stations, out of the middle of the crown where feet fall. The radii are the
         // sphere's own, since the geometry is a unit sphere and the scale IS the radius — the first pass
@@ -922,11 +777,19 @@ function useTrackDressing(): { stones: Placement[]; tufts: Placement[] } {
           });
         }
 
-        // Tufts on both crests, straddling the line so their leaves hang over the dust.
+        /**
+         * Tufts on both crests, straddling the line so their leaves hang over the dust.
+         *
+         * NOT AT A JUNCTION, though. `paths.ts` has taken the crest away where one track's dirt runs into
+         * another's, so a tuft placed there is a clump of grass standing in the middle of a trodden
+         * crossroads with nothing under it — the shape stood down and the dressing did not. It is the
+         * same class of miss as leaving the crest green after flattening it.
+         */
         for (const sgn of [-1, 1] as const) {
           if (rand() > 0.34) continue;
-          const wob = fbm(station.s * 0.62 + li * 37.1, sgn > 0 ? 41.2 : 77.9, 2) * TRACK.wander;
+          const wob = NETWORK.toe(li, station.s, sgn) - hw;
           const u = sgn * (hw + wob + TRACK.bank * (0.15 + rand() * 0.8));
+          if (NETWORK.cover(px + nx * u, pz + nz * u, li) > 0.25) continue;
           const r = 0.04 + rand() * 0.05;
           tufts.push({
             position: [px + nx * u, 0.032 + r * 0.3, pz + nz * u],
