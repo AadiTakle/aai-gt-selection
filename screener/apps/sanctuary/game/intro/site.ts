@@ -107,22 +107,33 @@ export interface FenceRail {
  * collider written out by hand is a second opinion about where a thing is, and two opinions drift apart
  * the moment one of them moves.
  */
-export const FENCE: { posts: FencePost[]; rails: FenceRail[]; gateHalfWorld: number } = (() => {
+export const FENCE: { posts: FencePost[]; rails: FenceRail[] } = (() => {
   const posts: FencePost[] = [];
   const rails: FenceRail[] = [];
   const outline = roundedRectOutline(PADDOCK.halfW, PADDOCK.halfD, PADDOCK.cornerR, 7);
   const { at, total } = arcLengths(outline);
 
-  // The gateway goes where the fence passes closest to the middle of the +Z side, which is where the
-  // board stands. Solved rather than typed, so moving the paddock moves the gate with it.
+  /**
+   * The gateway goes at the MIDDLE OF A SEGMENT, not at the nearest vertex, and the difference is not a
+   * refinement — it is the whole placement.
+   *
+   * `roundedRectOutline` emits points on the corner ARCS only; the straight sides are the segments
+   * between one corner's last point and the next corner's first. So the nearest VERTEX to the middle of
+   * the +Z side is a corner, 2.9m off centre, and `world/Buildings.tsx`'s vertex search — right for a
+   * gate that only has to land "on the path side" — would put this gateway round the corner from the
+   * board that is supposed to be barring it. Searching segment midpoints instead puts it dead centre,
+   * which is where the board stands, and it stays dead centre if the paddock is ever resized.
+   */
   let sGate = 0;
   let best = Infinity;
   for (let i = 0; i < outline.length; i += 1) {
-    const p = outline[i] ?? [0, 0];
-    const d = Math.hypot(p[0] - 0, p[1] - PADDOCK.halfD);
+    const a = outline[i] ?? [0, 0];
+    const b = outline[(i + 1) % outline.length] ?? [0, 0];
+    const mid: P2 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const d = Math.hypot(mid[0] - 0, mid[1] - PADDOCK.halfD);
     if (d < best) {
       best = d;
-      sGate = at[i] ?? 0;
+      sGate = ((at[i] ?? 0) + (at[i + 1] ?? total)) / 2;
     }
   }
 
@@ -157,8 +168,37 @@ export const FENCE: { posts: FencePost[]; rails: FenceRail[]; gateHalfWorld: num
     });
   }
 
-  return { posts, rails, gateHalfWorld: GATE_HALF };
+  return { posts, rails };
 })();
+
+/**
+ * The gateway itself, in the BOARD's local frame — which is the paddock's frame slid out to the fence
+ * line, so the leaf, the boards nailed over it and the hoarding above it are all authored in one place.
+ *
+ * The two gate posts are the first and last of `FENCE.posts`, and the leaf hangs from the one on local
+ * -X so it swings out across the approach. `world/Buildings.tsx` draws its own pen gates permanently
+ * open at 0.62 radians, on the argument that an open gate is an invitation to walk in; this one is the
+ * exception that proves it, because being shut is what it is for.
+ */
+export const GATE = {
+  /** Half the opening, along the fence. Local -X post at `-half`, local +X post at `+half`. */
+  half: GATE_HALF,
+  /** The leaf's span, a little inside the posts so it does not foul them as it swings. */
+  span: GATE_HALF * 2 - 0.2,
+  /**
+   * How far open it stands once unlocked.
+   *
+   * 1.25 radians — 72° — where `world/Buildings.tsx` leaves its own pen gates at 0.62. The difference is
+   * the viewing angle, and a photograph settled it. The ranch's pens are all seen obliquely, so 35° of
+   * swing is plainly a gate standing open. THIS gate is looked at square-on, because the standing mark
+   * is on its axis, and at 35° square-on a foreshortened leaf still spans most of the opening and reads
+   * as shut. Which would be a poor thing for it to read as, given that opening it is the whole reward.
+   *
+   * At 72° the leaf swings out and to the left of the approach, ending 3.5m in front of the fence line —
+   * well short of the 5.4m standing mark, and not solid in any case.
+   */
+  swing: 1.25,
+} as const;
 
 /* ------------------------------------------------------------------ *\
    The board
@@ -182,8 +222,24 @@ export const BOARD_HEIGHT = 2.35;
 /** See the header: sized to contain the worst case of all three batteries at once. */
 export const BAY = { halfW: 3.45, halfH: 1.95 } as const;
 
-/** How far out the keeper is docked while engaged. The stations' own 4.6, for the stations' own reasons. */
-export const DOCK = 4.6;
+/**
+ * How far out the keeper is docked while engaged.
+ *
+ * 5.4 RATHER THAN THE STATIONS' 4.6, and the extra 0.8m is bought rather than preferred. A screenshot
+ * from the mark at 4.6 settled it: with a bay 6.9m wide instead of 5.1 the frame is simply full — the
+ * posts sit outside both edges of a 1280-wide window, the head beam and its pent roof are above the top
+ * of it, and the object a child is meant to read as one thing cannot be seen as one thing.
+ *
+ * What 4.6 was protecting is unharmed. `stations/sites.ts` sets it from the PANEL, not from the bay: with
+ * the widest element scaled to `FIT_W` (4.7m) the panel is meant to fill a bit over half the frame, and
+ * at 5.4m it still spans 47° of an 88° horizontal field — 53% of the width. The binding case, a
+ * six-option `FLU-MATRIX-01` shelf projecting 3.24 either side, goes from 80% of the width to 70%, so
+ * the case that was closest to running off the sides is now further from it rather than nearer.
+ *
+ * The whole bay including the roof comes inside the 62° vertical field at this distance and does not at
+ * 4.6, which is the difference between a station and a wall.
+ */
+export const DOCK = 5.4;
 /** How close before the board lights up. The stations' `REACH`, unchanged, so the verb feels identical. */
 export const REACH = 6.8;
 /** How far off centre the keeper may be looking and still be offered it. ~56°, the stations' tolerance. */
@@ -339,24 +395,58 @@ export function gateBarred(): boolean {
    Where the tour points
 \* ------------------------------------------------------------------ */
 
-/** The pens the world actually fenced, mirrored from `stations/sites.ts`'s own mirror of them. */
-export const PEN_CENTRES: readonly (readonly [number, number])[] = [
-  [-6, 15.5],
-  [11.4, 4.2],
-  [-15.5, -16.5],
+/**
+ * The pens the world actually fenced, as ORIENTED RECTANGLES rather than as centres.
+ *
+ * Mirrored from `world/Buildings.tsx`'s own `PENS`, on the same terms `stations/sites.ts` mirrors the
+ * barn: this directory may not edit that file and it does not export its layout, so these six numbers per
+ * pen are quarantined here with this note on them. If a pen ever moves, it moves here too.
+ *
+ * ══ WHY RECTANGLES, WHEN A CIRCLE WOULD HAVE DONE ═════════════════════════════════════════════════
+ *
+ * The first pass tested "within 5 metres of a pen's centre", on the reasoning that the inscribed radius
+ * plus a stride is generous enough. Sampled at 25cm over the whole ranch, that circle MISSES 242 of the
+ * 3,328 points genuinely inside a pen — 7.3% of the interior, all of it in the four corners, because the
+ * half-diagonal of the largest pen is 6.25 and the circle was 5.0.
+ *
+ * A child who carries their first slime to the far corner of a pen, puts it down, and is told nothing
+ * happened is precisely the failure this step exists to avoid, and "it works unless you use the corner"
+ * is not a rounding error — the corners are where a five-year-old with a vacuum pack ends up.
+ */
+const WORLD_PENS: readonly { x: number; z: number; rot: number; halfW: number; halfD: number }[] = [
+  { x: -6.0, z: 15.5, rot: 0.14, halfW: 4.75, halfD: 3.5 },
+  { x: 11.4, z: 4.2, rot: -0.2, halfW: 4.75, halfD: 3.5 },
+  { x: -15.5, z: -16.5, rot: 0.3, halfW: 5.0, halfD: 3.75 },
 ];
 
-/**
- * How near a pen counts as being in it.
- *
- * The pens are 9.5 x 7 rectangles and this is a circle, so it is the inscribed radius plus a stride: a
- * child who has plopped a slime just inside the gate has penned it, and one who plopped it in the meadow
- * outside has not. Generous on purpose — the step has a timeout anyway, and the cost of being too strict
- * is a child doing the right thing and being told nothing happened.
- */
-export const PEN_REACH = 5.0;
+/** Their centres, derived, for the waypoint to point at. */
+export const PEN_CENTRES: readonly (readonly [number, number])[] = WORLD_PENS.map(
+  (p) => [p.x, p.z] as const,
+);
 
-/** The pen nearest a point, and how far away it is. */
+/**
+ * How far outside a fence still counts.
+ *
+ * One stride. The generosity is deliberate and it is one-sided: the cost of being too strict is a child
+ * doing the right thing and being told nothing happened, and the cost of being too loose is a step
+ * completing a moment early — which nobody will ever notice, because the step has a timeout anyway.
+ */
+const PEN_PAD = 0.8;
+
+function inRect(
+  p: { x: number; z: number; rot: number; halfW: number; halfD: number },
+  x: number,
+  z: number,
+  pad: number,
+): boolean {
+  const c = Math.cos(p.rot);
+  const s = Math.sin(p.rot);
+  const dx = x - p.x;
+  const dz = z - p.z;
+  return Math.abs(dx * c - dz * s) < p.halfW + pad && Math.abs(dx * s + dz * c) < p.halfD + pad;
+}
+
+/** The pen nearest a point, and how far its centre is. Used to decide where the tour's light goes. */
 export function nearestPen(x: number, z: number): { centre: readonly [number, number]; distance: number } {
   let centre = PEN_CENTRES[1] ?? ([0, 0] as const);
   let distance = Infinity;
@@ -370,12 +460,8 @@ export function nearestPen(x: number, z: number): { centre: readonly [number, nu
   return { centre, distance };
 }
 
-/** Inside any pen, or inside the back paddock once it is open. */
+/** Inside any of the world's three pens, or inside the back paddock. */
 export function insideAPen(x: number, z: number): boolean {
-  if (nearestPen(x, z).distance <= PEN_REACH) return true;
-  const c = Math.cos(PADDOCK.rot);
-  const s = Math.sin(PADDOCK.rot);
-  const dx = x - PADDOCK.x;
-  const dz = z - PADDOCK.z;
-  return Math.abs(dx * c - dz * s) < PADDOCK.halfW && Math.abs(dx * s + dz * c) < PADDOCK.halfD;
+  for (const pen of WORLD_PENS) if (inRect(pen, x, z, PEN_PAD)) return true;
+  return inRect(PADDOCK, x, z, PEN_PAD);
 }

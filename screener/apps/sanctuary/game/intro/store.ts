@@ -36,20 +36,41 @@ export interface IntroView {
   boardSpeaking: boolean;
   /** True once the paddock gate is open, for the closing line and the completion seam. */
   unlocked: boolean;
+  /**
+   * True while something else owns the child's attention and their ears: one of the three stations, the
+   * stall, or this directory's own board.
+   *
+   * NAN MUST NOT TALK OVER A STATION, and that is not politeness. `screener/speak.ts` is one queue with
+   * one generation counter, so a second narration cancels the first — and the verbal station's entire
+   * item IS a narration. A nudge starting in the middle of the day-log's story would delete the story
+   * and leave a child looking at a row of pictures nobody ever told them about.
+   */
+  quiet: boolean;
 }
 
-let view: IntroView = {
+const BLANK: IntroView = {
   step: 'greet',
   line: '',
   glyph: 'none',
   say: 0,
-  settled: false,
+  /**
+   * SETTLED UNTIL PROVEN OTHERWISE, and it is the skip control this protects.
+   *
+   * `IntroGuide` holds the tour back until the child has clicked into the game, so between the first
+   * frame and that click there is no tour — and a "Skip the tour" button offering to skip a tour that
+   * has not started is a control that does nothing. For a keeper who has already seen the tour it would
+   * sit there for the whole session. Photographed, that is exactly what it looked like.
+   */
+  settled: true,
   boardEngaged: false,
   boardAt: 0,
   boardOf: 0,
   boardSpeaking: false,
   unlocked: false,
+  quiet: false,
 };
+
+let view: IntroView = BLANK;
 
 const listeners = new Set<() => void>();
 
@@ -77,8 +98,10 @@ export function publishTutorial(t: Tutorial): void {
   publish({ ...view, step: t.step, line: t.line, glyph: t.glyph, say: t.say, settled: t.settled });
 }
 
-/** Push the board's own state across. */
-export function publishBoard(patch: Partial<Pick<IntroView, 'boardEngaged' | 'boardAt' | 'boardOf' | 'boardSpeaking' | 'unlocked'>>): void {
+/** Push the board's own state across, and whether anything at all is holding the child. */
+export function publishBoard(
+  patch: Partial<Pick<IntroView, 'boardEngaged' | 'boardAt' | 'boardOf' | 'boardSpeaking' | 'unlocked' | 'quiet'>>,
+): void {
   let changed = false;
   for (const k of Object.keys(patch) as (keyof typeof patch)[]) {
     if (view[k] !== patch[k]) changed = true;
@@ -112,18 +135,12 @@ export function boardEngaged(): boolean {
   return view.boardEngaged;
 }
 
+/** Whether the paddock is open. Read from the guide's frame loop, which cannot call a hook. */
+export function introUnlocked(): boolean {
+  return view.unlocked;
+}
+
 /** Only for the tests and for a hot reload: put the store back where it started. */
 export function resetIntroStore(): void {
-  publish({
-    step: 'greet',
-    line: '',
-    glyph: 'none',
-    say: 0,
-    settled: false,
-    boardEngaged: false,
-    boardAt: 0,
-    boardOf: 0,
-    boardSpeaking: false,
-    unlocked: false,
-  });
+  publish(BLANK);
 }

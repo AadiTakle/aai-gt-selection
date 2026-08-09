@@ -22,6 +22,7 @@ import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
 import { useAudio, MuteButton, HeadphonePrompt } from './audio';
 import { useVacpackTank } from './vacpack';
+import { INTRO_SOLIDS, IntroGuide, IntroPortrait, useBoardEngaged } from './intro';
 import { FAMILY_BATTERY, type Family as Fam } from './contract';
 
 /**
@@ -120,7 +121,7 @@ function Keeper({ locked }: { locked: boolean }) {
     // Push out of anything solid. SOLIDS is a chain of small circles per structure rather than one
     // circle per building, so a child can walk up to a barn door instead of being stopped short of it,
     // and gate openings are deliberately left empty so every pen is walkable.
-    for (const solid of [...SOLIDS, ...STATION_SOLIDS, ...SHOP_SOLIDS]) {
+    for (const solid of [...SOLIDS, ...STATION_SOLIDS, ...SHOP_SOLIDS, ...INTRO_SOLIDS]) {
       const dx = camera.position.x - solid.position[0];
       const dz = camera.position.z - solid.position[1];
       const d = Math.hypot(dx, dz);
@@ -351,7 +352,11 @@ export function Game() {
    * that condition goes false, or engaging a station mid-draw leaves the loop running under the
    * question. It is idempotent, so stopping defensively costs nothing.
    */
-  const canVac = locked && !engaged && !shopOpen;
+  /* The challenge board holds the keeper the same way a station does, so everything that stands down
+     for a station stands down for it. Missing one of these is how a child ends up vacuuming a slime
+     while answering a question. */
+  const boardEngaged = useBoardEngaged();
+  const canVac = locked && !engaged && !shopOpen && !boardEngaged;
   useEffect(() => {
     if (!canVac) {
       audio.suckStop();
@@ -550,7 +555,7 @@ export function Game() {
           }}
         />
         <Vacpack
-          enabled={locked && !engaged && !shopOpen}
+          enabled={locked && !engaged && !shopOpen && !boardEngaged}
           onCapture={(id) => {
             audio.squish();
             takeSlime(id);
@@ -568,7 +573,11 @@ export function Game() {
           onLeave={() => setEngaged(null)}
           onGrant={grant}
         />
-        <Keeper locked={locked && !engaged && !shopOpen} />
+        <Keeper locked={locked && !engaged && !shopOpen && !boardEngaged} />
+        {/* The guided opening: Nan's tour, the waypoints, and the challenge board that unlocks the
+            second paddock. `busy` is NOT optional — `speak.ts` is one queue, so without it a nudge from
+            Nan cancels the day-log's story mid-sentence. */}
+        <IntroGuide busy={!!engaged || shopOpen} onEarn={() => setFlight((f) => f + 1)} />
       </Canvas>
 
       {!locked && !engaged && (
@@ -608,6 +617,8 @@ export function Game() {
       )}
 
       <CoinFlight trigger={flight} />
+      {/* Nan, who is selling the ranch. Portrait and a line; never pauses the game. */}
+      <IntroPortrait />
       {/*
        * Headphones are asked for BY THE VERBAL STATION AND NOWHERE ELSE.
        *

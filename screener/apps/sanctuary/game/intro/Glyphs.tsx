@@ -87,10 +87,10 @@ export function ControlGlyph({ glyph }: { glyph: Glyph }): JSX.Element | null {
         <g>
           {/* The cross, with W held down and a chevron leaving it. Direction is the message; the letters
               are the footnote. */}
-          <Cap x="49" y="26" letter="W" lit />
-          <Cap x="25" y="50" letter="A" />
-          <Cap x="49" y="50" letter="S" />
-          <Cap x="73" y="50" letter="D" />
+          <Cap x={49} y={26} letter="W" lit />
+          <Cap x={25} y={50} letter="A" />
+          <Cap x={49} y={50} letter="S" />
+          <Cap x={73} y={50} letter="D" />
           <g className="nb-rise" stroke={HONEY_DEEP} strokeWidth="4" strokeLinecap="round" fill="none">
             <path d="M60 20 L50 30 M60 20 L70 30" />
             <path d="M60 6 L50 16 M60 6 L70 16" opacity="0.5" />
@@ -128,13 +128,13 @@ export function ControlGlyph({ glyph }: { glyph: Glyph }): JSX.Element | null {
           <g className="nb-outward" stroke={HONEY_DEEP} strokeWidth="4" strokeLinecap="round" fill="none">
             <path d="M28 32 L12 20 M12 20 L22 20 M12 20 L12 30" />
           </g>
-          <Cap x="94" y="44" letter="Q" />
+          <Cap x={94} y={44} letter="Q" />
         </g>
       ) : null}
 
       {glyph === 'press' ? (
         <g>
-          <Cap x="49" y="26" letter="E" lit />
+          <Cap x={49} y={26} letter="E" lit />
           {/* Rings collapsing INWARD onto the cap. Outward rings are the picture of something emitting;
               inward rings are the picture of something being pushed. `stations/Beacon.tsx` settles this. */}
           <g fill="none" stroke={HONEY_DEEP} strokeWidth="3">
