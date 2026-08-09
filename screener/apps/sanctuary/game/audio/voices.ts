@@ -92,7 +92,7 @@ import { resonantGrains, wetComb, wobbleRamp, type CombSpec, type GrainSpec } fr
  */
 
 /** How a timbre variant differs from its base: everything is a multiplier, so a variant cannot be invalid. */
-interface Scale {
+export interface Scale {
   /** All frequencies. */
   f: number;
   /** All durations. */
@@ -104,14 +104,14 @@ interface Scale {
 }
 
 /** A grain cluster placed at an offset with a level. */
-interface Layer {
+export interface Layer {
   at: number;
   gain: number;
   grains: GrainSpec;
 }
 
 /** What one squelch is. Hz, seconds and linear gain throughout. */
-interface SquelchSpec {
+export interface SquelchSpec {
   /** The attack: adhesion tearing, or a splat, or a pop. */
   tear: Layer;
   /** The travelling cavity — three resonances, no oscillator. */
@@ -302,9 +302,19 @@ function squelch(
   comb.output.connect(voiceOut);
   for (const delay of comb.delays) {
     const base = delay.delayTime.value;
-    // Drifting, and each tap drifts by a different amount. Identical drift on every tap would move the whole
-    // comb together, which preserves the ratios between its peaks — and the ratios are what read as a pitch.
-    wobbleRamp(delay.delayTime, at, base, base * spec.combDrift * jitter(rand, 0.25), cavitySeconds * 2.2, 4, 0.12, rand);
+    /**
+     * Drifting, and each tap drifts by a different amount. Identical drift on every tap would move the whole
+     * comb together, which preserves the ratios between its peaks — and the ratios are what read as a pitch.
+     *
+     * TWELVE SHALLOW SEGMENTS RATHER THAN FOUR DEEP ONES, and this is a click fix rather than a taste one.
+     * A `DelayNode` whose `delayTime` is ramping is resampling its buffer, so the SLOPE of the ramp is a pitch
+     * shift; at a segment boundary the slope changes instantly, and inside a feedback loop that lands as an
+     * amplitude discontinuity. With four segments over ~90 ms the boundaries fell at roughly 23, 46, 69 and
+     * 92 ms — and the sharpest arrivals left in the family sat on top of them, at full height, on the draws
+     * where the slope change happened to be large. Same total drift, same wander, a third of the depth per
+     * step and three times as many of them: the boundaries stop being events.
+     */
+    wobbleRamp(delay.delayTime, at, base, base * spec.combDrift * jitter(rand, 0.25), cavitySeconds * 2.2, 12, 0.05, rand);
   }
 
   /* --- 1: the attack cluster — adhesion, splat or pop ------------------------------------------ */
@@ -325,7 +335,7 @@ function squelch(
     // The upper resonances are broader. A cavity's higher modes are always more damped than its fundamental,
     // and three equally narrow peaks sound like three filters rather than one space.
     band.Q.value = (c.q / (1 + i * 0.55)) * jitter(rand, 0.1);
-    wobbleRamp(
+    const bend = wobbleRamp(
       band.frequency,
       at,
       c.f0 * (ratios[i] as number) * k.f,
@@ -336,18 +346,30 @@ function squelch(
       c.wobble * (1 + i * 0.4),
       rand,
     );
-    // The elastic recovery: having deformed, it springs part of the way back. Scheduled to begin exactly where
-    // the first bend ended, so the two read as one continuous movement rather than two gestures.
+    /**
+     * The elastic recovery: having deformed, it springs part of the way back.
+     *
+     * CHAINED FROM WHERE THE FIRST BEND ACTUALLY ENDED, which is not where it was aimed. This used to start at
+     * `at + cavitySeconds` from `c.f1`, and both were wrong by a little: the wobble leaves the parameter up to
+     * 16 % off `f1`, and the jittered segment boundaries can leave the first ramp still running. The opening
+     * `setValueAtTime` therefore STEPPED the bandpass centre, and a step in a filter's centre frequency is a
+     * step in its output.
+     *
+     * It measured as a 2.4–2.9 ms arrival at full height in the middle of every squelch, on every variant —
+     * the last hard edge in the family and the least visible of them, because nothing in the spec mentions it.
+     * It is not a wrong number anywhere; it is a property of how two individually correct calls meet.
+     */
     if (c.f2 > 0) {
       wobbleRamp(
         band.frequency,
-        at + cavitySeconds,
-        c.f1 * (ratios[i] as number) * k.f,
+        bend.endTime,
+        bend.endValue,
         c.f2 * (ratios[i] as number) * k.f,
         c.seconds2 * k.t,
         Math.max(2, Math.round(c.segments * 0.5)),
         c.wobble * 0.7 * (1 + i * 0.4),
         rand,
+        true,
       );
     }
     const g = ctx.createGain();
@@ -375,10 +397,11 @@ function squelch(
   thudLow.frequency.setValueAtTime(spec.thud.f0 * k.f, at);
   // Fast, and to a frequency low enough that what is left has no identifiable pitch — only weight.
   thudLow.frequency.exponentialRampToValueAtTime(spec.thud.f1 * k.f, at + 0.016 * k.t);
-  // 18 ms of rise, not 6. A low layer with a fast attack is a KICK DRUM, and it was the single most percussive
+  // 26 ms of rise, not 6. A low layer with a fast attack is a KICK DRUM, and it was the single most percussive
   // thing left in the family — a slime touching down should yield, not land. Slow enough that the weight arrives
-  // after the wet detail rather than punching underneath it.
-  const thudEnv = envelope(ctx, at, spec.thud.gain, 0.018, spec.thud.decay * k.t);
+  // after the wet detail rather than punching underneath it, and now slower than the tear cluster's own 9 ms
+  // rise, so the order the ear hears is wet-then-weight rather than the two together.
+  const thudEnv = envelope(ctx, at, spec.thud.gain, 0.026, spec.thud.decay * k.t);
   noise.connect(thudLow);
   thudLow.connect(thudEnv);
   thudEnv.connect(voiceOut);
@@ -452,27 +475,32 @@ const SQUISH: SquelchSpec = {
     at: 0,
     gain: 0.26,
     grains: {
-      // Grains 14–30 ms against a mean gap of 8 ms: two to four are always sounding, so the "tear" is a
+      // Grains 18–34 ms against a mean gap of 3.5 ms: four or five are always sounding, so the "tear" is a
       // continuous rush rather than five separate ticks. `fSweep` 1.35 carries it upward — away up the tube.
-      seconds: 0.042, count: 8, fLo: 900, fHi: 3200, bw: 420,
-      ampTilt: -0.85, gapTilt: 0.95, grainLoMs: 14, grainHiMs: 30, glide: 0.9, damp: 2.5,
-      attackMs: 4, sustain: 0.9, fSweep: 1.35,
+      //
+      // This layer was never the problem and the measurement says so: `ampTilt` −0.85 means it SWELLS, so its
+      // loudest grains arrive in the middle of the cluster with four others on top of them, and no exposed
+      // transient is ever formed. It is the shape the other two sounds have now been given. Left alone but for
+      // a slightly longer rise and a few more grains.
+      seconds: 0.042, count: 11, fLo: 900, fHi: 3200, bw: 420,
+      ampTilt: -0.85, gapTilt: 0.95, grainLoMs: 18, grainHiMs: 34, glide: 0.9, damp: 2.5,
+      attackMs: 10, sustain: 0.9, fSweep: 1.35,
     },
   },
   cavity: {
     gain: 0.3, gain2: 0.16, gain3: 0.075,
     // Up fast as it is drawn away and stretches, then easing back down: elastic, not a sweep. The 16 ms attack
     // is the body's own soft onset — at 5 ms the whole sound started with an edge on it.
-    f0: 780, f1: 3200, seconds: 0.048, f2: 2400, seconds2: 0.055, segments: 5, wobble: 0.14,
+    f0: 780, f1: 3200, seconds: 0.048, f2: 2400, seconds2: 0.055, segments: 9, wobble: 0.10,
     q: 4.5, ratio2: 2.42, ratio3: 4.13, attack: 0.02, decay: 0.1,
   },
   bubbles: {
     at: 0.028,
     gain: 0.2,
     grains: {
-      seconds: 0.1, count: 11, fLo: 700, fHi: 2800, bw: 150,
-      ampTilt: 1.4, gapTilt: -0.8, grainLoMs: 16, grainHiMs: 32, glide: 1.15, damp: 2.5,
-      attackMs: 4, sustain: 0.9, fSweep: 1.25,
+      seconds: 0.085, count: 13, fLo: 700, fHi: 2800, bw: 150,
+      ampTilt: 1.5, gapTilt: -0.45, grainLoMs: 20, grainHiMs: 36, glide: 1.15, damp: 2.5,
+      attackMs: 11, sustain: 0.9, fSweep: 1.25,
     },
   },
   // Rising: the creature being drawn in. Narrow bandwidth so the resonance rings enough to read as a voice, and
@@ -481,9 +509,9 @@ const SQUISH: SquelchSpec = {
     at: 0.03,
     gain: 0.15,
     grains: {
-      seconds: 0.075, count: 2, fLo: 1150, fHi: 1900, bw: 70,
+      seconds: 0.05, count: 2, fLo: 1150, fHi: 1900, bw: 70,
       ampTilt: 0.4, gapTilt: 0, grainLoMs: 26, grainHiMs: 42, glide: 1.45, damp: 4.5,
-      attackMs: 8, sustain: 0.35,
+      attackMs: 13, sustain: 0.35,
     },
   },
   /**
@@ -491,20 +519,24 @@ const SQUISH: SquelchSpec = {
    *
    * It used to be sub-2 ms grains at `damp` 15, which is by definition a crackle — dozens of tiny sharp edges in
    * the brightest part of the spectrum, where the ear is most sensitive to sharpness. Moisture up top is right;
-   * making it out of tiny clicks was not. Grains are now 10–22 ms with `damp` 3 and near-full sustain, so the
+   * making it out of tiny clicks was not. Grains are now 15–26 ms with `damp` 3 and near-full sustain, so the
    * same frequency band arrives as a soft airy hiss that swishes instead of spitting.
+   *
+   * The `ampTilt` came down from 1.2 to 0.65 with the rest of the family. Up here it matters twice over: this
+   * is the brightest layer in the sound AND it starts at 3 ms, which is before the tear cluster has built, so
+   * a front-loaded spray puts its loudest and sharpest grain into the most exposed moment there is.
    */
   spray: {
     at: 0.003,
     gain: 0.06,
     grains: {
-      seconds: 0.045, count: 8, fLo: 4200, fHi: 8400, bw: 950,
-      ampTilt: 1.2, gapTilt: 0.4, grainLoMs: 10, grainHiMs: 22, glide: 0.9, damp: 3,
-      attackMs: 5, sustain: 0.95, fSweep: 1.3,
+      seconds: 0.045, count: 10, fLo: 4200, fHi: 8400, bw: 950,
+      ampTilt: 0.65, gapTilt: 0.4, grainLoMs: 15, grainHiMs: 26, glide: 0.9, damp: 3,
+      attackMs: 9, sustain: 0.95, fSweep: 1.3,
     },
   },
   // A trace of weight, and no more — felt, not heard.
-  thud: { gain: 0.04, f0: 520, f1: 240, decay: 0.055 },
+  thud: { gain: 0.03, f0: 520, f1: 240, decay: 0.055 },
   /**
    * SHORT AND BRIGHT DELAYS, 1.9 to 4.7 ms rather than 4.7 to 11.9.
    *
@@ -532,40 +564,63 @@ const SQUISH: SquelchSpec = {
  * about 190 ms, because in the reference these are impacts and not events with an aftermath.
  */
 const LAND: SquelchSpec = {
+  /**
+   * THE AMPLITUDE TILT WAS THE TAP, and finding it is what this pass is actually for.
+   *
+   * At `ampTilt` 1.3 the grain amplitudes ran (1 − i/n)^1.3, which makes the FIRST micro-event the LOUDEST —
+   * and the first micro-event is also the only one that arrives out of silence with nothing overlapping it.
+   * So the loudest and the most exposed grain in the sound were the same grain, and it opened over a 3.5 ms
+   * raised cosine whose 10 %–90 % rise is 2.1 ms. Measured: 2.2 ms, on every one of the three timbre variants.
+   * That is a click, and it was the hardness in the landing however soft everything after it was.
+   *
+   * NO AMOUNT OF BLENDING FURTHER IN CAN FIX THIS, which is why the previous pass did not. Overlap is what
+   * smooths a cluster and the first grain has nothing to overlap with by definition, so a front-loaded cluster
+   * always ends in an exposed transient however dense it is. The tilt itself has to come down. At 0.5 the
+   * cluster still settles — a landing should — but the opening grain no longer stands 10 dB above its
+   * neighbours, and with eleven grains of 18–34 ms against a 2.3 ms mean gap it has three or four companions
+   * by the time it reaches full height.
+   */
   tear: {
     at: 0,
     gain: 0.28,
     grains: {
-      seconds: 0.028, count: 7, fLo: 1400, fHi: 4800, bw: 620,
-      ampTilt: 1.3, gapTilt: -0.5, grainLoMs: 12, grainHiMs: 26, glide: 0.82, damp: 2.8,
+      seconds: 0.028, count: 11, fLo: 1400, fHi: 4800, bw: 620,
+      ampTilt: 0.5, gapTilt: -0.5, grainLoMs: 18, grainHiMs: 34, glide: 0.82, damp: 2.2,
       // Falling, because the thing has arrived and is spreading out downward and away from the ear.
-      attackMs: 3.5, sustain: 0.9, fSweep: 0.78,
+      // 9 ms of rise: a yielding contact rather than a contact.
+      attackMs: 12, sustain: 0.9, fSweep: 0.78,
     },
   },
   cavity: {
     gain: 0.3, gain2: 0.16, gain3: 0.07,
     // Down on the impact, then back up as it recovers. The bounce is in the f2.
-    f0: 3000, f1: 1150, seconds: 0.042, f2: 1500, seconds2: 0.05, segments: 5, wobble: 0.16,
-    q: 5, ratio2: 2.24, ratio3: 3.71, attack: 0.018, decay: 0.12,
+    f0: 3000, f1: 1150, seconds: 0.042, f2: 1500, seconds2: 0.05, segments: 9, wobble: 0.11,
+    q: 5, ratio2: 2.24, ratio3: 3.71, attack: 0.024, decay: 0.12,
   },
   bubbles: {
     at: 0.024,
     gain: 0.22,
     grains: {
-      seconds: 0.12, count: 12, fLo: 600, fHi: 2400, bw: 130,
-      ampTilt: 1.5, gapTilt: -1, grainLoMs: 16, grainHiMs: 34, glide: 1.1, damp: 2.5,
-      attackMs: 4, sustain: 0.9, fSweep: 0.85,
+      seconds: 0.095, count: 14, fLo: 600, fHi: 2400, bw: 130,
+      ampTilt: 1.6, gapTilt: -0.5, grainLoMs: 20, grainHiMs: 40, glide: 1.1, damp: 2.5,
+      attackMs: 11, sustain: 0.9, fSweep: 0.85,
     },
   },
   // No chirp on the landing: this one is the physics, and chirping all three would make the creature a tic.
   chirp: null,
+  /**
+   * The spray needed the same tilt correction as the tear, and needed it MORE rather than less. It sits at
+   * 4.6–9 kHz, where the ear is most sensitive to sharpness, so a front-loaded cluster up here contributes far
+   * more hardness per unit of level than the same shape would lower down — while at gain 0.06 it is quiet
+   * enough that nobody thinks to look at it when hunting for a tap.
+   */
   spray: {
     at: 0.002,
     gain: 0.06,
     grains: {
-      seconds: 0.04, count: 9, fLo: 4600, fHi: 9000, bw: 1150,
-      ampTilt: 1.4, gapTilt: 0.3, grainLoMs: 9, grainHiMs: 20, glide: 0.85, damp: 3,
-      attackMs: 5, sustain: 0.95, fSweep: 0.85,
+      seconds: 0.04, count: 11, fLo: 4600, fHi: 9000, bw: 1150,
+      ampTilt: 0.6, gapTilt: 0.3, grainLoMs: 15, grainHiMs: 28, glide: 0.85, damp: 3,
+      attackMs: 11, sustain: 0.95, fSweep: 0.85,
     },
   },
   /**
@@ -574,11 +629,16 @@ const LAND: SquelchSpec = {
    * A low layer with a fast attack under a bright transient is the construction of a kick drum, and that is what
    * this was: at 0.16 it was the loudest single element in the landing and it arrived first. A slime hitting the
    * ground should YIELD — the weight should be the thing you notice afterwards, not the thing that hits you. Now
-   * a quarter of the level, with an 18 ms rise (see `thudEnv`) so it swells in behind the wet detail instead of
+   * a sixth of the level, with a 26 ms rise (see `thudEnv`) so it swells in behind the wet detail instead of
    * punching under it. Felt rather than heard, as asked.
+   *
+   * Cut again this pass, 0.045 → 0.028. The sharpest-arrival measurement clears the thud of being the actual
+   * click — it rises far too slowly to be one — but "hard" and "percussive" are not the same complaint and the
+   * brief asks for both to go. A landing that is FELT wants the low layer under the audibility threshold on a
+   * laptop speaker and present only on something with a woofer, which is about where this now sits.
    */
-  thud: { gain: 0.045, f0: 620, f1: 210, decay: 0.07 },
-  comb: { delaysMs: [1.3, 2.6, 4.1, 6.3], feedback: 0.32, damp: 3800, wet: 0.42, dry: 0.9 },
+  thud: { gain: 0.028, f0: 620, f1: 210, decay: 0.07 },
+  comb: { delaysMs: [1.3, 2.6, 4.1, 6.3], feedback: 0.27, damp: 3800, wet: 0.42, dry: 0.9 },
   combDrift: 1.2,
 };
 
@@ -595,27 +655,37 @@ const LAND: SquelchSpec = {
  * out of a nozzle is not. Nothing in the directory depends on the ordering if it is ever wanted reversed.
  */
 const PLOP: SquelchSpec = {
+  /**
+   * The same front-loaded cluster as the landing had, and it measured even sharper: 1.2–2.2 ms across the
+   * variants, against a metric whose own floor is about 1.5 ms. `attackMs` was 3, whose 10 %–90 % rise is
+   * 1.8 ms, and `ampTilt` 1.2 put the loudest grain first and alone. Same correction, and a little further,
+   * because a plop is the smallest and softest of the three and had the hardest edge on it.
+   *
+   * Note what did NOT need to change: the collapse. `glide` 0.7 per grain and the cavity's 28 ms fall are the
+   * pop, and a pop is a shape rather than an edge. Softening the onset leaves it entirely intact — which is
+   * the general lesson of this pass, that "short and bright" and "hard" were never the same property.
+   */
   tear: {
     at: 0,
     gain: 0.24,
     grains: {
-      seconds: 0.02, count: 5, fLo: 1000, fHi: 3000, bw: 380,
-      ampTilt: 1.2, gapTilt: -0.4, grainLoMs: 10, grainHiMs: 22, glide: 0.7, damp: 2.8,
-      attackMs: 3, sustain: 0.88, fSweep: 0.8,
+      seconds: 0.02, count: 9, fLo: 1000, fHi: 3000, bw: 380,
+      ampTilt: 0.45, gapTilt: -0.4, grainLoMs: 16, grainHiMs: 30, glide: 0.7, damp: 2.2,
+      attackMs: 9, sustain: 0.88, fSweep: 0.8,
     },
   },
   cavity: {
     gain: 0.28, gain2: 0.14, gain3: 0.062,
-    f0: 2200, f1: 950, seconds: 0.028, f2: 1250, seconds2: 0.03, segments: 4, wobble: 0.18,
-    q: 4, ratio2: 2.13, ratio3: 3.44, attack: 0.015, decay: 0.07,
+    f0: 2200, f1: 950, seconds: 0.028, f2: 1250, seconds2: 0.03, segments: 7, wobble: 0.12,
+    q: 4, ratio2: 2.13, ratio3: 3.44, attack: 0.02, decay: 0.07,
   },
   bubbles: {
     at: 0.014,
     gain: 0.18,
     grains: {
-      seconds: 0.07, count: 8, fLo: 650, fHi: 2200, bw: 140,
-      ampTilt: 1.3, gapTilt: -0.7, grainLoMs: 12, grainHiMs: 24, glide: 1.18, damp: 2.5,
-      attackMs: 4, sustain: 0.9, fSweep: 0.88,
+      seconds: 0.058, count: 10, fLo: 650, fHi: 2200, bw: 140,
+      ampTilt: 1.5, gapTilt: -0.35, grainLoMs: 17, grainHiMs: 30, glide: 1.18, damp: 2.5,
+      attackMs: 10, sustain: 0.9, fSweep: 0.88,
     },
   },
   // Falling: the creature being let go. The mirror of the squish's rising chirp, which is what makes the pair
@@ -624,21 +694,21 @@ const PLOP: SquelchSpec = {
     at: 0.016,
     gain: 0.14,
     grains: {
-      seconds: 0.06, count: 2, fLo: 980, fHi: 1600, bw: 75,
+      seconds: 0.042, count: 2, fLo: 980, fHi: 1600, bw: 75,
       ampTilt: 0.4, gapTilt: 0, grainLoMs: 20, grainHiMs: 34, glide: 0.7, damp: 5,
-      attackMs: 8, sustain: 0.35,
+      attackMs: 12, sustain: 0.35,
     },
   },
   spray: {
     at: 0.001,
     gain: 0.045,
     grains: {
-      seconds: 0.028, count: 6, fLo: 4000, fHi: 7800, bw: 950,
-      ampTilt: 1.3, gapTilt: 0.2, grainLoMs: 8, grainHiMs: 18, glide: 0.9, damp: 3,
-      attackMs: 5, sustain: 0.95, fSweep: 0.9,
+      seconds: 0.028, count: 8, fLo: 4000, fHi: 7800, bw: 950,
+      ampTilt: 0.55, gapTilt: 0.2, grainLoMs: 13, grainHiMs: 24, glide: 0.9, damp: 3,
+      attackMs: 8, sustain: 0.95, fSweep: 0.9,
     },
   },
-  thud: { gain: 0.035, f0: 480, f1: 225, decay: 0.045 },
+  thud: { gain: 0.026, f0: 480, f1: 225, decay: 0.045 },
   comb: { delaysMs: [1.1, 2.3, 3.7], feedback: 0.28, damp: 3600, wet: 0.42, dry: 0.9 },
   combDrift: 0.9,
 };
@@ -653,7 +723,7 @@ const PLOP: SquelchSpec = {
  * scaling frequency, time, grain count and resonator bandwidth together changes the character rather than
  * just the tuning.
  */
-const VARIANTS: readonly Scale[] = [
+export const VARIANTS: readonly Scale[] = [
   { f: 1, t: 1, n: 1, bw: 1 },
   // Brighter, tighter, more of them, and wetter-sounding because wider resonator bandwidths tick rather
   // than ring.
@@ -661,6 +731,25 @@ const VARIANTS: readonly Scale[] = [
   // Deeper, slower, fewer and gloopier: narrow bandwidths ring, which is what a big slow bubble is.
   { f: 0.87, t: 1.15, n: 0.85, bw: 0.78 },
 ];
+
+/**
+ * THE SPECS, EXPORTED SO THE LAYERS CAN BE MEASURED ONE AT A TIME.
+ *
+ * Not part of the game's interface — nothing outside `measure.ts` should read this, and the game plays sounds
+ * through `createVoices` as it always has. It exists because of how the hardness in `land` and `plop` was
+ * eventually found, which is worth stating plainly: for three passes the only thing anyone could measure was
+ * the FINISHED sound, and a finished squelch is six layers on top of each other. A 2 ms edge inside it is two
+ * percent of the render and it does not move any average enough to notice.
+ *
+ * What located it was rendering one layer at a time and timing each one's own sharpest arrival, at which point
+ * the answer was immediate and unambiguous. Keeping the specs reachable makes that a repeatable measurement
+ * rather than a thing someone has to rediscover by temporarily deleting code.
+ */
+export const SPECS: Readonly<Record<'squish' | 'land' | 'plop', SquelchSpec>> = {
+  squish: SQUISH,
+  land: LAND,
+  plop: PLOP,
+};
 
 /* ------------------------------------------------------------------ *\
    The five voices, bound to their own choosers

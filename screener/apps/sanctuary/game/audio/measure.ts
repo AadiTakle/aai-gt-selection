@@ -361,10 +361,19 @@ export async function measureVacuumTap(): Promise<PopTest> {
  *     This is what catches "I replaced the oscillator with a filter but it is still one smooth gesture".
  *   · CREST FACTOR over the active region. Sharp uneven micro-transients sit further above their own mean
  *     than a smoothly enveloped burst does.
+ *   · HOW FAST THE SOUND ARRIVES, as the 10 %–90 % rise time of its onset. Added last and after three passes
+ *     had been rejected by ear, because it is the only one of the five that measures HARDNESS rather than
+ *     mechanicalness — see `attackMs`.
  *
  * The onset detector is spectral flux with an adaptive median threshold and a refractory period, which is
  * the standard construction and is deliberately not tuned per sound: the same detector reads every one of
  * them, so the before/after comparison is a comparison and not two different measurements.
+ *
+ * A WARNING ABOUT THE FIRST TWO, EARNED. `events` and `gapCv` were introduced to catch "mechanical", and for
+ * that they worked. They were then treated as goals — a brief asked for the event count to go UP — and the
+ * result was a sound the owner called hard, because a discrete detectable event and a sharp edge are the same
+ * physical thing. A high event count is EVIDENCE AGAINST a swish. Read them as descriptions of what changed,
+ * never as scores to raise.
  */
 export interface Texture {
   name: string;
@@ -395,6 +404,28 @@ export interface Texture {
    * onset count can, so it is the honest cross-check on the event numbers.
    */
   envSpreadDb: number;
+  /**
+   * THE 10 %–90 % RISE TIME OF THE SOUND'S OWN ONSET, in milliseconds, and the metric that was missing while
+   * three passes were rejected by ear.
+   *
+   * "Hard" is a property of the first few milliseconds and nothing this file measured could see it. Crest
+   * factor is close but it is an amplitude RATIO and says nothing about how fast the amplitude got there — a
+   * slow swell to a tall peak and an instant snap to the same peak score identically. Onset COUNT is worse
+   * than useless here: it rewards exactly the sharp edges that make a sound hard, which is how a brief asking
+   * for "more discrete micro-events" produced something the owner called hard while every number improved.
+   *
+   * Measured on a smoothed 1.5 ms sliding-RMS envelope as the SHORTEST 10 %–90 % rise at any prominent peak,
+   * each rise taken against the trough it started from — the sharpest edge anywhere in the sound, not the
+   * shape of its overall onset. 5–15 ms is a soft onset and a swish is at the top of that range; the metric's
+   * own floor is about 2.2 ms, so a reading of 2–3 ms means a click too fast to resolve. It is calibrated
+   * against known signals in the implementation, which is also where the two-times error in the first version
+   * of it is recorded.
+   *
+   * ZERO MEANS NOT APPLICABLE, not instantaneous. A rise time needs silence to rise out of, so it is only
+   * computed when the analysed region actually begins below the gate — which the held vacuum, sliced out of
+   * the middle of a hold, does not.
+   */
+  attackMs: number;
   /**
    * THE VACUUM'S DELIVERABLE, and the direct measurement of the owner's actual complaint.
    *
@@ -643,7 +674,7 @@ export function analyseTexture(
     return {
       name, events: 0, gapMean: 0, gapMin: 0, gapMax: 0, gapCv: 0,
       centroid: 0, centroidJump: 0, centroidLo: 0, centroidHi: 0, crestDb: 0, activeMs: 0, density: 0, envSpreadDb: 0,
-      tonalPeakDb: 0, tonalHz: 0, flatnessDb: 0, tonalPersist: 0,
+      tonalPeakDb: 0, tonalHz: 0, flatnessDb: 0, tonalPersist: 0, attackMs: 0,
     };
   }
 
@@ -706,7 +737,7 @@ export function analyseTexture(
     return {
       name, events: 0, gapMean: 0, gapMin: 0, gapMax: 0, gapCv: 0,
       centroid: 0, centroidJump: 0, centroidLo: 0, centroidHi: 0, crestDb: 0, activeMs: 0, density: 0, envSpreadDb: 0,
-      tonalPeakDb: 0, tonalHz: 0, flatnessDb: 0, tonalPersist: 0,
+      tonalPeakDb: 0, tonalHz: 0, flatnessDb: 0, tonalPersist: 0, attackMs: 0,
     };
   }
 
@@ -828,6 +859,168 @@ export function analyseTexture(
   const rms = count > 0 ? Math.sqrt(sum / count) : 0;
   const activeMs = ((hi - lo) / SR) * 1000;
 
+  /* --- the onset's rise time, which is what "hard" actually means ------------------------------ */
+
+  /**
+   * THE SHARPEST ARRIVAL IN THE SOUND: the shortest 10 %–90 % rise found at any prominent peak of a 1.5 ms
+   * sliding-RMS envelope. See the note on `Texture.attackMs`.
+   *
+   * WHY THE SHARPEST AND NOT THE FIRST. The obvious definition — time from silence to the sound's loudest
+   * moment — was written first and it is worse than useless, because it reports the shape of the whole sound
+   * rather than the edge inside it. Measured that way `land` scored 44 ms, a slow gentle swell, while its
+   * envelope in fact contained a 2.5 ms spike at 8 ms reaching 63 % of full level with its neighbours at 20 %.
+   * That spike is the tap the owner was hearing, and the number that was supposed to find hardness was
+   * averaging directly over it. Hardness is a property of the WORST edge, not of the average gesture, so the
+   * statistic has to be a minimum and not a mean.
+   *
+   * The analysis window is short on purpose. The 512-sample frame used everywhere else in this function is
+   * 11.6 ms long — longer than the entire attack being measured — so it would report its own rise, identically,
+   * for every sound in the file. This measurement has to be done on the samples, not on the spectrogram.
+   *
+   * ══ CALIBRATED, BECAUSE THE FIRST VERSION OF THIS WAS WRONG BY A FACTOR OF TWO ═══════════════════
+   *
+   * Every number in this directory should have been checked against a signal whose answer is known, and this
+   * is the one that was. Fed a pure raised-cosine attack of exactly 10 ms — true 10 %–90 % rise 5.9 ms — the
+   * first implementation reported 3.06 ms, and 5.31 ms for a true 11.8. It peak-picked on the raw RMS and
+   * measured each rise against an ABSOLUTE tenth of the peak, so the carrier's own ripple in the RMS put false
+   * local maxima part of the way up every rise and the climb was timed to those instead. It under-read
+   * everything, and it under-read long attacks worst — which is exactly the direction that would make a
+   * softening pass look like it had failed when it had worked.
+   *
+   * Two corrections. The RMS is SMOOTHED before peaks are picked, which removes the ripple; and each rise is
+   * measured against THE TROUGH IT STARTED FROM rather than against zero, which is what makes the figure mean
+   * the same thing for an arrival out of silence and an arrival on top of a decaying tail. Re-calibrated:
+   *
+   *     true 0.6 ms → 2.24    true 1.8 ms → 3.06    true 5.9 ms → 6.12    true 11.8 ms → 11.63
+   *
+   * So it is accurate above about 5 ms and has a FLOOR near 2.2 ms imposed by the two 1.5 ms windows. Anything
+   * reported at 2–3 ms is a click whose true rise is shorter than the instrument can resolve; the useful
+   * reading is "at the floor" versus "clear of it". That is enough, because the distinction the ear cares
+   * about is exactly that one.
+   *
+   * Three adversarial cases are in the calibration set as well, because a metric that only ever sees the
+   * signals it was designed against is an opinion:
+   *
+   *     two tones 200 Hz apart, beating, no tap anywhere    → 6.53 ms   (must NOT read as an edge)
+   *     a 0.5 ms click on top of a quiet sustained tone     → 2.45 ms   (must be caught: it is the worst case)
+   *     a 12 ms swell on top of the same tone               → 6.33 ms   (must read as soft)
+   *
+   * The middle one is the reason for the bounded trough search below; before that fix it read 142 ms.
+   *
+   * Only computed when the region begins in silence (`firstActive > 0`); a held loop sliced out of its own
+   * middle has no onset to time and gets 0, meaning not applicable.
+   */
+  let attackMs = 0;
+  if (firstActive > 0) {
+    const win = Math.max(8, Math.round(SR * 0.0015));
+    const step = Math.max(1, Math.round(SR * 0.0002));
+    // Start a little before the gate opens, so the true foot of the first rise is inside the search.
+    const from = Math.max(0, lo - win * 2);
+    const to = Math.min(mono.length, lo + Math.round(SR * 0.15));
+
+    const raw: number[] = [];
+    const times: number[] = [];
+    let acc = 0;
+    for (let i = from; i < Math.min(mono.length, to + win); i += 1) {
+      const v = mono[i] as number;
+      acc += v * v;
+      if (i - win >= from) {
+        const old = mono[i - win] as number;
+        acc -= old * old;
+      }
+      if ((i - from) % step === 0) {
+        raw.push(Math.sqrt(Math.max(0, acc) / win));
+        times.push(i);
+      }
+    }
+
+    // Smooth the envelope itself. This is the fix for the ripple that made v1 under-read by half.
+    const sm = Math.max(1, Math.round(0.0015 / (step / SR)));
+    const env: number[] = raw.map((_, i) => {
+      let s = 0;
+      let c = 0;
+      for (let d = -sm; d <= sm; d += 1) {
+        const u = i + d;
+        if (u < 0 || u >= raw.length) continue;
+        s += raw[u] as number;
+        c += 1;
+      }
+      return c > 0 ? s / c : 0;
+    });
+
+    let envPeak = 0;
+    for (const v of env) if (v > envPeak) envPeak = v;
+
+    if (envPeak > 0) {
+      // A peak has to stand out to count. Below about a third of full level an envelope wiggle is texture.
+      const prominent = envPeak * 0.3;
+      // "Local" means the largest point within 2.5 ms either side: one arrival is one maximum.
+      const half = Math.max(1, Math.round(0.0025 / (step / SR)));
+      // How far back an arrival's own foot can be. See the trough search below.
+      const maxBack = Math.max(1, Math.round(0.04 / (step / SR)));
+      let best = Infinity;
+
+      for (let i = 1; i < env.length - 1; i += 1) {
+        const p = env[i] as number;
+        if (p < prominent) continue;
+        let isMax = true;
+        for (let d = -half; d <= half && isMax; d += 1) {
+          const u = i + d;
+          if (u < 0 || u >= env.length || u === i) continue;
+          if ((env[u] as number) > p) isMax = false;
+        }
+        if (!isMax) continue;
+
+        /**
+         * The trough this rise actually started from — the NEAREST local minimum, not the lowest point in
+         * the render, and the difference between those two is a bug that made the metric miss the loudest
+         * class of tap there is.
+         *
+         * Walking back to the global minimum means that for any peak louder than everything before it, the
+         * search runs all the way to the silence at the start and reports the time from there. Fed a 0.5 ms
+         * click sitting on top of a quiet sustained tone — the sharpest thing in this test set — it returned
+         * 142 ms and called it the softest sound ever measured. Exactly inverted.
+         *
+         * So: stop at 40 ms of look-back, and stop as soon as the envelope has climbed 35 % back out of the
+         * running minimum, which means we have left this arrival's own foot and started up the back of an
+         * earlier one.
+         */
+        let troughAt = i;
+        let trough = p;
+        for (let j = i - 1; j >= 0 && i - j <= maxBack; j -= 1) {
+          const q = env[j] as number;
+          if (q < trough) {
+            trough = q;
+            troughAt = j;
+          } else if (q > trough * 1.35) {
+            break;
+          }
+          if (q > p) break;
+        }
+        // An arrival has to come out of a dip. Under 8 dB of range this is a ripple on a continuous sound,
+        // and a ripple has no attack — timing it would report the smoothing window's own response.
+        if (trough >= p * 0.4) continue;
+
+        const loLevel = trough + (p - trough) * 0.1;
+        const hiLevel = trough + (p - trough) * 0.9;
+        let a = -1;
+        let b = -1;
+        for (let j = troughAt; j <= i; j += 1) {
+          const q = env[j] as number;
+          if (a < 0 && q >= loLevel) a = j;
+          if (q >= hiLevel) {
+            b = j;
+            break;
+          }
+        }
+        if (a < 0 || b < 0) continue;
+        const rise = (((times[b] as number) - (times[a] as number)) / SR) * 1000;
+        if (rise > 0 && rise < best) best = rise;
+      }
+      if (best < Infinity) attackMs = best;
+    }
+  }
+
   /* --- unevenness, with no threshold in it at all ---------------------------------------------- */
 
   /**
@@ -853,6 +1046,7 @@ export function analyseTexture(
 
   return {
     envSpreadDb: round(envSpreadDb, 2),
+    attackMs: round(attackMs, 2),
     /**
      * Tonality, over THE ACTIVE REGION ONLY and with its own much longer window. This is the number the held
      * vacuum is judged by, and for the transients it is the check that no sine body is left in them.
@@ -1040,9 +1234,10 @@ export function formatReport(report: Report): string {
       padLeft('c5-c95', 12) +
       padLeft('crest', 7) +
       padLeft('unev', 7) +
+      padLeft('atk ms', 8) +
       padLeft('act ms', 8),
   );
-  lines.push('-'.repeat(112));
+  lines.push('-'.repeat(120));
   for (const t of report.textures) {
     lines.push(
       pad(t.name, 16) +
@@ -1057,6 +1252,7 @@ export function formatReport(report: Report): string {
         padLeft(`${t.centroidLo}-${t.centroidHi}`, 12) +
         padLeft(t.crestDb.toFixed(1), 7) +
         padLeft(t.envSpreadDb.toFixed(1), 7) +
+        padLeft(t.attackMs > 0 ? t.attackMs.toFixed(1) : '—', 8) +
         padLeft(t.activeMs.toFixed(0), 8),
     );
   }
@@ -1094,6 +1290,9 @@ export function formatReport(report: Report): string {
   lines.push('  events/gapCV: few + regular = mechanical, many + scattered (CV > 0.5) = wet.');
   lines.push('  jump = median Hz the spectral centroid moves per 1.45 ms frame. A glide is small; bubbles are large.');
   lines.push('  unev = p90-p10 of the detrended dB envelope. Threshold-free cross-check on the event count.');
+  lines.push('  atk  = sharpest 10-90% rise anywhere in the sound, ms. 5-15 is a soft onset. THIS is "hard".');
+  lines.push('         Floor is ~2.2 ms (calibrated): a reading of 2-3 ms is a click too fast to resolve.');
+  lines.push('         "—" means the region has no onset in it (a held loop sliced out of its own middle).');
   lines.push('');
   lines.push(report.ok ? 'ALL OK' : 'PROBLEMS ABOVE');
   return lines.join('\n');

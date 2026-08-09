@@ -220,13 +220,21 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
   /* --- the gloop track: material moving through ---------------------------------------------- */
 
   /**
-   * GRAIN LENGTH IS WHAT MAKES A GLOOP AN EVENT, and the first version of this got it wrong in a way worth
-   * recording. The grains were 22–70 ms long with a slow ring (`damp` 5), which sounds reasonable written
-   * down — a gloop is not a click — but a long grain with a soft ring has almost no ATTACK, and an event with
-   * no attack does not register as an arrival at all. Measured, the whole track produced zero detectable
-   * onsets: it was adding a vague wetness to the bed rather than the "occasional gloops as material moves
-   * through" it was supposed to be. Shorter grains with a faster decay have the same pitch content and
-   * actually arrive.
+   * GRAIN LENGTH IS WHAT MAKES A GLOOP AN EVENT — and the previous note here, which argued for SHORT grains
+   * with a FAST decay so that each gloop "actually arrives", is now half wrong and is kept because the half
+   * that is wrong is instructive.
+   *
+   * It was written against a brief asking for detectable onsets, and it delivered them: 9–34 ms grains at
+   * `damp` 7 register on an onset detector every time. But "registers as an arrival" and "sounds hard" are
+   * the same property viewed from two sides. An event with a fast rise and a fast ring IS a tap, and forty-six
+   * taps a minute inside a sound a child holds down is exactly the hardness this pass exists to remove. The
+   * onset count went up and the sound got worse, which is the clearest evidence available that the metric was
+   * pointed at the wrong thing.
+   *
+   * So the gloops keep their register and their sparseness and lose their edges: a 7 ms raised-cosine rise,
+   * near-full `sustain` so each one is a short band of moving air rather than a struck cavity, `damp` down
+   * from 7 to 3.2 so it does not snap shut, and grains long enough (26–58 ms) that consecutive gloops touch
+   * instead of standing alone. They still arrive — a swell is an arrival — they just no longer knock.
    */
   const gloop = ctx.createBufferSource();
   gloop.buffer = resonantGrains(
@@ -241,10 +249,15 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
       // Flat: these are not decaying, they are events in a continuing process.
       ampTilt: 0,
       gapTilt: 0,
-      grainLoMs: 9,
-      grainHiMs: 34,
+      grainLoMs: 26,
+      grainHiMs: 58,
       glide: 1.18,
-      damp: 7,
+      damp: 3.2,
+      attackMs: 7,
+      sustain: 0.92,
+      // This buffer LOOPS. See the note on `spanFill`: the default 0.82 left the last three seconds of every
+      // fifteen-second lap with no gloops in them at all.
+      spanFill: 1,
     },
     rand,
   );
@@ -278,28 +291,44 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
    * So this is a second looping grain track: short, soft resonances scattered by the same shifted-exponential
    * distribution as everything else.
    *
-   * THE DENSITY IS A TUNED COMPROMISE AND IT WAS TUNED THE WRONG WAY FIRST. The initial version ran 460 grains
-   * over fifteen seconds — thirty a second — on the theory that more texture is more wetness. It is not: at
-   * thirty a second the events overlap into an unbroken fizz, which reads as noise colour rather than as
-   * things happening, and measured as literally zero detectable onsets because a texture with no gaps has no
-   * arrivals in it. Roughly a dozen a second leaves audible space between events, which is where the wetness
-   * actually lives — the silence between two bubbles is as much of the cue as the bubbles.
+   * THE DENSITY IS A TUNED COMPROMISE AND IT WAS TUNED THE WRONG WAY TWICE, which is worth the space.
+   *
+   * The first version ran 460 grains over fifteen seconds — thirty a second — on the theory that more texture
+   * is more wetness. It is not: the events overlapped into an unbroken fizz and measured as literally zero
+   * detectable onsets, because a texture with no gaps has no arrivals in it. So it was cut to roughly a dozen
+   * a second, on the reasoning that the silence between two bubbles is as much of the cue as the bubbles.
+   *
+   * That is true of BUBBLES and false of what this layer was actually made of. At 3–14 ms with `damp` 10 these
+   * were not bubbles, they were CLICKS — a 3 ms grain whose ring is ten e-folds long is a tick by construction,
+   * and it sat in the 900–3600 Hz band where the ear is most sensitive to sharpness. Spacing clicks further
+   * apart does not soften them; it just makes each one easier to hear on its own. This is the same mistake the
+   * one-shots' spray layer had, found for the same reason.
+   *
+   * Now they are 11–28 ms at `damp` 3.5 with a 4 ms rise and near-full sustain — short soft breaths rather
+   * than spits. Because each one is three times longer, the density is raised back to about fifteen a second
+   * so that consecutive grains overlap and the layer reads as a continuous fine wetness moving through the
+   * tube. That is the correct resolution of the two failures: the fizz was wrong because the grains never
+   * stopped, and the crackle was wrong because they stopped too hard. Overlapping SOFT grains is neither.
    */
   const burble = ctx.createBufferSource();
   burble.buffer = resonantGrains(
     ctx,
     {
       seconds: 15,
-      count: 170,
+      count: 225,
       fLo: 900,
       fHi: 3600,
       bw: 340,
       ampTilt: 0,
       gapTilt: 0,
-      grainLoMs: 3,
-      grainHiMs: 14,
+      grainLoMs: 11,
+      grainHiMs: 28,
       glide: 0.88,
-      damp: 10,
+      damp: 3.5,
+      attackMs: 4,
+      sustain: 0.95,
+      // Loops, as the gloop track does, and for the same reason must fill its whole lap.
+      spanFill: 1,
     },
     rand,
   );

@@ -118,6 +118,23 @@ export interface GrainSpec {
    * PLACE. A swish moves through and away; this is what gives the crowd of micro-events somewhere to go.
    */
   fSweep?: number;
+  /**
+   * What fraction of `seconds` the grain STARTS are spread across. Defaults to 0.82.
+   *
+   * THIS MUST BE 1 FOR A LOOPING BUFFER, and the default being 0.82 was a real defect in the two vacuum
+   * tracks rather than a tuning choice that happened not to suit them.
+   *
+   * For a one-shot layer 0.82 is deliberate: the cluster's own ring finishes inside the nominal span, so a
+   * caller reasoning about when the layer is over is right. But `vacuum.ts` asks for `seconds: 15` and LOOPS
+   * the result, and 0.82 of 15 s means the last three seconds of every lap contain no grains at all — the
+   * suction's entire wet detail dropped out for three seconds once a lap, forever, and then came back.
+   *
+   * Worth recording WHY it survived three passes of measurement: `measureTextures` analyses the vacuum over
+   * 0.9–1.9 s, which is inside the populated region, so no number this directory produces could ever have
+   * shown it. It is the cleanest example in the codebase of a metric whose sampling window guarantees it
+   * agrees with you.
+   */
+  spanFill?: number;
 }
 
 /**
@@ -171,8 +188,10 @@ export function resonantGrains(ctx: BaseAudioContext, spec: GrainSpec, rand: Ran
     raw.push(acc);
     acc += tilt * (0.4 + 0.6 * draw);
   }
-  // The last grain starts at 82 % of the span, leaving its own ring room to finish inside the buffer.
-  const span = acc > 1e-9 ? (spec.seconds * 0.82) / acc : 0;
+  // The last grain starts at `spanFill` of the span — 82 % by default, leaving its own ring room to finish
+  // inside the nominal length, and 1 for a looping track where a reserved tail is a hole. See `spanFill`.
+  const fill = Math.min(1, Math.max(0.05, spec.spanFill ?? 0.82));
+  const span = acc > 1e-9 ? (spec.seconds * fill) / acc : 0;
 
   /* --- and what each one is ------------------------------------------------------------------- */
 
@@ -197,7 +216,10 @@ export function resonantGrains(ctx: BaseAudioContext, spec: GrainSpec, rand: Ran
     const f0 = (spec.fLo + rand() * (spec.fHi - spec.fLo)) * sweep;
     const f1 = Math.max(25, f0 * spec.glide);
 
-    const aSamples = Math.max(1, Math.floor((attackMs / 1000) * sr));
+    // Capped at 70 % of the grain so every grain finishes its rise and reaches full height. Past that the
+    // raised cosine is still climbing while `(1 − v⁴)` is already pulling it down, and the grain is simply
+    // quieter — which peak normalisation then hides by making everything else louder.
+    const aSamples = Math.max(1, Math.min(Math.floor(dur * 0.7), Math.floor((attackMs / 1000) * sr)));
     const sustainUntil = sustain * dur;
 
     let y1 = 0;
@@ -220,7 +242,24 @@ export function resonantGrains(ctx: BaseAudioContext, spec: GrainSpec, rand: Ran
       // The rise is a raised cosine over `attackMs`, not the 10-sample ramp it used to be. Ten samples is a
       // quarter of a millisecond, which is an edge; this is the difference between a tap and a stroke.
       const rise = s < aSamples ? 0.5 - 0.5 * Math.cos(Math.PI * (s / aSamples)) : 1;
-      const env = Math.exp(-spec.damp * v) * (1 - v ** 4) * rise;
+      /**
+       * THE DECAY CLOCK STARTS WHEN THE ATTACK ENDS, and this one line is why the previous pass raised
+       * `attackMs` to 7–9 ms and still measured 3 ms arrivals.
+       *
+       * It used to be `exp(−damp · v)`, with `v` running from the grain's first sample. So the grain began
+       * decaying while it was still rising: the product of a climbing cosine and a falling exponential peaks
+       * EARLY and reaches its maximum well before the nominal attack is over. At `damp` 2.5 on a 20 ms grain a
+       * 7 ms attack peaked at 5.8 ms and its measured 10 %–90 % rise was 3.4 ms — half of what was asked for,
+       * with nothing in the spec to suggest it. Every layer in the family was affected, which is exactly why
+       * softening the specs one at a time kept not working.
+       *
+       * Measuring the decay from the end of the attack makes the envelope an actual attack-then-decay shape,
+       * and `attackMs` finally means what it says. `(1 − v⁴)` stays on the FULL grain length so the envelope
+       * still reaches exactly zero at the end — that is the term that guarantees no step, and it must not be
+       * moved onto the shortened clock.
+       */
+      const dv = dur > aSamples ? Math.max(0, (s - aSamples) / (dur - aSamples)) : v;
+      const env = Math.exp(-spec.damp * dv) * (1 - v ** 4) * rise;
       data[idx] = (data[idx] as number) + y * env * amp;
     }
   }
@@ -334,7 +373,33 @@ export function wetComb(ctx: BaseAudioContext, spec: CombSpec): Comb {
  *
  * The segment BOUNDARIES are jittered as well as the targets. Even boundaries with random targets is a
  * sample-and-hold LFO, which has a rate, and a rate is a rhythm.
+ *
+ * ══ IT RETURNS WHERE IT ACTUALLY FINISHED, AND CHAINING MATTERS MORE THAN IT SOUNDS ═══════════════
+ *
+ * Neither the end VALUE nor the end TIME of this function is what the caller asked for, and both differ for
+ * reasons that are the point of the function rather than sloppiness:
+ *
+ *   · the last segment's target is `f1 · (1 ± depth)`, because every segment overshoots or undershoots —
+ *     that is the wobble;
+ *   · the last boundary is jittered by up to 45 % of a segment, so it can land after `at + seconds`.
+ *
+ * A second `wobbleRamp` scheduled at `at + seconds` to continue the gesture therefore did TWO wrong things
+ * at once: it called `setValueAtTime` with `f1` while the parameter was actually sitting up to 16 % away, and
+ * it did so while the previous ramp might still be running. Both are steps, and a step in a bandpass centre
+ * frequency is an amplitude discontinuity in its output — a click, once per squelch, right in the middle.
+ *
+ * That is precisely what the elastic recovery in `voices.ts` was doing, and it measured: a 2.4–2.9 ms arrival
+ * at full height, at exactly `cavitySeconds` into every sound. Callers that continue a gesture must pass the
+ * returned `endValue`/`endTime` back in with `chain: true`, which suppresses the opening `setValueAtTime` and
+ * lets the automation run on unbroken.
  */
+export interface RampEnd {
+  /** The value the parameter is actually left at — not `f1`, because the last segment wobbles off it. */
+  endValue: number;
+  /** When the last segment actually lands — not `at + seconds`, because boundaries are jittered. */
+  endTime: number;
+}
+
 export function wobbleRamp(
   param: AudioParam,
   at: number,
@@ -344,12 +409,15 @@ export function wobbleRamp(
   segments: number,
   depth: number,
   rand: Rand,
-): void {
+  /** Continue an automation already in flight: skip the opening `setValueAtTime`. See the note above. */
+  chain = false,
+): RampEnd {
   const n = Math.max(1, Math.floor(segments));
   const from = Math.max(20, f0);
   const to = Math.max(20, f1);
-  param.setValueAtTime(from, at);
+  if (!chain) param.setValueAtTime(from, at);
   let last = at;
+  let value = from;
   for (let i = 1; i <= n; i += 1) {
     const u = i / n;
     // Geometric interpolation of the trend, because pitch and resonance are heard logarithmically.
@@ -361,7 +429,9 @@ export function wobbleRamp(
     const when = Math.max(last + 0.0015, nominal + wiggle);
     param.exponentialRampToValueAtTime(target, when);
     last = when;
+    value = target;
   }
+  return { endValue: value, endTime: last };
 }
 
 /* ------------------------------------------------------------------ *\
