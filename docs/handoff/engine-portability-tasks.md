@@ -225,10 +225,31 @@ Checked against every caller before defaulting on: smoke answers at 2500ms so CI
 `verify-showcase` re-run live across all four bands: clean. **Delete these constants once `1b.5` forwards real
 timings** — the honest floor is a low percentile of observed latency.
 
-### 9. `2.2` — Classify the 36 unmapped types
+### 9. `2.2` — Classify the 36 unmapped types — **DONE 8 Aug 2026**
 - `packages/ui-contract/src/cogat.ts` is the only machine-readable mapping; 17 of 53 are in it.
 - For each of the remaining 36, record either a subtest or an explicit `none`.
 - **Done when:** no type is absent from the mapping.
+
+All **53** types now carry a decision: **23 mapped, 30 explicit `none`**. `CogatMapping` became a union with a
+`'none'` variant, so absence is a fault rather than an ambiguity — `cogat.test.ts` asserts every bank type has
+an entry and that no entry names a type that no longer exists, which is the check `2.3` turns into a build
+failure.
+
+Classified from the type catalogue (`archive/research/exam-question-types/CATEGORY_MAP.md`) plus a sample item
+each, not from names. **7 calls are marked `needsAuthorReview`** — `CX-check-01`, `FLU-GRIDCOPY-01`,
+`FLU-ODDPAIR-01`, `FLU-OPCHAIN-01`, `QUANT-MIX-01`, `SPA-TANGRAM-01`, `SPA-XFORM-01`. CogAT alignment is a
+measurement claim, so the arguable ones say so in the data rather than looking as settled as the obvious ones.
+
+The recurring reason for `none`, stated once in the file: CogAT is nine subtests measuring analogy, series,
+classification and one spatial visualisation. It has no subtest for memory span, reading comprehension, path
+planning, mental rotation, cross-sections or scientific method. **Thirty of our types measure those**, and that
+is a fact about what this library is for rather than a gap in it.
+
+Newly mapped as `loose`: `FLU-ANALOGY-01`, `FLU-GRIDCOPY-01`, `FLU-OPCHAIN-01` and `SPA-XFORM-01` to
+figure-matrices; `FLU-ODDPAIR-01` to figure-classification; `QUANT-MIX-01` to number-puzzles. Note
+`SPA-XFORM-01` and `FLU-OPCHAIN-01` share an identical content shape, so they are one mechanic in two domains.
+
+**Verbal Analogies is still the only subtest with no direct type**, which is `2.1` and unchanged by this.
 
 ### 10. `2.3` — Put the mapping on the item and enforce it
 - Add `cogatSubtest` to the bank records.
