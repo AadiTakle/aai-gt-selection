@@ -94,6 +94,8 @@ function playStateless(answerCorrectly: boolean, maxItems = 8) {
       pAboveBefore: before,
       pAboveAfter: posteriors.composite.probabilityAbove(CONFIG.abilityThreshold),
       selectionReason: serve.selectionReason,
+      // Required since 1b.3: the transcript distinguishes 'too fast' from 'could not be marked'.
+      flags: [],
     });
   }
   return { history, posteriors, stopReason: stopReasonFor({ config: CONFIG, pool: POOL, history, posteriors }) };

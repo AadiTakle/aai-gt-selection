@@ -104,7 +104,13 @@ export class QbankSession {
     const threshold = this.config.abilityThreshold;
     const pAboveBefore = this.posteriors.composite.probabilityAbove(threshold);
 
-    const { correct, posteriors } = grade({ item: record, response: rawResponse, latencyMs, posteriors: this.posteriors });
+    const { correct, posteriors, flags } = grade({
+      item: record,
+      response: rawResponse,
+      latencyMs,
+      posteriors: this.posteriors,
+      rapidGuessFloorScale: this.config.rapidGuessFloorScale,
+    });
     this.posteriors = posteriors;
 
     const pAboveAfter = this.posteriors.composite.probabilityAbove(threshold);
@@ -120,6 +126,7 @@ export class QbankSession {
       pAboveBefore,
       pAboveAfter,
       selectionReason: serve.selectionReason,
+      flags,
     });
     this.pending = null;
 

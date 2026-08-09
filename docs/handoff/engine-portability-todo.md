@@ -520,6 +520,62 @@ that item, treat it as unscorable rather than wrong. Unscorable already exists a
 from the estimate, so the plumbing is done. Set the threshold per item type, not globally: a paper
 folding item and a two-word analogy have very different floors.
 
+**DONE 8 Aug 2026.** `rapidGuessFloorMs` in `engine.ts`; the check lives in `grade`, which already
+returned the `flags` array 3.4 reserved for it. 277 tests pass.
+
+**Per item, not per type, and derived rather than tabulated.** The floor is
+`base + options x per-option + words x per-word`, capped, read off the item's own content — so a
+`VER-CLOZE-01` sentence of eight words and one of forty get different floors, where a per-type constant
+would have to be wrong for one of them. That satisfies "per type code, not global" and improves on it.
+
+**Two facts that shaped this more than the requirement did.**
+
+1. **There is no latency data in this repository.** Attempts live in a `Map` that dies with the process,
+   so every constant is invented. Nothing here is calibrated and the code says so.
+2. **Most types have nothing to read.** Only **16 of 53** carry a prose `prompt`; the rest are figural.
+   A "plausible reading time" is inapplicable to two thirds of the bank, so the floor is really a
+   *physical plausibility* bound — perceive, decide, act — with a reading term that only fires where
+   there is text.
+
+**The two errors do not cost the same, and that set the numbers.** A floor too low misses some guesses.
+A floor too high **discards real evidence from a fast, capable child**, and since unscorable responses
+are excluded from the estimate, it deletes exactly the evidence that would have passed them — against
+this project's whole posture. So: base 300ms (simple reaction time is ~200ms before any comprehension),
+50ms per option glance, and **60ms per word, which is deliberately a quarter of a fast adult reading
+rate**. This is a floor, so it belongs below the fastest child in the cohort, not at the average one.
+The 2000ms cap matters as much: past two seconds a slow response stops being evidence about physical
+possibility and becomes a guess about engagement, which is 1b.4's territory.
+
+Resulting floors run 300ms (`SPA-TANGRAM-01`, nothing to read) to 2000ms (`QUANT-WORD-01`, capped).
+
+**A sub-floor response is unscorable, not wrong — including when it was correct.** That is the point: a
+lucky fast click must not become evidence of knowledge, and the static guessing floor cannot reach it
+because `c` is a property of the item while this is a property of the response.
+
+**An unmarkable response does not acquire a rapid-guess flag it did not earn.** `unscorable` used to mean
+one thing — nobody could mark it — and now covers "answered too fast" as well, so `QbankAttempt` gained a
+`flags` field. A count that conflated the two would hide a child clicking through an entire session
+behind a number that looks like a marking gap. 1b.4's person-fit work will want that separation too.
+
+**Checked against every caller before defaulting it on**, because this changes behaviour for all of them.
+The smoke suite answers at 2500ms and the cap is 2000, so `npm run verify` was unaffected — but
+`verify-showcase.ts` sent 1200ms and `verify-provenance.ts` sent 1000ms, and **seven types have floors
+above 1200**. Both now send 3000ms, which is a correction rather than an accommodation: a simulated child
+answering a word problem in one second was never plausible. `verify-showcase` was then run against a live
+API across all four age bands and every band starts, stops and serves only allowed types with no key
+leakage.
+
+`rapidGuessFloorScale` on the config scales the whole set, and **0 disables the check** — the right answer
+for a host that reads items aloud or shows them before starting its timer.
+
+**Delete these constants rather than tune them, once 1b.5 forwards the renderer's timings.** With real
+attempts the honest floor is a low percentile of observed latency per type. Everything above is a
+placeholder standing in for data nobody has collected yet.
+
+*(Noticed in passing, for 2.5: `verify-showcase.ts` defaults to port 5202 while `npm run api` serves
+5181, so the script cannot reach the API without `GT_LAB_API` set. Its own header says "needs the lab API
+on 5202". Pre-existing.)*
+
 **Task 1b.4 — Person-fit across the session.** Getting hard items right while missing easy ones is the
 signature of guessing or of a mis-set starting difficulty. Compute a standard person-fit statistic over
 the responses so far and surface it on the result. Start by reporting it, not by acting on it.

@@ -218,6 +218,8 @@ export interface QbankSessionConfig {
    * disable the domain route entirely. **Unvalidated**, as `recommendProbability` is.
    */
   readonly domainRecommendProbability?: number;
+  /** Multiplier on the rapid-guess latency floor. Defaults to 1; 0 disables the check. */
+  readonly rapidGuessFloorScale?: number;
 }
 
 export interface QbankServe {
@@ -242,6 +244,15 @@ export interface QbankAttempt {
   readonly pAboveBefore: number;
   readonly pAboveAfter: number;
   readonly selectionReason: string;
+  /**
+   * Behavioural observations about the response, not its correctness. `['rapid-guess']` when it arrived below
+   * the item's latency floor.
+   *
+   * On the attempt because `unscorable` used to mean exactly one thing — nobody could mark it — and now covers
+   * "answered too fast" as well. A count that conflated them would hide a child clicking through an entire
+   * session behind a number that looks like a marking gap.
+   */
+  readonly flags: readonly string[];
 }
 
 /**
@@ -343,6 +354,76 @@ export function buildPool(records: Iterable<BankRecord>, ageBand?: string): Pool
  */
 export function paramsForRecord(record: BankRecord, b = toLogits(record.difficulty)): ItemParams {
   return paramsFor(b, optionCountOf(record) ?? UNGUESSABLE, FIXED_DISCRIMINATION);
+}
+
+// ---------------------------------------------------------------------------
+// Rapid-guess detection
+// ---------------------------------------------------------------------------
+
+/**
+ * The fastest a response could plausibly be an attempt at all.
+ *
+ * **Every number here is invented, and the two errors do not cost the same.** There is no latency data in this
+ * repository — attempts live in memory and die with the process — so nothing below is calibrated. A floor set
+ * too low misses some guesses. A floor set too high **discards real evidence from a fast, capable child**, and
+ * because an unscorable response is excluded from the estimate, that removes exactly the evidence that would
+ * have passed them. This project is deliberately eager to pass and reluctant to rule out, so these are set to
+ * catch the *physically implausible* rather than the merely quick, and they sit far below plausible reading
+ * time rather than near it.
+ *
+ * `RAPID_GUESS_BASE_MS` is the floor for an item with nothing to read and nothing to compare: perceive the
+ * screen, decide, move a hand. Simple reaction time to an expected stimulus is around 200ms before any
+ * comprehension happens, so 300 is already generous towards the candidate.
+ *
+ * `RAPID_GUESS_PER_OPTION_MS` covers one glance at one option. `RAPID_GUESS_PER_WORD_MS` is 60, which is not a
+ * reading rate — a fast adult reads at roughly 250 words a minute, or 240ms a word, and a seven-year-old is far
+ * slower. 60 is a quarter of that on purpose: this is a floor, so it should sit below the fastest child in the
+ * cohort rather than at the average one.
+ *
+ * `RAPID_GUESS_CAP_MS` matters as much as the rest. Beyond about two seconds, a slow response stops being
+ * evidence about physical possibility and starts being a guess about engagement, which is 1b.4's territory and
+ * not this rule's. The cap also keeps every floor below the 2500ms the project's own smoke suite answers in, so
+ * a threshold mistake cannot masquerade as a measurement change.
+ *
+ * **Recalibrate from data as soon as there is any.** 1b.5 forwards the renderer's timings and 1b.4 adds
+ * person-fit; once real attempts exist, the honest floor is a low percentile of observed latency per type, and
+ * these constants should be deleted rather than tuned.
+ */
+export const RAPID_GUESS_BASE_MS = 300;
+export const RAPID_GUESS_PER_OPTION_MS = 50;
+export const RAPID_GUESS_PER_WORD_MS = 60;
+export const RAPID_GUESS_CAP_MS = 2000;
+
+/** Prose fields are named inconsistently across the 53 types, so length is measured rather than looked up. */
+function wordsIn(content: Record<string, unknown>): number {
+  let words = 0;
+  for (const value of Object.values(content)) {
+    // Only strings long enough to be a sentence. A type code or a mode name is not something to read.
+    if (typeof value === 'string' && value.length > 15) words += value.split(/\s+/).length;
+  }
+  return words;
+}
+
+/**
+ * The latency floor for one item, derived from its own content.
+ *
+ * Per item rather than per type, which satisfies "per type code, not global" and improves on it: a
+ * `VER-CLOZE-01` sentence of eight words and one of forty get different floors, and a per-type constant would
+ * have to be wrong for one of them. `scale` lets a host whose presentation differs — read aloud, or shown
+ * before the timer starts — move the whole set without editing the engine; 0 disables the check.
+ */
+export function rapidGuessFloorMs(record: BankRecord, scale = 1): number {
+  if (scale <= 0) return 0;
+  const content = record.content ?? {};
+  const options = optionCountOf(record);
+  // A derived response space is not an option list to scan: a 61-step stepper does not cost 61 glances. Only
+  // count options when the content actually enumerates them.
+  const enumerated = ['options', 'candidates', 'rows', 'claims'].some(
+    (f) => Array.isArray(content[f]) && (content[f] as unknown[]).length > 0,
+  );
+  const toScan = enumerated && options !== null ? options : 0;
+  const raw = RAPID_GUESS_BASE_MS + toScan * RAPID_GUESS_PER_OPTION_MS + wordsIn(content) * RAPID_GUESS_PER_WORD_MS;
+  return Math.min(RAPID_GUESS_CAP_MS, Math.round(raw * scale));
 }
 
 // ---------------------------------------------------------------------------
@@ -578,6 +659,11 @@ export interface GradeInput {
   readonly response: unknown;
   readonly latencyMs: number;
   readonly posteriors: Posteriors;
+  /**
+   * Multiplier on the rapid-guess floor. Defaults to 1; **0 disables the check entirely**, which is the right
+   * answer for a host that reads items aloud or shows them before starting its timer.
+   */
+  readonly rapidGuessFloorScale?: number;
 }
 
 export interface GradeResult {
@@ -605,9 +691,29 @@ export interface GradeResult {
  * Needs the item and not the pool, so a caller holding one item can grade it without the library.
  */
 export function grade(input: GradeInput): GradeResult {
-  const { item, response, posteriors } = input;
+  const { item, response, latencyMs, posteriors } = input;
   const correct = scoreResponse(item, response);
+
+  /**
+   * Unmarkable first, and it does **not** acquire a rapid-guess flag.
+   *
+   * A response nobody could interpret is already excluded from the estimate, and blaming its speed as well
+   * would make the transcript unable to tell "the host cannot mark this type" from "the child clicked
+   * through" — which are different problems with different fixes.
+   */
   if (correct === null) return { correct: null, posteriors, flags: [] };
+
+  /**
+   * Too fast to be an attempt. Returned as unscorable rather than wrong, because that is what it is: an
+   * answer that arrived before the child could have engaged with the question is not evidence they could not
+   * do it. Note this discards a *correct* fast answer too, which is the point — a lucky click must not become
+   * evidence of knowledge, and the static guessing floor cannot reach that case because `c` is a property of
+   * the item and this is a property of the response.
+   */
+  const floor = rapidGuessFloorMs(item, input.rapidGuessFloorScale ?? 1);
+  if (floor > 0 && latencyMs < floor) {
+    return { correct: null, posteriors, flags: ['rapid-guess'] };
+  }
 
   const next = clonePosteriors(posteriors);
   const params = paramsForRecord(item);

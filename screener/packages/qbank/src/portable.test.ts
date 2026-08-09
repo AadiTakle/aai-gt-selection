@@ -66,6 +66,8 @@ function attempt(i: number, itemId: string, domain: string, correct: boolean | n
     pAboveBefore: 0.14,
     pAboveAfter: 0.31,
     selectionReason: 'highest information at threshold 1.00',
+    // Required since 1b.3: the transcript distinguishes 'too fast' from 'could not be marked'.
+    flags: [],
   };
 }
 

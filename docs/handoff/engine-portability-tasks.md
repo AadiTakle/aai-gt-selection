@@ -197,7 +197,7 @@ and Felipe has `push` but `admin: false` on `AadiTakle/aai-gt-selection` — che
 it.** The exact `gh api` calls, for `main` and `dev` both, are in the 3.6 entry of the todo doc. Until then
 CI reports and nothing enforces.
 
-### 8. `1b.3` — Rapid-guess detection
+### 8. `1b.3` — Rapid-guess detection — **DONE 8 Aug 2026**
 - `latencyMs` is already captured and stored (the attempt record built in `session.ts` `submit`) and
   unused. Grading now lives in `engine.ts` `grade`, which is where the floor check belongs; it already
   returns a `flags` array reserved for exactly this.
@@ -205,6 +205,25 @@ CI reports and nothing enforces.
 - Unscorable already exists and is already excluded from the estimate.
 - **Done when:** floors are per type code, not global, and a sub-floor response leaves the posterior
   unchanged.
+
+`rapidGuessFloorMs` in `engine.ts`, checked inside `grade` using the `flags` array `3.4` reserved. Floors are
+derived **per item** from content (`base + options x per-option + words x per-word`, capped), so they vary
+within a type as well as across it. 277 tests.
+
+Two facts shaped it more than the requirement: there is **no latency data** in the repo, so every constant is
+invented; and only **16 of 53** types carry prose, so it is really a physical-plausibility bound with a reading
+term that fires only where there is text. The numbers are deliberately low — a floor set too high discards
+real evidence from a fast capable child, which is the expensive direction here. Floors run 300ms to a 2000ms
+cap.
+
+A sub-floor response is unscorable **even when correct** — a lucky click must not become evidence. An
+unmarkable response does **not** get the flag, so `unscorable` can still be split into "could not mark" and
+"too fast"; `QbankAttempt` gained `flags` for exactly that. `rapidGuessFloorScale: 0` disables the check.
+
+Checked against every caller before defaulting on: smoke answers at 2500ms so CI was unaffected, but
+`verify-showcase` (1200ms) and `verify-provenance` (1000ms) sat below seven types' floors and now send 3000ms.
+`verify-showcase` re-run live across all four bands: clean. **Delete these constants once `1b.5` forwards real
+timings** — the honest floor is a low percentile of observed latency.
 
 ### 9. `2.2` — Classify the 36 unmapped types
 - `packages/ui-contract/src/cogat.ts` is the only machine-readable mapping; 17 of 53 are in it.
