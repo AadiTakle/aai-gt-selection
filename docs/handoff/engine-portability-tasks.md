@@ -251,11 +251,42 @@ figure-matrices; `FLU-ODDPAIR-01` to figure-classification; `QUANT-MIX-01` to nu
 
 **Verbal Analogies is still the only subtest with no direct type**, which is `2.1` and unchanged by this.
 
-### 10. `2.3` — Put the mapping on the item and enforce it
+### 10. `2.3` — Put the mapping on the item and enforce it — **DONE 9 Aug 2026**
 - Add `cogatSubtest` to the bank records.
 - Fail the build when a type has neither a subtest nor `none`.
 - Filter the pool by it at session start; `POST /api/bank/sessions` already takes a `types` parameter.
 - **Done when:** a CogAT-aligned session cannot draw an unmapped type.
+
+`cogatAlignment: 'any' | 'direct' | 'direct-or-loose'` on the session config and on
+`POST /api/bank/sessions`; the pool is filtered at construction so selection can never reach an unmapped type.
+294 tests.
+
+**The mapping is joined, not copied.** The task asked for a `cogatSubtest` field on the bank records; deriving it
+via `cogatSubtestOf` keeps `cogat.ts` the single source, because writing it into 53 JSONL files would put one
+fact in two places and `3.4` exists because of what happens next. A test asserts the bank data carries no copy.
+
+Filtered at pool construction rather than during selection, so the engine never chooses an item the instrument
+would have to decline — a declined item still costs a round trip and still lands in the transcript as
+unscorable, quietly building an estimate out of nothing.
+
+| Alignment | Items | Types | Domains |
+|---|---|---|---|
+| `any` | 5,034 | 37 | all four |
+| `direct-or-loose` | 2,652 | 20 | all four |
+| `direct` | 992 | 9 | **fluid, quantitative, verbal — no spatial** |
+
+**Turning enforcement on exposed a live gap, which is the point of enforcing it.** `SPA-PUNCH-01` is the *only*
+directly-mapped Paper Folding type and all 140 of its items are `computed_solver`, so the loader excludes every
+one. Paper Folding is one of CogAT's nine subtests and this project claims to cover it — yet **a `direct` session
+cannot serve a single spatial item.** `uncoveredSubtests()` does not show this because it reads the mapping,
+where Paper Folding is covered, and knows nothing about servability. So requirement 2's honest gap is **two**
+subtests, not one: Verbal Analogies has no type (`2.1`) and Paper Folding has no *servable* type (`1b.6`).
+
+That raises `1b.6`'s priority: it is no longer only 1,894 unmarkable items, it is the thing standing between this
+library and a defensible CogAT claim for spatial. A test pins the gap and will go red when `1b.6` closes it.
+
+Checked rather than assumed: a `direct` session still reaches a decision and does not end `bank-exhausted`, and
+the per-domain coverage floor tolerates a domain with an empty pool.
 
 ### 11. `2.4` — Reconcile `showcase.ts` with `cogat.ts`
 - `apps/lab-system/shared/showcase.ts` is a second, disagreeing list.

@@ -210,6 +210,12 @@ app.post('/api/bank/sessions', (req, res) => {
     ageBand,
     perDomainMinimum: Number(req.body?.perDomainMinimum ?? 1),
     recommendProbability: Number(req.body?.recommendProbability ?? 0.35),
+    // Advisory until 2.3. An instrument claiming CogAT alignment has to ask for it, and asking is now enough:
+    // the pool is filtered at construction, so selection can no longer reach an unmapped type.
+    cogatAlignment: ((): 'any' | 'direct' | 'direct-or-loose' => {
+      const asked = String(req.body?.cogatAlignment ?? 'any');
+      return asked === 'direct' || asked === 'direct-or-loose' ? asked : 'any';
+    })(),
   };
   const seed = Number(req.body?.seed ?? Math.floor(Math.random() * 1_000_000));
 

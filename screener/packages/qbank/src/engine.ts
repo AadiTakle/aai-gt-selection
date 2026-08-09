@@ -18,6 +18,8 @@
 import type { Domain, StopReason } from '@gt/contracts';
 import { type ItemParams, Posterior, information, paramsFor } from '@gt/engine';
 
+import { COGAT_MAP, type CogatSubtest } from '@gt/ui-contract/cogat';
+
 import {
   type BankRecord,
   type ServedItem,
@@ -220,6 +222,13 @@ export interface QbankSessionConfig {
   readonly domainRecommendProbability?: number;
   /** Multiplier on the rapid-guess latency floor. Defaults to 1; 0 disables the check. */
   readonly rapidGuessFloorScale?: number;
+  /**
+   * Restrict the pool to types that correspond to a CogAT subtest. Defaults to `'any'`.
+   *
+   * Set this for any instrument that claims CogAT alignment. It is the only thing that makes the claim true:
+   * `cogat.ts` was advisory before 2.3, and nothing stopped an "aligned" session drawing a working-memory game.
+   */
+  readonly cogatAlignment?: CogatAlignment;
 }
 
 export interface QbankServe {
@@ -321,6 +330,42 @@ export interface QbankState {
 // The pool
 // ---------------------------------------------------------------------------
 
+/**
+ * Which CogAT subtest an item corresponds to, or `'none'`, joined from the mapping rather than stored.
+ *
+ * The handoff doc asked for a `cogatSubtest` field on the bank records. Deriving it is strictly better: writing
+ * it into 53 JSONL files would put the same fact in two places, and the whole of 3.4 was about what happens
+ * when it drifts. `cogat.ts` stays the single source and this is the join.
+ *
+ * `undefined` means the type is absent from the mapping entirely, which after 2.2 is a fault rather than a
+ * state — `cogat.test.ts` fails the suite on it, and `cogatAlignment` below refuses to serve it.
+ */
+export function cogatSubtestOf(record: BankRecord): CogatSubtest | 'none' | undefined {
+  return COGAT_MAP[record.typeCode]?.subtest;
+}
+
+/**
+ * How strictly a session is CogAT-aligned.
+ *
+ * `any` is the default and draws on everything, which is right for a screener measuring what this library
+ * actually measures. The other two exist for the instrument that has to *claim* CogAT alignment, and the claim
+ * is only as good as the filter behind it.
+ *
+ * `direct` is the defensible one: the same item family as the subtest. `direct-or-loose` admits related
+ * constructs in a different format, which is a weaker claim and should be made deliberately — note that six of
+ * the loose mappings were classified by 2.2 from a catalogue entry rather than by the bank's author, and
+ * `COGAT_NEEDS_AUTHOR_REVIEW` names them.
+ */
+export type CogatAlignment = 'any' | 'direct' | 'direct-or-loose';
+
+/** Whether one record may be served under a given alignment. Unmapped types are refused by both strict modes. */
+export function meetsAlignment(record: BankRecord, alignment: CogatAlignment): boolean {
+  if (alignment === 'any') return true;
+  const mapping = COGAT_MAP[record.typeCode];
+  if (!mapping || mapping.subtest === 'none') return false;
+  return alignment === 'direct-or-loose' || mapping.strength === 'direct';
+}
+
 /** One servable item with the two things selection needs precomputed. */
 export interface PoolEntry {
   readonly record: BankRecord;
@@ -336,10 +381,18 @@ export interface PoolEntry {
  * metadata index (task 3.3), or a literal array in a test. This is the whole of the engine's dependency on
  * the item library.
  */
-export function buildPool(records: Iterable<BankRecord>, ageBand?: string): PoolEntry[] {
+export function buildPool(
+  records: Iterable<BankRecord>,
+  options: { readonly ageBand?: string; readonly cogatAlignment?: CogatAlignment } | string = {},
+): PoolEntry[] {
+  // A bare string is the old signature. Accepted so the change is additive rather than a rename across callers.
+  const { ageBand, cogatAlignment = 'any' } = typeof options === 'string' ? { ageBand: options } : options;
   const pool: PoolEntry[] = [];
   for (const record of records) {
     if (ageBand && !(record.ageBands ?? []).includes(ageBand)) continue;
+    // Filtered here rather than during selection, so the engine never chooses an item the instrument would
+    // then have to decline — and so nothing downstream has to remember to re-check.
+    if (!meetsAlignment(record, cogatAlignment)) continue;
     pool.push({ record, domain: domainOf(record), b: toLogits(record.difficulty) });
   }
   return pool;

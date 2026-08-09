@@ -30,10 +30,10 @@
  * living in the same Express process and are deliberately not described here.
  */
 
-import type { Domain, DomainBand, PassRoute, PrecisionSetting, QbankServe, QbankState, ServedItem } from './engine.js';
+import type { CogatAlignment, Domain, DomainBand, PassRoute, PrecisionSetting, QbankServe, QbankState, ServedItem } from './engine.js';
 
 /** `Domain` is the type of `QbankServe.domain`, so a client reading a served item needs it. */
-export type { Domain, DomainBand, PassRoute, PrecisionSetting, QbankServe, QbankState, ServedItem };
+export type { CogatAlignment, Domain, DomainBand, PassRoute, PrecisionSetting, QbankServe, QbankState, ServedItem };
 
 /** Age bands the banks declare. A session may ask for one or leave it open. */
 export type AgeBand = 'K-1' | '2-3' | '4-5' | '6-8';
@@ -126,6 +126,17 @@ export interface CreateSessionRequest {
   readonly types?: readonly string[];
   /** Supply for a reproducible session. Omit and the server picks one. */
   readonly seed?: number;
+  /**
+   * Restrict the pool to types corresponding to a CogAT subtest. Defaults to `'any'`.
+   *
+   * **Set this for any instrument that claims CogAT alignment** — it is what makes the claim true rather than
+   * advisory. `direct` is the defensible reading (same item family as the subtest); `direct-or-loose` admits
+   * related constructs in a different format and is a weaker claim.
+   *
+   * Note what `direct` costs today: it leaves 992 items across 9 types and **no spatial items at all**, because
+   * the only directly-mapped Paper Folding type cannot yet be marked host-side.
+   */
+  readonly cogatAlignment?: CogatAlignment;
 }
 
 /** What the server resolved the request into. Echoed so a caller can record what it actually got. */
@@ -135,6 +146,7 @@ export interface ResolvedSessionConfig {
   readonly ageBand?: string;
   readonly perDomainMinimum: number;
   readonly recommendProbability: number;
+  readonly cogatAlignment?: CogatAlignment;
 }
 
 export interface CreateSessionResponse {

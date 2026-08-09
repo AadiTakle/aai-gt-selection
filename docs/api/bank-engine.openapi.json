@@ -406,6 +406,16 @@
           "seed": {
             "type": "integer",
             "description": "Supply for a reproducible session."
+          },
+          "cogatAlignment": {
+            "type": "string",
+            "enum": [
+              "any",
+              "direct",
+              "direct-or-loose"
+            ],
+            "default": "any",
+            "description": "Restrict the pool to types corresponding to a CogAT subtest. Set this for any instrument that claims CogAT alignment; without it the claim is advisory. `direct` is the defensible reading. Note that `direct` currently yields 992 items across 9 types and NO spatial items, because the only directly-mapped Paper Folding type cannot yet be marked host-side."
           }
         }
       },

@@ -52,7 +52,7 @@ export class QbankSession {
   ) {
     const records: BankRecord[] = [];
     for (const bank of banks.values()) records.push(...bank.scorable);
-    this.pool = buildPool(records, config.ageBand);
+    this.pool = buildPool(records, { ageBand: config.ageBand, cogatAlignment: config.cogatAlignment });
   }
 
   get poolSize(): number {

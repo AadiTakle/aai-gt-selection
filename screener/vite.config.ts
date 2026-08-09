@@ -16,6 +16,9 @@ export default defineConfig({
       '@gt/practice': r('./packages/practice/src/index.ts'),
       '@gt/qbank': r('./packages/qbank/src/index.ts'),
       '@gt/qbank/server': r('./packages/qbank/src/server.ts'),
+      // The CogAT mapping alone, not the whole ui-contract index: `requirements.ts` behind that index reads
+      // the filesystem, and `cogat.ts` is pure data. Same reason `@gt/qbank/server` is separate from `@gt/qbank`.
+      '@gt/ui-contract/cogat': r('./packages/ui-contract/src/cogat.ts'),
     },
   },
   server: {
