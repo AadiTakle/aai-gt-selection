@@ -2,6 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 
+import { sanctuaryPlugin } from './apps/sanctuary/server-plugin';
+
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 /**
@@ -20,7 +22,10 @@ const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
  */
 export default defineConfig({
   root: r('./apps/sanctuary'),
-  plugins: [react()],
+  /* `sanctuaryPlugin` owns difficulty steering and keeps every ability number server-side. See its
+     header: the engine's selection does not adapt on its own, and handing the browser an estimate
+     would hand it correctness by subtraction. */
+  plugins: [react(), sanctuaryPlugin()],
   resolve: {
     alias: {
       '@gt/engine': r('./packages/engine/src/index.ts'),

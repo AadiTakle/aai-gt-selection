@@ -62,8 +62,24 @@ export function useSortie(opts: {
   difficultyRange?: readonly [number, number];
   precisionIndex?: number;
   settleMs?: number;
+  /**
+   * Let the server pick the difficulty. On in the game, off in `SortieHarness`, which drives sessions
+   * directly to check the measurement rather than to play and needs to pin the threshold to do so.
+   */
+  steered?: boolean;
+  keeperId?: string;
 }): Sortie {
-  const { types, threshold, excludeItemIds, difficultyRange, precisionIndex = 1, settleMs = 900 } = opts;
+  const {
+    types,
+    threshold,
+    excludeItemIds,
+    difficultyRange,
+    precisionIndex = 1,
+    settleMs = 900,
+    steered = false,
+    keeperId = 'anon',
+    battery,
+  } = opts;
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [serve, setServe] = useState<Serve | null>(null);
@@ -96,6 +112,19 @@ export function useSortie(opts: {
     if (next.done || !next.served) {
       setServe(null);
       setPhase('closed');
+      /**
+       * Tell the server the chunk is over so it can harvest the posterior and steer the next one. Sent
+       * fire-and-forget: this is the moment a child sees their slime hatch, and a failed housekeeping
+       * call must never hold that up or surface an error to them. A dropped close costs one chunk of
+       * steering, which is invisible; a blocked hatch is not.
+       */
+      if (steered && id.current) {
+        void fetch('/sanctuary/close', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ sessionId: id.current }),
+        }).catch(() => {});
+      }
       return;
     }
     setServe(next as Serve);
@@ -108,9 +137,30 @@ export function useSortie(opts: {
     setAnswered(0);
     setPhase('opening');
     try {
-      const res = await api<{ sessionId: string; state: SortieState; poolSize?: number }>(
-        '/bank/sessions',
-        {
+      /**
+       * OPENED THROUGH `/sanctuary/chunk`, NOT BY CREATING A SESSION HERE.
+       *
+       * The threshold is the difficulty dial — measured, `thresholdInBankScale = threshold * 3 + 10.5` —
+       * and it must track what the child has been doing or nothing adapts. But this layer is deliberately
+       * blind to correctness (see `delete raw.correct` below), and an ability estimate hands correctness
+       * over by subtraction: a mean that went up means the last answer was right. So the plugin picks the
+       * threshold from its own server-side record and returns nothing but a session id.
+       *
+       * `threshold`, `excludeItemIds` and `difficultyRange` stay in the options for the harness, which
+       * drives sessions directly to check the measurement rather than to play. In the game they are
+       * ignored, and that is the point: the game does not get a say in how hard the next question is.
+       */
+      let sid: string;
+      if (steered) {
+        const r = await fetch('/sanctuary/chunk', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ keeperId, battery, types, precisionIndex }),
+        });
+        if (!r.ok) throw new Error(`chunk -> ${r.status}`);
+        sid = ((await r.json()) as { sessionId: string }).sessionId;
+      } else {
+        const res = await api<{ sessionId: string; state: SortieState }>('/bank/sessions', {
           types,
           abilityThreshold: threshold,
           precisionIndex,
@@ -119,13 +169,14 @@ export function useSortie(opts: {
           ...(excludeItemIds?.length ? { excludeItemIds } : {}),
           ...(difficultyRange ? { difficultyRange } : {}),
           seed: Math.floor(Math.random() * 1e6),
-        },
-      );
+        });
+        sid = res.sessionId;
+        setState(res.state);
+      }
       if (!alive.current) return;
-      id.current = res.sessionId;
-      setSessionId(res.sessionId);
-      setState(res.state);
-      await loadNext(res.sessionId);
+      id.current = sid;
+      setSessionId(sid);
+      await loadNext(sid);
     } catch (e) {
       if (!alive.current) return;
       setError(String((e as Error).message ?? e));

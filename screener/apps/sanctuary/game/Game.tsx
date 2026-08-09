@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { toRef } from '../shared/ItemStage';
 import { VERBS, typesFor, verbFor, type Battery } from '../shared/batteries';
 import { useSortie } from '../shared/useSortie';
-import { FAMILIES, type Family } from './contract';
+import { FAMILIES, LS_KEEPER, type Family } from './contract';
 import { PodWall } from './screener/PodWall';
 import { TideLine } from './screener/TideLine';
 import { DayLog } from './screener/DayLog';
@@ -189,6 +189,24 @@ function Beat({
   onAnswered: (n: number) => void;
 }) {
   const verb = useMemo(() => VERBS.find((v) => v.id === verbId), [verbId]);
+  /**
+   * Who the server is steering. The ONLY identifier this game keeps: no name, no age, no birth date.
+   * Written once and reused, so a child who comes back tomorrow meets difficulty where they left it —
+   * which is what makes the estimate accumulate across visits instead of restarting every time.
+   */
+  const keeperId = useMemo(() => {
+    try {
+      const had = localStorage.getItem(LS_KEEPER);
+      if (had) return had;
+      const made = `k-${Math.random().toString(36).slice(2, 10)}`;
+      localStorage.setItem(LS_KEEPER, made);
+      return made;
+    } catch {
+      /* Private browsing refuses localStorage; a per-session keeper still plays, it just does not
+         remember. Better than refusing to open the station. */
+      return 'anon';
+    }
+  }, []);
   const battery: Battery = verb?.battery ?? 'Nonverbal';
   /**
    * THE WHOLE BATTERY, not this verb's one style. This single line is what the owner was describing:
@@ -216,7 +234,25 @@ function Beat({
     const set = site?.types ?? typesFor(battery);
     return set.length ? set : verb ? [verb.typeCode] : typesFor(battery);
   }, [verbId, battery, verb]);
-  const s = useSortie({ battery, types, threshold: -1.5, precisionIndex: 0, settleMs: 900 });
+  /**
+   * `steered` is the owner's adaptivity: "if they keep missing questions, they progressively get easier.
+   * if they keep getting it right, it will probably show harder questions."
+   *
+   * The engine does not do this by itself — measured, not assumed: at a fixed threshold the served
+   * sequence is byte-identical for all-right and all-wrong, because selection maximises information at
+   * the threshold and the threshold never moves. `server-plugin.ts` moves it, from a record of the
+   * child's own posteriors that never enters this process. `threshold` below is therefore ignored when
+   * steered; it stays only for the measurement harness.
+   */
+  const s = useSortie({
+    battery,
+    types,
+    threshold: -1.5,
+    precisionIndex: 0,
+    settleMs: 900,
+    steered: true,
+    keeperId,
+  });
 
   useEffect(() => {
     void s.open();
