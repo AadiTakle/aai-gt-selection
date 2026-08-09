@@ -5,13 +5,17 @@ import {
   BufferGeometry,
   Color,
   CylinderGeometry,
+  Euler,
   Float32BufferAttribute,
   type Group,
+  Matrix4,
   MeshStandardMaterial,
+  Quaternion,
   Shape,
   ShapeGeometry,
   SphereGeometry,
   TorusGeometry,
+  Vector3,
 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
@@ -32,7 +36,7 @@ import {
   BARN_WALL_H,
   barnSolids,
 } from './barn';
-import { BarnInterior } from './barnInterior';
+import { BALE, BALE_CUT_X, BALE_TWINE_X, BarnInterior, baleGeometries } from './barnInterior';
 import { Instanced, type Placement } from './instanced';
 import { usePrefersReducedMotion } from './motion';
 import { clamp, fbm, lerp, noise2, rng, smoothstep } from './noise';
@@ -119,7 +123,7 @@ const HUT_ROOF_T = 0.52;
 const HUT_EAVE = 0.66;
 const HUT_PLINTH_H = 0.36;
 /** Depth of the soffit board that closes the eave. See `eaveCollarGeometry` in `roofs.ts`. */
-const HUT_SOFFIT_T = 0.15;
+const HUT_SOFFIT_T = 0.13;
 /** Half the roof's span across the slopes, which is what sets its pitch and every height on it. */
 const HUT_ROOF_HALF_W = HUT_W / 2 + HUT_EAVE;
 /** The hip's pitch, from the roof's own two numbers rather than measured off a screenshot. */
@@ -404,14 +408,26 @@ interface YardProp {
   lx: number;
   lz: number;
   rot: number;
+  /** Sacks only. A bale is a fixed object — see `BALE` in `barnInterior.tsx`. */
   scale: number;
+  /**
+   * Which course of the stack a bale is in, and it has to be STATED rather than inferred.
+   *
+   * The first pass at the stack lifted the third bale by index, on the assumption that a list of three was a
+   * stack of two plus one. It was not: the three were 1.2m apart on the ground, so the lifted one hung in
+   * mid-air a metre from anything, which a photograph of the yard showed immediately. A bale is in the upper
+   * course only if it is directly over one in the lower course, and the only way to guarantee that is to say
+   * so and give it the same footprint.
+   */
+  lift?: 0 | 1;
 }
 
 /** Beside the barn doors: bales one side, feed sacks the other, both clear of the door leaves. */
 const BARN_YARD: readonly YardProp[] = [
-  { kind: 'bale', lx: 3.1, lz: 8.5, rot: 0.3, scale: 1 },
-  { kind: 'bale', lx: 4.35, lz: 8.35, rot: -0.15, scale: 0.96 },
-  { kind: 'bale', lx: 3.7, lz: 9.55, rot: 0.55, scale: 0.92 },
+  { kind: 'bale', lx: 3.15, lz: 8.55, rot: 0.3, scale: 1, lift: 0 },
+  { kind: 'bale', lx: 3.55, lz: 9.42, rot: -0.12, scale: 1, lift: 0 },
+  // Thrown on top of the first, turned a little out of true with it.
+  { kind: 'bale', lx: 3.22, lz: 8.62, rot: 0.52, scale: 1, lift: 1 },
   { kind: 'sack', lx: -3.4, lz: 8.3, rot: 0.2, scale: 1 },
   { kind: 'sack', lx: -4.2, lz: 8.1, rot: -0.5, scale: 0.9 },
   { kind: 'sack', lx: -3.9, lz: 7.6, rot: 0.9, scale: 0.85 },
@@ -863,16 +879,16 @@ function useTrackGeometry(): BufferGeometry {
             // The crown, between the ruts.
             u = 0;
             y = rutted ? 0.021 : 0.009;
-            col.copy(dust).lerp(damp, 0.3 + dustN * 0.3);
+            col.copy(dust).lerp(damp, 0.44 + dustN * 0.3);
           } else if (rank === 1) {
             // The wheel track. Lowest point of the section, and the darkest.
             u = sgn * toe * 0.42;
             y = 0.004;
-            col.copy(rutted ? rutTone : dust).lerp(damp, 0.35 + dustN * 0.35);
+            col.copy(rutted ? rutTone : dust).lerp(damp, 0.5 + dustN * 0.35);
           } else if (rank === 2) {
             u = sgn * toe * 0.79;
             y = 0.013;
-            col.copy(dust).lerp(damp, 0.2 + dustN * 0.4);
+            col.copy(dust).lerp(damp, 0.36 + dustN * 0.4);
           } else if (rank === 3) {
             /**
              * The toe, where dust meets turf, and where the interlock lives.
@@ -883,7 +899,7 @@ function useTrackGeometry(): BufferGeometry {
             u = sgn * toe;
             y = 0.03;
             const grassIn = smoothstep(0.35, 0.75, noise2(s * 0.85 + seed, sgn > 0 ? 3.1 : 63.4));
-            col.copy(dust).lerp(damp, 0.3).lerp(turfDeep, 0.25 + grassIn * 0.55);
+            col.copy(dust).lerp(damp, 0.46).lerp(turfDeep, 0.25 + grassIn * 0.55);
           } else if (rank === 4) {
             // The crest of the bank. Turf, and the brightest thing in the section under a low sun.
             u = sgn * (toe + TRACK.bank);
@@ -1022,7 +1038,15 @@ function useDecalGeometry(): BufferGeometry {
     const normal: number[] = [];
     const y = 0.02;
 
-    const earthCore = new Color(PIG.earth);
+    /**
+     * Lightened to sit with the tracks rather than against them.
+     *
+     * `PIG.earth` flat at 0.9 alpha was a much deeper brown than the track's dust, and with the ground's
+     * wide de-saturation band cut back the pens started reading as dark holes in a green meadow next to
+     * pale trodden lanes. Mixing dust into it puts the two worn surfaces in the same family, which is what
+     * they are — trodden ground, in a yard and on a lane.
+     */
+    const earthCore = new Color(PIG.earthPale).lerp(new Color(PIG.earth), 0.55);
 
     const vert = (x: number, z: number, col: Color, alpha: number): void => {
       position.push(x, y, z);
@@ -1595,7 +1619,15 @@ function Hut(): JSX.Element {
             drift apart, and it hangs BELOW that plane, which is why it closes the eave without going
             anywhere near the wall solid. `roofs.ts` asserts both halves of that.
           */}
-          <mesh geometry={g.eave} material={m.timber} castShadow receiveShadow />
+          {/*
+            PAINTED, NOT BARE TIMBER, and a screenshot settled it. A soffit faces straight down, so the only
+            light that reaches it is `Lighting.tsx`'s ground bounce and its weak warm ambient — and on the
+            timber pigment those resolve to near-black. Photographed from below, the closed eave then read as
+            a dark slot, which is very nearly the hole it was put there to fill. On the cream trim the same
+            light resolves to a warm beige, so the board is legible from underneath, and because the wall
+            below it is lit while it is not, the shadow line at the joint still separates the two.
+          */}
+          <mesh geometry={g.eave} material={m.trim} castShadow receiveShadow />
           <mesh
             geometry={g.ridge}
             material={m.thatch}
@@ -1788,25 +1820,36 @@ function Trough(): JSX.Element {
 
 function BarnYard(): JSX.Element {
   const m = materials();
-  const g = useMemo(
-    () => ({
-      bale: new RoundedBoxGeometry(1.25, 0.72, 0.82, 3, 0.16),
-      // Wrapped around the bale's short way and standing 2cm proud of it, so the twine is visible on the
-      // top and both long faces. Sunk inside instead, it showed only as two dots on the cut ends.
-      band: new RoundedBoxGeometry(0.05, 0.75, 0.85, 1, 0.02),
+  const g = useMemo(() => {
+    const bale = baleGeometries();
+    return {
+      /**
+       * THE SAME BALE AS INSIDE THE BARN, imported rather than modelled again.
+       *
+       * This file used to carry its own: a 1.25 x 0.72 x 0.82 rounded box with a 16cm fillet and two timber
+       * bands. So the ranch had two bales — a pillow out here and a different pillow in the loft — and a
+       * child walks past these three on the way through the doors to those eleven. Sharing the geometry is
+       * what makes them one object that appears in two places, which is what they are.
+       */
+      bale: bale.body,
+      band: bale.twine,
+      cut: bale.cut,
       sack: new RoundedBoxGeometry(0.62, 0.86, 0.5, 4, 0.22),
-    }),
-    [],
-  );
+    };
+  }, []);
 
+  /**
+   * NO PER-BALE SCALE ANY MORE. A bale is a fixed object — see `BALE` in `barnInterior.tsx` — so the yard's
+   * `scale` field now varies only the sacks, and the bales get their variety from being turned and stacked.
+   * Two on the ground and one thrown on top of them, which is how bales wait beside a door.
+   */
   const bales = useMemo<Placement[]>(
     () =>
       BARN_YARD.filter((p) => p.kind === 'bale').map((p) => {
         const w = toWorld(BARN, p.lx, p.lz);
         return {
-          position: [w[0], 0.36 * p.scale, w[1]] as const,
-          rot: [0, BARN.rot + p.rot, 0] as const,
-          scale: [p.scale, p.scale, p.scale] as const,
+          position: [w[0], BALE.h * (0.5 + (p.lift ?? 0)), w[1]] as const,
+          rot: [0, BARN.rot + p.rot, p.lift ? 0.04 : 0] as const,
         };
       }),
     [],
@@ -1823,27 +1866,41 @@ function BarnYard(): JSX.Element {
       }),
     [],
   );
-  // Two twine bands per bale, spaced along the bale's own long axis.
-  const bands = useMemo<Placement[]>(
-    () =>
-      bales.flatMap((b) => {
-        const rotY = b.rot?.[1] ?? 0;
-        const ax = Math.cos(rotY);
-        const az = -Math.sin(rotY);
-        const s = b.scale?.[0] ?? 1;
-        return [-0.34, 0.34].map((o) => ({
-          position: [b.position[0] + ax * o * s, b.position[1], b.position[2] + az * o * s] as const,
-          rot: b.rot,
-          scale: [s, s, s] as const,
-        }));
-      }),
-    [bales],
-  );
+  /**
+   * Twine and cut ends, at the offsets `barnInterior.tsx` publishes, so the two sets of bales are wrapped
+   * identically. The one bale here with a roll on it is why the offsets are turned by the full placement
+   * rather than by its yaw alone: a `cos/sin` pair on `rot[1]` would leave that bale's twine level while the
+   * bale itself leaned.
+   */
+  const dressing = useMemo(() => {
+    const twine: Placement[] = [];
+    const cut: Placement[] = [];
+    const cutTint = new Color(PIG.straw);
+    const pos = new Vector3();
+    const q = new Quaternion();
+    const mat = new Matrix4();
+    for (const b of bales) {
+      const rot = b.rot ?? [0, 0, 0];
+      mat.compose(
+        pos.set(b.position[0], b.position[1], b.position[2]),
+        q.setFromEuler(new Euler(rot[0], rot[1], rot[2], 'ZYX')),
+        new Vector3(1, 1, 1),
+      );
+      const put = (list: Placement[], dx: number, color?: Color): void => {
+        const p = new Vector3(dx, 0, 0).applyMatrix4(mat);
+        list.push({ position: [p.x, p.y, p.z], rot, color });
+      };
+      for (const dx of [-BALE_TWINE_X, BALE_TWINE_X]) put(twine, dx);
+      for (const dx of [-BALE_CUT_X, BALE_CUT_X]) put(cut, dx, cutTint);
+    }
+    return { twine, cut };
+  }, [bales]);
 
   return (
     <group>
       <Instanced geometry={g.bale} material={m.hay} items={bales} />
-      <Instanced geometry={g.band} material={m.timber} items={bands} />
+      <Instanced geometry={g.band} material={m.twine} items={dressing.twine} />
+      <Instanced geometry={g.cut} material={m.straw} items={dressing.cut} />
       <Instanced geometry={g.sack} material={m.burlap} items={sacks} />
     </group>
   );

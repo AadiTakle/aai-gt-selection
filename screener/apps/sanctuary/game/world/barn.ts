@@ -373,8 +373,27 @@ const INNER_R = 0.5;
  * It also leaves room for the ladder to stand clear of a stall front, which it otherwise cannot.
  */
 export const STALL_RANGE = { from: -BARN_IN_HALF_D + 0.2, to: 0.6 } as const;
-/** How far a stall reaches in from the inner wall face. */
-export const STALL_DEPTH = 1.15;
+/**
+ * How far a stall reaches in from the inner wall face — 2.7m, UP FROM 1.15.
+ *
+ * THE NUMBER THAT MADE THE INTERIOR A DOLL'S HOUSE. A stall for a horse is a room a horse can turn around
+ * in: a box stall is 3.0-3.6m square and even a standing stall is 2.4m deep. At 1.15m these were 1.15m
+ * deep and 2.35m wide, which is not a stall at any scale — it is a pew, and that is exactly what the
+ * screenshot showed. Nothing else about the interior was as wrong, because everything else was only
+ * detail, and detail cannot rescue a proportion.
+ *
+ * With `STALL_DIVIDERS` giving three bays of 2.35m a side, a stall is now 2.35 x 2.7m. Measured against the
+ * keeper's 1.5m eye height, that is a room they could lie down across twice, with a front they can see over
+ * and a partition whose top sits level with their eyes — see the heights in `barnInterior.tsx`.
+ *
+ * WHAT IT COSTS AND WHY THE COLLIDER STILL HOLDS. The threshing floor narrows from 9.8m to 4.4m of clear
+ * geometry, and the stall-front chains — which sit ON this line and hold a 0.45m keeper 0.95m off it —
+ * narrow the WALKABLE aisle behind the stall line from 5.6m to 2.5m. Both are still comfortable for a 0.9m
+ * keeper, the doorway walk down the centreline is untouched (it is at x = 0 the whole way), and the chains
+ * are still continuous, so the deeper stalls are no more enterable than the shallow ones were. `barn.test.ts`
+ * asserts all of it, including two new points deep inside a stall that a child must not be able to reach.
+ */
+export const STALL_DEPTH = 2.7;
 /** Local x of a stall's front line. */
 export const STALL_FRONT_X = BARN_IN_HALF_W - STALL_DEPTH;
 

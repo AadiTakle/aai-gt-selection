@@ -3,8 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   BARN,
   BARN_D,
+  BARN_IN_HALF_W,
   BARN_W,
   DOOR,
+  STALL_DEPTH,
+  STALL_DIVIDERS,
+  STALL_FRONT_X,
   barnSolids,
   distanceToDoorway,
   doorSweepReport,
@@ -14,7 +18,7 @@ import {
 } from './barn';
 import { SOLIDS } from './Buildings';
 import { pushOut, toWorld } from './plan';
-import { roofInvariantReport } from './roofs';
+import { eaveInvariantReport, roofInvariantReport } from './roofs';
 import { WINDOWS } from './windows';
 
 /**
@@ -88,13 +92,45 @@ describe('the walls are still walls', () => {
   });
 
   it('keeps a keeper out of the stalls', () => {
-    // The stall fronts get their own inner chain. Without it the wall chain alone would let a child stand
-    // inside a stall divider, because the walls hold them only 0.66m off the inner face and a stall is
-    // 1.15m deep.
+    /**
+     * REWRITTEN AS A REACHABILITY TEST WHEN THE STALLS GOT DEEPER, AND IT IS STRICTLY STRONGER FOR IT.
+     *
+     * This used to assert that a keeper standing at |x| = 4.3 gets pushed, which at a 1.15m stall depth was
+     * 0.54m behind the stall-front chain and therefore inside it. At 2.7m deep, 4.3 is 2.1m behind that
+     * chain — out in the middle of the stall, where `pushOut` correctly returns zero, because a point BEHIND
+     * a barrier is not a point inside it. The old assertion would have failed on a barrier that had become
+     * MORE effective, which is the wrong shape for this promise: what matters is not whether one point
+     * pushes, it is whether a child can ever GET there.
+     *
+     * So this walks them in from the aisle and asserts they are stopped before the stall front, which is the
+     * claim the file's title makes and holds at any stall depth.
+     */
     for (const lz of [-5, -3, -1]) {
-      expect(blockedAt(4.3, lz), `+X stall at z=${lz}`).toBeGreaterThan(0);
-      expect(blockedAt(-4.3, lz), `-X stall at z=${lz}`).toBeGreaterThan(0);
+      for (const sx of [1, -1] as const) {
+        let reached = 0;
+        for (let lx = 0; lx <= BARN_IN_HALF_W; lx += 0.05) {
+          if (blockedAt(sx * lx, lz) > 0) break;
+          reached = lx;
+        }
+        expect(reached, `${sx > 0 ? '+X' : '-X'} stall at z=${lz}`).toBeLessThan(STALL_FRONT_X);
+        // And the front line itself is solid, so the stop above is the chain rather than a lucky gap.
+        expect(blockedAt(sx * STALL_FRONT_X, lz), `front line at z=${lz}`).toBeGreaterThan(0);
+      }
     }
+  });
+
+  it('leaves a stall deep enough to read as a horse box', () => {
+    /**
+     * The proportion the interior was rebuilt around, asserted so it cannot quietly shrink back. A stall
+     * 1.15m deep photographs as a pew; the numbers, not the screenshot, are what settle it.
+     */
+    expect(STALL_DEPTH).toBeGreaterThan(2.4);
+    // Three bays a side out of `STALL_DIVIDERS`, each of which has to be wide enough for the depth to mean
+    // anything — a 2.7m-deep stall 1m wide is a corridor.
+    const widths = STALL_DIVIDERS.slice(1).map((z, i) => z - (STALL_DIVIDERS[i] ?? 0));
+    for (const w of widths) expect(w).toBeGreaterThan(2.0);
+    // And the aisle left between the two rows still has to take a keeper with room either side.
+    expect(STALL_FRONT_X * 2).toBeGreaterThan(3.6);
   });
 
   it('leaves the threshing floor walkable', () => {
@@ -222,6 +258,28 @@ describe('the barn keeps the outer dimensions other files mirror', () => {
     // `roofs.ts` exists to protect has to be untouched.
     for (const row of roofInvariantReport()) {
       expect(Math.abs(row.minY), row.spec).toBeLessThan(1e-6);
+    }
+  });
+
+  it('hangs every eave collar below the wall head instead of inside the roof', () => {
+    /**
+     * THE OTHER HALF OF THE ROOF INVARIANT, ADDED WITH THE SOFFIT BOARDS.
+     *
+     * Closing the open eave — the annulus of daylight between the wall face and the eave edge, which is what
+     * made the hut's roof read as detached and let you see the chimney through it — put a new part into the
+     * roof's frame. It is not a roof, so `y >= 0` is the wrong claim for it; it is a board fixed to the top
+     * of the wall, so the claim is the mirror image: nothing above the wall head, because anything above it
+     * would be inside the void the roof occupies and would push through the soffit it is closing.
+     *
+     * Asserted over the same kind of parameter sweep as the roofs, including the vented variant the barn
+     * uses, so neither a change of overhang nor a change of reveal can lift it into the roof.
+     */
+    const rows = eaveInvariantReport();
+    expect(rows.length).toBeGreaterThan(20);
+    for (const row of rows) {
+      expect(Math.abs(row.maxY), `${row.spec} top`).toBeLessThan(1e-6);
+      // And it has to have real depth, or it is a plane and closes nothing.
+      expect(row.minY, `${row.spec} depth`).toBeLessThan(-0.05);
     }
   });
 });
