@@ -16,7 +16,7 @@ import { BalanceBough } from './screener/BalanceBough';
 import { Buildings, SOLIDS } from './world/Buildings';
 import { Lighting } from './world/Lighting';
 import { Slime, pushOutOfSlimes } from './slimes/Slime';
-import { Stations, STATION_SOLIDS } from './stations';
+import { Stations, STATION_SOLIDS, SITES } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
 import { useAudio, MuteButton, HeadphonePrompt } from './audio';
@@ -190,9 +190,32 @@ function Beat({
 }) {
   const verb = useMemo(() => VERBS.find((v) => v.id === verbId), [verbId]);
   const battery: Battery = verb?.battery ?? 'Nonverbal';
-  // One type per verb. Coverage of a battery comes from doing its several verbs across visits, not
-  // from mixing types inside one sitting.
-  const types = useMemo(() => (verb ? [verb.typeCode] : typesFor(battery)), [verb, battery]);
+  /**
+   * THE WHOLE BATTERY, not this verb's one style. This single line is what the owner was describing:
+   * "ALL questions at the verbal station should be interchangeable at that station ... so that the user
+   * never gets bored at the station with the same questions repeated."
+   *
+   * It used to be `[verb.typeCode]`, with the reasoning that coverage of a battery came from doing its
+   * several verbs across visits rather than from mixing styles in one sitting. Two things were wrong with
+   * that. It gave a child the identical style every time they walked up to a station, and it required a
+   * separate station per style, which is the clutter the owner rejected outright.
+   *
+   * It was ALSO a defensible reading of a real hazard, which is why it is worth recording that the hazard
+   * was measured rather than argued away. `nextItem()` maximises information at the threshold and
+   * selection is deterministic, so a battery-wide pool once lost every argmax to the type with the widest
+   * difficulty spread and served one style forever. That type was `FLU-OPCHAIN-01`; it has no in-world
+   * presentation, so it cannot be in `site.types`, and 18 runs against the live API now serve 3 of 3
+   * styles at every threshold tried. If a wide-spread type ever gains a presentation, re-measure before
+   * trusting this.
+   *
+   * `site.types` is derived from the drawn set, so a new presentation reaches children by being
+   * registered in `IN_WORLD` and nothing else.
+   */
+  const types = useMemo(() => {
+    const site = SITES.find((x) => x.verbId === verbId);
+    const set = site?.types ?? typesFor(battery);
+    return set.length ? set : verb ? [verb.typeCode] : typesFor(battery);
+  }, [verbId, battery, verb]);
   const s = useSortie({ battery, types, threshold: -1.5, precisionIndex: 0, settleMs: 900 });
 
   useEffect(() => {
