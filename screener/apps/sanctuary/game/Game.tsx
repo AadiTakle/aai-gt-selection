@@ -97,6 +97,15 @@ interface Slimelet {
 /** Never reused, never derived from position in the list. */
 let nextUid = 1;
 
+/**
+ * Where the keeper is standing and which way they face, for the things that need to happen IN FRONT OF
+ * THEM rather than at a place on the map. Written once a frame by `Keeper`, read by `onBuy`.
+ *
+ * A module-level object rather than state on purpose: it changes every frame and nothing should
+ * re-render because the child turned their head.
+ */
+const pose = { x: 0, z: 8, yaw: 0 };
+
 const PEN_RADIUS = 3.4;
 const PENS: [number, number][] = [
   [-6, 15.5],
@@ -208,6 +217,10 @@ function Keeper({ locked }: { locked: boolean }) {
      *
      * Read-only, four numbers, written on a frame that is already running. Nothing in the game reads it.
      */
+    pose.x = camera.position.x;
+    pose.z = camera.position.z;
+    pose.yaw = yaw.current;
+
     (window as unknown as { __keeper?: unknown }).__keeper = {
       x: camera.position.x,
       z: camera.position.z,
@@ -631,8 +644,29 @@ export function Game() {
           onEngage={() => setShopOpen(true)}
           onLeave={() => setShopOpen(false)}
           onBuy={(family) => {
-            // Bought slimes land just outside the stall, so the child sees what they paid for.
-            if (spend(PRICES[family] ?? 5)) putSlime(family, [-2.5, 0, -11.6]);
+            /**
+             * SPAT OUT IN FRONT OF THE CHILD, not at a fixed spot on the map.
+             *
+             * It used to land at the hard-coded (-2.5, -11.6), a point chosen to be just outside the
+             * stall. The owner bought a slime and it "disappears" — and a fixed drop point is exactly
+             * how that happens without anything being broken: it does not know where the child is
+             * standing or which way they are facing, so depending on how they walked up, their new
+             * slime is behind them, behind the counter, or off to one side while they are looking at
+             * the shelf. A creature you paid for and never saw is a lost creature.
+             *
+             * 1.8m along the facing vector puts it clear of the keeper's own 0.45m radius and inside
+             * the near clip, so it lands in view wherever they are. `placeSlime` still runs on mount,
+             * so if that spot is inside the stall or off the walkable ranch it resolves to the nearest
+             * reachable ground rather than vanishing.
+             */
+            if (!spend(PRICES[family] ?? 5)) return;
+            const ahead = 1.8;
+            putSlime(family, [
+              pose.x - Math.sin(pose.yaw) * ahead,
+              0,
+              pose.z - Math.cos(pose.yaw) * ahead,
+            ]);
+            audio.plop?.();
           }}
         />
         <Vacpack
