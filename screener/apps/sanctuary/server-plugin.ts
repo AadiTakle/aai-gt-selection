@@ -1,6 +1,7 @@
-import type { Plugin } from 'vite';
+import type { Plugin, ViteDevServer } from 'vite';
 import { appendFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 
 /**
  * The sanctuary's own server side, and the reason it has to exist at all.
@@ -155,9 +156,19 @@ export function sanctuaryPlugin(): Plugin {
   ensureData();
   load();
 
-  return {
-    name: 'sanctuary-sortie',
-    configureServer(server) {
+  /**
+   * Mounted on BOTH the dev server and `vite preview`.
+   *
+   * `configureServer` alone would make difficulty steering a dev-time-only feature: a built bundle would
+   * still call `/sanctuary/chunk`, get a 404, and every station would silently fall back to no session at
+   * all. Nothing would log an error, because the failure is a missing route rather than a thrown one.
+   *
+   * This is still not a deployment story — both hooks are Vite's own servers, and a real host needs these
+   * three routes behind whatever serves the static bundle. But it means the thing can be built and run
+   * from the command line without the adaptivity quietly disappearing, and it makes the missing piece
+   * one small server rather than a rewrite.
+   */
+  const mount = (server: Pick<ViteDevServer, 'middlewares'>) => {
       /**
        * Open one chunk, steered to what this keeper's last chunks showed.
        *
@@ -165,7 +176,7 @@ export function sanctuaryPlugin(): Plugin {
        * use for any of them and every one of them leaks the child's standing back into a layer that is
        * deliberately blind to it.
        */
-      server.middlewares.use('/sanctuary/chunk', async (req, res) => {
+      server.middlewares.use('/sanctuary/chunk', async (req: IncomingMessage, res: ServerResponse) => {
         if (req.method !== 'POST') return res.end();
         try {
           const b = await body(req);
@@ -201,7 +212,7 @@ export function sanctuaryPlugin(): Plugin {
        * The browser is only ever the messenger here — it says "this session is done" and receives `{ ok }`.
        * Everything that matters is read from the API directly by this process.
        */
-      server.middlewares.use('/sanctuary/close', async (req, res) => {
+      server.middlewares.use('/sanctuary/close', async (req: IncomingMessage, res: ServerResponse) => {
         if (req.method !== 'POST') return res.end();
         try {
           const b = await body(req);
@@ -254,7 +265,7 @@ export function sanctuaryPlugin(): Plugin {
        * The adult view. Deliberately a separate route from anything the game touches, and it is the ONLY
        * place a number is ever published.
        */
-      server.middlewares.use('/sanctuary/record', async (req, res) => {
+      server.middlewares.use('/sanctuary/record', async (req: IncomingMessage, res: ServerResponse) => {
         const id = new URL(req.url ?? '', 'http://x').searchParams.get('keeperId') ?? 'anon';
         const k = keepers.get(id);
         res.setHeader('content-type', 'application/json');
@@ -268,6 +279,11 @@ export function sanctuaryPlugin(): Plugin {
           }),
         );
       });
-    },
+  };
+
+  return {
+    name: 'sanctuary-sortie',
+    configureServer: mount,
+    configurePreviewServer: mount,
   };
 }
