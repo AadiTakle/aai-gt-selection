@@ -544,7 +544,23 @@ export function Game() {
       )}
 
       <CoinFlight trigger={flight} />
-      <HeadphonePrompt />
+      {/*
+       * Headphones are asked for BY THE VERBAL STATION AND NOWHERE ELSE.
+       *
+       * It used to show from load and fade on the first gesture, which the owner found sitting at the top
+       * of the screen permanently. Two separate faults: the sticky gesture flag was not clearing it, and
+       * more importantly it was the wrong trigger. The verbal round is the only thing in this game that
+       * SPEAKS — everything else is squelches and a pad, all of which a child can play without hearing.
+       * An always-on plea for headphones is decoration, and decoration is ignored exactly when it matters.
+       *
+       * Keyed off the engaged station's own battery rather than the served typeCode, so it appears as the
+       * child docks, BEFORE any narration starts — a prompt that arrives with the first spoken word is too
+       * late to act on. It also means it keeps working when the verbal station starts serving more than one
+       * verbal type, which is the direction this is going.
+       */}
+      {/* By verb ID, not `verbFor`, which keys on typeCode — `engaged` is a verb id, so `verbFor(engaged)`
+          returns undefined for every station and the prompt would simply never appear. */}
+      <HeadphonePrompt during={VERBS.find((v) => v.id === engaged)?.battery === 'Verbal'} />
       {!engaged && !shopOpen && (
         <div className="bh-hud">
           <Purse />

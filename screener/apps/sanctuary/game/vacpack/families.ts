@@ -223,15 +223,35 @@ const ROOM = { crest: 0.62, across: 1.6 };
 /**
  * Flattening in z, and it is free legibility rather than a compromise.
  *
- * The socket is about 0.6 window radii deep before the glass, and a portrait scaled to fill the disc is
- * about 0.85 radii deep — so left alone the front of a slime's face pokes out through its own window.
- * Squashing depth only cannot ovalise anything seen from the front, which is the trap `Vacpack.tsx`
- * documents for the flying proxy: that one is scaled in Y, which does deform the eyes, whereas Z is the
- * one axis a face-on viewer cannot see. It also flattens the crest toward the picture plane, which is
- * why a fairy's four wings and a frost's ring of spires read as four wings and a ring of spires rather
- * than as two of each with the rest hidden behind.
+ * Squashing depth ONLY cannot deform anything a face-on viewer can see, which is the trap `Vacpack.tsx`
+ * documents for the flying proxy: that one is squashed in Y, which does ovalise the eyes, whereas Z is the
+ * one axis nobody is looking down. What it buys is twofold — the portrait fits in a socket about 0.6 radii
+ * deep, and the crest is pressed toward the picture plane, so a fairy's four wings and a frost's ring of
+ * spires read as four wings and a ring of spires rather than as two of each with the rest behind.
+ *
+ * WHY IT IS 0.44 AND NOT MORE. See `CLEAR_OF_LENS`: the depth a portrait is allowed is the gap between the
+ * socket's back wall and its glass, and this is the flattening that fits the widest family into it.
  */
-const SQUASH_Z = 0.6;
+const SQUASH_Z = 0.44;
+
+/**
+ * How far in FRONT of the socket's back wall a portrait's own back face is planted, in window radii.
+ *
+ * THE BUG THIS EXISTS TO FIX, which is the single worst thing the first pass shipped and took a 8×
+ * magnified screenshot to see. The socket floor is `disc()` — a cylinder 0.1 long — scaled `0.06` in z,
+ * which is ±0.003 pack units, and at a window radius of 0.0142 that is a slab ±0.21 RADII thick. The
+ * portrait was mounted at +0.1 radii with its geometry centred on its own origin, so the whole back half of
+ * every slime was inside that slab. What you saw was the front cap of a body and nothing else: `wood`'s
+ * branch, rooted on the body's axis at z ≈ 0, was entirely inside the floor, and `fairy`'s wings — which
+ * `buildFairy` deliberately sweeps BACK to z = -0.94 so they hinge at the shoulder — were buried to the
+ * last triangle. Two of the nineteen families were rendering as blank domes and the geometry was innocent.
+ *
+ * So the depth stack is now explicit, and it is solved per family rather than shared: the lens goes behind
+ * the slime instead of under it, and the portrait's own measured back face is planted just clear of it. A
+ * fraction of a radius, because the socket is shallow and the budget between the lens and the glass is all
+ * the room there is.
+ */
+const CLEAR_OF_LENS = 0.05;
 
 export interface Portrait {
   /** The family's body: the same shared lathe the herd draws, colour baked per vertex. */
@@ -242,6 +262,12 @@ export interface Portrait {
   fit: number;
   /** Where to put the group's origin so the portrait is centred in the socket, in window radii. */
   lift: number;
+  /**
+   * And where to put it in DEPTH, so the portrait's own back face lands `CLEAR_OF_LENS` in front of the
+   * socket's back wall rather than inside it. Per family, because the families are not the same depth: a
+   * rock is as deep as it is wide and a fairy carries a pair of wings a body-length behind its shoulder.
+   */
+  sink: number;
   /**
    * The face, in body units. An unashamed simplification of `Slime.tsx`'s layout — that one solves for
    * lids, brows, gaze targets and blink at four stages against `STAGE_LOOK`, none of which survives at
@@ -375,6 +401,10 @@ export function portraitOf(family: Family): Portrait {
   // trimmed crest is a crest behind a rim, rather than at the bottom, where a trimmed body is an animal
   // sinking through the floor of its own window.
   const lift = -((floor + ceiling) / 2) * fit;
+  // The back face of the whole thing, forward of the lens. `box.min.z` is negative for every family and is
+  // a long way negative for the two with parts behind the shoulder, which is exactly why this is solved
+  // from the bounds rather than shared.
+  const sink = CLEAR_OF_LENS - box.min.z * fit * SQUASH_Z;
 
   /* --- the face ---------------------------------------------------------------
      Low on the body, which is the oldest baby-proportion trick there is and is what `Slime.tsx` does
@@ -389,6 +419,7 @@ export function portraitOf(family: Family): Portrait {
     feature,
     fit,
     lift,
+    sink,
     eye: {
       r: eyeR,
       gap: Math.max(eyeR * 1.1, ring * 0.46),
@@ -463,7 +494,20 @@ export function lensMaterial(family: Family): THREE.MeshStandardMaterial {
   const hit = lenses.get(family);
   if (hit) return hit;
   const p = paintOf(family);
-  const tone = lightness(p.skin) > PALE ? p.glyph : p.inner;
+  /**
+   * A MIRROR HAS NO COLOUR OF ITS OWN, so the flood has to carry all of it.
+   *
+   * `gold` is `metalness: 0.95` against the procedural sky in `gumdrop.ts`, which means everything you see
+   * on its hide is a reflection: pale sky on the shoulders and GRASS GREEN underneath. That is not a bug
+   * and it is not this file's business to correct it — a gold slime on the ranch looks exactly the same
+   * way, and `PAINT`'s own note admits "the window cannot show a reflection". But it does mean gold is the
+   * one family whose body cannot be trusted to say which family it is, so it is treated like the pale ones
+   * and takes the deep tone: a rich gold disc with a mirror-bright creature standing on it. Gated on
+   * `look.metal` above a half, which is `gold` alone — `bomb` at 0.3 and `ice` at 0.12 keep their own
+   * colours and want the pale backing.
+   */
+  const mirrored = (FAMILY_LOOK[family]?.metal ?? 0) > 0.5;
+  const tone = mirrored || lightness(p.skin) > PALE ? p.glyph : p.inner;
   const m = new THREE.MeshStandardMaterial({
     color: tone,
     roughness: 0.85,

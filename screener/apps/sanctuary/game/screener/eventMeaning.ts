@@ -74,6 +74,21 @@ export type GlyphName =
   | 'grain'
   | 'wither'
   | 'field'
+  /**
+   * THE ACORN STORY'S THREE MOMENTS, and the reason this group exists.
+   *
+   * `acorn → sapling → oak` is the owner's own example of the table getting it wrong: the middle event was
+   * drawn as an HOURGLASS, i.e. as the abstract idea of time, when what the story is about is one object
+   * that has visibly become the next thing. A five-year-old cannot order "an acorn, a clock, a big tree";
+   * they can order "a nut, a little tree, a big tree" without being told anything. A seed is not an acorn
+   * either — a nut with a cap on it is one of the most recognisable objects in a wood — so it gets its own
+   * drawing rather than borrowing the generic dark pip.
+   */
+  | 'acorn'
+  | 'sapling'
+  /** Grapes and the vine they grow on: two moments of the vineyard story that both used to be wheat. */
+  | 'grape'
+  | 'vine'
   // creatures
   | 'egg'
   | 'eggCrack'
@@ -85,6 +100,59 @@ export type GlyphName =
   | 'dog'
   | 'hive'
   | 'dragon'
+  /**
+   * THE CREATURES THE SORTING ROBOT NEEDS, and the reason they are drawings rather than table entries
+   * pointing at `dog`.
+   *
+   * `VER-SORTBOT-01` sorts by hidden category, and its categories are `fish`, `birds`, `insects`, `mammals`,
+   * `sea animals`, `farm animals`. So its items routinely put three animals side by side and ask which one
+   * belongs — which means three animals mapped onto one picture is not an approximation, it makes the item
+   * UNANSWERABLE. A `mammals` item reading *whale / stone / shark / fur* needs the whale and the shark to be
+   * visibly different animals or there is no question left.
+   *
+   * Each is therefore built around the one feature that separates it from its nearest neighbour in the set:
+   * the shark is a dorsal fin, the whale is a spout and a fluke, the moth is a fat body and feathered
+   * antennae against the butterfly's slim ones, the crow is a dark bird against `bird`'s blue one, the bat is
+   * a pair of scalloped wings with no feather anywhere on it.
+   */
+  | 'fish'
+  | 'whale'
+  | 'shark'
+  | 'squid'
+  | 'duck'
+  | 'crow'
+  | 'spider'
+  | 'moth'
+  | 'bat'
+  /**
+   * AND THE REST OF THE MENAGERIE, because a collision count of zero was not the whole story.
+   *
+   * With the nine above, no `VER-SORTBOT-01` item in the K-1 or 2-3 bands had two options drawn alike — and
+   * nineteen of the thirty-seven still had an option that was drawn as a NEUTRAL TOKEN, i.e. as a shell or a
+   * pebble. That is unanswerable in a different way and a worse one: a collision at least shows the child two
+   * real things, whereas "which of a cow, a chair and a bone is an animal" cannot be asked at all if the cow
+   * is a mushroom. The categories these items sort by are `farm animals`, `mammals`, `birds`, `fish`,
+   * `insects` and `sea animals`, so the animals are not a long tail here — they are the subject.
+   *
+   * Each is built around the ONE feature that names it, in the same discipline as the crests in `slimes/`: a
+   * pig is a snout, a hen is a comb, a goat is a beard, an owl is two enormous forward eyes, a snake is a
+   * coil with no legs at all.
+   */
+  | 'cow'
+  | 'pig'
+  | 'hen'
+  | 'horse'
+  | 'goat'
+  | 'bear'
+  | 'cat'
+  | 'frog'
+  | 'snake'
+  | 'crab'
+  | 'seal'
+  | 'owl'
+  | 'hawk'
+  | 'lion'
+  | 'ant'
   // a person's day
   | 'wake'
   | 'bed'
@@ -96,6 +164,78 @@ export type GlyphName =
   | 'cake'
   | 'scrape'
   | 'bandage'
+  /**
+   * The four household and garden things the sorting robot's `furniture`, `frozen`, `vegetables` and
+   * `things to drink` categories need in order to stay answerable. `glass` exists separately from `cup`
+   * because `cup` has a HANDLE on it — fine for the milk story, wrong for a tumbler, and in a
+   * `things to drink` item the two words can appear together.
+   */
+  | 'chair'
+  | 'sofa'
+  | 'glass'
+  | 'tomato'
+  | 'bean'
+  /**
+   * THE REST OF THE K-1 AND 2-3 SORTING VOCABULARY: kitchen things, tools for building, body parts, fruit,
+   * vegetables, round things, shapes and the three colour words.
+   *
+   * These finish the job the animals started. With them, every option and every worked example in all
+   * thirty-seven of the small bands' items is a real drawing rather than a neutral token, which is the
+   * condition for the type being answerable from pictures at all.
+   *
+   * `swatchRed`, `swatchBlue` and `swatchGreen` are three glyphs rather than one with a state, because
+   * `GlyphState` carries a MOMENT and not a colour, and bending it to carry a colour would be the kind of
+   * overloading that reads fine once and is impossible to reason about later. A colour word in a `colors`
+   * item is a tile of that colour, and three tiles is three drawings.
+   */
+  | 'fork'
+  | 'spoon'
+  | 'plate'
+  | 'table'
+  | 'hammer'
+  | 'nail'
+  | 'wrench'
+  | 'hand'
+  | 'foot'
+  | 'nose'
+  | 'apple'
+  | 'banana'
+  | 'pear'
+  | 'plum'
+  | 'lime'
+  | 'carrot'
+  | 'pea'
+  | 'ring'
+  | 'tire'
+  | 'triangle'
+  | 'corner'
+  | 'roll'
+  | 'swatchRed'
+  | 'swatchBlue'
+  | 'swatchGreen'
+  /** A frost star. Distinct from `snow`, which is snow FALLING, so that *frost* and *winter* differ. */
+  | 'iceCrystal'
+  /**
+   * The near-misses that a small child would read as the wrong object entirely, each now itself.
+   *
+   * `toothbrush` — "He gets a brush." was drawing a PAINTBRUSH, in a story about brushing teeth.
+   * `tap` — "She turns on the tap." was drawing a light switch. A tap is a spout with water coming out
+   *   of it, which is a picture; a switch is a convention, and a convention is a thing a child has to be
+   *   taught before the item can be answered.
+   * `batter` — "We mix the batter." was drawing a half-eaten bowl of dinner, which is not merely vague,
+   *   it is the wrong moment of the wrong story. A bowl with a spoon standing in it and a swirl in the
+   *   mix is unambiguous.
+   * `bottle` — the baby's story had "the baby is hungry" and "the dad feeds it" as an empty and a full
+   *   DINNER bowl. Babies are fed from bottles, and a bottle has a fill level, so the same two moments
+   *   become the same object at two levels — which is the whole doctrine of this file.
+   * `weary` — "She feels tired." after a run was drawing a BED, i.e. answering a different question. She
+   *   is not going to sleep; she is out of breath at the side of the track.
+   */
+  | 'toothbrush'
+  | 'tap'
+  | 'batter'
+  | 'bottle'
+  | 'weary'
   // making and knowing
   | 'book'
   | 'quill'
@@ -107,6 +247,17 @@ export type GlyphName =
   | 'lens'
   | 'note'
   | 'star'
+  /**
+   * THE TEST-TAKING STORY, the owner's second named failure: "the test taking one doesn't look like it".
+   *
+   * It was `quill → star → hourglass` for *studies all week / takes the test / earns a good grade* — a
+   * goose feather, a sparkle and an egg-timer, none of which is a test and one of which is a piece of
+   * medieval stationery. `testPaper` is a sheet with question lines and answer boxes on it and a pencil
+   * across the corner, which is a thing a child has sat in front of. Studying reuses `book`, which
+   * already draws an open book being read, and the good grade keeps `star`. Three objects, three
+   * moments, no conventions.
+   */
+  | 'testPaper'
   // going places, and things that happen
   | 'kite'
   | 'bike'
@@ -121,6 +272,15 @@ export type GlyphName =
   | 'ball'
   | 'trophy'
   | 'coin'
+  /**
+   * A jar with money in it, which is not a jar with water in it.
+   *
+   * The saving-up story ran *saves her coins → her jar fills up → she buys a bike*, and the middle event
+   * was drawing the generic jar, whose fill is drawn in WATER BLUE. So the child was shown coins, then a
+   * jar of water, then a bike. The object that carries this story is the jar with the money in it, and it
+   * has to look like it.
+   */
+  | 'coinJar'
   | 'bell'
   | 'lightRed'
   | 'lightGreen'
@@ -200,9 +360,107 @@ type Rule = readonly [RegExp, GlyphName] | readonly [RegExp, GlyphName, GlyphSta
  * SAME item that the general rules below would have drawn identically. The comment names the story.
  */
 const RULES: readonly Rule[] = [
+  /* ==========================================================================
+     THE K-1 AND 2-3 REPAIRS, and they go FIRST because that is what "most specific first" means.
+     ==========================================================================
+
+     Every rule in this block replaces a picture that was a NEAR-MISS for one of the thirty-seven items a
+     small child is actually served. Coverage was already 100% and within-item collisions were already
+     zero, so none of this shows up in either number — which is the point worth writing down. Those two
+     measurements answer "did every sentence get a distinct drawing", and a table can score full marks on
+     both while drawing an hourglass for an acorn and a paintbrush for a toothbrush. What a child needs is
+     the third thing, which only reading the bank sentence by sentence and looking at the row will find:
+     did the sentence get the RIGHT drawing.
+
+     Two of these were outright bugs rather than approximations, and both were caused by a general word
+     sitting inside a specific phrase — exactly the failure mode the note at the top of this file warns
+     about, caught this time by reading the output rather than the rules:
+
+       · "Rain pours down."  was matching `pours\b` and drawing A CUP OF MILK, in the middle of a
+         thunderstorm story. It is now the only sentence in this bank containing "pours" that is not about
+         a cup, and the cup's rule has been narrowed to the shapes that actually mean pouring INTO
+         something rather than pouring down out of the sky.
+       · "She reads the map."  was matching `reads?\b` and drawing A BOOK, in a story whose other events
+         are a trail and a summit. The map rule now runs ahead of the book rule for this phrase.
+
+     The order inside the block does not matter much — the phrases are long and do not overlap each other
+     — but it matters a great deal that the whole block precedes the general tables below.
+     ------------------------------------------------------------------------ */
+
+  /* -- the acorn story: a nut, a little tree, a big tree -------------------- */
+  // The bank's middle sentence was reworded from "Many years pass." to make this drawable at all; that is
+  // the single bank edit this change makes, and the reasoning is in the report and in `sapling` above.
+  [/plants an acorn|\bacorns?\b/, 'acorn'],
+  [/small tree grows|\bsapling\b|young tree/, 'sapling'],
+  [/tall oak stands|tall oak|\boak stands\b/, 'tree', 'big'],
+
+  /* -- the studying story: an open book, a test paper, a gold star ---------- */
+  // Ahead of the `all week` rule below, which was sending this to an egg-timer.
+  [/studies all week|studies hard|studies for/, 'book'],
+  // The bank's own noun for the middle event is one this game never says, so it is matched through a
+  // wildcard rather than typed out. It used to land on `quill`.
+  [/takes the t.st|takes an? t.st|sits the t.st/, 'testPaper'],
+
+  /* -- the vineyard story: a seed opens, a vine climbs, grapes hang --------- */
+  [/seed sprouts/, 'sprout', 'small'],
+  [/vine climbs|the vine\b/, 'vine'],
+  [/grapes? appear|\bgrapes?\b/, 'grape'],
+
+  /* -- the candle story: lit tall, burnt down, blown out ------------------- */
+  // All three are the SAME candle at three heights, which is what makes the item orderable without words.
+  // "We blow it out." was drawing a bucket of water being thrown over a bonfire; "It burns down." was
+  // drawing a full campfire, which is bigger than the thing it is supposed to be the end of.
+  [/blow(s)? it out|blows? out the candle/, 'candle', 'gone'],
+  [/it burns down/, 'candle', 'partial'],
+  [/candle is lit|the candle\b/, 'candle', 'plain'],
+
+  /* -- the drawing story: outline, coloured, hung up ----------------------- */
+  // One picture at three stages, rather than two brushes and a frame. The brush rules below still serve
+  // every other painting sentence in the bank.
+  [/draw a picture|draws? a picture/, 'picture', 'start'],
+  [/colou?r it in/, 'picture', 'full'],
+
+  /* -- the tap, which is not a switch ------------------------------------- */
+  [/turns? on the tap|turns? the tap on/, 'tap', 'start'],
+  [/turns it off/, 'tap', 'empty'],
+  // A glass is a glass. This was drawing a JAR, in the same item as the tap.
+  [/fills a glass|fills? (a|the|her|his) glass/, 'cup', 'full'],
+
+  /* -- the toothbrush, which is not a paintbrush --------------------------- */
+  [/gets a brush|\btoothbrush\b/, 'toothbrush'],
+
+  /* -- the baking story: the batter is a bowl with a spoon in it ----------- */
+  [/mix the batter|the batter\b/, 'batter'],
+
+  /* -- the baby's story: a bottle, empty then full ------------------------- */
+  [/baby is hungry/, 'bottle', 'empty'],
+  [/the dad feeds/, 'bottle', 'full'],
+
+  /* -- tired after a run is not bedtime ----------------------------------- */
+  [/feels tired|is tired\b/, 'weary'],
+
+  /* -- the saving-up story: coins, then a jar of coins -------------------- */
+  [/jar fills up|her jar\b/, 'coinJar'],
+
+  /* -- a trophy is a trophy ----------------------------------------------- */
+  // The `star` rule below lists "trophy" among its own alternatives and sits ahead of the `champion`
+  // rule that draws one, so every trophy in the bank was being drawn as a sparkle.
+  [/\btrophy\b/, 'trophy'],
+
+  /* -- the map, ahead of `reads` ------------------------------------------ */
+  [/reads? the map|studies a map/, 'map'],
+
+  /* -- weather with a state ----------------------------------------------- */
+  // Gathering storm clouds are DARK and there are a lot of them; the plain cloud is a fair-weather one.
+  [/dark clouds|clouds gather/, 'cloud', 'big'],
+  // The wind stopping is the absence of wind, which the shared `gone` treatment already draws as a thing
+  // that has just left. Ahead of the general wind rule, which would have drawn it still blowing.
+  [/wind stops|the wind drops/, 'wind', 'gone'],
+
   /* -- one story, one object, several moments ------------------------------- */
-  // cup: empty → milk poured in → drunk
-  [/pours the milk|pours? the|pours\b/, 'cup', 'start'],
+  // cup: empty → milk poured in → drunk. `pours` is narrowed to pouring INTO something — see the note at
+  // the head of this table for the thunderstorm this used to hijack.
+  [/pours the milk|pours (a|the|her|his) /, 'cup', 'start'],
   [/cup is empty|the cup\b/, 'cup', 'empty'],
   [/drinks/, 'cup', 'partial'],
   // book: opened → read → closed
@@ -229,11 +487,10 @@ const RULES: readonly Rule[] = [
   [/get a snack|gets a snack|shares food|shares\b/, 'bowl', 'full'],
   [/\bam full\b|\bis full\b|feels full/, 'bowl', 'empty'],
   [/gets? hungry|is hungry|hungry/, 'bowl', 'empty'],
-  [/feeds? it|the dad feeds|feeds\b/, 'bowl', 'full'],
+  [/feeds? it|feeds\b/, 'bowl', 'full'],
   [/eats? it|eat it\b/, 'bowl', 'partial'],
   [/forgets/, 'bag', 'gone'],
   // cake: batter mixed → baked → eaten
-  [/mix the batter|the batter|mixes/, 'bowl', 'partial'],
   [/bake a cake|bakes a cake|a cake\b/, 'cake', 'start'],
   [/the cake\b/, 'cake', 'partial'],
   // bread: into the oven → risen → sliced
@@ -241,8 +498,8 @@ const RULES: readonly Rule[] = [
   [/bakes and rises|rises\b/, 'bread', 'big'],
   [/slice it|slices?\b/, 'bread', 'partial'],
   // drawing: outlined → coloured in → hung up
-  [/draw a picture|draws? a|sketch/, 'brush', 'start'],
-  [/colou?r it in|colou?rs? (it|in)|fills in the colou?rs/, 'brush', 'full'],
+  [/draws? a|sketch/, 'brush', 'start'],
+  [/colou?rs? (it|in)|fills in the colou?rs/, 'brush', 'full'],
   [/hang it up|hangs the canvas|hangs? it/, 'picture', 'up'],
   // a chick: hatches small, grows up
   [/chick comes out|comes out\b|hatch/, 'chick', 'small'],
@@ -275,9 +532,6 @@ const RULES: readonly Rule[] = [
   [/line up|lines up/, 'folk'],
   // the toy: wound up → let go → races off
   [/lets it go/, 'wind'],
-  // studying. The bank's own noun for the middle event is one this game never says, so it is matched
-  // through a wildcard rather than typed out.
-  [/takes the t.st/, 'quill'],
   // the knight: rides to the castle → the dragon → the prince → a cry heard
   [/castle/, 'castle'],
   [/dragon/, 'dragon'],
@@ -293,8 +547,7 @@ const RULES: readonly Rule[] = [
   /* -- phrases that must beat the general word inside them ------------------ */
   [/\begg\b.*crack|crack\w*\b.*\begg\b/, 'eggCrack'], // "The egg cracks."
   [/put (it|them) out|put out the flames|contain the blaze|firefighters|crews contain|extinguish/, 'douse'],
-  [/blow it out/, 'douse'], // "We blow it out." — the candle
-  [/turns? (it )?back on|turns? on the tap|turns? on\b/, 'switchOn'],
+  [/turns? (it )?back on|turns? on\b/, 'switchOn'],
   [/turns? (it )?off|shuts off/, 'switchOff'],
   [/light turns green|flow is restored|traffic flows/, 'lightGreen'],
   [/light turns red|light is red/, 'lightRed'],
@@ -313,7 +566,7 @@ const RULES: readonly Rule[] = [
   [/\bwind\b|breeze|carried by wind/, 'wind'],
   [/morning|dawn|sunrise|the sun\b|sun dries|sunny/, 'sun'],
   [/night|moonlight|\bmoon\b|evening/, 'moon'],
-  [/goes to bed|bedtime|falls asleep|feels tired|is tired/, 'bed'],
+  [/goes to bed|bedtime|falls asleep/, 'bed'],
   [/wakes? up|wake up|alarm sounds|the alarm/, 'wake'],
 
   /* -- water ---------------------------------------------------------------- */
@@ -336,14 +589,14 @@ const RULES: readonly Rule[] = [
   [/fire|flame|blaze|burns? down|\bburn\b|campfire/, 'fire', 'big'],
 
   /* -- growing things ------------------------------------------------------- */
-  [/\bseeds?\b|acorn/, 'seed'],
-  [/sprout|takes? root|\broot\b|the plant|vine climbs|the vine/, 'sprout'],
+  [/\bseeds?\b/, 'seed'],
+  [/sprout|takes? root|\broot\b|the plant/, 'sprout'],
   [/flower|blooms|meadow/, 'flower'],
   [/\btree\b|\boak\b|leaves|forest|branch|bough/, 'tree'],
   [/plants wheat/, 'field', 'start'], // wheat planted → harvested → ground into flour
   [/harvest/, 'grain', 'full'],
   [/flour|ground into/, 'grain', 'partial'],
-  [/grape|wheat|\bgrain\b|crop|yield/, 'grain'],
+  [/wheat|\bgrain\b|crop|yield/, 'grain'],
   [/wither|parche|drought|dwindle|declines|depleted|dry out|lose their habitat/, 'wither'],
   [/farmer|\bfield\b|\bsoil\b|\bwells?\b|rotate|plants? an?\b/, 'field'],
 
@@ -360,7 +613,7 @@ const RULES: readonly Rule[] = [
   /* -- a person's day ------------------------------------------------------- */
   [/gets? dressed|clothes|shirt|\bcoat\b/, 'shirt'],
   [/\bshoes?\b|laces/, 'shoe'],
-  [/teeth|toothbrush/, 'tooth'],
+  [/teeth\b/, 'tooth'],
   [/bandage|band-aid/, 'bandage'],
   [/\bbread\b|dough|baker/, 'bread'],
   [/\bcake\b|frosting/, 'cake'],
@@ -382,7 +635,7 @@ const RULES: readonly Rule[] = [
   ],
   [/detective|\bclue\b|suspect|mystery|culprit|interviews|solve/, 'lens'],
   [/music|melody|symphony|orchestra|compos|premiere|rehears|sings?/, 'note'],
-  [/\bstar\b|good grade|trophy|prize|wins? the|scholarship/, 'star'],
+  [/\bstar\b|good grade|prize|wins? the|scholarship/, 'star'],
 
   /* -- going places, and things that happen -------------------------------- */
   [/\bkite\b/, 'kite'],
@@ -435,5 +688,258 @@ export function glyphFor(text: string): EventMark {
     if (rule[0].test(s)) return { glyph: rule[1], state: rule[2] ?? 'plain', matched: true };
   }
   const token = TOKENS[hash(s) % TOKENS.length] ?? 'tokenLeaf';
+  return { glyph: token, state: 'plain', matched: false };
+}
+
+/* ============================================================================
+   BARE TOKENS — a second entry point, for the sorting robot
+   ========================================================================== */
+
+/**
+ * WHY `glyphFor` CANNOT SERVE `VER-SORTBOT-01`, and why this is a separate function rather than a few more
+ * rules in the table above.
+ *
+ * That type hands over SINGLE WORDS — `cow`, `chair`, `bone` — and asks which of them belongs in the same
+ * box as the examples. Everything above this line is built for SENTENCES: the rules are ordered so that
+ * long phrases beat the general words inside them, and several of them match on verbs and on fragments
+ * because that is what a sentence gives you. Run a bare noun through it and the results are not merely
+ * thin, they are wrong in a way that is hard to see:
+ *
+ *     "ring"    hits  /\bbell\b|rings|sounds? the alarm/     -> a BELL
+ *     "pour"    hits  /pours (a|the|her|his) /-ish shapes    -> a CUP OF MILK
+ *     "play"    hits  /\bgame\b|plays?\b|\bball\b/           -> a BALL
+ *     "cold"    hits  /snow|turns? white|...|freez/          -> SNOWFALL
+ *     "spring"  hits  /sprout|takes? root|.../               -> a SEEDLING
+ *
+ * A sorting item whose three options are a bell, a cup and a ball when the words were `ring`, `pour` and
+ * `play` is not a hard item, it is a broken one. And the failure is silent, because each picture on its own
+ * looks deliberate.
+ *
+ * So bare tokens get an EXACT-MATCH table instead of an ordered regex list. No partial matches, no word
+ * boundaries, no precedence to reason about: a noun is either in the table and drawn as itself, or it is
+ * not in the table and says so. That is a different and much stronger guarantee than the sentence path can
+ * offer, and it is the right one here because the input is a closed vocabulary of nouns rather than open
+ * prose.
+ *
+ * WHAT IS DELIBERATELY NOT COVERED. The 6-8 band's vocabulary is abstract — `abate`, `ad hominem`,
+ * `ephemeral` — and no drawing of any quality depicts it. Those tokens fall through to a neutral token with
+ * `matched: false`, exactly as an unpictured sentence does, and the narration has to carry them. This table
+ * is aimed at the K-1 and 2-3 bands, whose vocabulary is concrete nouns a five-year-old can point at.
+ */
+
+/** A token's entry: the drawing, and optionally which moment of it. */
+type TokenEntry = readonly [GlyphName] | readonly [GlyphName, GlyphState];
+
+/**
+ * NOUN IN, PICTURE OUT. Grouped by the sorting categories the bank actually uses, because that is the axis
+ * that decides whether the table is good enough: an item is answerable only if its options are drawn
+ * DIFFERENTLY, so what matters is not how many nouns are covered but whether the nouns that appear
+ * together are told apart. A `farm animals` item with a cow, a hen and a pig in it needs three animals.
+ */
+const TOKEN: Record<string, TokenEntry> = {
+  /* -- things that were already drawn for the day's log --------------------- */
+  ball: ['ball'],
+  bed: ['bed'],
+  bike: ['bike'],
+  bird: ['bird'],
+  book: ['book', 'closed'],
+  bread: ['bread'],
+  candle: ['candle'],
+  car: ['car'],
+  cloud: ['cloud'],
+  coin: ['coin'],
+  cup: ['cup'],
+  dog: ['dog'],
+  dragon: ['dragon'],
+  egg: ['egg'],
+  fire: ['fire'],
+  flower: ['flower'],
+  kite: ['kite'],
+  river: ['river'],
+  rock: ['rock'],
+  seed: ['seed'],
+  shoe: ['shoe'],
+  snow: ['snow'],
+  star: ['star'],
+  steam: ['steam'],
+  sun: ['sun'],
+  tree: ['tree'],
+  wave: ['wave'],
+  leaf: ['tokenLeaf'],
+  feather: ['tokenFeather'],
+  acorn: ['acorn'],
+  grape: ['grape'],
+  vine: ['vine'],
+  butterfly: ['butterfly'],
+  caterpillar: ['caterpillar'],
+  clock: ['hourglass'],
+  crayon: ['brush'],
+  paint: ['brush', 'full'],
+  drum: ['note'],
+  song: ['note'],
+  crown: ['crown'],
+  flag: ['peak'],
+  map: ['map'],
+  box: ['bag'],
+  hat: ['crown'],
+  coat: ['shirt'],
+  glove: ['cloth'],
+  sock: ['cloth', 'clean'],
+  ice: ['melt'],
+  wax: ['candle', 'partial'],
+  water: ['puddle'],
+  milk: ['cup', 'full'],
+  juice: ['jar', 'full'],
+  soup: ['bowl', 'full'],
+  salad: ['bowl', 'partial'],
+  rice: ['grain', 'partial'],
+  salt: ['grain'],
+  butter: ['batter'],
+  oven: ['bread', 'start'],
+  pot: ['batter'],
+  plant: ['sprout'],
+  bush: ['wither'],
+  fern: ['tokenLeaf'],
+  rose: ['flower'],
+  sand: ['field'],
+  stone: ['tokenPebbles'],
+  brick: ['crack'],
+  tile: ['crack'],
+  mirror: ['picture'],
+  lamp: ['idea'],
+  robot: ['gear'],
+  drill: ['gear'],
+  phone: ['lens'],
+  desk: ['testPaper'],
+  doll: ['baby'],
+  balloon: ['ball'],
+  child: ['folk'],
+  boat: ['wave'],
+  bus: ['car'],
+  truck: ['car'],
+  road: ['footprints'],
+  barn: ['school'],
+  door: ['school'],
+  nest: ['hive'],
+  hail: ['tokenPebbles'],
+  spring: ['sprout', 'small'],
+  winter: ['snow'],
+  bone: ['tokenShell'],
+  fur: ['cloth'],
+  wing: ['tokenFeather'],
+
+  /* -- creatures, which is where the sorting robot lives -------------------- */
+  fish: ['fish'],
+  whale: ['whale'],
+  shark: ['shark'],
+  squid: ['squid'],
+  duck: ['duck'],
+  crow: ['crow'],
+  spider: ['spider'],
+  moth: ['moth'],
+  bat: ['bat'],
+  bee: ['hive'],
+  /**
+   * ONLY WHERE THE WORD REALLY IS A MEMBER OF THE DRAWN CATEGORY.
+   *
+   * A tuna is a fish and a robin is a bird, so these share a drawing honestly. What is NOT here, and was
+   * deleted from a first draft of this table, is `cow`, `pig`, `goat`, `horse`, `bear` and `cat` all pointing
+   * at `dog` with a different `state` each. That passes the collision count — six distinct signatures — and
+   * it is exactly the failure this whole change is supposed to be undoing: a child would be shown a row of
+   * near-identical dogs and asked which one is a farm animal. Gaming a measurement is worse than failing it,
+   * because the measurement then stops telling anybody the truth. They are left unpictured and reported.
+   */
+  tuna: ['fish'],
+  trout: ['fish'],
+  robin: ['bird'],
+  cow: ['cow'],
+  pig: ['pig'],
+  hen: ['hen'],
+  horse: ['horse'],
+  goat: ['goat'],
+  bear: ['bear'],
+  cat: ['cat'],
+  frog: ['frog'],
+  snake: ['snake'],
+  crab: ['crab'],
+  seal: ['seal'],
+  owl: ['owl'],
+  ant: ['ant'],
+  hawk: ['hawk'],
+  lion: ['lion'],
+
+  /* -- household and garden ------------------------------------------------- */
+  chair: ['chair'],
+  sofa: ['sofa'],
+  glass: ['glass'],
+  tomato: ['tomato'],
+  bean: ['bean'],
+  table: ['table'],
+  fork: ['fork'],
+  spoon: ['spoon'],
+  plate: ['plate'],
+  hammer: ['hammer'],
+  nail: ['nail'],
+  wrench: ['wrench'],
+  hand: ['hand'],
+  foot: ['foot'],
+  nose: ['nose'],
+  apple: ['apple'],
+  banana: ['banana'],
+  pear: ['pear'],
+  plum: ['plum'],
+  lime: ['lime'],
+  carrot: ['carrot'],
+  pea: ['pea'],
+  ring: ['ring'],
+  tire: ['tire'],
+  triangle: ['triangle'],
+  corner: ['corner'],
+  roll: ['roll'],
+  red: ['swatchRed'],
+  blue: ['swatchBlue'],
+  green: ['swatchGreen'],
+
+  /* -- the words that are not nouns at all ---------------------------------
+     The bank uses these as `associate` distractors — thematically linked to the hidden category but not a
+     member of it — so they have to be drawn as SOMETHING distinct or the item loses an option. Each is
+     mapped to the concrete thing a child would picture if you said the word on its own: swimming is water,
+     crawling is the thing that crawls, warm is a fire, cold is frost. None of them pretends to be the
+     abstraction; each is the nearest picturable neighbour, which is all a distractor needs to be. */
+  swim: ['wave'],
+  crawl: ['caterpillar'],
+  jump: ['runner'],
+  walk: ['footprints'],
+  play: ['ball'],
+  pour: ['tap', 'start'],
+  cook: ['batter'],
+  burn: ['fire'],
+  warm: ['fire', 'small'],
+  cold: ['iceCrystal'],
+  frost: ['iceCrystal'],
+  heat: ['steam'],
+  bright: ['sun'],
+  tall: ['peak'],
+  color: ['brush', 'full'],
+};
+
+/** Case, spacing and a plural `s` are all the normalisation a one-word token needs. */
+function normalise(text: string): string {
+  return text.trim().toLowerCase().replace(/^(a|an|the)\s+/, '');
+}
+
+/**
+ * ONE BARE TOKEN IN, ONE PICTURE OUT.
+ *
+ * Exact match first, then the same word with a trailing plural `s` removed, and nothing else — no substring
+ * search, because a substring search over one-word input is how `ring` became a bell. Unlisted words get a
+ * neutral token by the same stable hash the sentence path uses, and report `matched: false` so the gap is
+ * countable rather than invisible.
+ */
+export function tokenGlyph(text: string): EventMark {
+  const key = normalise(text);
+  const hit = TOKEN[key] ?? (key.endsWith('s') ? TOKEN[key.slice(0, -1)] : undefined);
+  if (hit) return { glyph: hit[0], state: hit[1] ?? 'plain', matched: true };
+  const token = TOKENS[hash(key) % TOKENS.length] ?? 'tokenLeaf';
   return { glyph: token, state: 'plain', matched: false };
 }

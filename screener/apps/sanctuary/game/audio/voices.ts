@@ -39,20 +39,37 @@ import { resonantGrains, wetComb, wobbleRamp, type CombSpec, type GrainSpec } fr
  *      largely a high-frequency cue and the old sounds were too dark to have any — the bus lowpass has been
  *      opened from 6.8 to 9.2 kHz to let it through. Quiet enough to be felt rather than heard.
  *
- * All of 1, 2 and 3 then go through A COMB FILTER BANK — short delays with feedback, 2 to 15 ms. That is the
- * gurgle and the hollowness of liquid in a container, and per the brief it is the highest-value single
- * addition here. The thud and the spray bypass it: combing the low end muddies it, and combing the spray
- * turns moisture into a flanger.
+ * All of 1, 2 and 3 then go through A COMB FILTER BANK — short delays with feedback, 1 to 6 ms. That is the
+ * hollowness of liquid in a container. The thud and the spray bypass it: combing the low end muddies it, and
+ * combing the spray turns moisture into a flanger.
+ *
+ * ══ THE REFERENCE, AND WHAT IT CHANGED ════════════════════════════════════════════════════════════
+ *
+ * The target character is Slime Rancher's. NOTHING WAS SAMPLED, RIPPED OR OBTAINED FROM IT — every sound here
+ * is still synthesised from scratch out of noise buffers and filters, and the reference informed four numeric
+ * decisions rather than supplying any audio. All four were things the first pass had backwards:
+ *
+ *   · REGISTER. A slime is a SMALL wet thing, and small wet things make HIGH sounds. This family used to live
+ *     at 200 Hz to 1.6 kHz, which is the sound of a large volume of mud — and low-and-wet reads as sludge, or
+ *     worse as bodily. Everything is up an octave and a half; the measured spectral centroid moved from about
+ *     1.1–1.6 kHz to 2.4–2.9 kHz. Only a trace of low weight is kept.
+ *   · DURATION. Interaction sounds in the reference are 80–220 ms with the wet detail inside the first 60. The
+ *     first pass ran 300–400 ms of evolving tail, and a long evolving tail is precisely what makes a sound read
+ *     as a synthesiser rather than as a thing that happened. Dry spans are now 85–145 ms.
+ *   · CUTE, NOT GROSS. The slimes go "blop", never "shlurp". So: no long slurping, no low gurgling, and the
+ *     comb delays came down from 12 ms (peaks at 83 Hz — a throat) to 2 ms (peaks near 500 Hz — a hollow).
+ *     Wet and BOUNCY is the target; wet and visceral is a failure even though the words were "slimy, sticky".
+ *   · ELASTICITY IS THE SIGNATURE. See `cavity.f2`: the resonance bends fast and then springs part of the way
+ *     BACK, which is what a springy solid does and what mud does not.
  *
  * ══ THE THREE SOUNDS, IN A LINE EACH ══════════════════════════════════════════════════════════════
  *
- *   SQUISH  adhesion tearing loose — an ACCELERATING, SWELLING grain cluster, which is what unsticking
- *           sounds like — and then travelling up a wet tube, so the cavity resonances climb and the bubbles
- *           after it open upward as air escapes past the slime.
- *   LAND    the fattest and wettest of the three: a dense splat, a cavity that settles downward, the widest
- *           spread of bubbles afterwards, and the real low end. This one has hit something.
- *   PLOP    a bubble letting go. The shortest, and a POP rather than a sweep: the cavity collapses in 45 ms
- *           instead of sweeping over 150, which is the difference between a release and a gesture.
+ *   SQUISH  adhesion tearing loose — an ACCELERATING, SWELLING grain cluster, which is what unsticking sounds
+ *           like — then the cavity stretches UP to 3.2 kHz and eases back, with a rising creature chirp over it.
+ *   LAND    a blop: a dense bright splat, then the cavity drops to 1.15 kHz on impact and SPRINGS BACK UP as
+ *           the jelly recovers. The physics only — no chirp, so the creature does not become a tic.
+ *   PLOP    a bubble letting go. The shortest at about 85 ms, a POP rather than a sweep: the cavity collapses
+ *           in 28 ms and rebounds, under a falling chirp that mirrors the squish's rising one.
  *
  * ══ NOT BECOMING IRRITATING ═══════════════════════════════════════════════════════════════════════
  *
@@ -105,6 +122,19 @@ interface SquelchSpec {
     f0: number;
     f1: number;
     seconds: number;
+    /**
+     * THE ELASTIC RECOVERY, and the signature of jelly.
+     *
+     * What sells something springy is not the bend, it is the bend COMING BACK: a slime deforms fast under a
+     * force and then relaxes part of the way to where it started, because it is elastic. So the resonance
+     * travels f0 → f1 fast and then eases f1 → f2 over `seconds2`, with f2 set part of the way back. Landing
+     * overshoots downward and rises again; being drawn in stretches up and settles.
+     *
+     * This is the one place the whole family could have been done with a pitch bend on an oscillator and must
+     * not be. Zero to omit the recovery entirely.
+     */
+    f2: number;
+    seconds2: number;
     /** How many uneven steps the travel is broken into. One step would be a glide. */
     segments: number;
     /** How far each step is allowed to miss its trend line. */
@@ -120,7 +150,19 @@ interface SquelchSpec {
   bubbles: Layer;
   /** Fine high-frequency wetness. */
   spray: Layer;
-  /** Pitchless weight: a lowpass collapsing, not a sine. */
+  /**
+   * THE CREATURE, over the top of the physics. Null to omit.
+   *
+   * In the reference, picking a slime up plays the suction AND the slime's own small vocalisation, and that
+   * layering is what makes it feel like moving a living thing rather than an object. It is a narrow-bandwidth
+   * grain or two — a resonance narrow enough to ring reads as a little voice — with a strong `glide`, which is
+   * the chirp's contour: rising when the creature is drawn in, falling when it is let go.
+   *
+   * Deliberately only on the pickup and the release, not on the landing. It fires twice per slime that way
+   * rather than three times, which is the difference between a character and a tic.
+   */
+  chirp: Layer | null;
+  /** Modest weight only: a lowpass collapsing, not a sine, and not a sub-bass thud. */
   thud: { gain: number; f0: number; f1: number; decay: number };
   /** The gurgle. */
   comb: CombSpec;
@@ -239,11 +281,14 @@ function squelch(
   const tearEnd = at + (spec.tear.at + spec.tear.grains.seconds) * k.t;
   const bubbleEnd = at + (spec.bubbles.at + spec.bubbles.grains.seconds) * k.t;
   const sprayEnd = at + (spec.spray.at + spec.spray.grains.seconds) * k.t;
+  const chirpEnd = spec.chirp ? at + (spec.chirp.at + spec.chirp.grains.seconds) * k.t : at;
   const cavityEnd = at + c.attack + cavityDecay;
   const thudEnd = at + 0.012 + spec.thud.decay * k.t;
-  // A quarter of a second of slack past everything, for the comb's feedback to finish ringing. Detaching a
-  // comb that is still ringing is a step, and a step is a click.
-  const end = Math.max(tearEnd, bubbleEnd, sprayEnd, cavityEnd, thudEnd) + 0.26;
+  // 120 ms of slack past everything, for the comb's feedback to finish ringing — detaching a comb that is
+  // still ringing is a step, and a step is a click. It was 260 ms when the combs were long and resonant; these
+  // are short and lightly fed back, so they are inaudible within about 50 ms and the rest was dead air holding
+  // the whole subtree alive.
+  const end = Math.max(tearEnd, bubbleEnd, sprayEnd, chirpEnd, cavityEnd, thudEnd) + 0.12;
 
   /* --- the gurgle, which everything wet passes through ----------------------------------------- */
 
@@ -285,6 +330,20 @@ function squelch(
       c.wobble * (1 + i * 0.4),
       rand,
     );
+    // The elastic recovery: having deformed, it springs part of the way back. Scheduled to begin exactly where
+    // the first bend ended, so the two read as one continuous movement rather than two gestures.
+    if (c.f2 > 0) {
+      wobbleRamp(
+        band.frequency,
+        at + cavitySeconds,
+        c.f1 * (ratios[i] as number) * k.f,
+        c.f2 * (ratios[i] as number) * k.f,
+        c.seconds2 * k.t,
+        Math.max(2, Math.round(c.segments * 0.5)),
+        c.wobble * 0.7 * (1 + i * 0.4),
+        rand,
+      );
+    }
     const g = ctx.createGain();
     g.gain.value = gains[i] as number;
     noise.connect(band);
@@ -295,6 +354,12 @@ function squelch(
   /* --- 3: the bubbles afterwards --------------------------------------------------------------- */
 
   playGrains(ctx, comb.input, at, spec.bubbles, k, rand);
+
+  /* --- 3b: the creature ------------------------------------------------------------------------ */
+
+  // Straight to `voiceOut`, not through the comb. The chirp is the slime, not the tube it is going up, and
+  // combing a voice is the one thing that would make it sound like an effect.
+  if (spec.chirp) playGrains(ctx, voiceOut, at, spec.chirp, k, rand);
 
   /* --- 4: pitchless weight — a lowpass collapsing, bypassing the comb -------------------------- */
 
@@ -360,145 +425,181 @@ function partial(
 /**
  * SQUISH — a slime drawn up the nozzle.
  *
- * STICKINESS IS A RELEASE, NOT AN ATTACK, which is the one thing the previous version had backwards: it led
- * with a transient and then swept away. Peeling something wet off a surface does the opposite — it resists
- * in fits, faster and faster, and then lets go all at once. So the attack cluster here has `ampTilt` −0.85
- * (each successive micro-event is LOUDER than the last) and `gapTilt` 0.95 (the gaps SHRINK), which is a
- * ragged accelerating rise, and then it simply stops. That is adhesion breaking.
+ * STICKINESS IS A RELEASE, NOT AN ATTACK. Peeling something wet off a surface resists in fits, faster and
+ * faster, and then lets go all at once, so the attack cluster has `ampTilt` −0.85 (each successive micro-event
+ * is LOUDER than the last) and `gapTilt` 0.95 (the gaps SHRINK): a ragged accelerating rise that simply stops.
  *
- * After the tear it travels: the cavity resonances climb from 340 Hz to 1.6 kHz and the bubbles afterwards
- * have `glide` above 1, so each one opens upward — air escaping past a slime going up a tube.
+ * THE REGISTER IS THE BIG CORRECTION HERE, and it went the wrong way first. This lived at 340 Hz to 1.6 kHz
+ * with bubbles down at 200 Hz, which is the sound of a large volume of mud — and a slime is a SMALL wet thing,
+ * which makes a HIGH sound. Everything is up roughly an octave and a half: the cavity now climbs 780 Hz to
+ * 3.2 kHz and the bubbles sit between 700 Hz and 2.8 kHz. Low and wet reads as sludge or worse as bodily; high
+ * and wet reads as jelly. The low layer is kept only as a trace of weight.
+ *
+ * DURATION TOO. It ran 440 ms of active sound; a long evolving tail is exactly what makes a sound read as a
+ * synthesiser rather than an event. It is now about 150 ms with all the wet detail inside the first 60.
  */
 const SQUISH: SquelchSpec = {
   tear: {
     at: 0,
     gain: 0.34,
     grains: {
-      seconds: 0.105, count: 8, fLo: 270, fHi: 1180, bw: 260,
-      ampTilt: -0.85, gapTilt: 0.95, grainLoMs: 3, grainHiMs: 9, glide: 0.86, damp: 9,
+      seconds: 0.042, count: 5, fLo: 900, fHi: 3200, bw: 420,
+      ampTilt: -0.85, gapTilt: 0.95, grainLoMs: 2, grainHiMs: 6, glide: 0.9, damp: 10,
     },
   },
   cavity: {
     gain: 0.3, gain2: 0.16, gain3: 0.075,
-    f0: 340, f1: 1620, seconds: 0.13, segments: 11, wobble: 0.17,
-    q: 5, ratio2: 2.42, ratio3: 4.13, attack: 0.007, decay: 0.19,
+    // Up fast as it is drawn away and stretches, then easing back down: elastic, not a sweep.
+    f0: 780, f1: 3200, seconds: 0.048, f2: 2400, seconds2: 0.055, segments: 5, wobble: 0.14,
+    q: 4.5, ratio2: 2.42, ratio3: 4.13, attack: 0.005, decay: 0.1,
   },
   bubbles: {
-    at: 0.076,
+    at: 0.028,
     gain: 0.24,
     grains: {
-      seconds: 0.3, count: 18, fLo: 200, fHi: 900, bw: 92,
-      ampTilt: 1.5, gapTilt: -1, grainLoMs: 5, grainHiMs: 16, glide: 1.12, damp: 6,
+      seconds: 0.1, count: 7, fLo: 700, fHi: 2800, bw: 150,
+      ampTilt: 1.4, gapTilt: -0.8, grainLoMs: 3, grainHiMs: 9, glide: 1.15, damp: 8,
+    },
+  },
+  // Rising: the creature being drawn in. Narrow bandwidth so the resonance rings enough to read as a voice.
+  chirp: {
+    at: 0.03,
+    gain: 0.15,
+    grains: {
+      seconds: 0.075, count: 2, fLo: 1150, fHi: 1900, bw: 70,
+      ampTilt: 0.4, gapTilt: 0, grainLoMs: 26, grainHiMs: 42, glide: 1.45, damp: 4.5,
     },
   },
   spray: {
-    at: 0.004,
-    gain: 0.08,
+    at: 0.003,
+    gain: 0.085,
     grains: {
-      seconds: 0.095, count: 13, fLo: 3800, fHi: 7600, bw: 900,
-      ampTilt: 1.2, gapTilt: 0.4, grainLoMs: 1.2, grainHiMs: 3.5, glide: 0.9, damp: 14,
+      seconds: 0.045, count: 8, fLo: 4200, fHi: 8400, bw: 950,
+      ampTilt: 1.2, gapTilt: 0.4, grainLoMs: 0.8, grainHiMs: 2.2, glide: 0.9, damp: 15,
     },
   },
-  thud: { gain: 0.1, f0: 270, f1: 118, decay: 0.1 },
-  // Feedback moderated from 0.42: a comb dense enough to fill the gaps BETWEEN the grains defeats the point
-  // of scattering them, because what the ear (and the onset measurement) reads as separate events is the
-  // silence in between. The gurgle has to sit under the crowd, not smear it.
-  comb: { delaysMs: [4.7, 7.3, 11.9], feedback: 0.34, damp: 2600, wet: 0.48, dry: 0.85 },
-  combDrift: 0.82,
+  // A trace of weight, and no more. It collapsed to 118 Hz before, which is a thump from something heavy; it
+  // now stops at 240, which is a small thing landing.
+  thud: { gain: 0.075, f0: 520, f1: 240, decay: 0.055 },
+  /**
+   * SHORT AND BRIGHT DELAYS, 1.9 to 4.7 ms rather than 4.7 to 11.9.
+   *
+   * A comb's peaks sit at the reciprocal of its delay, so 12 ms put resonances at 83 Hz and its multiples —
+   * which is exactly the low gurgling the reference does not have and which is what tips "wet" over into
+   * visceral. At 2 ms the peaks are up at 500 Hz and read as hollowness rather than as a throat. Feedback
+   * stays low so the comb never fills the silences between the grains, which is what makes them separate
+   * events at all.
+   */
+  comb: { delaysMs: [1.9, 3.1, 4.7], feedback: 0.3, damp: 4200, wet: 0.4, dry: 0.9 },
+  combDrift: 0.85,
 };
 
 /**
- * LAND — a slime touching down at the end of its arc. The fattest, wettest impact of the three.
+ * LAND — a slime touching down at the end of its arc. The wettest of the three, and a BLOP.
  *
- * A splat: the densest attack cluster, over the shortest span, with the widest resonance band, so the
- * micro-events span from a low slap to a bright spatter. The cavity settles DOWNWARD because the thing has
- * arrived and is spreading out. The bubble spread afterwards is the longest and most decelerating of the
- * three — a third of a second of the sound thinning out, which is what stops it reading as a dry crunch.
+ * A splat: the densest attack cluster over the shortest span, spanning a wide resonance band so the
+ * micro-events run from a soft slap to a bright spatter. Then the elastic recovery, which is the whole
+ * character of the sound: the cavity drops hard from 3 kHz to 1.15 kHz on impact and SPRINGS BACK UP to
+ * 1.5 kHz as the jelly recovers its shape. Down-then-up is what a bouncy solid does; down-and-stay is what mud
+ * does, and this used to do the latter over 150 ms.
  *
- * And this is where the real low end lives: a lowpass collapsing from 340 Hz to 68 in 16 ms. Weight with no
- * pitch, where the old version had an audible 95 Hz sine.
+ * It was "the fattest" of the three, with a lowpass collapsing to 68 Hz and a 400 ms bubble tail. Both are
+ * gone. A small slime landing is bright and quick — the weight now stops at 210 Hz and the whole event is
+ * about 190 ms, because in the reference these are impacts and not events with an aftermath.
  */
 const LAND: SquelchSpec = {
   tear: {
     at: 0,
-    gain: 0.42,
+    gain: 0.44,
     grains: {
-      seconds: 0.062, count: 6, fLo: 420, fHi: 2400, bw: 420,
-      ampTilt: 1.4, gapTilt: -0.6, grainLoMs: 2, grainHiMs: 7, glide: 0.8, damp: 11,
+      seconds: 0.028, count: 4, fLo: 1400, fHi: 4800, bw: 620,
+      ampTilt: 1.3, gapTilt: -0.5, grainLoMs: 1.5, grainHiMs: 5, glide: 0.82, damp: 12,
     },
   },
   cavity: {
     gain: 0.3, gain2: 0.16, gain3: 0.07,
-    f0: 1480, f1: 380, seconds: 0.15, segments: 12, wobble: 0.19,
-    q: 5.5, ratio2: 2.24, ratio3: 3.71, attack: 0.005, decay: 0.24,
+    // Hard down on the impact, then back up as it recovers. The bounce is in the f2.
+    f0: 3000, f1: 1150, seconds: 0.042, f2: 1500, seconds2: 0.05, segments: 5, wobble: 0.16,
+    q: 5, ratio2: 2.24, ratio3: 3.71, attack: 0.004, decay: 0.12,
   },
   bubbles: {
-    at: 0.05,
+    at: 0.024,
     gain: 0.28,
     grains: {
-      seconds: 0.4, count: 24, fLo: 170, fHi: 820, bw: 80,
-      ampTilt: 1.6, gapTilt: -1.3, grainLoMs: 6, grainHiMs: 20, glide: 1.08, damp: 5.5,
+      seconds: 0.12, count: 8, fLo: 600, fHi: 2400, bw: 130,
+      ampTilt: 1.5, gapTilt: -1, grainLoMs: 4, grainHiMs: 12, glide: 1.1, damp: 7,
     },
   },
+  // No chirp on the landing: this one is the physics, and chirping all three would make the creature a tic.
+  chirp: null,
   spray: {
     at: 0.002,
-    gain: 0.095,
+    gain: 0.1,
     grains: {
-      seconds: 0.078, count: 15, fLo: 4200, fHi: 8200, bw: 1100,
-      ampTilt: 1.5, gapTilt: 0.3, grainLoMs: 1, grainHiMs: 3, glide: 0.85, damp: 16,
+      seconds: 0.04, count: 9, fLo: 4600, fHi: 9000, bw: 1150,
+      ampTilt: 1.4, gapTilt: 0.3, grainLoMs: 0.8, grainHiMs: 2, glide: 0.85, damp: 16,
     },
   },
-  thud: { gain: 0.3, f0: 340, f1: 68, decay: 0.13 },
-  comb: { delaysMs: [3.1, 6.7, 10.3, 14.1], feedback: 0.36, damp: 2300, wet: 0.52, dry: 0.85 },
-  combDrift: 1.24,
+  thud: { gain: 0.16, f0: 620, f1: 210, decay: 0.06 },
+  comb: { delaysMs: [1.3, 2.6, 4.1, 6.3], feedback: 0.32, damp: 3800, wet: 0.42, dry: 0.9 },
+  combDrift: 1.2,
 };
 
 /**
- * PLOP — the release, as a bubble letting go.
+ * PLOP — the release. A BLOP: a bubble letting go, and the shortest of the three at about 120 ms.
  *
- * A SUCTION POP RATHER THAN A SWEEP, which is the specific correction here. The old plop swept its formant
- * from 900 Hz down to 300 over 70 ms, and 70 ms is long enough for the ear to follow the movement and hear a
- * gesture. This one collapses over 45 ms, which is short enough that the whole thing arrives as a single
- * round event — and the attack cluster's grains each have `glide` 0.7, so every micro-event is itself
- * collapsing. A cavity closing is what a bubble letting go actually is.
+ * A SUCTION POP RATHER THAN A SWEEP. The cavity collapses over 28 ms, which is short enough that the whole
+ * thing arrives as one round event instead of a movement the ear can follow, and every micro-event in the
+ * attack cluster is itself collapsing (`glide` 0.7). Then it opens slightly back up — f2 above f1 — because a
+ * released bubble rebounds, and that rebound is what stops a pop sounding like a click.
  *
- * Kept LOWER than the landing, as it always was: it happens inside a tank, muffled, a round bubble of a
- * sound. Its resonances live around 260–820 Hz where `LAND` lives around 380–1500. Deep-then-bright,
- * out-then-down. Nothing in the directory depends on that ordering if it is ever wanted the other way.
+ * STILL LOWER THAN THE LANDING, but both are now high: this sits around 950 Hz to 2.2 kHz where `LAND` runs
+ * 1.15 to 3 kHz. It used to sit at 262–820 Hz, which was muffled and heavy in a way a small slime being shot
+ * out of a nozzle is not. Nothing in the directory depends on the ordering if it is ever wanted reversed.
  */
 const PLOP: SquelchSpec = {
   tear: {
     at: 0,
     gain: 0.36,
     grains: {
-      seconds: 0.036, count: 4, fLo: 300, fHi: 1100, bw: 200,
-      ampTilt: 1.2, gapTilt: -0.4, grainLoMs: 3, grainHiMs: 8, glide: 0.7, damp: 8,
+      seconds: 0.02, count: 3, fLo: 1000, fHi: 3000, bw: 380,
+      ampTilt: 1.2, gapTilt: -0.4, grainLoMs: 2, grainHiMs: 6, glide: 0.7, damp: 9,
     },
   },
   cavity: {
     gain: 0.28, gain2: 0.14, gain3: 0.062,
-    f0: 820, f1: 262, seconds: 0.045, segments: 6, wobble: 0.2,
-    q: 4.2, ratio2: 2.13, ratio3: 3.44, attack: 0.004, decay: 0.12,
+    f0: 2200, f1: 950, seconds: 0.028, f2: 1250, seconds2: 0.03, segments: 4, wobble: 0.18,
+    q: 4, ratio2: 2.13, ratio3: 3.44, attack: 0.003, decay: 0.07,
   },
   bubbles: {
-    at: 0.02,
+    at: 0.014,
     gain: 0.22,
     grains: {
-      seconds: 0.19, count: 12, fLo: 190, fHi: 700, bw: 85,
-      ampTilt: 1.3, gapTilt: -0.8, grainLoMs: 6, grainHiMs: 18, glide: 1.15, damp: 6,
+      seconds: 0.07, count: 5, fLo: 650, fHi: 2200, bw: 140,
+      ampTilt: 1.3, gapTilt: -0.7, grainLoMs: 4, grainHiMs: 11, glide: 1.18, damp: 7.5,
+    },
+  },
+  // Falling: the creature being let go. The mirror of the squish's rising chirp, which is what makes the pair
+  // read as one action with two ends rather than as two unrelated noises.
+  chirp: {
+    at: 0.016,
+    gain: 0.14,
+    grains: {
+      seconds: 0.06, count: 2, fLo: 980, fHi: 1600, bw: 75,
+      ampTilt: 0.4, gapTilt: 0, grainLoMs: 20, grainHiMs: 34, glide: 0.7, damp: 5,
     },
   },
   spray: {
     at: 0.001,
-    gain: 0.06,
+    gain: 0.065,
     grains: {
-      seconds: 0.042, count: 8, fLo: 3600, fHi: 6800, bw: 900,
-      ampTilt: 1.4, gapTilt: 0.2, grainLoMs: 1, grainHiMs: 2.5, glide: 0.9, damp: 15,
+      seconds: 0.028, count: 6, fLo: 4000, fHi: 7800, bw: 950,
+      ampTilt: 1.3, gapTilt: 0.2, grainLoMs: 0.7, grainHiMs: 1.8, glide: 0.9, damp: 15,
     },
   },
-  thud: { gain: 0.15, f0: 300, f1: 82, decay: 0.09 },
-  comb: { delaysMs: [2.3, 5.9, 9.7], feedback: 0.32, damp: 2100, wet: 0.52, dry: 0.85 },
-  combDrift: 0.88,
+  thud: { gain: 0.09, f0: 480, f1: 225, decay: 0.045 },
+  comb: { delaysMs: [1.1, 2.3, 3.7], feedback: 0.28, damp: 3600, wet: 0.42, dry: 0.9 },
+  combDrift: 0.9,
 };
 
 /**

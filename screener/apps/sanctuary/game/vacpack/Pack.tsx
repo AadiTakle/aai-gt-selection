@@ -224,7 +224,7 @@ function Portrait({ family, r }: { family: Family; r: number }): JSX.Element {
     /* Two nested groups. The outer one carries the flattening and the fit, so the inner one can be
        authored in plain body units; rolling them together would mean every face offset below carrying
        the squash by hand. */
-    <group position={[0, p.lift * r, 0]} scale={[s, s, s * PORTRAIT_SQUASH]}>
+    <group position={[0, p.lift * r, p.sink * r]} scale={[s, s, s * PORTRAIT_SQUASH]}>
       {/* The gumdrop. Family colour and relief baked into a vertex attribute, so this is the real hide
           and not an approximation of it. */}
       <mesh geometry={p.body} material={slimeSkin(family)} />
@@ -336,16 +336,25 @@ function Window({ slot, held, rig }: { slot: number; held: Held | null; rig: Pac
 
   return (
     <group position={[x, 0, 0]}>
-      {/* The socket floor. Pale wadding when empty, which is legible as "there is room here"; flooded with
-          the family's own inner colour when full, which is the colour tier of the read. */}
+      {/**
+        * THE BACK WALL OF THE SOCKET. Pale wadding when empty, which is legible as "there is room here";
+        * flooded with the family's own colour when full, which is the colour tier of the read.
+        *
+        * PUSHED BACK AND THINNED, and both are part of the depth fix `CLEAR_OF_LENS` describes. `disc()` is
+        * a cylinder 0.1 long, so the old `0.06` z-scale made this a slab ±0.21 window radii thick sitting
+        * at z = 0 — a wall through the middle of anything standing in the socket. It is now a tenth of
+        * that, and set behind where a portrait's feet go, so it is a painted back wall rather than an
+        * obstacle. Nothing about it reads differently; it was never meant to have thickness.
+        */}
       <mesh
         geometry={disc()}
         material={held ? lensMaterial(held.family) : emptyMaterial()}
-        scale={[WINDOW.r * 0.94, WINDOW.r * 0.94, 0.06]}
+        position={[0, 0, -WINDOW.r * 0.06]}
+        scale={[WINDOW.r * 0.94, WINDOW.r * 0.94, 0.006]}
       />
 
       {held ? (
-        <group ref={spin} position={[0, 0, WINDOW.r * 0.1]}>
+        <group ref={spin}>
           <Portrait family={held.family} r={WINDOW.r} />
         </group>
       ) : null}

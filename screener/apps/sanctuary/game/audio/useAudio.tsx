@@ -215,8 +215,31 @@ const PROMPT_CSS = `
  *   a decision to make rather than a control to press. Note the flag is "a gesture happened", NOT "an
  *   AudioContext exists", so a machine with no Web Audio still sees the invitation go away.
  */
-export function HeadphonePrompt(): JSX.Element | null {
+/**
+ * ══ WHY THERE IS A `during` PROP ═══════════════════════════════════════════════════════════════════
+ *
+ * The gesture gate above is the ORIGINAL behaviour and it was wrong for this game, for two reasons the
+ * owner found by playing it: it sat at the top of the screen and never left ("perpetually stuck"), and
+ * it asked for headphones during parts of the game that make no speech at all.
+ *
+ * Only ONE thing here speaks: the verbal story. Everything else is squelches and a soft pad, which a
+ * child can happily play without. So the invitation belongs to the verbal round and nowhere else — an
+ * always-on plea is noise, and noise is what gets ignored precisely when it matters.
+ *
+ * Pass `during` and the gesture gate is bypassed entirely: visible exactly while the flag is true,
+ * fading on the way out. Which also means it can be shown MORE than once — a child meets the story
+ * again on a later visit and may well have taken the headphones off since. The gesture flag could never
+ * express that, because it is sticky by design.
+ *
+ * Omit `during` and the original first-gesture behaviour is unchanged, so `verify.mjs`'s checks and any
+ * other mount still hold.
+ */
+export function HeadphonePrompt({ during }: { during?: boolean } = {}): JSX.Element | null {
   const gestured = useGestured();
+  const gated = during === undefined;
+
+  /** True when the thing should be on its way out: the gesture, or the flag going false. */
+  const leaving = gated ? gestured : !during;
 
   /**
    * Read at mount and never again, on purpose — see the note above. `useState`'s initialiser rather than a
@@ -224,15 +247,39 @@ export function HeadphonePrompt(): JSX.Element | null {
    */
   const [suppressed] = useState(() => prefersReducedMotion() || muted());
 
-  /** Kept mounted for the length of the fade, then gone. */
+  /**
+   * Kept mounted for the length of the fade, then gone.
+   *
+   * Only the gesture-gated path unmounts for good. On the `during` path this must stay reversible, or the
+   * first verbal round would be the only one that ever showed it.
+   */
   const [gone, setGone] = useState(false);
   useEffect(() => {
-    if (!gestured) return;
+    if (!gated || !gestured) return;
     const t = window.setTimeout(() => setGone(true), FADE_MS + 60);
     return () => window.clearTimeout(t);
-  }, [gestured]);
+  }, [gated, gestured]);
+
+  /**
+   * On the `during` path: present from the moment the flag goes true, and torn down `FADE_MS` after it goes
+   * false so the fade-out is seen rather than cut. Not rendered at all before the first verbal round —
+   * rendering it invisibly would park an aria-labelled status node in the accessibility tree all session,
+   * which a screen reader would announce as present while a sighted child sees nothing.
+   */
+  const [present, setPresent] = useState(false);
+  useEffect(() => {
+    if (gated) return;
+    if (during) {
+      setPresent(true);
+      return;
+    }
+    if (!present) return;
+    const t = window.setTimeout(() => setPresent(false), FADE_MS + 60);
+    return () => window.clearTimeout(t);
+  }, [gated, during, present]);
 
   if (suppressed || gone) return null;
+  if (!gated && !present) return null;
 
   return (
     <>
@@ -252,8 +299,8 @@ export function HeadphonePrompt(): JSX.Element | null {
           // clearance under it comes from. A `gap` on top of that reads as a gap twice as big as it is.
           gap: 0,
           // The fade-out. Transform and opacity only, so it costs no layout on the way out.
-          transform: `translateX(-50%) scale(${gestured ? 0.88 : 1})`,
-          opacity: gestured ? 0 : 1,
+          transform: `translateX(-50%) scale(${leaving ? 0.88 : 1})`,
+          opacity: leaving ? 0 : 1,
           transition: `opacity ${FADE_MS}ms ease-out, transform ${FADE_MS}ms ease-out`,
           // An invitation, never a gate. Every press goes through to the game underneath.
           pointerEvents: 'none',

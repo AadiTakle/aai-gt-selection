@@ -22,17 +22,21 @@ import { controlBuffer, resonantGrains, wetComb } from './wet';
  *
  * ══ WHAT IT IS MADE OF INSTEAD ════════════════════════════════════════════════════════════════════
  *
- *   · TURBULENT FLUTTERING AIR. Pink noise (the spectrum of actual moving air) through a lowpass, but with
- *     both its level and its cutoff driven by SLOW RANDOM CONTROL SIGNALS rather than sitting still. That
- *     flutter is the single thing that replaces the motor's job of saying "something is happening": an
- *     unsteady rush reads as work being done, where a steady one reads as a hiss.
- *   · A LOW RESONANT BED for the body and presence the motor used to supply — brown noise through a wide
- *     bandpass around 150 Hz whose centre WANDERS. Filtered noise has mass without a fundamental, so the
- *     pack still has a size and there is nothing to tune it to.
+ *   · TURBULENT FLUTTERING AIR, and it is BRIGHT: pink noise (the spectrum of actual moving air) lowpassed at
+ *     2.6 kHz rather than the 1.05 kHz it began at, with both its level and its cutoff driven by SLOW RANDOM
+ *     CONTROL SIGNALS rather than sitting still. That flutter is what replaces the motor's job of saying
+ *     "something is happening": an unsteady rush reads as work being done, a steady one reads as a hiss.
+ *   · A MODEST LOW BED, brown noise through a wide bandpass at a wandering 190 Hz, mixed at 0.3. It supplies
+ *     the presence the motor used to and nothing more — filtered noise has mass without a fundamental. It was
+ *     twice this level, which made the pack sound like a shop vacuum rather than a handheld device.
+ *   · A HINT OF MECHANISM AT 2.9 kHz, broad and constantly wandering. The vacpack IS a machine and should read
+ *     as equipment; the original's mistake was putting that suggestion at 68 Hz, where low plus tonal plus
+ *     steady is the exact recipe for "engine". High and unstable reads as airflow through a turbine.
  *   · A GLOOP TRACK: fifteen seconds of sparse, irregularly spaced wet resonances, looping. This is the
  *     material moving through, and see below for why it is a buffer rather than scheduled events.
- *   · A COMB BANK on the air, delays 3–13 ms, low feedback and continuously drifting. The gurgle, and the
- *     reason the whole thing sounds like it has a tube in it.
+ *   · A COMB BANK on the air, delays 1.2–4.9 ms, low feedback and continuously drifting. Short delays put the
+ *     comb's peaks up around 200–800 Hz, which is hollowness; at 12 ms they sat at 83 Hz, which is gurgling,
+ *     and low gurgling is what tips "wet" over into visceral.
  *   · FINE HIGH SPRAY, very quiet, level-modulated by its own random control: moisture up top.
  *
  * Every modulator in here is a random control signal, never a sine LFO. A sine LFO is a steady wobble, and a
@@ -56,7 +60,7 @@ import { controlBuffer, resonantGrains, wetComb } from './wet';
  * BOTH RULES ARE UNCHANGED, and both are structural rather than careful:
  *
  *   1. NOTHING IS EVER STARTED OR STOPPED DURING PLAY. Every source in here — the air, the bed, the gloop
- *      track, the spray and all four control signals — is started once, at construction, with the output gain
+ *      track, the burble, the spray and every control signal — is started once, at construction, with the gain
  *      at zero, and runs until `dispose`. `start` and `stop` only move a gain.
  *   2. EVERY MOVE GOES THROUGH `rampTo`, which holds the parameter's live value before ramping (see the note
  *      on it in `bus.ts`). So a stop that interrupts a still-rising start ramps down from wherever it had got
@@ -74,7 +78,7 @@ import { controlBuffer, resonantGrains, wetComb } from './wet';
  *
  * Baked into `start` rather than exposed as a third method, so it cannot be forgotten by a caller: the level
  * reaches its base in 90 ms and then creeps up 22 % over the following 1.3 s while the lowpass opens from
- * 1.05 to 1.5 kHz and the low bed's resonance rises a little. It reads as the pack working harder against
+ * 2.6 to 3.8 kHz and the low bed's resonance rises a little. It reads as the pack working harder against
  * something. An interrupting `stop` cancels all of it, because it is all `rampTo`.
  */
 
@@ -94,10 +98,10 @@ const IN_SECONDS = 0.09;
 const OUT_SECONDS = 0.16;
 const CREEP_SECONDS = 1.3;
 
-const AIR_CLOSED = 1050;
-const AIR_OPEN = 1500;
+const AIR_CLOSED = 2600;
+const AIR_OPEN = 3800;
 /** The low bed's resonance. Where the motor used to be, with no pitch in it. */
-const BED_HZ = 150;
+const BED_HZ = 190;
 
 /**
  * A looping random control source in a stated frequency band.
@@ -167,7 +171,7 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
   // The rush, wide on purpose: a high Q here is the whine this design exists to avoid.
   const rush = ctx.createBiquadFilter();
   rush.type = 'bandpass';
-  rush.frequency.value = 520;
+  rush.frequency.value = 1400;
   rush.Q.value = 0.9;
 
   const rushGain = ctx.createGain();
@@ -178,9 +182,9 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
   const comb = wetComb(ctx, {
     // Mutually inharmonic, and low feedback. Over a sound held for ten seconds a resonant comb would be
     // found by the ear and heard as a note, which is the failure mode the triangles just got removed for.
-    delaysMs: [3.7, 6.1, 9.4, 13.3],
+    delaysMs: [1.2, 2.1, 3.3, 4.9],
     feedback: 0.3,
-    damp: 1900,
+    damp: 4200,
     wet: 0.32,
     dry: 1,
   });
@@ -207,7 +211,7 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
   bedBand.Q.value = 1.1;
 
   const bedGain = ctx.createGain();
-  bedGain.gain.value = 0.62;
+  bedGain.gain.value = 0.3;
 
   bed.connect(bedBand);
   bedBand.connect(bedGain);
@@ -231,8 +235,8 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
       seconds: 15,
       count: 46,
       // Wet and mid-low, and a wide span of sizes so no two gloops are the same object going past.
-      fLo: 170,
-      fHi: 780,
+      fLo: 500,
+      fHi: 1900,
       bw: 85,
       // Flat: these are not decaying, they are events in a continuing process.
       ampTilt: 0,
@@ -250,7 +254,7 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
   // the gloops are in the same tube as the air rather than beside it.
   const gloopLow = ctx.createBiquadFilter();
   gloopLow.type = 'lowpass';
-  gloopLow.frequency.value = 2000;
+  gloopLow.frequency.value = 3600;
   gloopLow.Q.value = 0.5;
 
   const gloopGain = ctx.createGain();
@@ -287,8 +291,8 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
     {
       seconds: 15,
       count: 170,
-      fLo: 300,
-      fHi: 1700,
+      fLo: 900,
+      fHi: 3600,
       bw: 340,
       ampTilt: 0,
       gapTilt: 0,
@@ -306,6 +310,35 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
 
   burble.connect(burbleGain);
   burbleGain.connect(comb.input);
+
+  /* --- the hint of mechanism, high and unstable ------------------------------------------------ */
+
+  /**
+   * THE VACPACK IS A PIECE OF TECHNOLOGY, so "no machine at all" was too strong a rule. It should read as
+   * equipment. The mistake in the original was never that it had a mechanical component — it was WHERE that
+   * component sat: two oscillators at 68 and 102 Hz, and LOW plus TONAL plus STEADY is precisely the
+   * combination the ear labels "engine".
+   *
+   * The same suggestion put up at 2.9 kHz reads completely differently — as airflow through a turbine, which is
+   * what a suction device actually sounds like. Three things keep it from becoming a whine:
+   *
+   *   · IT IS NOISE, not an oscillator. A resonant peak on noise has a centre without having a frequency.
+   *   · Q IS 2.4, which is a broad hump rather than a line. A high Q at 3 kHz is the single most fatiguing
+   *     thing that could be put in a sound a child holds down for ten seconds at a time.
+   *   · ITS CENTRE NEVER STOPS MOVING, driven by its own random control at ±600 Hz. A steady resonance is
+   *     found by the ear within a couple of seconds; one that wanders is heard as turbulence.
+   */
+  const whine = ctx.createBiquadFilter();
+  whine.type = 'bandpass';
+  whine.frequency.value = 2900;
+  whine.Q.value = 2.4;
+
+  const whineGain = ctx.createGain();
+  whineGain.gain.value = 0.17;
+
+  air.connect(whine);
+  whine.connect(whineGain);
+  whineGain.connect(wobble);
 
   /* --- fine high spray ------------------------------------------------------------------------ */
 
@@ -351,6 +384,11 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
   const sprayWander = control(ctx, 10, 0.032, rand);
   sprayWander.depth.connect(sprayGain.gain);
 
+  // The turbine hump wanders ±600 Hz around 2.9 kHz, faster than anything else in here. This is the modulator
+  // that keeps the one deliberately resonant layer from ever settling into a note.
+  const whineWander = control(ctx, 8, 600, rand);
+  whineWander.depth.connect(whine.frequency);
+
   // Each comb tap drifts independently and slowly. Identical drift would move the whole comb together and
   // preserve the ratios between its peaks, and the ratios are what read as a pitch.
   const combWanders = comb.delays.map((delay, i) => {
@@ -360,7 +398,7 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
     return c;
   });
 
-  const controls = [breath, flutter, airWander, bedWander, sprayWander, ...combWanders];
+  const controls = [breath, flutter, airWander, bedWander, sprayWander, whineWander, ...combWanders];
 
   // Everything starts now and never stops. See rule 1 above.
   const startAt = ctx.currentTime;
@@ -374,7 +412,7 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
 
   const nodes: AudioNode[] = [
     level, wobble, air, airLow, airGain, rush, rushGain, bed, bedBand, bedGain,
-    gloop, gloopLow, gloopGain, burble, burbleGain, spray, sprayHigh, sprayGain,
+    gloop, gloopLow, gloopGain, burble, burbleGain, whine, whineGain, spray, sprayHigh, sprayGain,
     ...comb.nodes,
     ...controls.flatMap((c) => [c.source, c.depth]),
   ];
