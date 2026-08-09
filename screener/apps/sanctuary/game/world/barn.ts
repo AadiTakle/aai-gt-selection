@@ -127,7 +127,17 @@ export const DOOR = {
    */
   leaf: 1.87,
   leafT: 0.14,
-  leafH: 3.5,
+  /**
+   * Leaf height, and it is set by where the FLOOR is rather than by where the wall starts.
+   *
+   * 3.9 rather than the 3.5 the old static doors used, and the difference is the whole reason it is worth
+   * a note. Those doors hung from the plinth top, 44cm up, because that is where the walls begin — and now
+   * that the barn has an interior at 7cm and a notch cut through the footing at the doorway, a door
+   * starting at 44cm would leave a 37cm gap under it that you could see the meadow through from inside.
+   * The leaf therefore runs from just above the threshold to just under the head: 3.9m of timber in a
+   * 3.62m opening measured from the plinth, which is the same thing measured from the floor.
+   */
+  leafH: 3.9,
   /**
    * How far the hinge plane stands in front of the wall's outer face.
    *
@@ -166,19 +176,43 @@ export const DOORWAY_WORLD: P2 = toWorld(BARN, 0, BARN_D / 2);
  */
 export const DOOR_SIDES: readonly (1 | -1)[] = [-1, 1];
 
+/** True when a point is inside the barn's footprint, with a little padding. */
+export function insideBarn(x: number, z: number, pad = 0.5): boolean {
+  const c = Math.cos(BARN.rot);
+  const s = Math.sin(BARN.rot);
+  const dx = x - BARN.x;
+  const dz = z - BARN.z;
+  const lx = dx * c - dz * s;
+  const lz = dx * s + dz * c;
+  return Math.abs(lx) < BARN_W / 2 + pad && Math.abs(lz) < BARN_D / 2 + pad;
+}
+
 /**
- * Where a leaf's swing angle should be, given how far away the keeper is.
+ * Where a leaf's swing angle should be, given where the keeper is.
  *
- * TWO RADII, NOT ONE, and the reason is a defect you get for free with a single threshold: a child
- * standing exactly on the line — which is precisely where they end up, because the doors opening is the
- * interesting thing — makes the doors flutter open and shut as they shift their weight. Opening at 7.5m
- * and closing at 9.5m means the state can only change after two metres of committed walking.
+ * TWO RADII, NOT ONE, and the reason is a defect you get for free with a single threshold: a child standing
+ * exactly on the line — which is precisely where they end up, because the doors opening is the interesting
+ * thing — makes the doors flutter open and shut as they shift their weight. Opening at 7.5m and closing at
+ * 9.5m means the state can only change after two metres of committed walking.
  *
- * The caller keeps the boolean; this function only says what the target angle is.
+ * AND A THIRD CONDITION, WHICH A SCREENSHOT FOUND. With distance alone, a child who walks in and keeps
+ * walking gets shut in: the barn is 14m deep, so eight metres down the floor they are outside the closing
+ * radius and the doors swing shut behind them, in a building whose only daylight came through those doors.
+ * That is not a rough edge, it is the interaction actively working against the thing it exists to enable.
+ * So the doors are open whenever the keeper is INSIDE, unconditionally, and no radius can override it.
+ *
+ * The alternative — a near radius wide enough to cover the whole interior — would have to be about 15m,
+ * which would swing the doors for anybody crossing the yard and spend the effect on nothing.
  */
-export function doorTarget(distance: number, currentlyOpen: boolean): { open: boolean; angle: number } {
-  const open = currentlyOpen ? distance < DOOR.farRadius : distance < DOOR.nearRadius;
-  return { open, angle: open ? DOOR.open : 0 };
+export function doorTarget(
+  x: number,
+  z: number,
+  currentlyOpen: boolean,
+): { open: boolean; angle: number; distance: number; inside: boolean } {
+  const distance = distanceToDoorway(x, z);
+  const inside = insideBarn(x, z);
+  const open = inside || (currentlyOpen ? distance < DOOR.farRadius : distance < DOOR.nearRadius);
+  return { open, angle: open ? DOOR.open : 0, distance, inside };
 }
 
 /**
@@ -284,11 +318,14 @@ export const BARN_PLINTH: readonly Slab[] = (() => {
   });
 
   /**
-   * The notch. `DOOR.halfW + 0.15` rather than `DOOR.halfW`, so the stone stops slightly WIDER than the
-   * opening rather than exactly at it. Cut flush with the jamb the footing's rounded corner would stand
-   * up inside the doorway as a 3cm stone lip in the one place a child's foot goes.
+   * The notch, 28cm wider than the opening on each side, and both reasons are geometric.
+   *
+   * Cut flush with the jamb, the footing's rounded corner would stand up inside the doorway as a 3cm stone
+   * lip in the one place a child's foot goes. And a swinging leaf reaches `leafT * sin θ` past its own
+   * hinge in x — 14cm at full open — so a notch that stopped at the hinge line would have the doors
+   * grazing the stone every time they opened. 28cm clears both with room over.
    */
-  const notchHalf = DOOR.halfW + 0.15;
+  const notchHalf = DOOR.halfW + 0.28;
   const sideW = outerHalfW - width - notchHalf;
   for (const sx of [-1, 1] as const) {
     out.push({
@@ -304,7 +341,7 @@ export const BARN_PLINTH: readonly Slab[] = (() => {
 /** The threshold slab that fills the notch, level with the floor. */
 export const BARN_THRESHOLD: Slab = {
   at: [0, BARN_FLOOR_Y / 2, BARN_D / 2 + 0.25 - (0.25 + BARN_WALL_T + 0.06) / 2],
-  size: [(DOOR.halfW + 0.15) * 2, BARN_FLOOR_Y, 0.25 + BARN_WALL_T + 0.06],
+  size: [(DOOR.halfW + 0.28) * 2, BARN_FLOOR_Y, 0.25 + BARN_WALL_T + 0.06],
   tag: 'header',
 };
 
@@ -324,12 +361,62 @@ const WALL_R = 0.55;
 const WALL_SPACING = 0.85;
 const INNER_R = 0.5;
 
-/** Where the stalls stop and the open floor begins, in local z. Shared with `BarnInterior`. */
-export const STALL_RANGE = { from: -BARN_IN_HALF_D + 0.2, to: 2.5 } as const;
+/**
+ * WHERE THE STALLS ARE, and why they stop where they do.
+ *
+ * The barn is 13.3m long inside. The stalls take the back 7.1m of it, from the closed gable to local
+ * z = 0.6, and the front 6m is left as an open threshing floor. That split is the difference between a
+ * barn and a corridor: stalls the whole length would put a child in a 4.5m-wide aisle for the entire
+ * building, whereas walking in under a loft and having the space open out in front of you is the thing a
+ * barn actually feels like.
+ *
+ * It also leaves room for the ladder to stand clear of a stall front, which it otherwise cannot.
+ */
+export const STALL_RANGE = { from: -BARN_IN_HALF_D + 0.2, to: 0.6 } as const;
 /** How far a stall reaches in from the inner wall face. */
 export const STALL_DEPTH = 1.15;
 /** Local x of a stall's front line. */
 export const STALL_FRONT_X = BARN_IN_HALF_W - STALL_DEPTH;
+
+/** Divider positions, so the renderer and the collider agree on where the stalls are. */
+export const STALL_DIVIDERS: readonly number[] = (() => {
+  const n = 3;
+  const out: number[] = [];
+  for (let i = 0; i <= n; i += 1) {
+    out.push(STALL_RANGE.from + (i / n) * (STALL_RANGE.to - STALL_RANGE.from));
+  }
+  return out;
+})();
+
+/**
+ * The hayloft, over the front of the barn.
+ *
+ * OVER THE FRONT, not the back, and that is the one placement decision in the interior worth arguing.
+ * The hay door is up in the +Z gable — it was already there, where a hoist would be — so a loft at the
+ * other end would have hay being lifted through a door into thin air. Putting it under its own door is
+ * both correct and better: a child walks in beneath a low ceiling and the barn opens up in front of them,
+ * which is a far stronger sense of having entered somewhere than a uniform box gives.
+ *
+ * `y` is 3.35, which leaves the loft's edge crossing the top 27cm of the 3.62m doorway. That is deliberate
+ * too: seeing a floor edge through the opening from outside tells a child there is an upstairs before they
+ * have gone in.
+ */
+export const LOFT = { from: 1.2, to: BARN_IN_HALF_D, y: 3.35 } as const;
+
+/** The two posts under the loft's open edge. */
+export const LOFT_POSTS: readonly { x: number; z: number }[] = [
+  { x: -(BARN_IN_HALF_W - 0.7), z: LOFT.from + 0.3 },
+  { x: BARN_IN_HALF_W - 0.7, z: LOFT.from + 0.3 },
+];
+
+/** The ladder to the loft, standing just clear of its edge on the +X wall. */
+export const LADDER = { x: BARN_IN_HALF_W - 0.32, z: LOFT.from - 0.55 } as const;
+
+/** The two feed bins against the closed end. */
+export const FEED_BINS: readonly { x: number; z: number }[] = [
+  { x: -1.5, z: -BARN_IN_HALF_D + 0.65 },
+  { x: 1.5, z: -BARN_IN_HALF_D + 0.65 },
+];
 
 /**
  * Everything about the barn a child cannot walk through.
@@ -375,6 +462,23 @@ export function barnSolids(): Solid[] {
         1.0,
       ),
     );
+  }
+
+  /**
+   * The four things standing in the open part of the floor.
+   *
+   * The stall chains cover everything behind the stall line, but the threshing floor in front of it is
+   * walkable in full — so the loft's posts, the ladder and the feed bins need their own circles or a child
+   * walks through them. Every one of them is at least 1.3m off the doorway centreline, which is what keeps
+   * `doorwayWalkReport` clean: furniture that blocked the way in would be the same defect as a sealed
+   * collider chain, arrived at from the other direction.
+   */
+  for (const post of LOFT_POSTS) {
+    out.push({ position: [...toWorld(BARN, post.x, post.z)] as [number, number], radius: 0.3 });
+  }
+  out.push({ position: [...toWorld(BARN, LADDER.x, LADDER.z)] as [number, number], radius: 0.36 });
+  for (const bin of FEED_BINS) {
+    out.push({ position: [...toWorld(BARN, bin.x, bin.z)] as [number, number], radius: 0.62 });
   }
 
   return out;

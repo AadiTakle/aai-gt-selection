@@ -85,8 +85,13 @@ await world('window-barn', 'cam=-8.6,1.5,7.4&look=-13.0,2.0,4.4');
    3. The barn: doors shut, doors open, and inside
 \* ---------------------------------------------------------------- */
 
-/* Far enough away that the doors are shut. `door` reports the leaf angle so the shot cannot lie. */
-const shut = await world('barn-shut', 'cam=-2.0,1.5,4.2&look=-9.0,2.4,2.6');
+/**
+ * Far enough away that the doors are shut, and "far enough" is a measured distance rather than a guess: the
+ * doorway's outside face is at world (-7.52, 0.95) and the closing radius is 9.5m, so this stands about 12m
+ * off it. The first attempt at this shot was 6.4m away, which is inside the OPENING radius — so the frame
+ * captioned "doors shut" had them wide open, and `door` in the printout is what caught it.
+ */
+const shut = await world('barn-shut', 'cam=3.6,1.5,6.2&look=-9.5,2.6,2.2');
 console.log(`  leaf angle when far: ${JSON.stringify(shut.door)}`);
 
 /* Close enough that they have swung. */

@@ -3,8 +3,10 @@ import { useEffect, useMemo, useRef, type JSX } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import { Buildings, SOLIDS } from './Buildings';
+import { doorSweepOk, doorTarget, doorwayWalkReport } from './barn';
 import { Lighting } from './Lighting';
 import { roofInvariantReport } from './roofs';
+import { windowReport } from './windows';
 
 /**
  * TEMPORARY. A harness for looking at `Buildings` and `Lighting` without the rest of the game — no
@@ -33,6 +35,24 @@ interface RanchStats {
   solids: number;
   roofMinY: number[];
   roofOk: boolean;
+  /**
+   * THE THREE THINGS A SCREENSHOT CANNOT SEE, which is the whole reason they are here.
+   *
+   * `walkIn` is the doorway promise: a keeper of radius 0.45 stepped down the centreline from the yard to
+   * the middle of the floor, against the WHOLE collider set, reporting the worst push-out and the clear
+   * width it measured. A photograph of an open doorway looks identical whether or not a child can walk
+   * through it.
+   *
+   * `doorSweep` is the no-clip promise, swept at 1°.
+   *
+   * `door` is the live leaf angle, so a shot claiming to show the doors open can be checked against the
+   * number rather than against somebody's eyes.
+   */
+  walkIn: { ok: boolean; clearWidth: number; worstPush: number; steps: number };
+  doorSweep: boolean;
+  doorway: boolean;
+  door: { angle: number; open: boolean; distance: number; inside: boolean };
+  windows: ReturnType<typeof windowReport>;
 }
 
 declare global {
@@ -57,6 +77,7 @@ const ORBIT = params.get('orbit') === '1';
 const PROBES = params.get('probes') === '1';
 
 const roofs = roofInvariantReport();
+const walk = doorwayWalkReport(SOLIDS, 0.45);
 window.__ranch = {
   ready: false,
   fps: 0,
@@ -67,6 +88,16 @@ window.__ranch = {
   solids: SOLIDS.length,
   roofMinY: roofs.map((r) => r.minY),
   roofOk: roofs.every((r) => Math.abs(r.minY) < 1e-6),
+  walkIn: {
+    ok: walk.ok,
+    clearWidth: walk.clearWidth,
+    worstPush: walk.worst?.pushed ?? 0,
+    steps: walk.steps,
+  },
+  doorSweep: doorSweepOk(),
+  doorway: walk.ok && doorSweepOk(),
+  door: { angle: 0, open: false, distance: 0, inside: false },
+  windows: windowReport(),
 };
 
 /** Rolling fps over the last second, plus the renderer's own counters. */
@@ -92,6 +123,28 @@ function Stats(): null {
       a.t = 0;
       a.n = 0;
     }
+  });
+  return null;
+}
+
+/**
+ * Reports what the doors are doing, read from the same camera the doors themselves read.
+ *
+ * Needed because a shot captioned "the doors are open" is not evidence. At a distance where they should be
+ * shut and one where they should be open the two frames differ by an angle, and the angle is the thing
+ * under test — so it goes on `window.__ranch` where the screenshot script prints it beside the file name.
+ *
+ * Recomputing `doorTarget` here rather than reaching into the door component keeps the preview a read-only
+ * observer. The cost of that choice is honest: this reports the COMMITTED target for the current distance,
+ * not the eased angle mid-swing.
+ */
+function DoorProbe(): null {
+  const camera = useThree((s) => s.camera);
+  useFrame(() => {
+    const s = window.__ranch;
+    if (!s) return;
+    const target = doorTarget(camera.position.x, camera.position.z, s.door.open);
+    s.door = { angle: target.angle, open: target.open, distance: target.distance, inside: target.inside };
   });
   return null;
 }
@@ -151,6 +204,7 @@ function Scene(): JSX.Element {
       <PodWallStandIn />
       {PROBES ? <Probes /> : null}
       <Camera />
+      <DoorProbe />
       <Stats />
     </>
   );

@@ -1,30 +1,55 @@
 import { useFrame } from '@react-three/fiber';
-import { useLayoutEffect, useMemo, useRef, type JSX } from 'react';
+import { useMemo, useRef, type JSX } from 'react';
 import {
   BoxGeometry,
   BufferGeometry,
   Color,
   CylinderGeometry,
-  DoubleSide,
-  Euler,
   Float32BufferAttribute,
-  Group,
-  type InstancedMesh,
-  Matrix4,
+  type Group,
   MeshStandardMaterial,
-  Quaternion,
   Shape,
   ShapeGeometry,
   SphereGeometry,
   TorusGeometry,
-  Vector3,
 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
+import {
+  BARN,
+  BARN_D,
+  BARN_EAVE,
+  BARN_FLOOR_Y,
+  BARN_GABLE_Z,
+  BARN_PLINTH,
+  BARN_PLINTH_H,
+  BARN_RAKE,
+  BARN_RISE,
+  BARN_ROOF_T,
+  BARN_THRESHOLD,
+  BARN_W,
+  BARN_WALLS,
+  BARN_WALL_H,
+  barnSolids,
+} from './barn';
+import { BarnInterior } from './barnInterior';
+import { Instanced, type Placement } from './instanced';
 import { usePrefersReducedMotion } from './motion';
 import { clamp, fbm, lerp, noise2, rng, smoothstep } from './noise';
+import { PIG, materials } from './pigment';
+import {
+  arcLengths,
+  chainOutline,
+  roundedRectOutline,
+  sampleClosed,
+  toWorld,
+  type P2,
+  type Placed,
+  type Solid,
+} from './plan';
 import { gableRoofGeometry, gableWallGeometry, hipRoofGeometry } from './roofs';
-import { grainTexture, rippleTexture } from './textures';
+import { rippleTexture } from './textures';
+import { Windows, wallTaken } from './windows';
 
 /**
  * The ranch: ground, a barn, a keeper's hut, penned corrals, and the props that say somebody works here.
@@ -66,32 +91,14 @@ const GROUND_R = 104;
 /** Metres per tile of the ground's grain map. Small enough to read underfoot, large enough not to buzz. */
 const GRAIN_METRES = 7;
 
-interface Placed {
-  x: number;
-  z: number;
-  /** Rotation about Y, radians. */
-  rot: number;
-}
-
 /**
- * The barn. The hero building, and the thing in frame at arrival that a child will walk toward.
+ * THE BARN'S NUMBERS NOW LIVE IN `barn.ts`, along with its doorway, its wall slabs, its collider and the
+ * two invariants that make the walk-in provable. This file draws the barn; that one decides what it is.
  *
- * Turned 94.5° so the gable end with the big doors is presented about 29° off the arrival sightline
- * rather than square to it. Square-on you read one flat rectangle; off-axis you read two faces at
- * different brightnesses and the building acquires volume. The angle also decides which face the sun
- * lands on: with the sun where `Lighting.tsx` puts it, the long side takes the full gold and the door end
- * takes a softer gold, and that difference between two adjacent planes is most of why the building looks
- * like it has weight.
+ * The split happened because the barn stopped being scenery and became a place. A doorway a child can walk
+ * through is a promise about the COLLIDER, not about the geometry, and a promise like that has to be
+ * testable — which means it cannot live in a file that imports a renderer.
  */
-const BARN = { x: -14.5, z: 1.5, rot: 1.65 } satisfies Placed;
-const BARN_W = 10.5; // across the slopes
-const BARN_D = 14; // along the ridge
-const BARN_WALL_H = 5.0;
-const BARN_RISE = 3.6;
-const BARN_ROOF_T = 0.44;
-const BARN_EAVE = 0.62;
-const BARN_RAKE = 0.75;
-const BARN_PLINTH_H = 0.44;
 
 /**
  * The keeper's hut. Hip-roofed and thatched, so it reads as a home rather than as a smaller barn.
@@ -172,156 +179,17 @@ const PATHS: readonly (readonly (readonly [number, number])[])[] = [
 const PATH_WIDTH: readonly number[] = [2.7, 1.9, 1.9, 1.6];
 
 /* ------------------------------------------------------------------ *\
-   Pigment
+   Pigment and materials now live in `pigment.ts`
 
-   Unlit albedo, not finished colour. `palette3d.ts` states the rule and it is the one that keeps this
-   from clipping to white: a value picked to look right on a flat 2D page already has its light baked in,
-   and handing it to a 3.15-intensity sun blows it out. Everything below is the pigment that *resolves*
-   to the palette's intent once the golden sun is on it. Per `world/palette.ts` there is no black and no
-   neutral grey in the list — even the stone is a warm brown.
+   Moved out for the same reason the barn's plan was: the windows and the barn's interior are their own
+   modules now, and all three have to draw from one palette or the buildings stop looking like one place.
+   Extracting it also breaks what would otherwise be a cycle — this file renders `Windows`, so `Windows`
+   cannot reach back in here for its materials.
 \* ------------------------------------------------------------------ */
-
-const PIG = {
-  // Warmer and paler than a midday green on purpose. A flat meadow under an 18° sun receives only
-  // `sin(18°)` of it, so a deep saturated green resolves to cold olive no matter how strong the sun is.
-  // Late-summer grass is half-dry anyway, and the dry pigment is both truer and twice as bright.
-  grass: '#9dbd63',
-  grassDeep: '#6c9052',
-  grassPale: '#c6cd7b',
-  // Pale dust, not damp soil. The first pass used a mid brown and the worn tracks came out *darker* than
-  // the grass beside them, so at eye level the whole path network read as a shadow lying on the meadow
-  // rather than as a path. A dry track in a dry field is the lighter of the two.
-  earth: '#bb9a6c',
-  earthPale: '#d2b485',
-  stone: '#b09c81',
-  stoneDeep: '#8a7659',
-  timber: '#8a6a49',
-  timberDeep: '#684d34',
-  barnRed: '#9a4030',
-  cream: '#ece5d2',
-  creamDeep: '#d8c4a0',
-  shingle: '#6a5340',
-  thatch: '#c9964f',
-  canopy: '#568644',
-  canopyLit: '#7ea653',
-  water: '#3d708a',
-  honey: '#dda43d',
-  hay: '#d6b060',
-  burlap: '#c9ad80',
-} as const;
-
-/* ------------------------------------------------------------------ *\
-   Materials
-
-   Shared instances rather than one per mesh, so three can batch state changes, and module-memoised so
-   remounting the ranch does not rebuild them. The grain map from `textures.ts` does quiet but
-   load-bearing work: the same seamless map on every surface at ~6% contrast, driving both albedo and
-   roughness, which is the difference between a wall and a coloured rectangle.
-\* ------------------------------------------------------------------ */
-
-type MatName =
-  | 'ground'
-  | 'decal'
-  | 'barnWall'
-  | 'trim'
-  | 'shingle'
-  | 'thatch'
-  | 'plaster'
-  | 'timber'
-  | 'timberDeep'
-  | 'stone'
-  | 'stoneDeep'
-  | 'hay'
-  | 'burlap'
-  | 'water'
-  | 'lamplight'
-  | 'canopy'
-  | 'painted';
-
-let MATS: Record<MatName, MeshStandardMaterial> | null = null;
-
-function materials(): Record<MatName, MeshStandardMaterial> {
-  if (MATS) return MATS;
-  const grain = grainTexture();
-  const make = (color: string, roughness: number, repeat: number, vertexColors = false): MeshStandardMaterial => {
-    const m = new MeshStandardMaterial({ color, roughness, metalness: 0, vertexColors });
-    if (grain) {
-      // Cloned so each surface picks its own repeat; the clone shares the source, so this is still one
-      // texture on the GPU.
-      const t = grain.clone();
-      t.repeat.set(repeat, repeat);
-      t.needsUpdate = true;
-      m.map = t;
-      m.roughnessMap = t;
-    }
-    return m;
-  };
-
-  MATS = {
-    // Repeat 1: the ground's UVs are already in units of `GRAIN_METRES`, so the tiling is set there.
-    ground: make('#ffffff', 0.98, 1, true),
-    decal: new MeshStandardMaterial({
-      vertexColors: true,
-      roughness: 0.95,
-      transparent: true,
-      depthWrite: false,
-      /**
-       * The decal is a flat triangle soup in the XZ plane with an explicit `(0, 1, 0)` normal attribute,
-       * and back-face culling does not consult that attribute — it consults winding. The first pass wound
-       * these quads for a downward normal and the entire path network was culled away invisibly, which is
-       * a silent failure worth naming: the geometry was correct, the lighting was correct, and nothing
-       * was on screen. Double-sided rather than re-wound because the underside of a ground decal is not
-       * reachable, so this cannot cost anything and cannot be got wrong again.
-       */
-      side: DoubleSide,
-      // Held 2cm off the ground and given a depth nudge as well: belt and braces against z-fighting
-      // when the camera is at a child's eye height and the ground is nearly edge-on.
-      polygonOffset: true,
-      polygonOffsetFactor: -2,
-      polygonOffsetUnits: -2,
-    }),
-    barnWall: make(PIG.barnRed, 0.82, 0.6),
-    trim: make(PIG.cream, 0.8, 0.9),
-    shingle: make(PIG.shingle, 0.74, 1.4),
-    thatch: make(PIG.thatch, 0.95, 2.2),
-    plaster: make(PIG.cream, 0.88, 0.7),
-    timber: make(PIG.timber, 0.78, 1.6),
-    timberDeep: make(PIG.timberDeep, 0.74, 1.6),
-    stone: make(PIG.stone, 0.92, 0.8),
-    stoneDeep: make(PIG.stoneDeep, 0.9, 0.9),
-    hay: make(PIG.hay, 0.96, 1.8),
-    burlap: make(PIG.burlap, 0.95, 2.0),
-    water: new MeshStandardMaterial({ color: PIG.water, roughness: 0.16, metalness: 0.12 }),
-    lamplight: new MeshStandardMaterial({
-      color: '#6b4a2c',
-      emissive: new Color(PIG.honey),
-      emissiveIntensity: 2.8,
-      roughness: 0.5,
-    }),
-    canopy: make('#ffffff', 0.9, 0.5),
-    painted: make(PIG.creamDeep, 0.62, 1.2),
-  };
-  return MATS;
-}
 
 /* ------------------------------------------------------------------ *\
    Geometry helpers
 \* ------------------------------------------------------------------ */
-
-type P2 = readonly [number, number];
-
-/**
- * Local (x, z) to world (x, z) for a placed object.
- *
- * Matches three's `rotation.y`: `x' = x cos + z sin`, `z' = -x sin + z cos`. Props are authored in their
- * building's local frame and converted through here, because typing world coordinates for a prop beside
- * a building rotated 94.5° is exactly how a hay bale ends up inside a wall.
- */
-function toWorld(p: Placed, lx: number, lz: number): P2 {
-  const c = Math.cos(p.rot);
-  const s = Math.sin(p.rot);
-  return [p.x + lx * c + lz * s, p.z - lx * s + lz * c];
-}
 
 /**
  * The valley floor.
@@ -339,64 +207,6 @@ function groundHeight(x: number, z: number): number {
   const t = smoothstep(FLAT_R, 94, r);
   const lumps = fbm(x * 0.026 + 4.1, z * 0.026 - 2.3, 3);
   return t * t * 31 + t * lumps * (3 + t * 14);
-}
-
-/** A closed rounded-rectangle outline in local (x, z). Pens, their floors and their fences share it. */
-function roundedRectOutline(halfW: number, halfD: number, radius: number, perCorner: number): P2[] {
-  const r = Math.min(radius, Math.min(halfW, halfD) * 0.92);
-  const cx = halfW - r;
-  const cz = halfD - r;
-  const corners: readonly (readonly [number, number, number])[] = [
-    [cx, cz, 0],
-    [-cx, cz, Math.PI / 2],
-    [-cx, -cz, Math.PI],
-    [cx, -cz, (3 * Math.PI) / 2],
-  ];
-  const out: P2[] = [];
-  for (const corner of corners) {
-    const ox = corner[0];
-    const oz = corner[1];
-    const a0 = corner[2];
-    for (let i = 0; i <= perCorner; i += 1) {
-      const a = a0 + (i / perCorner) * (Math.PI / 2);
-      out.push([ox + Math.cos(a) * r, oz + Math.sin(a) * r]);
-    }
-  }
-  return out;
-}
-
-/** Cumulative arc length of a closed polyline, plus its total. */
-function arcLengths(points: readonly P2[]): { at: number[]; total: number } {
-  const at: number[] = [0];
-  let total = 0;
-  for (let i = 0; i < points.length; i += 1) {
-    const a = points[i] ?? [0, 0];
-    const b = points[(i + 1) % points.length] ?? [0, 0];
-    total += Math.hypot(b[0] - a[0], b[1] - a[1]);
-    at.push(total);
-  }
-  return { at, total };
-}
-
-/** Point and tangent at arc length `s` around a closed polyline. */
-function sampleClosed(
-  points: readonly P2[],
-  at: readonly number[],
-  total: number,
-  s: number,
-): { p: P2; angle: number } {
-  const target = ((s % total) + total) % total;
-  let i = 0;
-  while (i < points.length - 1 && (at[i + 1] ?? total) < target) i += 1;
-  const a = points[i % points.length] ?? [0, 0];
-  const b = points[(i + 1) % points.length] ?? [0, 0];
-  const s0 = at[i] ?? 0;
-  const seg = (at[i + 1] ?? total) - s0;
-  const f = seg > 1e-6 ? (target - s0) / seg : 0;
-  return {
-    p: [lerp(a[0], b[0], f), lerp(a[1], b[1], f)],
-    angle: Math.atan2(b[1] - a[1], b[0] - a[0]),
-  };
 }
 
 /** Rounded rectangle in the XY plane. For flat shapes like the trough's water surface. */
@@ -694,31 +504,39 @@ const BUSHES: readonly { x: number; z: number; r: number; tint: number }[] = (()
  * Everything the child cannot walk through, as circles in the ground plane.
  *
  * Circles because the push-out is then one normalise, and because the player controller already thinks
- * radially. The two buildings are wrapped as *chains* of small circles around their footprints rather
- * than as one big circle each: a single circle inscribing the barn would be 10.5m across and would stop a
- * child three metres short of its own doors, and one circumscribing it would swallow the path. A chain
- * costs about thirty entries per building and is accurate to 10cm.
+ * radially. A building is wrapped as a CHAIN of small circles rather than as one big circle: a single
+ * circle inscribing the barn would be 10.5m across and would stop a child three metres short of its own
+ * doors, and one circumscribing it would swallow the path.
  *
- * The gate openings are deliberately left empty, so every pen can be walked into.
+ * The gate openings are deliberately left empty, so every pen can be walked into. So, now, is the barn's
+ * doorway — see below.
  *
- * `position` is `[x, z]` in world metres. About 140 entries, so a brute-force pass is a few microseconds.
+ * `position` is `[x, z]` in world metres. About 190 entries, so a brute-force pass is a few microseconds.
  */
-export const SOLIDS: { position: [number, number]; radius: number }[] = (() => {
-  const out: { position: [number, number]; radius: number }[] = [];
+export const SOLIDS: Solid[] = (() => {
+  const out: Solid[] = [];
 
-  const chainRect = (p: Placed, halfW: number, halfD: number, radius: number, spacing: number): void => {
-    const outline = roundedRectOutline(halfW, halfD, Math.min(halfW, halfD) * 0.35, 4);
-    const { at, total } = arcLengths(outline);
-    const n = Math.max(4, Math.round(total / spacing));
-    for (let i = 0; i < n; i += 1) {
-      const sample = sampleClosed(outline, at, total, (i / n) * total);
-      const w = toWorld(p, sample.p[0], sample.p[1]);
-      out.push({ position: [w[0], w[1]], radius });
-    }
-  };
+  /**
+   * THE BARN'S COLLIDER IS NO LONGER A CLOSED CHAIN, and that single change is what makes the barn
+   * enterable at all.
+   *
+   * It used to be one `chainRect(BARN, ...)` call: a 0.95m circle every 1.45m the whole way round the
+   * footprint, INCLUDING straight across the big doors. So the doors could swing, a child could walk right
+   * up to them, and the doorway was a wall — a defect invisible in every screenshot ever taken of it.
+   *
+   * `barnSolids()` in `barn.ts` builds the shell out of explicit segments instead, leaves the doorway as a
+   * STATED gap rather than an artefact of where arc-length sampling happened to land, and adds an inner
+   * chain along the stall fronts plus circles for the four things standing on the open floor.
+   * `doorwayWalkReport()` in the same file then proves the result by stepping a keeper down the centreline,
+   * which is the only kind of evidence this promise can have.
+   */
+  out.push(...barnSolids());
 
-  chainRect(BARN, BARN_W / 2, BARN_D / 2, 0.95, 1.45);
-  chainRect(HUT, HUT_W / 2, HUT_D / 2, 0.9, 1.4);
+  /**
+   * The hut stays a closed chain. It has no doorway a child can pass through and no interior to pass into,
+   * and opening its collider would be a door onto the inside of a solid block.
+   */
+  out.push(...chainOutline(HUT, HUT_W / 2, HUT_D / 2, 0.9, 1.4));
 
   for (const post of FENCE.posts) {
     out.push({ position: [post.x, post.z], radius: post.gatePost ? 0.36 : 0.42 });
@@ -739,84 +557,6 @@ export const SOLIDS: { position: [number, number]; radius: number }[] = (() => {
 
   return out;
 })();
-
-/* ------------------------------------------------------------------ *\
-   Instanced helper
-\* ------------------------------------------------------------------ */
-
-interface Placement {
-  position: readonly [number, number, number];
-  /**
-   * Euler angles in radians, composed in `ZYX` order — about X first, then Y, then Z. That order is
-   * what lets a windmill vane be given a pitch about its own long axis and *then* be swung into place
-   * around the hub; the default XYZ would tilt the whole wheel instead.
-   */
-  rot?: readonly [number, number, number];
-  scale?: readonly [number, number, number];
-  color?: Color;
-}
-
-/**
- * One `InstancedMesh`, filled once.
- *
- * Written out rather than using drei's `<Instances>` because every placement here is static: solved at
- * module scope, never animated, never picked. A component per instance would buy reactivity nothing uses
- * and cost a React node per fence post.
- */
-function Instanced({
-  geometry,
-  material,
-  items,
-  castShadow = true,
-  receiveShadow = true,
-}: {
-  geometry: BufferGeometry;
-  material: MeshStandardMaterial;
-  items: readonly Placement[];
-  castShadow?: boolean;
-  receiveShadow?: boolean;
-}): JSX.Element {
-  const ref = useRef<InstancedMesh>(null);
-
-  useLayoutEffect(() => {
-    const mesh = ref.current;
-    if (!mesh) return;
-    const matrix = new Matrix4();
-    const q = new Quaternion();
-    const euler = new Euler(0, 0, 0, 'ZYX');
-    const scale = new Vector3();
-    const pos = new Vector3();
-    let anyColor = false;
-    items.forEach((item, i) => {
-      pos.set(item.position[0], item.position[1], item.position[2]);
-      scale.set(item.scale?.[0] ?? 1, item.scale?.[1] ?? 1, item.scale?.[2] ?? 1);
-      euler.set(item.rot?.[0] ?? 0, item.rot?.[1] ?? 0, item.rot?.[2] ?? 0, 'ZYX');
-      q.setFromEuler(euler);
-      matrix.compose(pos, q, scale);
-      mesh.setMatrixAt(i, matrix);
-      if (item.color) {
-        mesh.setColorAt(i, item.color);
-        anyColor = true;
-      }
-    });
-    mesh.instanceMatrix.needsUpdate = true;
-    if (anyColor && mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-    mesh.computeBoundingSphere();
-  }, [items, geometry]);
-
-  return (
-    <instancedMesh
-      ref={ref}
-      args={[geometry, material, Math.max(1, items.length)]}
-      count={items.length}
-      castShadow={castShadow}
-      receiveShadow={receiveShadow}
-      // The bounding sphere of a world-spanning instance set never culls anyway, and skipping the test
-      // avoids a per-frame sphere transform for nothing.
-      frustumCulled={false}
-    />
-  );
-}
 
 /* ------------------------------------------------------------------ *\
    Ground
@@ -1062,6 +802,38 @@ function Ground(): JSX.Element {
    The barn
 \* ------------------------------------------------------------------ */
 
+/**
+ * A rounded box of a given size, with a fillet that cannot be bigger than the thing it is rounding.
+ *
+ * `RoundedBoxGeometry` throws nothing and checks nothing if the radius exceeds half the smallest
+ * dimension — it just folds the box inside out. A 34cm wall asked for a 6cm fillet is fine; the same call
+ * on a 7cm threshold slab is not, so the radius is clamped to a third of the thinnest axis.
+ */
+function roundedSlab(size: readonly [number, number, number]): RoundedBoxGeometry {
+  const min = Math.min(size[0], size[1], size[2]);
+  return new RoundedBoxGeometry(size[0], size[1], size[2], 1, Math.min(0.06, min * 0.32));
+}
+
+/**
+ * Slabs bucketed by identical size, so one geometry and one draw call serves every slab that shares it.
+ *
+ * The barn's ring has five wall pieces and five footing pieces but only four distinct sizes each, because
+ * the two long walls match and so do the two jambs. Bucketing on the size alone finds that automatically
+ * and would keep finding it if the ring ever gained another symmetrical pair.
+ */
+function slabGroups(
+  slabs: readonly { at: readonly [number, number, number]; size: readonly [number, number, number] }[],
+): { geometry: RoundedBoxGeometry; items: Placement[] }[] {
+  const buckets = new Map<string, { size: readonly [number, number, number]; items: Placement[] }>();
+  for (const slab of slabs) {
+    const key = slab.size.map((n) => n.toFixed(4)).join('x');
+    const bucket = buckets.get(key) ?? { size: slab.size, items: [] };
+    bucket.items.push({ position: slab.at });
+    buckets.set(key, bucket);
+  }
+  return [...buckets.values()].map((b) => ({ geometry: roundedSlab(b.size), items: b.items }));
+}
+
 function Barn(): JSX.Element {
   const m = materials();
 
@@ -1069,8 +841,27 @@ function Barn(): JSX.Element {
     const roofHalfW = BARN_W / 2 + BARN_EAVE;
     const roofHalfD = BARN_D / 2 + BARN_RAKE;
     return {
-      plinth: new RoundedBoxGeometry(BARN_W + 0.5, BARN_PLINTH_H, BARN_D + 0.5, 2, 0.1),
-      walls: new RoundedBoxGeometry(BARN_W, BARN_WALL_H, BARN_D, 3, 0.18),
+      /**
+       * THE WALLS ARE A RING, and this is the change that turns the barn from an object into a place.
+       *
+       * `RoundedBoxGeometry` is SOLID: its faces are closed, so `new RoundedBoxGeometry(10.5, 5, 14)` — what
+       * was here — is not a barn. It is a ten-tonne block of painted timber with boards nailed to the
+       * outside, which is exactly the mistake `stations/carpentry.tsx` records against the first spring
+       * basin, where a solid kerb sealed the water inside an opaque stone box. Same fix: a building you can
+       * enter has to be a RING.
+       *
+       * `BARN_WALLS` and `BARN_PLINTH` in `barn.ts` are that ring — four wall slabs with the door end split
+       * into two jambs and a header, and a footing course with the doorway notched out of it.
+       *
+       * GROUPED BY SIZE rather than scaled from one unit cube, and the reason is the fillet. Scaling a
+       * rounded box 0.34 x 5 x 14 out of a unit cube scales its corner radius with it, so a 5.5cm fillet
+       * becomes 2cm on one axis and 77cm on another — the wall would arrive as a gigantic rounded lozenge.
+       * Since the two long walls share a size and so do the two jambs, grouping identical sizes gets the
+       * whole ring into four draw calls anyway.
+       */
+      wallGroups: slabGroups(BARN_WALLS),
+      plinthGroups: slabGroups(BARN_PLINTH),
+      threshold: roundedSlab(BARN_THRESHOLD.size),
       roof: gableRoofGeometry({
         width: BARN_W,
         depth: BARN_D,
@@ -1100,9 +891,6 @@ function Barn(): JSX.Element {
        */
       eaveTrim: new BoxGeometry(0.07, BARN_ROOF_T * 0.72, roofHalfD * 2),
       batten: new RoundedBoxGeometry(0.16, BARN_WALL_H - 0.3, 0.1, 1, 0.04),
-      door: new RoundedBoxGeometry(1.85, 3.5, 0.16, 2, 0.06),
-      ledge: new RoundedBoxGeometry(1.78, 0.19, 0.09, 1, 0.045),
-      brace: new RoundedBoxGeometry(Math.hypot(1.7, 2.6), 0.19, 0.09, 1, 0.045),
       hayDoor: new RoundedBoxGeometry(1.5, 1.4, 0.16, 2, 0.06),
       cupolaWall: new RoundedBoxGeometry(1.5, 1.15, 1.5, 2, 0.14),
       cupolaRoof: hipRoofGeometry({
@@ -1120,16 +908,25 @@ function Barn(): JSX.Element {
     };
   }, []);
 
-  const gableZ = BARN_D / 2 - 0.17;
+  const gableZ = BARN_GABLE_Z;
 
-  // Vertical battens down the long walls. Board-and-batten is *the* ranch-barn surface, and it is also
-  // what breaks a 14-metre wall into something with a scale a child can read.
+  /**
+   * Vertical battens down the long walls. Board-and-batten is THE ranch-barn surface, and it is also what
+   * breaks a 14-metre wall into something with a scale a child can read.
+   *
+   * SKIPPED WHERE A WINDOW IS. The battens stand 3.5cm proud of the wall face and a window frame stands
+   * 10cm proud of the same face, so three of the barn's five windows would have had a cream board running
+   * straight down the middle of them. That is not a subtle artefact: the siding is the loudest thing on
+   * this wall, so the batten wins the eye and the window reads as pasted on afterwards. `wallTaken` asks
+   * the window census, which is the right way round — real siding is cut around its openings.
+   */
   const battens = useMemo<Placement[]>(() => {
     const out: Placement[] = [];
     const n = 13;
     for (let i = 0; i < n; i += 1) {
       const z = -BARN_D / 2 + 0.6 + (i / (n - 1)) * (BARN_D - 1.2);
       for (const side of [-1, 1] as const) {
+        if (wallTaken(BARN, side > 0 ? Math.PI / 2 : -Math.PI / 2, z)) continue;
         out.push({
           position: [(side * BARN_W) / 2 + side * 0.035, BARN_WALL_H / 2 - 0.05, z],
           rot: [0, Math.PI / 2, 0],
@@ -1146,24 +943,27 @@ function Barn(): JSX.Element {
 
   return (
     <group position={[BARN.x, 0, BARN.z]} rotation={[0, BARN.rot, 0]}>
-      {/* Footing. A building that meets the grass on a stone course looks planted; one that does not
-          looks dropped. */}
+      {/*
+        Footing, as a ring with the doorway notched out of it, plus a stone threshold laid level with the
+        floor inside.
+        A building that meets the grass on a stone course looks planted; one that does not looks dropped.
+        But a SOLID course is a plug: it would put a 44cm kerb across the doorway at exactly the height a
+        child cannot see and the controller cannot step over.
+      */}
+      {g.plinthGroups.map((group, i) => (
+        <Instanced key={i} geometry={group.geometry} material={m.stone} items={group.items} />
+      ))}
       <mesh
-        geometry={g.plinth}
-        material={m.stone}
-        position={[0, BARN_PLINTH_H / 2, 0]}
-        castShadow
+        geometry={g.threshold}
+        material={m.stoneDeep}
+        position={BARN_THRESHOLD.at as unknown as [number, number, number]}
         receiveShadow
       />
 
       <group position={[0, BARN_PLINTH_H, 0]}>
-        <mesh
-          geometry={g.walls}
-          material={m.barnWall}
-          position={[0, BARN_WALL_H / 2, 0]}
-          castShadow
-          receiveShadow
-        />
+        {g.wallGroups.map((group, i) => (
+          <Instanced key={i} geometry={group.geometry} material={m.barnWall} items={group.items} />
+        ))}
         <Instanced geometry={g.batten} material={m.trim} items={battens} />
 
         {/* The gable walls, filling the triangle the roof leaves open. Traced from the roof's own soffit
@@ -1179,27 +979,13 @@ function Barn(): JSX.Element {
           />
         ))}
 
-        {/* Big doors on the +Z gable end, shut, with the cross brace that makes a barn door a barn
-            door. Hung 9mm proud of the wall so they read as boards on it rather than as part of it. */}
-        <group position={[0, 0, BARN_D / 2 + 0.13]}>
-          {[-1, 1].map((side) => (
-            <group key={side} position={[side * 0.95, 1.78, 0]}>
-              <mesh geometry={g.door} material={m.timber} castShadow receiveShadow />
-              {/* Ledge, ledge, brace: the Z-frame every real barn door is built on. Mirrored per leaf so
-                  the two diagonals meet at the middle, which is the shape the eye recognises. */}
-              {[-1.3, 1.3].map((y) => (
-                <mesh key={y} geometry={g.ledge} material={m.trim} position={[0, y, 0.1]} castShadow />
-              ))}
-              <mesh
-                geometry={g.brace}
-                material={m.trim}
-                position={[0, 0, 0.1]}
-                rotation={[0, 0, side * Math.atan2(2.6, 1.7)]}
-                castShadow
-              />
-            </group>
-          ))}
-        </group>
+        {/*
+          THE BIG DOORS ARE NOT HERE ANY MORE. They were two static leaves hung flat on the wall; they are
+          now in `barnInterior.tsx`, hinged at the outer edges of a real opening and swinging on proximity.
+          They live there rather than here because they belong to the same story as the floor they open onto
+          and the collider gap that lets a child through, and because they need a per-frame hook that this
+          purely static component has no business owning.
+        */}
         {/* Hay door up in the gable, where the hoist would be. Flush against the gable wall's face. */}
         <mesh
           geometry={g.hayDoor}
@@ -1281,8 +1067,6 @@ function Hut(): JSX.Element {
       beam: new RoundedBoxGeometry(0.17, HUT_WALL_H - 0.1, 0.17, 2, 0.055),
       lintel: new RoundedBoxGeometry(HUT_W - 0.5, 0.2, 0.17, 2, 0.06),
       door: new RoundedBoxGeometry(1.05, 2.05, 0.14, 2, 0.09),
-      window: new RoundedBoxGeometry(0.86, 0.78, 0.1, 2, 0.07),
-      sill: new RoundedBoxGeometry(1.12, 0.12, 0.24, 2, 0.05),
       chimney: new RoundedBoxGeometry(0.72, 2.5, 0.72, 2, 0.1),
       chimneyCap: new RoundedBoxGeometry(0.94, 0.18, 0.94, 2, 0.06),
     }),
@@ -1303,12 +1087,6 @@ function Hut(): JSX.Element {
     }
     return out;
   }, []);
-
-  const windows: readonly { at: readonly [number, number, number]; rotY: number }[] = [
-    { at: [1.35, 1.75, HUT_D / 2 + 0.05], rotY: 0 },
-    { at: [-HUT_W / 2 - 0.05, 1.75, 0.75], rotY: Math.PI / 2 },
-    { at: [-HUT_W / 2 - 0.05, 1.75, -1.3], rotY: Math.PI / 2 },
-  ];
 
   return (
     <group position={[HUT.x, 0, HUT.z]} rotation={[0, HUT.rot, 0]}>
@@ -1349,17 +1127,16 @@ function Hut(): JSX.Element {
         />
 
         {/*
-          Lamplight. With the sun where it is, the hut is the one building left in shadow, which would
-          make it the dead corner of the composition — so it gets a warm interior instead. Three emissive
-          panes and one unshadowed point light at the door is the whole cost, and against a blue shadow
-          side it is the most inviting thing in the ranch.
+          LAMPLIGHT. With the sun where it is, the hut is the one building left in shadow, which would make
+          it the dead corner of the composition — so it gets a warm interior instead, and against a blue
+          shadow side it is the most inviting thing on the ranch.
+          The three emissive panes that used to be here are gone. They were rounded boxes painted with an
+          emissive material: a glowing rectangle stuck to a wall, which is a hole rather than a window.
+          `windows.tsx` draws the hut's four real windows now — frame, mullions, glass, shutters, planting —
+          in world space alongside the barn's five, so all nine share one set of instanced meshes. What
+          stays here is the point light at the door, because that is a property of this building's porch
+          rather than of any one window.
         */}
-        {windows.map((w, i) => (
-          <group key={i} position={w.at as unknown as [number, number, number]} rotation={[0, w.rotY, 0]}>
-            <mesh geometry={g.window} material={m.lamplight} />
-            <mesh geometry={g.sill} material={m.timberDeep} position={[0, -0.48, 0.04]} castShadow />
-          </group>
-        ))}
         <pointLight
           position={[-0.9, 1.5, HUT_D / 2 + 0.9]}
           color={PIG.honey}
@@ -1799,7 +1576,19 @@ export function Buildings(): JSX.Element {
     <group>
       <Ground />
       <Barn />
+      {/*
+        Inside the barn, and the doors that let you in. A sibling of `Barn` rather than a child of it,
+        because it owns two `useFrame` hooks — one for the door swing, one for the visibility gate — and
+        `Barn` is deliberately a pure static component that renders once and never again.
+      */}
+      <BarnInterior />
       <Hut />
+      {/*
+        Every window on both buildings, in one place. Authored in world space so nine windows across two
+        hosts share one set of instanced meshes, which is the whole reason they cost sixteen draw calls
+        instead of a hundred and thirty.
+      */}
+      <Windows />
       <Pens />
       <Trough />
       <BarnYard />

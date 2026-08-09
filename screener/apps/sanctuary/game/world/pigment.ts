@@ -73,7 +73,15 @@ export const PIG = {
   gardenLeaf: '#4e8a47',
   gardenLeafLit: '#84b25c',
   /** The barn's threshing floor: swept dust with straw trodden into it. */
-  barnFloor: '#a98d63',
+  barnFloor: '#b09468',
+  /**
+   * The inside of the barn's walls, which is the back of the boards rather than the painted face.
+   *
+   * A warm mid timber, and a little lighter than `timber` so it lifts under lamplight instead of
+   * disappearing. Nobody paints the inside of a barn — the first pass left the interior faces showing the
+   * exterior's barn red and the room read as a cellar.
+   */
+  barnLining: '#8f6f4c',
   straw: '#e0bd71',
 } as const;
 
@@ -101,6 +109,7 @@ export type MatName =
   | 'soil'
   | 'bloom'
   | 'barnFloor'
+  | 'barnLining'
   | 'straw';
 
 let MATS: Record<MatName, MeshStandardMaterial> | null = null;
@@ -198,11 +207,21 @@ export function materials(): Record<MatName, MeshStandardMaterial> {
      * surface to sit on.
      */
     glass: new MeshStandardMaterial({
-      color: '#cfe3ee',
+      color: '#dceaf2',
       roughness: 0.09,
-      metalness: 0.06,
+      /**
+       * OPACITY 0.16, DOWN FROM 0.34, AND METALNESS UP TO 0.4.
+       *
+       * A screenshot settled this one. At 0.34 the pane's own pale blue diffuse was washing a third of the
+       * way over the warm room behind it, and every window came out milky cream — a blank panel, which is
+       * the "hole in the wall" failure this material exists to avoid, arrived at from the opposite
+       * direction. What sells glass is the SPECULAR, not the diffuse: so the diffuse is pulled back to
+       * almost nothing and the metalness raised, which strengthens the sun's reflection in the pane without
+       * putting any more haze over what is behind it.
+       */
+      metalness: 0.4,
       transparent: true,
-      opacity: 0.34,
+      opacity: 0.16,
       // Off, so the glow behind is never sorted away in front of the pane.
       depthWrite: false,
     }),
@@ -222,6 +241,7 @@ export function materials(): Record<MatName, MeshStandardMaterial> {
     soil: make(PIG.soil, 0.98, 2.4),
     bloom: make('#ffffff', 0.72, 1),
     barnFloor: make(PIG.barnFloor, 0.96, 1),
+    barnLining: make(PIG.barnLining, 0.88, 2.4),
     straw: make('#ffffff', 0.95, 1),
   };
   return MATS;
