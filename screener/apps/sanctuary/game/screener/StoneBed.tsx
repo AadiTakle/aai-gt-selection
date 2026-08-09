@@ -460,8 +460,8 @@ export function StoneBed({
 
       {/* The shelf of patterns to choose from. The plank clears the whole pan — see `SHELF`. */}
       <group position={[0, SHELF.y, SHELF.z]}>
-        <mesh position={[0, -optPanH / 2 - 0.38, -0.3]}>
-          <boxGeometry args={[options.length * OPT_PITCH + 0.8, 0.28, 1.5]} />
+        <mesh position={[0, -optPanH / 2 - 0.38, -0.62]}>
+          <boxGeometry args={[options.length * OPT_PITCH + 0.8, 0.28, 1.2]} />
           <meshStandardMaterial {...MAT.bark} />
         </mesh>
         {options.map((o, i) => {

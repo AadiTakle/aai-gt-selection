@@ -48,18 +48,23 @@ import { HUE, MAT, breath, shade, useReducedMotion, useSlab } from './theme';
 /** The big balance. `BEAM_Y` is where the beam is welded, and it never moves. */
 const LIMB_Y = 2.95;
 const BEAM_Y = 2.05;
-const BEAM_HALF = 2.5;
-const PAN_X = 2.05;
+const BEAM_HALF = 2.7;
+const PAN_X = 2.25;
 const PAN_Y = 0.85;
-const PAN_W = 1.9;
-const PAN_H = 1.0;
+/** Wide enough for four weights across at a pitch a child can tell apart: the pan is what sets the ONE
+ *  object size for the whole item, so a narrow pan makes every weight everywhere smaller. */
+const PAN_W = 2.15;
+/** Two rows deep with room to spare. A load of five needs a second row, and at a one-unit pan the row
+ *  pitch — not the column pitch — became the binding constraint on the item's ONE object size, so every
+ *  weight in every pan came out a quarter smaller than the pan's width would have allowed. */
+const PAN_H = 1.24;
 /** How far out a pan's two cords sit from its centre. Well inside the beam, deliberately: at half the pan's
  *  width they hung PAST the beam's ends and the pans read as tied to the sky. */
 const CORD_X = 0.34;
 
 /** The swaps, standing on a plank below. Laid out about their own centre so a swap is not lopsided. */
 const EX_Y = -0.75;
-const EX_PITCH = 2.75;
+const EX_PITCH = 3.0;
 const MINI_L_X = -0.72;
 const MINI_R_X = 0.82;
 const MINI_L_W = 0.66;
@@ -70,7 +75,7 @@ const MINI_CORD_X = 0.16;
 
 /** Fixed offsets, lifted from `PodWall`/`TideLine`, for the same reason those two give. */
 const SHELF = { y: -2.5, z: 2.3 } as const;
-const OPT_PITCH = 2.35;
+const OPT_PITCH = 2.45;
 
 /**
  * A shape's colour. Four names, four values, fixed for every item — so a cube is the same blue in the
@@ -103,15 +108,11 @@ function loadOf(v: unknown, field: string): string[] {
  */
 function WeightSolid({ shape }: { shape: string }) {
   const color = SHAPE_HUE[shape] ?? INK.teal!;
+  // Nearly matte, for the reason `shapes.tsx` gives: a strong clearcoat mirrors the station's lamp, and a
+  // weight rendered white is a weight whose SHAPE COLOUR — which is half of how it is identified — has
+  // been erased by a highlight.
   const mat = (
-    <meshPhysicalMaterial
-      color={color}
-      roughness={0.28}
-      clearcoat={0.9}
-      clearcoatRoughness={0.2}
-      sheen={0.5}
-      sheenColor="#ffffff"
-    />
+    <meshPhysicalMaterial color={color} roughness={0.45} clearcoat={0.3} clearcoatRoughness={0.45} />
   );
   switch (shape) {
     case 'orb':
@@ -366,7 +367,10 @@ export function BalanceBough({
    */
   const options = useMemo(() => {
     const raw = Array.isArray(content.options) ? (content.options as Record<string, unknown>[]) : [];
-    return raw.map((o, i) => ({ handed: handedFor(o, i), load: loadOf(o, 'load') }));
+    return raw.map((o, i) => ({
+      handed: handedFor(o, i),
+      load: loadOf(o, 'load'),
+    }));
   }, [content]);
 
   /**
@@ -398,39 +402,44 @@ export function BalanceBough({
 
   return (
     <group>
-      {/* The limb the bough hangs from, and the trunk it comes off. */}
-      <mesh position={[0, LIMB_Y, -0.7]}>
-        <boxGeometry args={[BEAM_HALF * 2 + 1.6, 0.34, 0.5]} />
-        <meshStandardMaterial {...MAT.barkDeep} />
-      </mesh>
-      <mesh position={[0, LIMB_Y + 0.26, -0.7]}>
-        <boxGeometry args={[BEAM_HALF * 2 + 1.6, 0.2, 0.62]} />
-        <meshStandardMaterial {...MAT.moss} />
-      </mesh>
-      {/* One cord, dead centre, dead vertical. */}
-      <mesh position={[0, (LIMB_Y + BEAM_Y) / 2, -0.4]}>
-        <boxGeometry args={[0.07, LIMB_Y - BEAM_Y, 0.07]} />
-        <meshStandardMaterial {...MAT.vine} />
-      </mesh>
+      {/* The bough hangs lower when there are no swaps beneath it to hold the bottom of the picture — 18
+          of the bank's items have none, all of them K-1, and at the shared height those read as a small
+          balance stranded above a wide empty gap. */}
+      <group position={[0, examples.length ? 0 : -0.95, 0]}>
+        {/* The limb the bough hangs from, and the trunk it comes off. */}
+        <mesh position={[0, LIMB_Y, -0.7]}>
+          <boxGeometry args={[BEAM_HALF * 2 + 1.6, 0.34, 0.5]} />
+          <meshStandardMaterial {...MAT.barkDeep} />
+        </mesh>
+        <mesh position={[0, LIMB_Y + 0.26, -0.7]}>
+          <boxGeometry args={[BEAM_HALF * 2 + 1.6, 0.2, 0.62]} />
+          <meshStandardMaterial {...MAT.moss} />
+        </mesh>
+        {/* One cord, dead centre, dead vertical. */}
+        <mesh position={[0, (LIMB_Y + BEAM_Y) / 2, -0.4]}>
+          <boxGeometry args={[0.07, LIMB_Y - BEAM_Y, 0.07]} />
+          <meshStandardMaterial {...MAT.vine} />
+        </mesh>
 
-      {/* THE BEAM. Level, always. */}
-      <Beam half={BEAM_HALF} at={[0, BEAM_Y, -0.2]} />
+        {/* THE BEAM. Level, always. */}
+        <Beam half={BEAM_HALF} at={[0, BEAM_Y, -0.2]} />
 
-      {/* What is already in the pan. */}
-      <Pan w={PAN_W} h={PAN_H} cords={BEAM_Y - PAN_Y - PAN_H / 2} at={[-PAN_X, PAN_Y, 0]}>
-        <group position={[0, 0, 0.14]}>
-          <Load load={target} pitch={pitch} />
-        </group>
-      </Pan>
-
-      {/* And the pan that is still empty. */}
-      <Pan w={PAN_W} h={PAN_H} socket cords={BEAM_Y - PAN_Y - PAN_H / 2} at={[PAN_X, PAN_Y, 0]}>
-        {pickedLoad ? (
+        {/* What is already in the pan. */}
+        <Pan w={PAN_W} h={PAN_H} cords={BEAM_Y - PAN_Y - PAN_H / 2} at={[-PAN_X, PAN_Y, 0]}>
           <group position={[0, 0, 0.14]}>
-            <Load load={pickedLoad} pitch={pitch} />
+            <Load load={target} pitch={pitch} />
           </group>
-        ) : null}
-      </Pan>
+        </Pan>
+
+        {/* And the pan that is still empty. */}
+        <Pan w={PAN_W} h={PAN_H} socket cords={BEAM_Y - PAN_Y - PAN_H / 2} at={[PAN_X, PAN_Y, 0]}>
+          {pickedLoad ? (
+            <group position={[0, 0, 0.14]}>
+              <Load load={pickedLoad} pitch={pitch} />
+            </group>
+          ) : null}
+        </Pan>
+      </group>
 
       {/* The swaps this hollow goes by, on a plank underneath. */}
       {examples.length ? (
@@ -451,8 +460,8 @@ export function BalanceBough({
 
       {/* The shelf of loads to choose from. */}
       <group position={[0, SHELF.y, SHELF.z]}>
-        <mesh position={[0, -PAN_H / 2 - 0.36, -0.3]}>
-          <boxGeometry args={[options.length * OPT_PITCH + 0.8, 0.3, 1.5]} />
+        <mesh position={[0, -PAN_H / 2 - 0.36, -0.62]}>
+          <boxGeometry args={[options.length * OPT_PITCH + 0.8, 0.3, 1.2]} />
           <meshStandardMaterial {...MAT.bark} />
         </mesh>
         {options.map((o, i) => {

@@ -82,7 +82,7 @@ const SLOT = 0.215;
  * length protecting. So the shelf sits close to the mat's own plane, and the drop in height is what
  * separates the two instead.
  */
-const SHELF = { y: -2.2, z: 0.75 } as const;
+const SHELF = { y: -2.2, z: 0.4 } as const;
 
 interface Tile {
   motif: string;
@@ -391,8 +391,8 @@ export function Weave({
 
       {/* The shelf of pads to choose from. */}
       <group position={[0, SHELF.y, SHELF.z]}>
-        <mesh position={[0, -tile / 2 - 0.32, -0.3]}>
-          <boxGeometry args={[options.length * optPitch + 0.8, 0.26, 1.5]} />
+        <mesh position={[0, -tile / 2 - 0.32, -0.62]}>
+          <boxGeometry args={[options.length * optPitch + 0.8, 0.26, 1.2]} />
           <meshStandardMaterial {...MAT.bark} />
         </mesh>
         {options.map((o, i) => {

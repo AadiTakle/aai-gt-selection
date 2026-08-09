@@ -147,21 +147,16 @@ export function motifGeometry(motif: string, hollow: boolean): THREE.ExtrudeGeom
 /**
  * One mark, inside a 1x1 box, facing +Z.
  *
- * Matte-ish with a light clearcoat: enough to shape the bevel under one warm lamp, not enough to put a
- * specular hotspot on a candidate tile, which would read as "this one is chosen" about a choice the
- * child has not made.
+ * NEARLY MATTE, and the shine was turned down for a reason a screenshot found. With a strong clearcoat the
+ * mark in the tile directly in front of the station's lamp mirrored it and rendered near-WHITE — while the
+ * same motif in the same colour two cells away rendered violet. `color` is an active rule on 61 of the
+ * carpet bank's items, so a highlight that can turn one cell's colour into another is not a gloss problem,
+ * it is a wrong answer. Enough sheen remains to shape the bevel and show which marks are hollow.
  */
 export function Motif({ motif, color, fill = 1 }: { motif: string; color: string; fill?: number }) {
   return (
     <mesh geometry={motifGeometry(motif, fill === 0)}>
-      <meshPhysicalMaterial
-        color={color}
-        roughness={0.3}
-        clearcoat={0.8}
-        clearcoatRoughness={0.25}
-        sheen={0.4}
-        sheenColor="#ffffff"
-      />
+      <meshPhysicalMaterial color={color} roughness={0.5} clearcoat={0.25} clearcoatRoughness={0.55} />
     </mesh>
   );
 }

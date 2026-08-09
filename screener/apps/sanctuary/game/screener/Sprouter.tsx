@@ -76,16 +76,10 @@ function numsOf(v: unknown): [number, number] | null {
  * in" would read as "much more than went in", and the child would be comparing area instead of counting.
  */
 function ShootSolid({ color }: { color: string }) {
-  const mat = (
-    <meshPhysicalMaterial
-      color={color}
-      roughness={0.3}
-      clearcoat={0.9}
-      clearcoatRoughness={0.22}
-      sheen={0.5}
-      sheenColor="#ffffff"
-    />
-  );
+  // Nearly matte, for the reason `shapes.tsx` gives about the carpet's marks: a strong clearcoat mirrors
+  // the station's lamp and the mark nearest it renders white, which on a wall of green shoots would read
+  // as a gap in the count.
+  const mat = <meshPhysicalMaterial color={color} roughness={0.5} clearcoat={0.25} clearcoatRoughness={0.5} />;
   return (
     <group>
       <mesh position={[0, 0.34, 0]}>
@@ -365,8 +359,8 @@ export function Sprouter({
 
       {/* The shelf of bundles to choose from. */}
       <group position={[0, SHELF.y, SHELF.z]}>
-        <mesh position={[0, -DISH_H / 2 - 0.34, -0.28]}>
-          <boxGeometry args={[options.length * OPT_PITCH + 0.8, 0.28, 1.45]} />
+        <mesh position={[0, -DISH_H / 2 - 0.34, -0.62]}>
+          <boxGeometry args={[options.length * OPT_PITCH + 0.8, 0.28, 1.2]} />
           <meshStandardMaterial {...MAT.bark} />
         </mesh>
         {options.map((o, i) => {

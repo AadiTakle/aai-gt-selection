@@ -1,11 +1,11 @@
 /**
- * MARKING PROOF for the two types this directory learned to draw: the tide-line and the day's log.
+ * MARKING PROOF for every type this directory has learned to draw.
  *
  * WHY A SECOND PROOF NEXT TO `prove-marking.mjs`. That script covers all ten types but re-derives the
  * address rule in its own copy of `handedFor`, so it proves the SERVER understands a correctly
- * addressed answer — not that `TideLine` and `DayLog` produce one. Those are different claims, and the
+ * addressed answer — not that the PRESENTATIONS produce one. Those are different claims, and the
  * second is the one that breaks when somebody edits a presentation. This script imports the real
- * `handedFor` that both components call, so the thing under test is the shipped code path.
+ * `handedFor` that every component calls, so the thing under test is the shipped code path.
  *
  * `toRef` is still copied rather than imported, for the same reason `prove-marking.mjs` copies it:
  * `shared/ItemStage.tsx` lazily imports a dozen React renderers, and a proof that needs the bundler
@@ -30,8 +30,23 @@ import { handedFor } from './address';
 const API = process.env.GT_API ?? 'http://localhost:5203';
 const BANKS = fileURLToPath(new URL('../../../../data/sanctuary/banks/', import.meta.url));
 
-/** The two this directory now draws. */
-const TYPES = ['QUANT-SERIES-01', 'VER-SEQUENCE-01'] as const;
+/**
+ * The types this directory now draws in world.
+ *
+ * `VER-SEQUENCE-01` is the one that matters most and it is first among equals for a reason: its
+ * `correctKey` is an INTEGER and its options carry no `key`, so POSITION is the answer. Everything else
+ * here is lettered. A presentation that handed back a letter where a position was wanted — or the other
+ * way round — would fail line 1 below and nowhere else in the whole system, which is why all six go
+ * through the same `handedFor` rather than each deciding for itself.
+ */
+const TYPES = [
+  'QUANT-SERIES-01',
+  'VER-SEQUENCE-01',
+  'SPA-XFORM-01',
+  'QUANT-FUNC-01',
+  'FLU-CARPET-01',
+  'QUANT-BALANCE-01',
+] as const;
 
 /** `shared/ItemStage.tsx`, copied. Resolves whichever address family the item uses. */
 function toRef(content: Record<string, unknown>, handed: string): { key: string; index: number } {

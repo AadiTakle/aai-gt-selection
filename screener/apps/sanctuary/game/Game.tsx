@@ -9,6 +9,10 @@ import { FAMILIES, type Family } from './contract';
 import { PodWall } from './screener/PodWall';
 import { TideLine } from './screener/TideLine';
 import { DayLog } from './screener/DayLog';
+import { StoneBed } from './screener/StoneBed';
+import { Sprouter } from './screener/Sprouter';
+import { Weave } from './screener/Weave';
+import { BalanceBough } from './screener/BalanceBough';
 import { Buildings, SOLIDS } from './world/Buildings';
 import { Lighting } from './world/Lighting';
 import { Slime, pushOutOfSlimes } from './slimes/Slime';
@@ -161,6 +165,10 @@ export const IN_WORLD: Record<
   'FLU-MATRIX-01': PodWall,
   'QUANT-SERIES-01': TideLine,
   'VER-SEQUENCE-01': DayLog,
+  'SPA-XFORM-01': StoneBed,
+  'QUANT-FUNC-01': Sprouter,
+  'FLU-CARPET-01': Weave,
+  'QUANT-BALANCE-01': BalanceBough,
 };
 
 export interface LiveItem {
