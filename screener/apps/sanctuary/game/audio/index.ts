@@ -94,9 +94,13 @@
  *
  *   variation.ts  the anti-repeat chooser and the seeded dice. The only unit-tested file.
  *   noise.ts      white, pink and brown noise, and the hand-built reverb impulse.
+ *   wet.ts        what makes the slime sounds wet: irregular clusters of resonant micro-events, comb filters
+ *                 for the gurgle, wobbling resonance ramps, and slow random control signals. No oscillators.
  *   bus.ts        the mix: tone, room, safety compressor, master. And `rampTo`, which is why nothing clicks.
- *   voices.ts     squish, land, plop, coin, hatch. A squelch is a resonant filter sweep over a noise burst.
- *   vacuum.ts     the suction loop. Nothing is ever started or stopped during play; only a gain moves.
+ *   voices.ts     squish, land, plop, coin, hatch. A squelch is a crowd of dozens of irregularly spaced
+ *                 resonant micro-events through a comb — not a filter sweep, and with no oscillator in it.
+ *   vacuum.ts     the suction loop: turbulent fluttering air, a pitchless low bed, and occasional gloops.
+ *                 Nothing is ever started or stopped during play; only a gain moves.
  *   pad.ts        the ambience. A drone and randomly spaced swells, so there is no period to recognise.
  *   mute.ts       one boolean with subscribers, independent of the engine.
  *   engine.ts     the AudioContext, the gesture gate, the M key, and the lifecycle.

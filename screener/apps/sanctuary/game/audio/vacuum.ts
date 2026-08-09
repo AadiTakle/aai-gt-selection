@@ -1,48 +1,81 @@
 import { rampTo } from './bus';
 import { noiseBuffer } from './noise';
+import { seededRand, type Rand } from './variation';
+import { controlBuffer, resonantGrains, wetComb } from './wet';
 
 /**
  * THE SUCTION LOOP. The sound a child hears more than any other in this game, so the whole design is
  * about being bearable for a long time rather than about being convincing for a second.
  *
- * ══ WHY IT IS AIR AND NOT A MOTOR ═════════════════════════════════════════════════════════════════
+ * ══ THE MOTOR IS GONE, AND IT WAS THE PROBLEM ═════════════════════════════════════════════════════
  *
- * The obvious vacuum sound is a whine: a sawtooth or a narrow resonant peak somewhere around 1–2 kHz.
- * It is instantly recognisable and it is intolerable after four seconds, because a steady narrow-band
- * tone in the region the ear is most sensitive to is the definition of fatiguing. So the balance here is
- * inverted from the obvious one:
+ * This used to contain "the motor": TWO TRIANGLE OSCILLATORS at 68 and 102 Hz, a perfect fifth apart,
+ * lowpassed to 260 Hz and mixed at a tenth. The reasoning at the time was that it gave the pack a size and
+ * that it was too low to be heard as a pitch. Both halves were wrong.
  *
- *   · PINK NOISE THROUGH A LOWPASS is 90 % of it. Pink because that is the spectrum of actual moving air
- *     (see `noise.ts`), lowpassed at 1.05 kHz because everything above that is hiss and hiss is the part
- *     that tires you out. Plus a wide bandpass at 520 Hz for the "rush" and a brown-noise bed at 150 Hz
- *     for the mass, so the machine has a size.
- *   · THE MOTOR IS TWO TRIANGLES AT 68 AND 102 Hz, mixed at a tenth, lowpassed to 260 Hz. Low enough to
- *     be felt as "something is running" rather than heard as a pitch, and a perfect fifth apart so that
- *     if it is heard it is not a beating dissonance.
- *   · A 0.55 Hz BREATH LFO adds ±6 % to the level. Nothing mechanical is perfectly steady, and a level
- *     that is perfectly steady is the other thing that makes a held sound turn into tinnitus.
+ * A motor is the wrong metaphor from the first line. Nothing about a slime being drawn up a tube is a machine
+ * with a rotor: there is no rotation, no blade rate, no bearing. What is actually happening is TURBULENT AIR
+ * with wet material intermittently obstructing it, and turbulence has no fundamental. And two oscillators a
+ * fifth apart at 68 Hz are not inaudible as pitch — 68 Hz is a low C♯ and it beats against nothing, so the
+ * ear locks onto it as the steadiest thing in the mix and hears a tone under everything. That is exactly the
+ * "mechanic" quality the owner heard. THERE IS NOW NO OSCILLATOR OF ANY KIND IN THIS FILE.
+ *
+ * ══ WHAT IT IS MADE OF INSTEAD ════════════════════════════════════════════════════════════════════
+ *
+ *   · TURBULENT FLUTTERING AIR. Pink noise (the spectrum of actual moving air) through a lowpass, but with
+ *     both its level and its cutoff driven by SLOW RANDOM CONTROL SIGNALS rather than sitting still. That
+ *     flutter is the single thing that replaces the motor's job of saying "something is happening": an
+ *     unsteady rush reads as work being done, where a steady one reads as a hiss.
+ *   · A LOW RESONANT BED for the body and presence the motor used to supply — brown noise through a wide
+ *     bandpass around 150 Hz whose centre WANDERS. Filtered noise has mass without a fundamental, so the
+ *     pack still has a size and there is nothing to tune it to.
+ *   · A GLOOP TRACK: fifteen seconds of sparse, irregularly spaced wet resonances, looping. This is the
+ *     material moving through, and see below for why it is a buffer rather than scheduled events.
+ *   · A COMB BANK on the air, delays 3–13 ms, low feedback and continuously drifting. The gurgle, and the
+ *     reason the whole thing sounds like it has a tube in it.
+ *   · FINE HIGH SPRAY, very quiet, level-modulated by its own random control: moisture up top.
+ *
+ * Every modulator in here is a random control signal, never a sine LFO. A sine LFO is a steady wobble, and a
+ * steady wobble on a held sound is simply a slower machine — the ear finds the rate within about two cycles.
+ *
+ * ══ WHY THE GLOOPS ARE BAKED INTO A LOOPING BUFFER ════════════════════════════════════════════════
+ *
+ * The obvious way to get occasional gloops is to schedule a one-shot every few hundred milliseconds while
+ * the button is held. That is forbidden here, and for a good reason rather than a stylistic one: the standing
+ * guarantee in this file is that NO SOURCE IS EVER STARTED OR STOPPED DURING PLAY, because a `stop()`
+ * mid-stream cuts the waveform wherever it happens to be, which is a step, which is a click — and it is the
+ * single most common way this sound is got wrong.
+ *
+ * So the gloops are pre-synthesised into a fifteen-second buffer at irregular spacings, started once at
+ * construction with everything else, and looped forever. Nothing is ever scheduled; the gate simply lets
+ * through whatever is passing at the time. Fifteen seconds at roughly two gloops a second is long enough
+ * that a child holding the button will not hear the pattern come round.
  *
  * ══ WHY IT CANNOT CLICK ══════════════════════════════════════════════════════════════════════════
  *
- * TWO RULES, both structural rather than careful:
+ * BOTH RULES ARE UNCHANGED, and both are structural rather than careful:
  *
- *   1. NOTHING IS EVER STARTED OR STOPPED DURING PLAY. Every source in here is started once, at
- *      construction, with the output gain at zero, and runs until `dispose`. `start` and `stop` only move
- *      a gain. A `BufferSource.stop()` mid-stream cuts the waveform wherever it happens to be, which is a
- *      step discontinuity, which is a click — and it is the single most common way this sound is got wrong.
- *   2. EVERY MOVE GOES THROUGH `rampTo`, which holds the parameter's live value before ramping (see the
- *      note on it in `bus.ts`). So a stop that interrupts a still-rising start ramps down from wherever it
- *      had got to, rather than jumping back to where the start began.
+ *   1. NOTHING IS EVER STARTED OR STOPPED DURING PLAY. Every source in here — the air, the bed, the gloop
+ *      track, the spray and all four control signals — is started once, at construction, with the output gain
+ *      at zero, and runs until `dispose`. `start` and `stop` only move a gain.
+ *   2. EVERY MOVE GOES THROUGH `rampTo`, which holds the parameter's live value before ramping (see the note
+ *      on it in `bus.ts`). So a stop that interrupts a still-rising start ramps down from wherever it had got
+ *      to, rather than jumping back to where the start began.
  *
- * The measured proof is in `measure.ts`: the first and last 64-sample windows of an offline render are
- * below −80 dB and no adjacent window's RMS changes by more than a few per cent.
+ * There is a third thing the random modulators could have broken and do not: a looping control buffer whose
+ * last sample differs from its first has a step at the loop point, once per lap, forever. `controlBuffer` in
+ * `wet.ts` detrends its contents so the join is continuous. That bug would have surfaced as a click every few
+ * minutes with no way to reproduce it.
+ *
+ * The measured proof is in `measure.ts`: the first and last 64-sample windows of an offline render are below
+ * −80 dB, and the largest sample step across either ramp is no larger than the sound's own steady-state slew.
  *
  * ══ "RISES SLIGHTLY WHILE HOLDING" ════════════════════════════════════════════════════════════════
  *
- * Baked into `start` rather than exposed as a third method, so it cannot be forgotten by a caller: the
- * level reaches its base in 90 ms and then creeps up 22 % over the following 1.3 s while the lowpass opens
- * from 1.05 to 1.5 kHz and the motor pitch rises 5 %. It reads as the pack working harder against
- * something. An interrupting `stop` cancels all three, because they are all `rampTo`.
+ * Baked into `start` rather than exposed as a third method, so it cannot be forgotten by a caller: the level
+ * reaches its base in 90 ms and then creeps up 22 % over the following 1.3 s while the lowpass opens from
+ * 1.05 to 1.5 kHz and the low bed's resonance rises a little. It reads as the pack working harder against
+ * something. An interrupting `stop` cancels all of it, because it is all `rampTo`.
  */
 
 export interface Vacuum {
@@ -63,27 +96,53 @@ const CREEP_SECONDS = 1.3;
 
 const AIR_CLOSED = 1050;
 const AIR_OPEN = 1500;
-const MOTOR_HZ = 68;
+/** The low bed's resonance. Where the motor used to be, with no pitch in it. */
+const BED_HZ = 150;
+
+/**
+ * A looping random control source in a stated frequency band.
+ *
+ * `corner` is the top of the band in Hz — 0.7 is breathing, 6 is wandering, 14 is flutter — and `depth` is
+ * how far it swings its target. Twelve seconds at playback rate 1.0: long enough that the lap is not a
+ * pattern the ear can hold on to.
+ */
+function control(ctx: BaseAudioContext, corner: number, depth: number, rand: Rand): {
+  source: AudioBufferSourceNode;
+  depth: GainNode;
+} {
+  const source = ctx.createBufferSource();
+  source.buffer = controlBuffer(ctx, 12, corner, rand);
+  source.loop = true;
+  const g = ctx.createGain();
+  g.gain.value = depth;
+  source.connect(g);
+  return { source, depth: g };
+}
 
 export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
+  // Seeded rather than `Math.random`, for the same reason `noise.ts` is: the offline measurements in
+  // `measure.ts` have to be reproducible, and a flutter that differs between renders would make the
+  // discontinuity test's numbers wander on their own.
+  const rand = seededRand(0x5c0f7ab1);
+
   const level = ctx.createGain();
   level.gain.value = 0;
   level.connect(out);
 
   /**
-   * The breath rides here, one stage BEFORE the level, and that ordering is load-bearing.
+   * The flutter rides here, one stage BEFORE the level, and that ordering is load-bearing.
    *
-   * The obvious thing is to add the LFO straight onto `level.gain`, which an AudioParam happily sums. It
-   * is wrong: a param's input is summed whether or not the scheduled value is zero, so a stopped vacuum
-   * would still leak ±1 % of pink noise forever — audible in a quiet room, and it would put a permanent
-   * floor under the "silent at rest" measurement. As a multiplicative stage in front of the gate, the
-   * wobble is 0.94–1.06 of whatever the gate is passing, and zero times anything is zero.
+   * The obvious thing is to add the modulation straight onto `level.gain`, which an AudioParam happily sums.
+   * It is wrong: a param's input is summed whether or not the scheduled value is zero, so a stopped vacuum
+   * would still leak a percent or two of pink noise forever — audible in a quiet room, and it would put a
+   * permanent floor under the "silent at rest" measurement. As a multiplicative stage in front of the gate,
+   * the wobble is a factor on whatever the gate is passing, and zero times anything is zero.
    */
   const wobble = ctx.createGain();
   wobble.gain.value = 1;
   wobble.connect(level);
 
-  /* --- the air ------------------------------------------------------------------------------- */
+  /* --- the turbulent air ---------------------------------------------------------------------- */
 
   const air = ctx.createBufferSource();
   // Four seconds, so the loop point comes round rarely, and pink noise has no features for the ear to
@@ -96,92 +155,228 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
   airLow.frequency.value = AIR_CLOSED;
   airLow.Q.value = 0.6;
 
+  /**
+   * THE AIR IS NO LONGER THE WHOLE SOUND, and that reweighting is the difference between a vacuum cleaner and
+   * a wet vacuum cleaner. At 0.8 the smooth pink bed simply masked everything textured that was put under it:
+   * the gloops and the burble measured as present in the graph and inaudible in the render, which is the most
+   * expensive kind of wrong — it looks finished. Air is a bed here, not the subject.
+   */
   const airGain = ctx.createGain();
-  airGain.gain.value = 0.85;
+  airGain.gain.value = 0.44;
 
+  // The rush, wide on purpose: a high Q here is the whine this design exists to avoid.
   const rush = ctx.createBiquadFilter();
   rush.type = 'bandpass';
   rush.frequency.value = 520;
-  // Wide on purpose. A high Q here is exactly the whine this design is avoiding.
   rush.Q.value = 0.9;
 
   const rushGain = ctx.createGain();
-  rushGain.gain.value = 0.4;
+  rushGain.gain.value = 0.3;
+
+  /* --- the gurgle: a drifting comb on the air ------------------------------------------------- */
+
+  const comb = wetComb(ctx, {
+    // Mutually inharmonic, and low feedback. Over a sound held for ten seconds a resonant comb would be
+    // found by the ear and heard as a note, which is the failure mode the triangles just got removed for.
+    delaysMs: [3.7, 6.1, 9.4, 13.3],
+    feedback: 0.3,
+    damp: 1900,
+    wet: 0.32,
+    dry: 1,
+  });
+  comb.output.connect(wobble);
 
   air.connect(airLow);
   airLow.connect(airGain);
-  airGain.connect(wobble);
+  airGain.connect(comb.input);
   air.connect(rush);
   rush.connect(rushGain);
-  rushGain.connect(wobble);
+  rushGain.connect(comb.input);
 
-  /* --- the mass ------------------------------------------------------------------------------ */
+  /* --- the low bed: body and presence, where the motor was ------------------------------------ */
 
-  const rumble = ctx.createBufferSource();
-  rumble.buffer = noiseBuffer(ctx, 'brown', 4);
-  rumble.loop = true;
+  const bed = ctx.createBufferSource();
+  bed.buffer = noiseBuffer(ctx, 'brown', 4);
+  bed.loop = true;
 
-  const rumbleLow = ctx.createBiquadFilter();
-  rumbleLow.type = 'lowpass';
-  rumbleLow.frequency.value = 150;
-  rumbleLow.Q.value = 0.7;
+  // A bandpass rather than the old lowpass, so there is a definite low centre of mass — the thing the motor
+  // was actually contributing — without a fundamental to hear. Q is low: this is a region, not a note.
+  const bedBand = ctx.createBiquadFilter();
+  bedBand.type = 'bandpass';
+  bedBand.frequency.value = BED_HZ;
+  bedBand.Q.value = 1.1;
 
-  const rumbleGain = ctx.createGain();
-  rumbleGain.gain.value = 0.5;
+  const bedGain = ctx.createGain();
+  bedGain.gain.value = 0.62;
 
-  rumble.connect(rumbleLow);
-  rumbleLow.connect(rumbleGain);
-  rumbleGain.connect(wobble);
+  bed.connect(bedBand);
+  bedBand.connect(bedGain);
+  bedGain.connect(wobble);
 
-  /* --- the motor, quiet ---------------------------------------------------------------------- */
+  /* --- the gloop track: material moving through ---------------------------------------------- */
 
-  const motorLow = ctx.createBiquadFilter();
-  motorLow.type = 'lowpass';
-  motorLow.frequency.value = 260;
-  motorLow.Q.value = 0.5;
+  /**
+   * GRAIN LENGTH IS WHAT MAKES A GLOOP AN EVENT, and the first version of this got it wrong in a way worth
+   * recording. The grains were 22–70 ms long with a slow ring (`damp` 5), which sounds reasonable written
+   * down — a gloop is not a click — but a long grain with a soft ring has almost no ATTACK, and an event with
+   * no attack does not register as an arrival at all. Measured, the whole track produced zero detectable
+   * onsets: it was adding a vague wetness to the bed rather than the "occasional gloops as material moves
+   * through" it was supposed to be. Shorter grains with a faster decay have the same pitch content and
+   * actually arrive.
+   */
+  const gloop = ctx.createBufferSource();
+  gloop.buffer = resonantGrains(
+    ctx,
+    {
+      seconds: 15,
+      count: 46,
+      // Wet and mid-low, and a wide span of sizes so no two gloops are the same object going past.
+      fLo: 170,
+      fHi: 780,
+      bw: 85,
+      // Flat: these are not decaying, they are events in a continuing process.
+      ampTilt: 0,
+      gapTilt: 0,
+      grainLoMs: 9,
+      grainHiMs: 34,
+      glide: 1.18,
+      damp: 7,
+    },
+    rand,
+  );
+  gloop.loop = true;
 
-  const motorGain = ctx.createGain();
-  motorGain.gain.value = 0.1;
-  motorLow.connect(motorGain);
-  motorGain.connect(wobble);
+  // Softened, because a gloop is a detail and not an event the child has to react to. Through the comb, so
+  // the gloops are in the same tube as the air rather than beside it.
+  const gloopLow = ctx.createBiquadFilter();
+  gloopLow.type = 'lowpass';
+  gloopLow.frequency.value = 2000;
+  gloopLow.Q.value = 0.5;
 
-  const motorA = ctx.createOscillator();
-  motorA.type = 'triangle';
-  motorA.frequency.value = MOTOR_HZ;
-  motorA.connect(motorLow);
+  const gloopGain = ctx.createGain();
+  gloopGain.gain.value = 0.88;
 
-  const motorB = ctx.createOscillator();
-  motorB.type = 'triangle';
-  motorB.frequency.value = MOTOR_HZ * 1.5;
-  const motorBGain = ctx.createGain();
-  motorBGain.gain.value = 0.45;
-  motorB.connect(motorBGain);
-  motorBGain.connect(motorLow);
+  gloop.connect(gloopLow);
+  gloopLow.connect(gloopGain);
+  gloopGain.connect(comb.input);
 
-  /* --- the breath ---------------------------------------------------------------------------- */
+  /* --- the burble: the air's own micro-texture ------------------------------------------------ */
 
-  const breath = ctx.createOscillator();
-  breath.type = 'sine';
-  breath.frequency.value = 0.55;
-  const breathDepth = ctx.createGain();
-  breathDepth.gain.value = 0.06;
-  breath.connect(breathDepth);
-  breathDepth.connect(wobble.gain);
+  /**
+   * WHAT ACTUALLY MAKES THE HELD SOUND WET rather than merely soft, and the layer the first attempt was
+   * missing entirely.
+   *
+   * Flutter LFOs move the whole bed up and down, and that is worth having — it is why the sound is alive
+   * instead of a hiss — but all of it happens below about 14 Hz, which the ear reads as the sound BREATHING.
+   * It does not read as wet. Wetness at close range is a continuous fine crackle of tiny air pockets giving
+   * way, which is dozens of tiny events per second, and no amount of level modulation produces one.
+   *
+   * So this is a second looping grain track: short, soft resonances scattered by the same shifted-exponential
+   * distribution as everything else.
+   *
+   * THE DENSITY IS A TUNED COMPROMISE AND IT WAS TUNED THE WRONG WAY FIRST. The initial version ran 460 grains
+   * over fifteen seconds — thirty a second — on the theory that more texture is more wetness. It is not: at
+   * thirty a second the events overlap into an unbroken fizz, which reads as noise colour rather than as
+   * things happening, and measured as literally zero detectable onsets because a texture with no gaps has no
+   * arrivals in it. Roughly a dozen a second leaves audible space between events, which is where the wetness
+   * actually lives — the silence between two bubbles is as much of the cue as the bubbles.
+   */
+  const burble = ctx.createBufferSource();
+  burble.buffer = resonantGrains(
+    ctx,
+    {
+      seconds: 15,
+      count: 170,
+      fLo: 300,
+      fHi: 1700,
+      bw: 340,
+      ampTilt: 0,
+      gapTilt: 0,
+      grainLoMs: 3,
+      grainHiMs: 14,
+      glide: 0.88,
+      damp: 10,
+    },
+    rand,
+  );
+  burble.loop = true;
+
+  const burbleGain = ctx.createGain();
+  burbleGain.gain.value = 0.78;
+
+  burble.connect(burbleGain);
+  burbleGain.connect(comb.input);
+
+  /* --- fine high spray ------------------------------------------------------------------------ */
+
+  const spray = ctx.createBufferSource();
+  spray.buffer = noiseBuffer(ctx, 'pink', 4);
+  spray.loop = true;
+
+  const sprayHigh = ctx.createBiquadFilter();
+  sprayHigh.type = 'highpass';
+  sprayHigh.frequency.value = 4200;
+  sprayHigh.Q.value = 0.5;
+
+  // Very quiet. Moisture up top is a cue, and a cue that is audible as a layer is hiss — which is the thing
+  // that makes a held sound tiring.
+  const sprayGain = ctx.createGain();
+  sprayGain.gain.value = 0.055;
+
+  spray.connect(sprayHigh);
+  sprayHigh.connect(sprayGain);
+  sprayGain.connect(wobble);
+
+  /* --- the modulators, all random, none of them an oscillator --------------------------------- */
+
+  // The breath: ±7 % on the whole thing, multiplicatively, in front of the gate.
+  const breath = control(ctx, 0.7, 0.07, rand);
+  breath.depth.connect(wobble.gain);
+
+  // The flutter proper: the air's own level, moving faster and deeper than the breath. This is what turns a
+  // rush into turbulence. 14 Hz is the top of the band, so it swings anywhere from a slow surge to a shudder.
+  const flutter = control(ctx, 14, 0.34, rand);
+  flutter.depth.connect(airGain.gain);
+
+  // The air's cutoff wanders a few hundred Hz, so the flutter has a timbre change in it and not only a level
+  // change. Level-only modulation reads as a hand over the speaker.
+  const airWander = control(ctx, 6, 280, rand);
+  airWander.depth.connect(airLow.frequency);
+
+  // And the low bed's resonance drifts, so even the body has nothing fixed in it.
+  const bedWander = control(ctx, 2, 22, rand);
+  bedWander.depth.connect(bedBand.frequency);
+
+  // The spray breathes on its own schedule. Modulators sharing a band would sync into one pulse.
+  const sprayWander = control(ctx, 10, 0.032, rand);
+  sprayWander.depth.connect(sprayGain.gain);
+
+  // Each comb tap drifts independently and slowly. Identical drift would move the whole comb together and
+  // preserve the ratios between its peaks, and the ratios are what read as a pitch.
+  const combWanders = comb.delays.map((delay, i) => {
+    const base = delay.delayTime.value;
+    const c = control(ctx, 1.2 + i * 0.4, base * 0.22, rand);
+    c.depth.connect(delay.delayTime);
+    return c;
+  });
+
+  const controls = [breath, flutter, airWander, bedWander, sprayWander, ...combWanders];
 
   // Everything starts now and never stops. See rule 1 above.
   const startAt = ctx.currentTime;
-  air.start(startAt);
-  rumble.start(startAt);
-  motorA.start(startAt);
-  motorB.start(startAt);
-  breath.start(startAt);
+  const sources: AudioBufferSourceNode[] = [
+    air, bed, gloop, burble, spray, ...controls.map((c) => c.source),
+  ];
+  for (const source of sources) source.start(startAt);
 
   let running = false;
   let disposed = false;
 
   const nodes: AudioNode[] = [
-    level, wobble, air, airLow, airGain, rush, rushGain, rumble, rumbleLow, rumbleGain,
-    motorLow, motorGain, motorA, motorB, motorBGain, breath, breathDepth,
+    level, wobble, air, airLow, airGain, rush, rushGain, bed, bedBand, bedGain,
+    gloop, gloopLow, gloopGain, burble, burbleGain, spray, sprayHigh, sprayGain,
+    ...comb.nodes,
+    ...controls.flatMap((c) => [c.source, c.depth]),
   ];
 
   return {
@@ -194,22 +389,22 @@ export function createVacuum(ctx: BaseAudioContext, out: AudioNode): Vacuum {
       level.gain.linearRampToValueAtTime(HELD, at + IN_SECONDS + CREEP_SECONDS);
       rampTo(airLow.frequency, at, AIR_CLOSED, IN_SECONDS);
       airLow.frequency.linearRampToValueAtTime(AIR_OPEN, at + IN_SECONDS + CREEP_SECONDS);
-      rampTo(motorA.frequency, at, MOTOR_HZ, IN_SECONDS);
-      motorA.frequency.linearRampToValueAtTime(MOTOR_HZ * 1.05, at + IN_SECONDS + CREEP_SECONDS);
+      rampTo(bedBand.frequency, at, BED_HZ, IN_SECONDS);
+      bedBand.frequency.linearRampToValueAtTime(BED_HZ * 1.06, at + IN_SECONDS + CREEP_SECONDS);
     },
     stop(at) {
       if (disposed || !running) return;
       running = false;
       rampTo(level.gain, at, 0, OUT_SECONDS);
       rampTo(airLow.frequency, at, AIR_CLOSED, OUT_SECONDS * 2);
-      rampTo(motorA.frequency, at, MOTOR_HZ, OUT_SECONDS * 2);
+      rampTo(bedBand.frequency, at, BED_HZ, OUT_SECONDS * 2);
     },
     dispose() {
       if (disposed) return;
       disposed = true;
       running = false;
       const now = ctx.currentTime;
-      for (const source of [air, rumble, motorA, motorB, breath]) {
+      for (const source of sources) {
         try {
           source.stop(now);
         } catch {

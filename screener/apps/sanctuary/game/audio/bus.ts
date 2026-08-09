@@ -63,11 +63,18 @@ export function createBus(ctx: BaseAudioContext, level = 0): Bus {
   highpass.frequency.value = 32;
   highpass.Q.value = 0.5;
 
-  // Takes the fizz off the noise bursts. A squelch wants to sound wet, and wet means it has no top end:
-  // above about 7 kHz filtered noise stops reading as moisture and starts reading as static.
+  // Takes the fizz off the noise bursts, and the frequency here is a correction.
+  //
+  // It was 6.8 kHz, on the reasoning that "wet means it has no top end". That is half true and it was the
+  // wrong half: a broadband HISS above 7 kHz reads as static, but fine SPRAY up there — sparse, very short,
+  // very quiet resonances — is one of the strongest cues that something is actually wet, and the old sounds
+  // had none of it because this filter removed it along with the hiss. The squelches now put a deliberate
+  // spray layer in the 3.5–8 kHz region (see `voices.ts`), so the lowpass is opened to 9.2 kHz to let it
+  // through. What keeps it from becoming static is that the layer is sparse and quiet, not that it is filtered
+  // away — the level is controlled where the level belongs, in the spec, rather than here.
   const voiceTone = ctx.createBiquadFilter();
   voiceTone.type = 'lowpass';
-  voiceTone.frequency.value = 6800;
+  voiceTone.frequency.value = 9200;
   voiceTone.Q.value = 0.4;
 
   const padTone = ctx.createBiquadFilter();

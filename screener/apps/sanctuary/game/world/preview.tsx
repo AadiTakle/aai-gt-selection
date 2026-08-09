@@ -165,17 +165,13 @@ function Camera(): null {
   return null;
 }
 
-/** Stand-in for the pod wall, so the clear apron in front of it can be checked. */
-function PodWallStandIn(): JSX.Element {
-  return (
-    <group position={[0, 3.6, -13]}>
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[6.6, 6.6, 0.5]} />
-        <meshStandardMaterial color="#8e7a61" roughness={0.85} />
-      </mesh>
-    </group>
-  );
-}
+/* The pod wall stand-in that used to sit at [0, 3.6, -13] is deleted, not moved.
+ *
+ * It marked a clear apron in front of a wall that no longer exists: `stations/` replaced the pod wall
+ * and the shop stall now stands on that apron. A 6.6m untextured slab left in the harness cost real
+ * time — it appears in `shots/fix-path-standing.png`, which was read as a shipped-world defect and
+ * chased as one before anyone checked which scene the shot came from. A debug marker that outlives the
+ * thing it marks is worse than no marker. */
 
 function Probes(): JSX.Element {
   const rings = useMemo(() => SOLIDS, []);
@@ -201,7 +197,6 @@ function Scene(): JSX.Element {
     <>
       <Lighting />
       <Buildings />
-      <PodWallStandIn />
       {PROBES ? <Probes /> : null}
       <Camera />
       <DoorProbe />
