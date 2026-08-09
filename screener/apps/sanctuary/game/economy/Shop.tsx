@@ -580,7 +580,13 @@ export function Shop({
   \* ---------------------------------------------------------------- */
 
   /**
-   * E to go in, E again or Escape to come out, Space either way.
+   * E to go in, E again or Escape to come out. E ONLY.
+   *
+   * Space used to work too, on the theory that a child who has been told nothing will press the key
+   * they have been hopping with. The owner ruled against it, and they are right: Space was doing three
+   * jobs at once. It jumped, it opened things, and once inside it chose. A key that means three
+   * different things depending on where you are standing is not a shortcut, it is a trap. Space is now
+   * only ever jump, and E is the one and only interact key in the game.
    *
    * Space is not a convenience, it is a prediction about the player: a child who has been told nothing
    * presses Space, because Space is what they have been pressing to hop since they arrived. So Space opens
@@ -610,14 +616,14 @@ export function Shop({
           onLeave();
           return;
         }
-        if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+        if (e.code === 'Enter' || e.code === 'NumpadEnter') {
           e.preventDefault();
           if (aimed) buy(aimed);
         }
         return;
       }
       if (!near) return;
-      if (e.code === 'KeyE' || e.code === 'Space') {
+      if (e.code === 'KeyE') {
         e.preventDefault();
         onEngage();
       }
