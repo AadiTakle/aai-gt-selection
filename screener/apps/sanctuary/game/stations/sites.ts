@@ -133,7 +133,7 @@ export type Build = 'coatwall' | 'tideledge' | 'daylog';
  * they cannot drift apart in the one direction that matters — a type promised here and not drawn there
  * would fall through to the station's idle emblem and silently eat a round.
  *
- * `FLU-OPCHAIN-01`, `VER-SORTBOT-01` and `VER-RELPAIR-01` are deliberately absent: their banks exist and
+ * `FLU-OPCHAIN-01` and `VER-RELPAIR-01` are deliberately absent: their banks exist and
  * the API will serve them, but nothing draws them yet. Adding one here after building its presentation is
  * the whole of what "a new question style" now costs — no new site, no new carpentry, no new verb wiring.
  * Re-run the bay measurement when you do, because a new style can widen its battery's worst case.
@@ -146,6 +146,10 @@ export const DRAWN_TYPES: readonly string[] = [
   'QUANT-FUNC-01',
   'QUANT-BALANCE-01',
   'VER-SEQUENCE-01',
+  /* Added when the sorting gate was built. Its pool is additionally gated in `server-plugin.ts`: 10 of
+     its 37 small-band items cannot be answered from their pictures. Being drawable is necessary to reach
+     a child; it is not sufficient. */
+  'VER-SORTBOT-01',
 ];
 
 /**
@@ -482,6 +486,23 @@ export function extentOf(typeCode: string, content: Record<string, unknown>): { 
   if (typeCode === 'QUANT-SERIES-01') {
     // `SPAN_X` 8.7 plus 1.0 of carved bank either side; the shelf is 1.95 per portion plus 0.8.
     return { halfW: Math.max(9.7, n * 1.95 + 0.8) / 2, halfH: 3.2 };
+  }
+
+  /**
+   * The sorting gate, and it is the one presentation whose APPARATUS is wider than its shelf.
+   *
+   * Every item of this type has exactly two `examplesIn` and one `examplesOut`, so the bins are a fixed
+   * size and the shelf never wins the width — the 4-option shelf is 4.15 and the 3-option 3.23, against
+   * the bins' outer edges at 4.37. Constant for both option counts, which is why there is no arithmetic
+   * over `content` here.
+   *
+   * It also hangs its shelf AT the panel plane rather than 0.4 to 3.1 units in front of it, as the others
+   * do, because a candidate nearer the camera renders larger and on a type whose question is "is this the
+   * same KIND as those" a size difference is a false signal about membership. So it projects smaller than
+   * its half-extents imply and has parallax to spare.
+   */
+  if (typeCode === 'VER-SORTBOT-01') {
+    return { halfW: 4.37, halfH: 2.84 };
   }
 
   if (typeCode === 'VER-SEQUENCE-01') {

@@ -5,7 +5,7 @@ import { Raycaster, Vector2, Vector3, type Group } from 'three';
 import { toRef } from '../../shared/ItemStage';
 import type { Family } from '../contract';
 import type { LiveItem } from '../Game';
-import { DayLog } from '../screener/DayLog';
+import { IN_WORLD } from '../screener/inWorld';
 import { PodWall } from '../screener/PodWall';
 import { TideLine } from '../screener/TideLine';
 import { usePrefersReducedMotion } from '../world/motion';
@@ -89,18 +89,12 @@ const CENTRE = new Vector2(0, 0);
  * numbered buttons — which is the correct failure. The owner's report that the tide-line was "pressing
  * random numbers for no reason" was that fallback, and it should never be reachable again.
  */
-const PRESENTATION: Record<
-  string,
-  ComponentType<{
-    content: Record<string, unknown>;
-    onPick: (handed: string) => void;
-    disabled?: boolean;
-  }>
-> = {
-  'FLU-MATRIX-01': PodWall,
-  'QUANT-SERIES-01': TideLine,
-  'VER-SEQUENCE-01': DayLog,
-};
+/* The registry now lives in `screener/inWorld.ts`, imported by this file AND by `Game.tsx`.
+   It used to be duplicated here to avoid an import cycle, and the two copies drifted: four new
+   presentations were registered in Game's copy only, so the world suppressed the fallback because a
+   presentation supposedly existed while this file drew its idle emblem because it had never heard of the
+   type. Blank panel, no error. See that file's header. */
+const PRESENTATION = IN_WORLD;
 
 interface Hatch {
   verbId: string;

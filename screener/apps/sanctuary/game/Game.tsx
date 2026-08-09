@@ -13,7 +13,7 @@ import { StoneBed } from './screener/StoneBed';
 import { Sprouter } from './screener/Sprouter';
 import { Weave } from './screener/Weave';
 import { BalanceBough } from './screener/BalanceBough';
-import { SortingGate } from './screener/SortingGate';
+import { IN_WORLD as IN_WORLD_MAP } from './screener/inWorld';
 import { Buildings, SOLIDS } from './world/Buildings';
 import { Lighting } from './world/Lighting';
 import { Slime, pushOutOfSlimes } from './slimes/Slime';
@@ -132,6 +132,25 @@ function Keeper({ locked }: { locked: boolean }) {
       }
     }
 
+    /**
+     * Where the keeper is, published for test harnesses.
+     *
+     * This exists because engaging a station requires pointer lock, headless Chrome refuses to grant it,
+     * and so for the whole of this build NOBODY had ever driven a round from outside the app — every
+     * "the station works" claim rested on driving the session layer directly, which is not the same
+     * thing. Two bugs reached the owner that way: a station that swallowed every click after the first
+     * item, and a last question that trapped the keeper with nothing on screen to press. A headed browser
+     * will grant the lock; it just needs to know where it is standing in order to walk anywhere.
+     *
+     * Read-only, four numbers, written on a frame that is already running. Nothing in the game reads it.
+     */
+    (window as unknown as { __keeper?: unknown }).__keeper = {
+      x: camera.position.x,
+      z: camera.position.z,
+      y: camera.position.y,
+      yaw: yaw.current,
+    };
+
     // Soft bound rather than a wall.
     const r = Math.hypot(camera.position.x, camera.position.z);
     if (r > BOUND) {
@@ -155,26 +174,7 @@ function Keeper({ locked }: { locked: boolean }) {
  * which draws none of the item's content and is a gap rather than a design: the owner's report that
  * the tide-line was "pressing random numbers for no reason" was exactly this fallback.
  */
-export const IN_WORLD: Record<
-  string,
-  React.ComponentType<{
-    content: Record<string, unknown>;
-    onPick: (handed: string) => void;
-    disabled?: boolean;
-  }>
-> = {
-  'FLU-MATRIX-01': PodWall,
-  'QUANT-SERIES-01': TideLine,
-  'VER-SEQUENCE-01': DayLog,
-  'SPA-XFORM-01': StoneBed,
-  'QUANT-FUNC-01': Sprouter,
-  'FLU-CARPET-01': Weave,
-  'QUANT-BALANCE-01': BalanceBough,
-  /* The verbal station's second style, and the reason it stops repeating. Its pool is gated in
-     `server-plugin.ts`, not here: 10 of its 37 small-band items cannot be answered from pictures, and a
-     gate that runs at render time runs after the child is already looking at the question. */
-  'VER-SORTBOT-01': SortingGate,
-};
+export { IN_WORLD } from './screener/inWorld';
 
 export interface LiveItem {
   serve: NonNullable<ReturnType<typeof useSortie>['serve']>;
@@ -291,7 +291,7 @@ function Beat({
   const options = Array.isArray(content.options) ? (content.options as Record<string, unknown>[]) : [];
   // Drawn in the world by the 3D layer. Only types without an in-world presentation fall back to the
   // flat tile row, and that fallback is a gap to close rather than a design.
-  const inWorld = !!IN_WORLD[s.serve.typeCode];
+  const inWorld = !!IN_WORLD_MAP[s.serve.typeCode];
 
   return (
     <div className={inWorld ? 'bh-beat bh-beat-slim' : 'bh-beat'}>

@@ -36,7 +36,15 @@ import {
   BARN_WALL_H,
   barnSolids,
 } from './barn';
-import { BALE, BALE_CUT_X, BALE_TWINE_X, BarnInterior, baleGeometries } from './barnInterior';
+import {
+  BALE,
+  BALE_CUT_X,
+  BALE_TWINE_X,
+  BarnInterior,
+  SACK,
+  baleGeometries,
+  sackGeometries,
+} from './barnInterior';
 import {
   BOUNDARY,
   BOUNDARY_RAIL_HEIGHTS,
@@ -313,6 +321,18 @@ function blocked(x: number, z: number, pad = 0): boolean {
   return false;
 }
 
+/**
+ * Bark, as three pigments rather than one.
+ *
+ * Warmer and lighter than the `timberDeep`..`timber` pair they replace, because a trunk is thin, stands
+ * in the open, and is the one vertical surface in the ranch that is almost never square to the sun — it
+ * lives on fill light, and a pigment chosen to look right under direct sun is a silhouette out here.
+ * Kept in this file rather than in `pigment.ts` because nothing else is made of bark.
+ */
+const BARK_DEEP = '#7c5a3c';
+const BARK_PALE = '#b08a5c';
+const BARK_GREY = '#8a7659';
+
 interface Tree {
   x: number;
   z: number;
@@ -461,7 +481,13 @@ export const SOLIDS: Solid[] = (() => {
 
   for (const prop of BARN_YARD) {
     const w = toWorld(BARN, prop.lx, prop.lz);
-    out.push({ position: [w[0], w[1]], radius: prop.kind === 'bale' ? 0.72 : 0.55 });
+    /**
+     * The sack's circle came down with its geometry. 0.55 was sized for the 62cm marshmallow that used
+     * to stand here; a real sack is 54 x 38cm, whose half-diagonal is 0.33, so the old circle held a
+     * child a fifth of a metre off thin air beside the barn doors. A collider that outlives the shape it
+     * was cut for is exactly the kind of thing nobody sees and everybody bumps into.
+     */
+    out.push({ position: [w[0], w[1]], radius: prop.kind === 'bale' ? 0.72 : 0.4 });
   }
 
   // Only the trees a child can reach. `BOUND` is 34, so anything past 36 is decoration.
@@ -1711,7 +1737,16 @@ function BarnYard(): JSX.Element {
       bale: bale.body,
       band: bale.twine,
       cut: bale.cut,
-      sack: new RoundedBoxGeometry(0.62, 0.86, 0.5, 4, 0.22),
+      /**
+       * THE SAME SACK AS INSIDE THE BARN, for exactly the reason the bale above is shared.
+       *
+       * This file used to carry its own: one `RoundedBoxGeometry(0.62, 0.86, 0.5)` with a 22cm fillet.
+       * On a 50cm depth that is 88% of the half-span, which is not a rounded box at all — it is a
+       * capsule, and `barnInterior.tsx` records that the same mistake inside the barn is exactly why a
+       * sack "lit as a marshmallow". So the ranch had two sacks: four-part tied sacks in the barn and
+       * three white pillows outside its doors, six metres apart, in the same frame from the yard.
+       */
+      sack: sackGeometries(),
     };
   }, []);
 
@@ -1731,18 +1766,36 @@ function BarnYard(): JSX.Element {
       }),
     [],
   );
-  const sacks = useMemo<Placement[]>(
-    () =>
-      BARN_YARD.filter((p) => p.kind === 'sack').map((p) => {
-        const w = toWorld(BARN, p.lx, p.lz);
-        return {
-          position: [w[0], 0.43 * p.scale, w[1]] as const,
-          rot: [0, BARN.rot + p.rot, 0] as const,
-          scale: [p.scale, p.scale, p.scale] as const,
-        };
-      }),
-    [],
-  );
+  /**
+   * A sack is four parts, and the heights come from `SACK` rather than from here.
+   *
+   * The old single box was placed at a hand-typed `0.43 * scale`, which is the sort of number that is
+   * right once and then silently wrong the moment the thing it describes changes shape. `SACK` publishes
+   * a centre height for each stage — body, shoulder, neck and the twine round the throat — precisely so
+   * that a caller placing the four parts of one sack cannot get them out of agreement with each other.
+   * Every one is multiplied by the sack's own scale, so a 0.85 sack is a small sack rather than a normal
+   * sack sunk into the ground.
+   */
+  const sacks = useMemo(() => {
+    const body: Placement[] = [];
+    const shoulder: Placement[] = [];
+    const neck: Placement[] = [];
+    const tie: Placement[] = [];
+    for (const prop of BARN_YARD) {
+      if (prop.kind !== 'sack') continue;
+      const w = toWorld(BARN, prop.lx, prop.lz);
+      const rot = [0, BARN.rot + prop.rot, 0] as const;
+      const scale = [prop.scale, prop.scale, prop.scale] as const;
+      const put = (list: Placement[], y: number): void => {
+        list.push({ position: [w[0], y * prop.scale, w[1]] as const, rot, scale });
+      };
+      put(body, SACK.bodyY);
+      put(shoulder, SACK.shoulderY);
+      put(neck, SACK.neckY);
+      put(tie, SACK.tieY);
+    }
+    return { body, shoulder, neck, tie };
+  }, []);
   /**
    * Twine and cut ends, at the offsets `barnInterior.tsx` publishes, so the two sets of bales are wrapped
    * identically. The one bale here with a roll on it is why the offsets are turned by the full placement
@@ -1778,7 +1831,16 @@ function BarnYard(): JSX.Element {
       <Instanced geometry={g.bale} material={m.hay} items={bales} />
       <Instanced geometry={g.band} material={m.twine} items={dressing.twine} />
       <Instanced geometry={g.cut} material={m.straw} items={dressing.cut} />
-      <Instanced geometry={g.sack} material={m.burlap} items={sacks} />
+      {/*
+        Three sacks, twelve parts, four draw calls — one per stage rather than one per sack, which is
+        the whole reason the stages are separate geometries. The tie is on `twine` and everything else
+        on `burlap`: a band that shares the cloth's material disappears into it and the sack goes back
+        to being a box, which is the same note the bale's twine carries.
+      */}
+      <Instanced geometry={g.sack.body} material={m.burlap} items={sacks.body} />
+      <Instanced geometry={g.sack.shoulder} material={m.burlap} items={sacks.shoulder} />
+      <Instanced geometry={g.sack.neck} material={m.burlap} items={sacks.neck} />
+      <Instanced geometry={g.sack.tie} material={m.twine} items={sacks.tie} />
     </group>
   );
 }
@@ -1914,16 +1976,54 @@ function Foliage(): JSX.Element {
     [],
   );
 
-  const trunks = useMemo<Placement[]>(
-    () =>
-      TREES.map((t) => ({
+  /**
+   * BARK, AND THE BUG THAT MADE EVERY TRUNK A HOLE CUT IN THE PICTURE.
+   *
+   * The trunks were handed `PIG.timberDeep -> PIG.timber` as an instance colour on the `timber`
+   * material. That reads like "colour each trunk somewhere between these two browns" and it is not what
+   * it does: an instance colour MULTIPLIES the material's own, which `pigment.ts` warns about in its
+   * second paragraph. So the darkest trunk was being drawn at `timber x timberDeep`, and the arithmetic
+   * is brutal — linear (0.035, 0.011, 0.002) against an intended (0.138, 0.074, 0.034). A quarter of the
+   * red, a seventh of the green, and a FIFTEENTH of the blue.
+   *
+   * That last figure is why they did not merely look dark, they looked dead. Annihilating the blue
+   * channel leaves no hue for the cool sky fill to land in, so the one light that reaches a backlit
+   * surface in this scene had nothing to tint — and `Lighting.tsx` says outright that the fill is the
+   * thing that stops an unlit face going hueless. Ninety-two trunks rendered as flat black cylinders,
+   * and the defect was invisible in code review because the line names two perfectly good pigments.
+   *
+   * SO THE INSTANCE COLOUR IS NOW A TRUE MULTIPLIER: a target bark pigment divided by the material it
+   * multiplies, which lands the product exactly on the target. Same one draw call, correct pigment.
+   *
+   * And having fixed it, the range is worth spending. Bark is not one brown, and ninety-two identical
+   * cylinders read as instancing however well they are lit — so a tree draws on two independent axes.
+   * `tint` runs it from a warm shaded bark to a sun-bleached one, and a noise sampled at the trunk's own
+   * position turns some of them toward a grey-brown, so neighbours differ in HUE and not only in value.
+   * The palest bark comes out at 1.76x the timber pigment, which is still below `PIG.stone`, already
+   * shipped on the buildings — so nothing here is brighter than the world already goes.
+   */
+  const trunks = useMemo<Placement[]>(() => {
+    const base = new Color(PIG.timber);
+    const toward = (hex: string): Color => {
+      const c = new Color(hex);
+      return new Color(c.r / base.r, c.g / base.g, c.b / base.b);
+    };
+    const deep = toward(BARK_DEEP);
+    const pale = toward(BARK_PALE);
+    const grey = toward(BARK_GREY);
+    return TREES.map((t) => {
+      const bark = deep.clone().lerp(pale, t.tint);
+      // Sampled off the trunk's position rather than drawn from the scatter's stream, so adding this
+      // second axis could not move a single tree.
+      bark.lerp(grey, noise2(t.x * 0.7 + 12.4, t.z * 0.7 - 5.1) * 0.6);
+      return {
         position: [t.x, t.y + t.trunkH / 2, t.z] as const,
         rot: [0, t.tint * 6.28, t.lean] as const,
         scale: [1, t.trunkH, 1] as const,
-        color: new Color(PIG.timberDeep).lerp(new Color(PIG.timber), t.tint),
-      })),
-    [],
-  );
+        color: bark,
+      };
+    });
+  }, []);
 
   const leaves = useMemo<Placement[]>(() => {
     const out: Placement[] = [];
