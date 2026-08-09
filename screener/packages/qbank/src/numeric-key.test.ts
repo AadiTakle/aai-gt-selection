@@ -145,7 +145,13 @@ describe('the whole library, not just the type that broke', () => {
       for (const item of bank.scorable) {
         const key = item.answer.correctKey;
         const where = `${bank.typeCode} ${item.itemId}`;
-        if (typeof key === 'number') {
+        // Three key styles now, since 1b.6 made a cell-set type servable. Each is marked down its own path and
+        // they never meet, which is the same care the two original styles get.
+        if (typeof key === 'string' && key.includes(',')) {
+          const cells = key.split('|');
+          expect(scoreResponse(item, { cells }), where).toBe(true);
+          expect(scoreResponse(item, { cells: cells.slice(0, -1) }), where).toBe(false);
+        } else if (typeof key === 'number') {
           expect(scoreResponse(item, { selectedIndex: key }), where).toBe(true);
           expect(scoreResponse(item, { selectedIndex: key + 1 }), where).toBe(false);
         } else {
@@ -179,6 +185,64 @@ describe('the five types are now in the pool', () => {
         expect(scoreResponse(item, { selectedIndex: correct }), `${typeCode} ${item.itemId}`).toBe(true);
         expect(scoreResponse(item, { selectedIndex: correct + 1 }), `${typeCode} ${item.itemId}`).toBe(false);
       }
+    }
+  });
+});
+
+describe('a cell-set answer is marked as a set', () => {
+  /**
+   * 1b.6, starting with the one true Paper Folding type. `scoring.mode` says `computed_solver`, which reads as
+   * "a solver must work this out" — and is wrong for the second time in this file's history. All 1,774
+   * `computed_solver` items across 15 types carry a fully-formed `correctKey`; the solving happened when the
+   * bank was authored. The mode really means "the key is not a single option letter".
+   */
+  const punch = loadBanks().get('SPA-PUNCH-01')!;
+
+  it('serves all 140 items, excluding none', () => {
+    expect(punch.scorable).toHaveLength(140);
+    expect(punch.excluded).toEqual({});
+  });
+
+  it('ignores the order cells were tapped in', () => {
+    for (const item of punch.scorable.slice(0, 30)) {
+      const cells = (item.answer.correctKey as string).split('|');
+      expect(scoreResponse(item, { cells }), item.itemId).toBe(true);
+      expect(scoreResponse(item, { cells: [...cells].reverse() }), item.itemId).toBe(true);
+    }
+  });
+
+  it('refuses a subset and a superset, not just a wrong cell', () => {
+    /**
+     * The prompt is "tap every square that will have a hole", so all of it and only it. Accepting a subset would
+     * reward finding one hole out of eight; accepting a superset would reward tapping the whole grid. Both are
+     * the wrong answer, and a lenient comparison here would quietly inflate every estimate.
+     */
+    // A 4x4 grid can have all 16 cells punched, so the extra cell has to be one this answer actually lacks —
+    // appending a cell the key already contains is a no-op and would pass for the wrong reason.
+    const item = punch.scorable.find((i) => {
+      const n = (i.answer.correctKey as string).split('|').length;
+      return n >= 4 && n < 16;
+    })!;
+    const cells = (item.answer.correctKey as string).split('|');
+    const grid = (item.content.grid as { n: number }).n;
+    const extra = Array.from({ length: grid * grid }, (_, k) => `${k % grid},${Math.floor(k / grid)}`).find(
+      (c) => !cells.includes(c),
+    )!;
+    expect(scoreResponse(item, { cells: cells.slice(0, 2) })).toBe(false);
+    expect(scoreResponse(item, { cells: [...cells, extra] })).toBe(false);
+  });
+
+  it('returns unscorable, not wrong, for a response it cannot read', () => {
+    expect(scoreResponse(punch.scorable[0]!, { nothing: true })).toBeNull();
+    expect(scoreResponse(punch.scorable[0]!, { cells: ['bad'] })).toBeNull();
+  });
+
+  it('marks every servable item both right and wrong', () => {
+    // Over the whole bank rather than a sample, the same way the index-keyed types are covered above.
+    for (const item of punch.scorable) {
+      const cells = (item.answer.correctKey as string).split('|');
+      expect(scoreResponse(item, { cells }), item.itemId).toBe(true);
+      expect(scoreResponse(item, { cells: cells.slice(0, -1) }), item.itemId).toBe(false);
     }
   });
 });

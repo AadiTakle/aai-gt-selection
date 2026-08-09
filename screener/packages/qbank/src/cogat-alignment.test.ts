@@ -130,25 +130,23 @@ describe('a whole aligned session never sees an unmapped type', () => {
     expect(anyNone, 'an unrestricted session should still reach the unmapped types').toBe(true);
   });
 
-  it('has no spatial items at all under "direct", and that is 1b.6 not a bug here', () => {
+  it('now has spatial items under "direct", because 1b.6 made Paper Folding servable', () => {
     /**
-     * Found by turning enforcement on, and worth pinning because it is a live gap rather than a curiosity.
+     * This test used to assert the opposite, and going red is what it was for.
      *
-     * `SPA-PUNCH-01` is the **only** directly-mapped Paper Folding type, and all 140 of its items are
-     * `computed_solver`, so the loader excludes every one. Paper Folding is one of CogAT's nine subtests and this
-     * project claims to cover it — but a `direct` session cannot serve a single spatial item, because the type
-     * that would carry it cannot be marked host-side.
-     *
-     * `uncoveredSubtests()` does not show this: it reads the mapping, where Paper Folding is covered, and knows
-     * nothing about servability. So the honest statement of requirement 2's gap is two subtests, not one.
-     *
-     * Implementing `computed_solver` (1b.6) is what closes it. When it does, this test should go red and be
-     * updated deliberately.
+     * `SPA-PUNCH-01` is the only directly-mapped Paper Folding type. All 140 of its items were excluded at load
+     * as `computed_solver`, so enforcing `direct` alignment (2.3) produced a pool with no spatial items at all —
+     * a CogAT-aligned instrument that could not measure a CogAT battery. 1b.6 closed it: the answer was a stored
+     * cell set all along, so marking is a set comparison and no solver was needed.
      */
     const direct = buildPool(allRecords, { cogatAlignment: 'direct' });
-    expect(direct.some((e) => e.domain === 'spatial')).toBe(false);
-    expect(banks.get('SPA-PUNCH-01')?.scorable).toHaveLength(0);
-    expect(banks.get('SPA-PUNCH-01')?.excluded).toMatchObject({ computed_solver: 140 });
+    expect(direct.some((e) => e.domain === 'spatial')).toBe(true);
+    expect(banks.get('SPA-PUNCH-01')?.scorable).toHaveLength(140);
+    expect(banks.get('SPA-PUNCH-01')?.excluded).toEqual({});
+    // All four domains reachable under the strictest claim, which is the state requirement 2 wanted.
+    expect(new Set(direct.map((e) => e.domain))).toEqual(
+      new Set(['fluid', 'quantitative', 'spatial', 'verbal']),
+    );
   });
 
   it('still reaches a decision under the strictest alignment', () => {

@@ -375,7 +375,7 @@ said. Do not start these without reinstating some measurement first.
 - **Done when:** a near-miss moves the posterior less than a wild miss, in one coherent model, and the
   threshold change is recorded.
 
-### 15. `1b.6` — Implement the missing scoring modes
+### 15. `1b.6` — Implement the missing scoring modes — **STARTED 9 Aug 2026: Paper Folding is servable**
 - `packages/qbank/src/bank.ts:121` admits only `deterministic_key`; **2,285** of 7,319 items are
   dropped at load, in **three** categories, not two (measured 8 Aug during `1b.7`).
 - `computed_solver`: 1,774 items across 15 types. `model_judge_deferred`: 120 items,
@@ -386,7 +386,43 @@ said. Do not start these without reinstating some measurement first.
 - Start with `SPA-PUNCH-01` (key `"0,0|0,3"`, a set of grid cells) — it is the one true Paper Folding
   type. Port from `archive/apps/web/src/lib/exam/verifiers/` rather than writing fresh.
 - Treat `scoring.mode` in the bank as a claim to verify, not a fact.
-- **Done when:** Paper Folding is servable and the excluded count is stated in the loader summary.
+- **Done when:** Paper Folding is servable and the excluded count is stated in the loader summary. ← **met**
+
+**`computed_solver` does not mean a solver is needed, and that is the headline.** All **1,774** of those items,
+across all 15 types, carry a fully-formed `correctKey` — the solving happened when the bank was authored. What
+the mode actually means is "the key is not a single option letter or index". Each format needs a *comparison
+rule*, and this is the second time this field has misled: `1b.7` was `deterministic_key` lying, this is
+`computed_solver` overstating.
+
+| Key format | Example | Types |
+|---|---|---|
+| unordered cell set | `'0,0\|0,3'` | `SPA-PUNCH-01` ✅, `WM-bind-01` |
+| scalar count | `'6'`, `'18'` | the five `GB-*` types |
+| ordering | `'2,0,1'`, `'0>1'`, `'r2c3-r1c2'` | `VER-SENSE-01`, `SPA-SCENE-01`, `WM-corsi-01` |
+| grid bitmap | `'000/001/000'` | `FLU-GRIDCOPY-01` |
+| mapping / token | `'A=2,B=4'`, `'PLANE'`, `'HEADING'` | `QUANT-MIX-01`, `SPA-XPLANE-01`, `SPA-VIEW-01` |
+
+**Paper Folding: all 140 `SPA-PUNCH-01` items are servable**, marked as an unordered set. Order ignored; a
+subset and a superset are both **wrong**, because the prompt is "tap every square that will have a hole" and a
+lenient comparison would reward finding one hole out of eight or tapping the whole grid.
+
+**The key is verified, not trusted.** Every cell must sit inside the item's own grid and `correctKey` must agree
+with the `trueCells` stored beside it; a key failing either is excluded as `unusable-cell-set-key`. That is the
+`1b.7` lesson applied — a stored key that lies is how 391 items got marked confidently wrong. The archive holds
+a real solver (`archive/apps/web/src/lib/exam/verifiers/spatial.ts`) that re-derives the hole set from the folds
+instead of trusting the key; **that is strictly stronger and still worth porting.**
+
+**This closes the spatial gap `2.3` exposed.** Under `direct` alignment: 992 → **1,132 items**, 9 → **10 types**,
+and all four domains present where spatial was absent entirely. Requirement 2's gap is back to one subtest —
+Verbal Analogies, which is `2.1`.
+
+**`loaderSummary()` states the counts** so no document has to carry them from memory: **53 types, 7,319 records,
+5,174 scorable, 2,145 excluded** — `computed_solver` 1,634, `non-index-numeric-key` 391,
+`model_judge_deferred` 120, plus 15 types with nothing servable.
+
+**Still open:** the other 14 formats (1,634 items), the 391 tolerance items, and `CX-achieve-02`'s 120 judge
+items. None needs a solver; each needs a comparison rule and a response contract, and the response shapes are
+unknown because these types were never servable.
 
 ### 16. `2.1` — Build a Verbal Analogies type
 - Zero direct coverage today. `VER-RELPAIR-01` is mapped loosely and its own note says it is not
