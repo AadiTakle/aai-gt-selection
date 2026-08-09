@@ -124,7 +124,14 @@ export type Build = 'coatwall' | 'tideledge' | 'daylog';
 \* ------------------------------------------------------------------ */
 
 /**
- * The item types that have an in-world presentation, and therefore the only ones a station may serve.
+ * The item types that have an in-world presentation. NECESSARY for a station to serve one, and since
+ * the battery audit, no longer SUFFICIENT.
+ *
+ * `siteTypes` intersects this list with `VERBS`, and `shared/batteries.ts` now withdraws types that do
+ * not belong to any CogAT battery — `SPA-XFORM-01` is drawn, is listed here, and is served nowhere,
+ * which is the intended state and is asserted in `registry.test.ts`. The withdrawal lives in ONE place
+ * and this is not it: do not prune this list to express a measurement decision, or there will be two
+ * opinions about what a station may serve and they will drift.
  *
  * THE SINGLE SOURCE OF TRUTH FOR "IS THIS DRAWABLE", and it lives here rather than beside the components
  * for one structural reason: `Stations.tsx` imports this file, so this file cannot import `Stations.tsx`
@@ -183,7 +190,7 @@ export function siteTypes(battery: Battery): readonly string[] {
  * both wider on screen AND lower. The worst case of a set is not the worst-looking member of it.
  *
  *   battery        widest → post   lowest → sill   highest → head   set by
- *   Nonverbal          3.24            1.59            1.45         FLU-MATRIX-01 (all three)
+ *   Nonverbal          3.24            1.59            1.45         FLU-MATRIX-01 (every member)
  *   Quantitative       2.64            1.63            1.45         QUANT-BALANCE / SERIES / FUNC
  *   Verbal             1.81            1.44            1.49         VER-SEQUENCE-01
  *
@@ -296,10 +303,17 @@ export const SITES: readonly StationSite[] = [
      * exactly how thirteen slime families sat unreachable for a night. `siteTypes` reads `VERBS` and the
      * drawn set, so registering a presentation is the whole job.
      *
-     * Measured, so nobody has to trust it: a battery-wide pool serves all three of its styles at every
-     * threshold tried — `SPA-XFORM:4 FLU-MATRIX:2 FLU-CARPET:2` at threshold 0, and 3 of 3 distinct in
-     * 18 of 18 runs. The old collapse onto a single type was `FLU-OPCHAIN-01` specifically, which has no
-     * presentation and so is not in this set.
+     * Measured, so nobody has to trust it: a battery-wide pool serves both of its styles at every
+     * threshold tried — `FLU-MATRIX:24 FLU-CARPET:18` over six sorties against the live API on 5203,
+     * with `perDomain` coming back `fluid:42` and every other domain zero. The old collapse onto a
+     * single type was `FLU-OPCHAIN-01` specifically, which is now retired outright.
+     *
+     * IT WAS THREE STYLES UNTIL THE BATTERY AUDIT. `SPA-XFORM-01` was half of everything this station
+     * served — `spatial:24 fluid:24` over the same six sorties — and it is not a Nonverbal subtest;
+     * `RETIRED` in `shared/batteries.ts` has the whole argument. Two styles here is the honest number,
+     * and both are CogAT Figure Matrices, so it is two presentations of one subtest rather than two
+     * subtests. `FLU-VENN-01` (Figure Classification) and `SPA-PUNCH-01` (Paper Folding) are the two
+     * banks that would widen it for real.
      */
     types: siteTypes('Nonverbal'),
     build: 'coatwall',
@@ -368,10 +382,15 @@ export const SITES: readonly StationSite[] = [
     typeCode: 'VER-SEQUENCE-01',
     battery: 'Verbal',
     /**
-     * Derived, and today this resolves to ONE type — `VER-SEQUENCE-01` is the only verbal presentation
-     * built. The sorting gate is next and needs no change here when it lands, which is the point of
-     * deriving rather than listing. Until then the verbal station is the one that repeats, and that is a
-     * missing presentation rather than a missing mechanism.
+     * Derived — see the note on the coat wall. Today this resolves to `VER-SEQUENCE-01` and
+     * `VER-SORTBOT-01`, and it is about to resolve to something different in BOTH directions.
+     *
+     * `VER-SEQUENCE-01` IS ON ITS WAY OUT and is only still here because pulling it early would strand
+     * this station on one style with a 27-item gated pool. `VER-RELPAIR-01` — Verbal Analogies, a real
+     * CogAT Verbal subtest — is having its presentation built, and lands first. The order and the
+     * one-commit rename that has to go with it are written out in `shared/batteries.ts` above `typesFor`;
+     * `registry.test.ts` fails if the rename is skipped, because `Game.tsx` would otherwise call this
+     * station Nonverbal and post its posterior to the wrong battery without saying anything.
      */
     types: siteTypes('Verbal'),
     build: 'daylog',

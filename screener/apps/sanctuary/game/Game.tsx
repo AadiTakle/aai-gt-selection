@@ -213,7 +213,22 @@ function Beat({
       return 'anon';
     }
   }, []);
-  const battery: Battery = verb?.battery ?? 'Nonverbal';
+  /**
+   * THE STATION'S battery, not the verb's.
+   *
+   * This used to be `verb?.battery ?? 'Nonverbal'`, and that fallback is a silent contamination one
+   * deleted line away at all times. A station is keyed by its battery's tier-1 verb id; retire that
+   * type — which the battery audit is about to do to `VER-SEQUENCE-01` — and the lookup returns
+   * undefined, so the VERBAL station calls itself Nonverbal. Nothing errors. `/sanctuary/chunk` then
+   * steers it from the child's Nonverbal theta and `/sanctuary/close` folds a verbal posterior into the
+   * Nonverbal estimate, so two of the three batteries go quietly wrong.
+   *
+   * `SITES` already states each station's battery as a fact about the station, so ask it. The verb
+   * fallback is kept only for a caller that is not a site, and `registry.test.ts` asserts every site key
+   * names a verb of its own battery so the two can never disagree.
+   */
+  const site = useMemo(() => SITES.find((x) => x.verbId === verbId), [verbId]);
+  const battery: Battery = site?.battery ?? verb?.battery ?? 'Nonverbal';
   /**
    * THE WHOLE BATTERY, not this verb's one style. This single line is what the owner was describing:
    * "ALL questions at the verbal station should be interchangeable at that station ... so that the user
@@ -236,10 +251,9 @@ function Beat({
    * registered in `IN_WORLD` and nothing else.
    */
   const types = useMemo(() => {
-    const site = SITES.find((x) => x.verbId === verbId);
     const set = site?.types ?? typesFor(battery);
     return set.length ? set : verb ? [verb.typeCode] : typesFor(battery);
-  }, [verbId, battery, verb]);
+  }, [site, battery, verb]);
   /**
    * `steered` is the owner's adaptivity: "if they keep missing questions, they progressively get easier.
    * if they keep getting it right, it will probably show harder questions."
