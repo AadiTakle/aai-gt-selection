@@ -698,10 +698,20 @@ export function Shop({
         */}
         <StandMark site={AS_SITE} lit={lit} reduced={reduced} />
 
-        {/* The prompt. Only in range, only while not already inside, and low and forward so it sits in
-            front of the counter rather than over the stock. */}
+        {/* The prompt. Only in range, only while not already inside, and forward so it sits in front of
+            the counter rather than over the stock.
+         *
+         * HEIGHT IS ARITHMETIC, NOT TASTE. The owner reported "the E button popup is in the ground for the
+         * atm so it need to be higher", and the numbers say exactly that: ground is at local `-AT[1]` =
+         * -2.2 by this file's own convention, the badge was at -1.98, so its centre sat 0.22 m above the
+         * grass — and `PressBadge`'s plate is 0.86 tall, putting its bottom edge 21 cm UNDERGROUND.
+         *
+         * -1.0 puts the centre at 1.2 m and the lowest edge at 0.77 m: above the grass by a clear margin,
+         * below the keeper's 1.5 m eye so it never covers the stall it is pointing at, and roughly where a
+         * child's hands are, which is where a "press this" belongs. The three question stations put theirs
+         * at 0.9 m world, so this is the same family of height rather than a new idea. */}
         {lit === 1 && !engaged ? (
-          <group position={[0, -1.98, 2.55]}>
+          <group position={[0, -1.0, 2.55]}>
             <PressBadge site={AS_SITE} reduced={reduced} />
           </group>
         ) : null}
