@@ -47,7 +47,7 @@ import {
   type Placed,
   type Solid,
 } from './plan';
-import { gableRoofGeometry, gableWallGeometry, hipRoofGeometry } from './roofs';
+import { eaveCollarGeometry, gableRoofGeometry, gableWallGeometry, hipRoofGeometry } from './roofs';
 import { rippleTexture } from './textures';
 import { Windows, wallTaken } from './windows';
 
@@ -118,6 +118,24 @@ const HUT_RISE = 2.45;
 const HUT_ROOF_T = 0.52;
 const HUT_EAVE = 0.66;
 const HUT_PLINTH_H = 0.36;
+/** Depth of the soffit board that closes the eave. See `eaveCollarGeometry` in `roofs.ts`. */
+const HUT_SOFFIT_T = 0.15;
+/** Half the roof's span across the slopes, which is what sets its pitch and every height on it. */
+const HUT_ROOF_HALF_W = HUT_W / 2 + HUT_EAVE;
+/** The hip's pitch, from the roof's own two numbers rather than measured off a screenshot. */
+const HUT_PITCH = Math.atan2(HUT_RISE, HUT_ROOF_HALF_W);
+/**
+ * The chimney, and the height of the roof's OUTER skin where it comes through.
+ *
+ * `hutSkinY` is the same expression `hipRoofGeometry` builds its skin from — `thickness` above a soffit
+ * that falls linearly from `rise` at the ridge to zero at the eave — so the flashing collar lands ON the
+ * roof rather than near it. The stack stands at 2.2m from the ridge on the +X slope, which is 55% of the
+ * way down it, so the whole 1.06m collar is on one plane and needs no hip mitre.
+ */
+const CHIMNEY = { lx: HUT_W / 2 - 1.1, lz: -HUT_D / 2 + 1.0, w: 0.72, h: 2.5 };
+function hutSkinY(localX: number): number {
+  return HUT_ROOF_T + HUT_RISE * (1 - Math.abs(localX) / HUT_ROOF_HALF_W);
+}
 
 /**
  * The windmill. Turned to face the middle of the ranch rather than the wind.
@@ -177,6 +195,44 @@ const PATHS: readonly (readonly (readonly [number, number])[])[] = [
   ],
 ];
 const PATH_WIDTH: readonly number[] = [2.7, 1.9, 1.9, 1.6];
+/** Which tracks are wide enough to have been driven rather than only walked. Index-matched. */
+const PATH_RUTTED: readonly boolean[] = [true, true, false, false];
+
+/**
+ * THE WORN TRACK'S CROSS-SECTION, AND WHY IT IS BUILT UPWARD.
+ *
+ * The owner's complaint was two complaints. "Smudged" is the ground's fault and is answered where the
+ * meadow is coloured — a six-metre-wide de-saturation either side of every centreline had turned the whole
+ * yard into brown-green mush, and it is now a third of that width and a third of the strength. "Completely
+ * flat" is this section's fault, and it is the real one: a worn track is a HOLLOW, and what a child reads
+ * is not the dirt but the turf standing above it and breaking over its edges.
+ *
+ * SO THE HOLLOW IS MADE BY RAISING THE FIELD, NOT BY SINKING THE TRACK, and that is forced rather than
+ * chosen. Two constraints point the same way:
+ *
+ *   The ground mesh is OPAQUE and lies at exactly y = 0 across the whole plateau. Anything modelled below
+ *   that plane is behind it from every angle a child can stand at, so a trench would not be a subtle
+ *   effect — it would be invisible, and the code would look right while the screen showed nothing.
+ *
+ *   `groundHeight` is flat inside `FLAT_R` because `Game.tsx` integrates the keeper against a plane at
+ *   y = 0. Relief that rises above that plane is harmless — the camera walks at eye height and a 9cm turf
+ *   shoulder is nothing to it — but relief that falls below it would leave anything standing on the ground
+ *   FLOATING over the dip. Building upward cannot produce a floating fence post; digging downward can.
+ *
+ * The section below is therefore a shallow gully whose floor is level with the meadow and whose banks
+ * stand 6-9cm above it: crown, two ruts, a toe, a turf crest, and a long soft fall back to the meadow.
+ * `u` is the lateral offset as a multiple of the track's half-width up to the toe, then in metres past it.
+ */
+const TRACK = {
+  /** Distance from the toe of the bank out to the turf crest. */
+  bank: 0.32,
+  /** And from the crest back down to meadow level. Long, so the field reads as swelling away. */
+  fall: 1.15,
+  /** Crest height above the meadow, before the per-station variation. */
+  crest: 0.062,
+  /** How far the crest line and the toe wander, in metres, so no stretch of edge is a clean band. */
+  wander: 0.3,
+} as const;
 
 /* ------------------------------------------------------------------ *\
    Pigment and materials now live in `pigment.ts`
@@ -617,12 +673,21 @@ function useGroundGeometry(): BufferGeometry {
         smoothstep(FLAT_R + 6, 88, Math.hypot(x, z)) * (0.4 + Math.abs(fbm(x * 0.05, z * 0.05, 2)));
       c.lerp(earth, clamp(steep * 0.7, 0, 0.7));
       c.lerp(stone, clamp(steep - 0.55, 0, 0.35));
-      // A wide, soft de-saturation under the worn tracks. The crisp path is a decal on top of this; the
-      // point of doing both is that the decal's fade then has something to fade into.
+      /**
+       * A soft de-saturation under the worn tracks, so the track mesh's fade has something to fade into.
+       *
+       * NARROWED FROM SIX METRES TO THREE AND A HALF, AND HALVED IN STRENGTH, which is the other half of
+       * the owner's "smudged" — and the half that was actually doing the smudging. A six-metre skirt either
+       * side of four centrelines is a twelve-metre brown wash across a yard whose buildings are twenty
+       * metres apart, so the meadow between the barn and the hut was not green at all; the track had no
+       * edge because the whole yard was the same colour as the track. It also starts further out (2.2m,
+       * past where the turf crest stands) and its falloff is broken up by the meadow's own fine noise, so
+       * what is left is a hint of wear around a track rather than a halo painted on the grass.
+       */
       const dPath = distanceToPaths(x, z);
-      if (dPath < 6) {
-        scratch.copy(earth).lerp(grassPale, 0.35);
-        c.lerp(scratch, (1 - smoothstep(1.4, 6, dPath)) * 0.5);
+      if (dPath < 3.4) {
+        scratch.copy(earth).lerp(grassPale, 0.45);
+        c.lerp(scratch, (1 - smoothstep(2.2, 3.4 + fine * 0.9, dPath)) * 0.26);
       }
       color[i * 3] = c.r;
       color[i * 3 + 1] = c.g;
@@ -664,12 +729,291 @@ function useGroundGeometry(): BufferGeometry {
 }
 
 /**
- * The worn earth — tracks and pen floors — as one transparent decal mesh.
+ * A track's centreline resampled fine enough to carry relief, with a joint normal at every station.
  *
- * Vertex *alpha*, via a four-component colour attribute that three reads as RGBA, is what lets a path
- * fade out at its edges instead of ending on a cut line. A path with a hard edge looks like a road
- * marking; a path that dissolves into the grass looks like something walked into being, and it does the
- * wayfinding job an arrow or a quest marker would otherwise have to do.
+ * The original geometry put four quads on each hand-typed segment, so the spine was six stations long over
+ * twenty-two metres — a resolution at which a wandering edge is a zigzag and a bank is a crease. Every
+ * segment is therefore subdivided to about 45cm, with the two end normals interpolated across it, which
+ * keeps the existing behaviour at the corners (an averaged joint normal, so a bend does not open a wedge of
+ * grass down the middle of the track) and gives the length something to vary along.
+ */
+function trackStations(line: readonly P2[]): { p: P2; n: P2; s: number }[] {
+  const joints: P2[] = line.map((_, i) => {
+    const prev = line[Math.max(0, i - 1)] ?? [0, 0];
+    const next = line[Math.min(line.length - 1, i + 1)] ?? [0, 0];
+    const dx = next[0] - prev[0];
+    const dz = next[1] - prev[1];
+    const len = Math.hypot(dx, dz) || 1;
+    return [-dz / len, dx / len];
+  });
+
+  const out: { p: P2; n: P2; s: number }[] = [];
+  let s = 0;
+  for (let i = 0; i < line.length - 1; i += 1) {
+    const p0 = line[i];
+    const p1 = line[i + 1];
+    const n0 = joints[i];
+    const n1 = joints[i + 1];
+    if (!p0 || !p1 || !n0 || !n1) continue;
+    const length = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
+    const steps = Math.max(1, Math.ceil(length / 0.45));
+    // The last station of a segment is the first of the next, so it is emitted once, at the top.
+    for (let k = 0; k < steps; k += 1) {
+      const t = k / steps;
+      const nx = n0[0] + (n1[0] - n0[0]) * t;
+      const nz = n0[1] + (n1[1] - n0[1]) * t;
+      const nl = Math.hypot(nx, nz) || 1;
+      out.push({
+        p: [p0[0] + (p1[0] - p0[0]) * t, p0[1] + (p1[1] - p0[1]) * t],
+        n: [nx / nl, nz / nl],
+        s: s + length * t,
+      });
+    }
+    s += length;
+    if (i === line.length - 2) {
+      out.push({ p: p1, n: n1, s });
+    }
+  }
+  return out;
+}
+
+/**
+ * The worn tracks, as a sunken lane with turf standing over its edges.
+ *
+ * See `TRACK` above for why the hollow is built by raising the field rather than by cutting into it. What
+ * this function adds on top of that section is the four things that separate a worn track from a brown
+ * band, and each one is a direct answer to "smudged and poorly rendered ... also completely flat":
+ *
+ *   RELIEF, so the mesh has normals that are not all straight up. That alone is most of it: the banks
+ *   catch the low sun on one side of the track and fall into shadow on the other, which is the cue that
+ *   says "this is a dip" without needing a single extra texture.
+ *
+ *   AN EDGE THAT INTERLOCKS. The toe of each bank wanders independently on each side, on a noise sampled
+ *   along the track's own arc length rather than in world space — so the wobble follows the path instead of
+ *   drifting across it — and the toe's COLOUR carries its own noise from bare dust to turf. Where those
+ *   two coincide the grass reaches into the track and where they do not the dust reaches out, so the
+ *   boundary is a ragged interlock rather than a clean line.
+ *
+ *   VARIATION ALONG THE LENGTH: width, crest height, hollow depth and the dust's own tone all move on
+ *   slow noises, so no two stretches of the same track match.
+ *
+ *   RUTS, on the two tracks wide enough to have been driven — a crown down the middle with a wheel track
+ *   either side of it. Modelled as relief and as tone together, because either alone reads as a stripe.
+ *
+ * Vertex *alpha* survives from the first pass and still does the same job at the outermost station only:
+ * the fall back to meadow level fades to nothing, so the mesh never ends on a cut line. Everything inboard
+ * of that is fully opaque, which is what lets the material write depth — with real relief it has to, or a
+ * far bank can be drawn over a near one and the track turns inside out.
+ */
+function useTrackGeometry(): BufferGeometry {
+  return useMemo(() => {
+    const position: number[] = [];
+    const rgba: number[] = [];
+    // World-space UVs in units of a grain tile, exactly as the ground's are, so the two surfaces share one
+    // continuous grain and the track does not read as a differently-textured patch laid on the meadow.
+    const uv: number[] = [];
+    const index: number[] = [];
+
+    const dust = new Color(PIG.earthPale);
+    const damp = new Color(PIG.earth);
+    const rutTone = new Color(PIG.earth).lerp(new Color(PIG.stoneDeep), 0.32);
+    const turf = new Color(PIG.grass);
+    const turfDeep = new Color(PIG.grassDeep);
+    const turfLit = new Color(PIG.grassPale);
+    const col = new Color();
+
+    for (let li = 0; li < PATHS.length; li += 1) {
+      const line = PATHS[li];
+      if (!line) continue;
+      const half = (PATH_WIDTH[li] ?? 2) / 2;
+      const rutted = PATH_RUTTED[li] ?? false;
+      const stations = trackStations(line);
+      const seed = li * 37.1;
+      const ring = position.length / 3;
+      /** Lateral stations, outermost -X first, so one strip of quads covers the whole section. */
+      const lanes = 13;
+
+      for (const station of stations) {
+        const [px, pz] = station.p;
+        const [nx, nz] = station.n;
+        const s = station.s;
+
+        // Slow variation along the length. Sampled on arc length so it travels with the track.
+        const widthN = fbm(s * 0.13 + seed, seed * 2.3, 2);
+        const hw = half * (1 + widthN * 0.2);
+        const crest = TRACK.crest * (1 + fbm(s * 0.21 + seed, 5.5 + seed, 2) * 0.34);
+        const dustN = noise2(s * 0.29 + seed, 11.3 + seed);
+        // Which way the track leans this far along, so the centre of wear is not always the centreline.
+        const lean = fbm(s * 0.11 + seed, 19.7, 2) * 0.22;
+
+        for (let k = 0; k < lanes; k += 1) {
+          // -1 at the outer edge of the -X fall, +1 at the outer edge of the +X fall.
+          const sideIndex = k - (lanes - 1) / 2;
+          const sgn = Math.sign(sideIndex);
+          const rank = Math.abs(sideIndex);
+          // Per-side edge wobble, independent so the two edges never mirror each other.
+          const wob =
+            fbm(s * 0.62 + seed, sgn > 0 ? 41.2 : 77.9, 2) * TRACK.wander * (sgn === 0 ? 0 : 1);
+          const toe = hw + wob;
+
+          let u: number;
+          let y: number;
+          let alpha = 1;
+          if (rank === 0) {
+            // The crown, between the ruts.
+            u = 0;
+            y = rutted ? 0.021 : 0.009;
+            col.copy(dust).lerp(damp, 0.3 + dustN * 0.3);
+          } else if (rank === 1) {
+            // The wheel track. Lowest point of the section, and the darkest.
+            u = sgn * toe * 0.42;
+            y = 0.004;
+            col.copy(rutted ? rutTone : dust).lerp(damp, 0.35 + dustN * 0.35);
+          } else if (rank === 2) {
+            u = sgn * toe * 0.79;
+            y = 0.013;
+            col.copy(dust).lerp(damp, 0.2 + dustN * 0.4);
+          } else if (rank === 3) {
+            /**
+             * The toe, where dust meets turf, and where the interlock lives.
+             *
+             * Its colour runs from bare dust to full turf on a noise of its own, so the boundary is a
+             * ragged mix along the length rather than a single blended edge everywhere.
+             */
+            u = sgn * toe;
+            y = 0.03;
+            const grassIn = smoothstep(0.35, 0.75, noise2(s * 0.85 + seed, sgn > 0 ? 3.1 : 63.4));
+            col.copy(dust).lerp(damp, 0.3).lerp(turfDeep, 0.25 + grassIn * 0.55);
+          } else if (rank === 4) {
+            // The crest of the bank. Turf, and the brightest thing in the section under a low sun.
+            u = sgn * (toe + TRACK.bank);
+            y = crest;
+            col
+              .copy(turf)
+              .lerp(turfDeep, 0.35)
+              .lerp(turfLit, smoothstep(0.4, 0.85, noise2(s * 0.4 + seed, sgn > 0 ? 8.8 : 21.6)) * 0.5);
+          } else {
+            // And the long fall back to the meadow, which is where the mesh ends and fades out.
+            u = sgn * (toe + TRACK.bank + TRACK.fall);
+            y = 0.004;
+            alpha = 0;
+            col.copy(turf).lerp(turfDeep, 0.3);
+          }
+
+          const off = u + lean;
+          const wx = px + nx * off;
+          const wz = pz + nz * off;
+          position.push(wx, y, wz);
+          uv.push(wx / GRAIN_METRES, wz / GRAIN_METRES);
+          rgba.push(col.r, col.g, col.b, alpha);
+        }
+      }
+
+      /**
+       * Stitch the strip, wound for an UPWARD normal, and the winding is arithmetic rather than a guess.
+       *
+       * `n = (-tz, tx)` for a tangent `t`, and in three dimensions `T × N` is straight DOWN — so a triangle
+       * whose first edge runs along the track and whose second runs across it faces the floor. The first
+       * attempt at this wound exactly that way and the entire track network vanished behind back-face
+       * culling: correct geometry, correct colours, nothing on screen. It is the same silent failure the
+       * note on the `decal` material records, which is why it is written down again here in the terms that
+       * fix it: lane first, station second — `(a, b, d)` and `(a, d, c)` — giving `N × T`, which is up.
+       */
+      for (let i = 0; i < stations.length - 1; i += 1) {
+        for (let k = 0; k < lanes - 1; k += 1) {
+          const a = ring + i * lanes + k;
+          const b = a + 1;
+          const c = a + lanes;
+          const d = c + 1;
+          index.push(a, b, d, a, d, c);
+        }
+      }
+    }
+
+    const g = new BufferGeometry();
+    g.setAttribute('position', new Float32BufferAttribute(position, 3));
+    g.setAttribute('color', new Float32BufferAttribute(rgba, 4));
+    g.setAttribute('uv', new Float32BufferAttribute(uv, 2));
+    g.setIndex(index);
+    // Shared vertices along and across the strip, so this is smooth shading over the banks rather than a
+    // faceted ribbon — which is the whole reason the strip is indexed.
+    g.computeVertexNormals();
+    g.computeBoundingSphere();
+    return g;
+  }, []);
+}
+
+/**
+ * The stones and turf tufts that sit ON the track, which is the third of the three things that stop it
+ * reading as paint.
+ *
+ * Relief gives the track a shape and the interlocked edge gives it a boundary; neither puts an OBJECT in
+ * the ground plane, and until something breaks that plane a child's eye still has nothing to measure the
+ * dip against. So: pebbles half-sunk in the wheel tracks, and tufts of grass straddling the crest so they
+ * overhang the dust. Both are instanced — two draw calls for about two hundred parts — and both are small
+ * enough to want no collider: nothing here is more than 9cm tall, and a keeper walks over it.
+ */
+function useTrackDressing(): { stones: Placement[]; tufts: Placement[] } {
+  return useMemo(() => {
+    const stones: Placement[] = [];
+    const tufts: Placement[] = [];
+    const rand = rng(0x7a11ed);
+    const stoneWarm = new Color(PIG.stone);
+    const stoneCool = new Color(PIG.stoneDeep);
+    const leaf = new Color(PIG.grassDeep);
+    // Toward the meadow's own green rather than its bleached highlight: tufts lerped all the way to
+    // `grassPale` came out as pale pebbles lying beside the track instead of grass growing over it.
+    const leafLit = new Color(PIG.grass).lerp(new Color(PIG.grassPale), 0.3);
+
+    for (let li = 0; li < PATHS.length; li += 1) {
+      const line = PATHS[li];
+      if (!line) continue;
+      const half = (PATH_WIDTH[li] ?? 2) / 2;
+      for (const station of trackStations(line)) {
+        const [px, pz] = station.p;
+        const [nx, nz] = station.n;
+        const hw = half * (1 + fbm(station.s * 0.13 + li * 37.1, li * 85.3, 2) * 0.2);
+
+        // A stone every few stations, out of the middle of the crown where feet fall. The radii are the
+        // sphere's own, since the geometry is a unit sphere and the scale IS the radius — the first pass
+        // read them as diameters and put half-metre boulders down the middle of a footpath.
+        if (rand() < 0.17) {
+          const u = (0.25 + rand() * 0.72) * hw * (rand() < 0.5 ? -1 : 1);
+          const r = 0.03 + rand() * 0.045;
+          stones.push({
+            position: [px + nx * u, 0.012 + r * 0.3, pz + nz * u],
+            rot: [0, rand() * 6.28, rand() * 0.4 - 0.2],
+            // Squashed, because a stone in a track is a stone that has been trodden into it.
+            scale: [r * 1.35, r * 0.72, r * 1.1],
+            color: stoneWarm.clone().lerp(stoneCool, rand() * 0.8),
+          });
+        }
+
+        // Tufts on both crests, straddling the line so their leaves hang over the dust.
+        for (const sgn of [-1, 1] as const) {
+          if (rand() > 0.34) continue;
+          const wob = fbm(station.s * 0.62 + li * 37.1, sgn > 0 ? 41.2 : 77.9, 2) * TRACK.wander;
+          const u = sgn * (hw + wob + TRACK.bank * (0.15 + rand() * 0.8));
+          const r = 0.04 + rand() * 0.05;
+          tufts.push({
+            position: [px + nx * u, 0.032 + r * 0.3, pz + nz * u],
+            rot: [0, rand() * 6.28, 0],
+            scale: [r * 1.6, r * 0.78, r * 1.3],
+            color: leaf.clone().lerp(leafLit, 0.1 + rand() * 0.7),
+          });
+        }
+      }
+    }
+    return { stones, tufts };
+  }, []);
+}
+
+/**
+ * The pen floors: trodden bare earth inside the fence, feathering out just past it.
+ *
+ * Still flat, and still on the transparent decal material, because a pen floor is a trodden YARD rather
+ * than a worn track — it has no direction, so it has no banks and nothing to break over an edge. The
+ * tracks moved out into `useTrackGeometry` when they gained relief; this is what was left.
  */
 function useDecalGeometry(): BufferGeometry {
   return useMemo(() => {
@@ -678,7 +1022,6 @@ function useDecalGeometry(): BufferGeometry {
     const normal: number[] = [];
     const y = 0.02;
 
-    const earth = new Color(PIG.earthPale);
     const earthCore = new Color(PIG.earth);
 
     const vert = (x: number, z: number, col: Color, alpha: number): void => {
@@ -702,51 +1045,6 @@ function useDecalGeometry(): BufferGeometry {
       vert(d[0], d[1], col, alphas[3]);
     };
 
-    // Tracks. Four longitudinal lanes per segment: two at core opacity, two feathering to nothing.
-    const lanes: readonly (readonly [number, number])[] = [
-      [-1, -0.58],
-      [-0.58, 0],
-      [0, 0.58],
-      [0.58, 1],
-    ];
-    const laneAlpha = (t: number): number => (Math.abs(t) >= 0.999 ? 0 : Math.abs(t) > 0.6 ? 0.6 : 0.94);
-
-    PATHS.forEach((line, li) => {
-      const half = (PATH_WIDTH[li] ?? 2) / 2;
-      // Averaged joint normals, so a corner does not open a wedge of grass down the middle of the path.
-      const normals: P2[] = line.map((_, i) => {
-        const prev = line[Math.max(0, i - 1)] ?? [0, 0];
-        const next = line[Math.min(line.length - 1, i + 1)] ?? [0, 0];
-        const dx = next[0] - prev[0];
-        const dz = next[1] - prev[1];
-        const len = Math.hypot(dx, dz) || 1;
-        return [-dz / len, dx / len];
-      });
-      for (let i = 0; i < line.length - 1; i += 1) {
-        const p0 = line[i];
-        const p1 = line[i + 1];
-        const n0 = normals[i];
-        const n1 = normals[i + 1];
-        if (!p0 || !p1 || !n0 || !n1) continue;
-        // The width wanders, so no two stretches of the same track are the same width.
-        const w0 = half * (1 + fbm(p0[0] * 0.2, p0[1] * 0.2, 2) * 0.18);
-        const w1 = half * (1 + fbm(p1[0] * 0.2, p1[1] * 0.2, 2) * 0.18);
-        for (const lane of lanes) {
-          const t0 = lane[0];
-          const t1 = lane[1];
-          quad(
-            [p0[0] + n0[0] * w0 * t0, p0[1] + n0[1] * w0 * t0],
-            [p1[0] + n1[0] * w1 * t0, p1[1] + n1[1] * w1 * t0],
-            [p1[0] + n1[0] * w1 * t1, p1[1] + n1[1] * w1 * t1],
-            [p0[0] + n0[0] * w0 * t1, p0[1] + n0[1] * w0 * t1],
-            [laneAlpha(t0), laneAlpha(t0), laneAlpha(t1), laneAlpha(t1)],
-            earth,
-          );
-        }
-      }
-    });
-
-    // Pen floors: trodden bare earth inside the fence, feathering out just past it.
     for (const pen of PENS) {
       const inner = roundedRectOutline(pen.halfW - 0.4, pen.halfD - 0.4, pen.cornerR, 6);
       const outer = roundedRectOutline(pen.halfW + 0.9, pen.halfD + 0.9, pen.cornerR + 0.9, 6);
@@ -788,12 +1086,29 @@ function useDecalGeometry(): BufferGeometry {
 function Ground(): JSX.Element {
   const m = materials();
   const ground = useGroundGeometry();
+  const track = useTrackGeometry();
   const decal = useDecalGeometry();
+  const dressing = useTrackDressing();
+  const g = useMemo(
+    () => ({
+      stone: new SphereGeometry(1, 7, 5),
+      tuft: new SphereGeometry(1, 6, 4),
+    }),
+    [],
+  );
   return (
     <>
       {/* Receives but does not cast: 20k triangles of flat ground contribute nothing to a shadow map. */}
       <mesh geometry={ground} material={m.ground} receiveShadow />
-      <mesh geometry={decal} material={m.decal} receiveShadow renderOrder={1} />
+      {/*
+        The tracks. `renderOrder` 1 like the pen floors, but on the `track` material rather than `decal`
+        because this one has relief and therefore has to write depth — see the note on the material.
+      */}
+      <mesh geometry={track} material={m.track} receiveShadow renderOrder={1} />
+      <mesh geometry={decal} material={m.decal} receiveShadow renderOrder={2} />
+      <Instanced geometry={g.stone} material={m.stones} items={dressing.stones} />
+      {/* Tufts do not cast: two hundred 9cm shadow casters buy nothing and cost a shadow-map pass each. */}
+      <Instanced geometry={g.tuft} material={m.canopy} items={dressing.tufts} castShadow={false} />
     </>
   );
 }
@@ -877,6 +1192,32 @@ function Barn(): JSX.Element {
         depth: 0.34,
         bevel: 0.05,
         inset: 0.07,
+      }),
+      /**
+       * The same soffit board the hut got, on the two long eaves — and the barn's is the version with a
+       * VENT SLOT.
+       *
+       * `barnInterior.tsx` deliberately leaves a 7cm gap above its inner eave closure so a horizontal
+       * sliver of daylight comes in high on a shaded wall, and that daylight arrives through this annulus.
+       * Sealing the outside would have put the interior's one natural light source out. So the board stops
+       * 8cm short of the wall face instead: from the ground the roof plainly lands on the wall, the void is
+       * no longer a 62cm hole with a chimney-sized view into it, and the slot still lets the sun in.
+       *
+       * It also fixes a distance bug worth naming. The interior group switches itself off past 26 metres,
+       * and the inner closure board went with it — so from across the meadow the annulus opened up into
+       * nothing at all. This board is exterior and is never culled, so the eave now reads the same from
+       * three metres and from thirty.
+       *
+       * `'eaves'` only: a gable's rakes are already closed by its own barge boards and the gable wall.
+       */
+      eave: eaveCollarGeometry({
+        width: BARN_W,
+        depth: BARN_D,
+        eave: BARN_EAVE,
+        rake: BARN_RAKE,
+        thickness: 0.16,
+        reveal: 0.08,
+        sides: 'eaves',
       }),
       // A gable meeting in a knife edge reads as folded card; a rolled ridge is what a real one looks
       // like, and it softens the single silhouette a child sees against the sky.
@@ -998,6 +1339,8 @@ function Barn(): JSX.Element {
         {/* Roof. Local origin sits on the wall head; every vertex is at or above it. */}
         <group position={[0, BARN_WALL_H, 0]}>
           <mesh geometry={g.roof} material={m.shingle} castShadow receiveShadow />
+          {/* Soffit and fascia on the two long eaves, with the vent slot the interior is lit through. */}
+          <mesh geometry={g.eave} material={m.trim} castShadow receiveShadow />
           <mesh
             geometry={g.ridge}
             material={m.shingle}
@@ -1063,12 +1406,55 @@ function Hut(): JSX.Element {
         eave: HUT_EAVE,
         ridgeFraction: 0.34,
       }),
+      /**
+       * THE BOARD THAT MAKES THE ROOF LAND ON THE HOUSE.
+       *
+       * A mitred soffit ring from the wall face out to the eave, hanging 15cm below the wall head, with its
+       * outer edge sitting directly under the thatch's own fascia so the eave reads as one deep timber edge
+       * a child can see the shadow of. `reveal: -0.015` laps it 15mm onto the wall face rather than butting
+       * it exactly, because two coplanar faces fight over the same pixels and a 15mm lap is a joint.
+       *
+       * The hut is CLOSED all the way round — no vent slot — because it has no interior to light and
+       * nothing behind the board except the void the chimney rises through, which is the whole point.
+       */
+      eave: eaveCollarGeometry({
+        width: HUT_W,
+        depth: HUT_D,
+        eave: HUT_EAVE,
+        rake: HUT_EAVE,
+        thickness: HUT_SOFFIT_T,
+        reveal: -0.015,
+        sides: 'ring',
+      }),
       ridge: new CylinderGeometry(0.2, 0.2, HUT_D * 0.34 + 0.5, 9, 1),
       beam: new RoundedBoxGeometry(0.17, HUT_WALL_H - 0.1, 0.17, 2, 0.055),
       lintel: new RoundedBoxGeometry(HUT_W - 0.5, 0.2, 0.17, 2, 0.06),
       door: new RoundedBoxGeometry(1.05, 2.05, 0.14, 2, 0.09),
-      chimney: new RoundedBoxGeometry(0.72, 2.5, 0.72, 2, 0.1),
-      chimneyCap: new RoundedBoxGeometry(0.94, 0.18, 0.94, 2, 0.06),
+      /** Four planks and two ledges on the leaf, so the knob has a door to be on. */
+      doorPlank: new RoundedBoxGeometry(0.235, 1.93, 0.03, 1, 0.012),
+      doorLedge: new RoundedBoxGeometry(0.95, 0.13, 0.035, 1, 0.014),
+      strap: new RoundedBoxGeometry(0.5, 0.06, 0.026, 1, 0.011),
+      /** The knob: a rose plate, a neck and the ball. */
+      knobRose: new CylinderGeometry(0.062, 0.07, 0.022, 12),
+      knobNeck: new CylinderGeometry(0.019, 0.024, 0.05, 8),
+      knob: new SphereGeometry(0.052, 12, 9),
+      chimney: new RoundedBoxGeometry(CHIMNEY.w, CHIMNEY.h, CHIMNEY.w, 2, 0.1),
+      chimneyCap: new RoundedBoxGeometry(CHIMNEY.w + 0.22, 0.18, CHIMNEY.w + 0.22, 2, 0.06),
+      /**
+       * THE FLASHING, which is what says a chimney was BUILT through a roof rather than pushed into one.
+       *
+       * Two stepped collars lying in the roof's own plane: a wide apron dressed onto the slope and a
+       * narrower course above it, both tilted by `HUT_PITCH` about local Z so they lie flat on the skin
+       * instead of cutting across it. Thin in Y and oversized in X and Z, so what shows is a lead-ish
+       * skirt spreading out from the stack onto the thatch and a shadow line under it — the two details a
+       * real flashing produces, and the two the eye is looking for at a penetration.
+       *
+       * Solid rather than four dressed leaves. It intersects the stack it wraps, which is invisible
+       * because both are opaque, and it saves modelling an up-slope back gutter that nothing can see from
+       * a child's eye height on the ground.
+       */
+      flashApron: new RoundedBoxGeometry(CHIMNEY.w + 0.34, 0.075, CHIMNEY.w + 0.34, 1, 0.028),
+      flashUpstand: new RoundedBoxGeometry(CHIMNEY.w + 0.17, 0.065, CHIMNEY.w + 0.17, 1, 0.024),
     }),
     [],
   );
@@ -1117,13 +1503,70 @@ function Hut(): JSX.Element {
           />
         ))}
 
-        {/* Door on +Z, the face turned toward the arrival path. */}
+        {/*
+          Door on +Z, the face turned toward the arrival path.
+
+          THE KNOB, which the owner asked for, and the four things it needs to read as one. A ball on a
+          blank slab is a bead stuck to a plank: what says "handle" is the ROSE it stands on and the shadow
+          under it, what says "door" rather than "panel" is boarding and ledges, and what says which side
+          the knob is on is a pair of straps on the other one. So the leaf is boarded — four planks in the
+          lighter timber over the darker leaf, so the gaps between them read as gaps — two ledges cross it,
+          the straps hang on the -X stile, and the brass sits at 0.99m up the leaf, which is the height a
+          door handle is and a height a five-year-old can reach.
+        */}
         <mesh
           geometry={g.door}
-          material={m.timber}
+          material={m.timberDeep}
           position={[-0.9, 1.03, HUT_D / 2 + 0.07]}
           castShadow
           receiveShadow
+        />
+        {[-0.386, -0.129, 0.129, 0.386].map((dx) => (
+          <mesh
+            key={dx}
+            geometry={g.doorPlank}
+            material={m.timber}
+            position={[-0.9 + dx, 1.03, HUT_D / 2 + 0.155]}
+            castShadow
+          />
+        ))}
+        {[-0.72, 0.72].map((dy) => (
+          <mesh
+            key={dy}
+            geometry={g.doorLedge}
+            material={m.timberDeep}
+            position={[-0.9, 1.03 + dy, HUT_D / 2 + 0.1875]}
+            castShadow
+          />
+        ))}
+        {[-0.62, 0.62].map((dy) => (
+          <mesh
+            key={dy}
+            geometry={g.strap}
+            material={m.timberDeep}
+            position={[-1.15, 1.03 + dy, HUT_D / 2 + 0.185]}
+            castShadow
+          />
+        ))}
+        <mesh
+          geometry={g.knobRose}
+          material={m.brass}
+          position={[-0.52, 0.99, HUT_D / 2 + 0.181]}
+          rotation={[Math.PI / 2, 0, 0]}
+          castShadow
+        />
+        <mesh
+          geometry={g.knobNeck}
+          material={m.brass}
+          position={[-0.52, 0.99, HUT_D / 2 + 0.217]}
+          rotation={[Math.PI / 2, 0, 0]}
+          castShadow
+        />
+        <mesh
+          geometry={g.knob}
+          material={m.brass}
+          position={[-0.52, 0.99, HUT_D / 2 + 0.277]}
+          castShadow
         />
 
         {/*
@@ -1147,6 +1590,12 @@ function Hut(): JSX.Element {
 
         <group position={[0, HUT_WALL_H, 0]}>
           <mesh geometry={g.roof} material={m.thatch} castShadow receiveShadow />
+          {/*
+            The soffit and fascia. Same frame as the roof — origin on the wall head — so the two cannot
+            drift apart, and it hangs BELOW that plane, which is why it closes the eave without going
+            anywhere near the wall solid. `roofs.ts` asserts both halves of that.
+          */}
+          <mesh geometry={g.eave} material={m.timber} castShadow receiveShadow />
           <mesh
             geometry={g.ridge}
             material={m.thatch}
@@ -1158,7 +1607,7 @@ function Hut(): JSX.Element {
 
         {/* Chimney. Rises from *inside* the footprint and passes through the roof, which is what a
             chimney does — as opposed to the floating stack you get from placing it by eye outside. */}
-        <group position={[HUT_W / 2 - 1.1, 0, -HUT_D / 2 + 1.0]}>
+        <group position={[CHIMNEY.lx, 0, CHIMNEY.lz]}>
           <mesh
             geometry={g.chimney}
             material={m.stone}
@@ -1171,6 +1620,23 @@ function Hut(): JSX.Element {
             material={m.stoneDeep}
             position={[0, HUT_WALL_H + 2.44, 0]}
             castShadow
+          />
+          {/* Where it comes through: an apron dressed onto the slope and a course above it. */}
+          <mesh
+            geometry={g.flashApron}
+            material={m.stoneDeep}
+            position={[0, HUT_WALL_H + hutSkinY(CHIMNEY.lx) + 0.025, 0]}
+            rotation={[0, 0, -HUT_PITCH]}
+            castShadow
+            receiveShadow
+          />
+          <mesh
+            geometry={g.flashUpstand}
+            material={m.stoneDeep}
+            position={[0, HUT_WALL_H + hutSkinY(CHIMNEY.lx) + 0.155, 0]}
+            rotation={[0, 0, -HUT_PITCH]}
+            castShadow
+            receiveShadow
           />
         </group>
       </group>

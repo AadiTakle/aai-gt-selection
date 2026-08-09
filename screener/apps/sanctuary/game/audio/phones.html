@@ -1,0 +1,66 @@
+<!doctype html>
+<!--
+  TEMPORARY harness for the headphone invitation. Not part of the app, not linked from it, safe to delete
+  along with `phones.tsx` once `<HeadphonePrompt />` is mounted in `Game.tsx`'s HUD.
+
+  Served by the existing sanctuary vite config (root is apps/sanctuary), so it needs no config change and
+  touches no file this track does not own:
+
+      http://127.0.0.1:5230/game/audio/phones.html
+
+  Query flags
+      ?quiet=1   pretend prefers-reduced-motion. NOTHING should appear: that path starts muted on purpose,
+                 and inviting a child to fetch headphones in order to hear silence is worse than saying
+                 nothing at all.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>audio · headphone invitation</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!--
+      THE REACT REFRESH PREAMBLE, BY HAND, and it is not optional here.
+      `@vitejs/plugin-react` normally injects this by transforming the HTML, and it does exactly that for
+      `preview.html` — but a dev server that was already running before this file existed serves it without
+      the transform, and every transformed component module then throws "can't detect preamble" and the page
+      renders nothing at all. Writing it out means the harness works against the server as it stands, with no
+      restart, and the plugin's own copy is idempotent if it ever does arrive.
+    -->
+    <script type="module">
+      import RefreshRuntime from '/@react-refresh';
+      RefreshRuntime.injectIntoGlobalHook(window);
+      window.$RefreshReg$ = () => {};
+      window.$RefreshSig$ = () => (type) => type;
+      window.__vite_plugin_react_preamble_installed__ = true;
+    </script>
+    <!--
+      `?quiet=1` fakes prefers-reduced-motion. IT HAS TO BE A CLASSIC SCRIPT IN THE MARKUP — see the long
+      note in `preview.html`: ES module imports are hoisted, so `mute.ts` has already read the media query
+      at module scope before any statement in the entry module's body runs. It also clears the stored
+      preference, because a stored choice deliberately wins over the media query.
+    -->
+    <script>
+      if (new URLSearchParams(location.search).get('quiet') === '1') {
+        try {
+          localStorage.removeItem('gt-sanctuary:muted');
+        } catch {}
+        const real = window.matchMedia.bind(window);
+        window.matchMedia = (query) =>
+          query.includes('prefers-reduced-motion')
+            ? { matches: true, media: query, addEventListener() {}, removeEventListener() {} }
+            : real(query);
+      }
+    </script>
+    <script type="module" src="./phones.tsx"></script>
+  </body>
+</html>

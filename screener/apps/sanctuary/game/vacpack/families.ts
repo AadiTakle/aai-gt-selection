@@ -14,8 +14,18 @@
  *
  * The colours are a golden-hour set on purpose: every skin is warm-shifted, including the two that want to
  * be cool. A pure cyan frost slime looks correct under a neutral light and looks dead under this one.
+ *
+ * THE SECOND HALF OF THIS FILE is what a tank window actually draws, and it is no longer a table of
+ * abstract marks — see the long note above `PORTRAIT_STAGE`. It reads the real slime bakes out of
+ * `slimes/`, which is a direction of dependency this directory already has: `Vacpack.tsx` borrows the
+ * same two functions for the slime that flies up the nozzle.
  */
-import type { Family } from '../contract';
+import * as THREE from 'three';
+
+import type { Family, Stage } from '../contract';
+import { featureGeometry, type FeatureBake } from '../slimes/crests';
+import { gumdropGeometry } from '../slimes/gumdrop';
+import { FAMILY_LOOK } from '../slimes/look';
 
 export interface Paint {
   /** The hide. What a child would name the slime by. */
@@ -97,171 +107,372 @@ export function paintOf(family: Family): Paint {
   return PAINT[family] ?? PAINT.waffle;
 }
 
+/* ================================================================================================
+   WHAT A TANK WINDOW DRAWS: A PORTRAIT, NOT A SYMBOL
+   ============================================================================================== */
+
 /**
- * The mark stamped in a tank window, as a recipe rather than a mesh.
+ * THE TABLE THIS REPLACED, AND WHY IT WAS WRONG.
  *
- * Each is a handful of tiny rounded pieces laid out on a flat disc. Deliberately NOT the slime's crest
- * geometry from `crests.ts`: a crest is built to be seen at a metre and turns to mush at the eight screen
- * pixels a tank window gets. A window needs a SYMBOL — a grid, a flower, three blades — that survives
- * being tiny, which is a different drawing job from the same source idea.
+ * Until now a window held a coloured dome with an abstract mark floating in front of it — four dimples
+ * for waffle, a letter Z for sleepy, a crown outline for gold. The justification written here was that a
+ * window "gets about eight pixels", where a mane is mush, so it needs a symbol rather than a creature.
  *
- * `kind` picks a primitive so the whole set shares three geometries; `at` is in window radii.
+ * That premise was simply not measured, and it is false. `WINDOW.r` is 0.0125 in camera space at a
+ * distance of 0.42 m; the game's camera is 62° vertical, so half the viewport subtends 0.42·tan(31°) =
+ * 0.252 m. A window is therefore 0.0125/0.252 = 5.0% of the half-height, which on a 800 px-tall canvas
+ * is a disc about FIFTY pixels across, and more on any larger window. Fifty pixels is not a pixel-art
+ * budget: it is a portrait. It is roughly the size of a favicon, and a favicon holds a face.
+ *
+ * So the owner's report — "all it really has is the colour and the gumdrop shape, it's super hard to
+ * tell what is inside your vacuum gun" — is not a rendering problem, it is the symbol premise. Nineteen
+ * hand-drawn abstractions were being asked to teach a child a second visual language, one whose words
+ * appear for a few seconds each, when the child already knows the first language perfectly: they have
+ * just spent ten minutes looking at the actual animal on the grass.
+ *
+ * WHAT REPLACES IT. The window draws the REAL SLIME, tiny: the family's own baked body, its own baked
+ * signature feature, its own colours, its own face. `crests.ts` already merges every petal, blade,
+ * boulder, wing, spire, ear, crown and nightcap into at most three buffers per family per stage, and
+ * `gumdrop.ts` bakes one lathe per family with the family's colour and relief written into a vertex
+ * attribute. `Vacpack.tsx` already borrows exactly these for the slime that flies up the nozzle, for
+ * exactly this reason — the note there reads "a proxy without one is a smooth dome that could be
+ * anybody", which is the same complaint the owner has now made about the windows.
+ *
+ * WHY REUSING THE BAKES IS ALSO THE CHEAP ANSWER, which was the other half of the brief:
+ *
+ *   · NO NEW GEOMETRY AND NO NEW MEMORY. Every buffer a window draws is already resident and is already
+ *     being drawn dozens of times a frame by the herd. Four windows add four instances of geometry the
+ *     frame already submits forty times.
+ *   · NO NEW MATERIALS AND THEREFORE NO NEW SHADER PROGRAMS. `bodyMaterial`, `trimMaterial`,
+ *     `glazeMaterial`, `scleraMaterial` and `irisMaterial` come from `slimes/gumdrop.ts` already
+ *     compiled. A window costs draw calls, not a pipeline stall.
+ *   · FEWER PIECES THAN THE SYMBOLS HAD. A symbol was up to seven separate pip/bar/blade meshes on top
+ *     of the dome; a portrait is a body, at most three feature buffers and four small face meshes, and
+ *     the median family draws fewer meshes now than it did before.
+ *   · IT CANNOT DRIFT. Nineteen hand-authored symbols are nineteen things to re-draw every time a
+ *     family is re-themed, and `crests.ts` has already moved once under this file's feet — the note at
+ *     the top of `PAINT` is about exactly that breakage. A portrait is derived, so a re-theme lands in
+ *     the window for free.
+ *
+ * THE ONE THING THAT IS STILL AUTHORED HERE is the two-tier read, below: the socket behind the slime is
+ * flooded with the family's own `inner` colour, so a window says its family by COLOUR before any shape
+ * resolves and by PORTRAIT as soon as it does. That is what keeps `air` (a nearly colourless body) and
+ * `bomb` (a very dark one) legible in a small bright socket, which is the problem `PAINT`'s two
+ * deliberate disagreements with `look.ts` were invented to solve and now solve properly.
  */
-export interface GlyphPiece {
-  kind: 'pip' | 'bar' | 'blade';
-  /** Position within the window disc, in window radii. x right, y up. */
-  at: readonly [number, number];
-  /** Radius (pip), or half-length (bar, blade), in window radii. */
-  size: number;
-  /** Radians, for bars and blades. */
-  turn?: number;
+
+/**
+ * Every portrait wears its family's WARDEN crest, whatever age the slime actually is.
+ *
+ * Two decisions in one constant, and both are about what a badge is for.
+ *
+ * ONE STAGE FOR ALL AGES. A window says "there is a bunny in slot two", and that sentence does not
+ * change when the bunny is a baby, so a pip and a warden of the same family must produce the same
+ * picture or the row stops being readable at a glance. (`Held` carries no stage anyway — see `tank.ts` —
+ * so this is a choice the data could not currently override even if it should.)
+ *
+ * AND THAT STAGE IS THE OLDEST ONE, which is the fix for the half of the row that was still weak after
+ * the portraits went in. `STAGE_LOOK` scales a feature by stage in two ways: `crestScale`, which is size,
+ * and `crestCount`, which is HOW MANY pieces — petals in the outer ring, blades in the tuft, spires in
+ * the crown, points on gold's crown. At `crested` that count is three; at `warden` it is five, and
+ * `look.ts` calls warden "the only stage with a full crown". A three-blade tuft and a two-point crown
+ * are legible on a whole slime standing on grass and are two pale slivers in a socket; the five-piece
+ * versions are the same signature drawn emphatically, which is exactly what an icon wants.
+ *
+ * It costs nothing extra. The BODY buffer is per-family and has no stage in it at all — stage is a
+ * uniform scale applied outside — so this changes only which of the ≤24 already-cached feature bakes the
+ * window points at. The herd contains wardens, so it is a bake the page is holding regardless.
+ */
+export const PORTRAIT_STAGE: Stage = 'warden';
+
+/**
+ * How much of the window's APERTURE the portrait may fill, in window radii.
+ *
+ * The number that matters here is 0.85, and it is not the window's radius. `Pack.tsx` lays a rim over the
+ * socket as a torus of radius `r` and tube `0.15 r`, so the ring covers everything from 0.85 r outward and
+ * the hole a child can actually see through is 85% of the disc. The first pass budgeted against the full
+ * radius and every portrait in the row came out with its chin behind the rim.
+ *
+ * So: a shade under the aperture on both axes, the width allowance the larger of the two because a round
+ * hole has more room across the middle than at the top, and it is the top the tall families need.
+ */
+const FIT = { across: 1.64, tall: 1.56 };
+
+/**
+ * HOW MUCH OF THE PICTURE A CREST MAY CLAIM, and this is the number that decides whether the row reads.
+ *
+ * Fitting the honest bounding box of body-plus-feature into the socket sounds obviously right and looks
+ * obviously wrong, and it took a screenshot to see why. Measured at `warden`, several families are more
+ * crest than creature: `wood` is a 1.52-tall body under a branch that reaches 3.10, `fire` 1.52 under
+ * flames to 3.05, `ice` 1.68 under shards to 3.07. Scale that whole box into a 1.56-radius aperture and
+ * the BODY comes out 0.70 across while the top half of the disc holds a few translucent wisps. Which is
+ * what the first pass shipped: four correct portraits of nothing much, huddled along the bottom rim.
+ *
+ * The asymmetry is that a bounding box weights a hair the same as a head. So the extent is CAPPED at a
+ * multiple of the body's own size before the fit is solved, and anything past the cap is allowed to run
+ * off the top of the socket and be trimmed by the rim. Cropping the tips off a flame crown costs almost
+ * nothing — a licking flame is legible from its base — while shrinking the animal to fit the flame costs
+ * the whole picture. Every family's body now lands between 45% and 72% of the aperture, which is the
+ * consistency a row of four badges needs.
+ *
+ * `across` is capped the same way and for the same reason, and it binds on exactly one family: `lion`,
+ * whose mane ring is nearly three body-widths across and is, quite correctly, most of its icon.
+ */
+const ROOM = { crest: 0.62, across: 1.6 };
+
+/**
+ * Flattening in z, and it is free legibility rather than a compromise.
+ *
+ * The socket is about 0.6 window radii deep before the glass, and a portrait scaled to fill the disc is
+ * about 0.85 radii deep — so left alone the front of a slime's face pokes out through its own window.
+ * Squashing depth only cannot ovalise anything seen from the front, which is the trap `Vacpack.tsx`
+ * documents for the flying proxy: that one is scaled in Y, which does deform the eyes, whereas Z is the
+ * one axis a face-on viewer cannot see. It also flattens the crest toward the picture plane, which is
+ * why a fairy's four wings and a frost's ring of spires read as four wings and a ring of spires rather
+ * than as two of each with the rest hidden behind.
+ */
+const SQUASH_Z = 0.6;
+
+export interface Portrait {
+  /** The family's body: the same shared lathe the herd draws, colour baked per vertex. */
+  body: THREE.BufferGeometry;
+  /** Its signature feature, already merged: opaque, translucent and self-moving buffers. */
+  feature: FeatureBake;
+  /** Uniform scale from body units into window radii, solved from the real bounds below. */
+  fit: number;
+  /** Where to put the group's origin so the portrait is centred in the socket, in window radii. */
+  lift: number;
+  /**
+   * The face, in body units. An unashamed simplification of `Slime.tsx`'s layout — that one solves for
+   * lids, brows, gaze targets and blink at four stages against `STAGE_LOOK`, none of which survives at
+   * fifty pixels. What does survive, and what a child reads first, is TWO DARK DOTS LOW ON A ROUND
+   * BODY, so that is what this solves for: sat on the real surface via the profile's own `radiusAt`,
+   * because a fixed offset floats the eyes off a squat rock and buries them in a slender fairy.
+   */
+  eye: { r: number; gap: number; y: number; z: number };
+  /**
+   * Whether this family's eyes are shut, straight off `look.ts`. `sleepy` is the only one, and its shut
+   * eyes are a third of its stated signature — "flopped nightcap + closed eyes + Z" — so a portrait
+   * that opened them would be drawing a different animal.
+   */
+  shut: boolean;
+  /**
+   * The resting yaw, radians, and the ONLY per-family art direction left in this file.
+   *
+   * Zero is face-on. A face-on slime shows its crown and its face and hides everything that is a
+   * profile: cat's curled tail, mango's lean, wood's forking branch, bunny's one flopped ear. So the
+   * default is a three-quarter turn, and the handful of families whose read is a silhouette rather
+   * than a crown are turned further. Nothing here changes WHAT is drawn — only which side of it faces
+   * a child first.
+   */
+  turn: number;
 }
 
-export const GLYPH: Record<Family, readonly GlyphPiece[]> = {
-  /** Four dimples in a two-by-two: a waffle, at any size, forever. */
-  waffle: [
-    { kind: 'pip', at: [-0.3, 0.3], size: 0.2 },
-    { kind: 'pip', at: [0.3, 0.3], size: 0.2 },
-    { kind: 'pip', at: [-0.3, -0.3], size: 0.2 },
-    { kind: 'pip', at: [0.3, -0.3], size: 0.2 },
-  ],
-  /** Five petals round a heart. */
-  rose: [
-    { kind: 'pip', at: [0, 0.42], size: 0.21 },
-    { kind: 'pip', at: [0.4, 0.13], size: 0.21 },
-    { kind: 'pip', at: [0.25, -0.34], size: 0.21 },
-    { kind: 'pip', at: [-0.25, -0.34], size: 0.21 },
-    { kind: 'pip', at: [-0.4, 0.13], size: 0.21 },
-    { kind: 'pip', at: [0, 0], size: 0.16 },
-  ],
-  /** Three blades from one tuft. */
-  grass: [
-    { kind: 'blade', at: [0, -0.1], size: 0.5, turn: 0 },
-    { kind: 'blade', at: [-0.26, -0.16], size: 0.42, turn: 0.5 },
-    { kind: 'blade', at: [0.26, -0.16], size: 0.42, turn: -0.5 },
-  ],
-  /** One round stone with two chips off it. */
-  rock: [
-    { kind: 'pip', at: [-0.06, -0.04], size: 0.42 },
-    { kind: 'pip', at: [0.32, 0.28], size: 0.17 },
-    { kind: 'pip', at: [0.3, -0.3], size: 0.13 },
-  ],
-  /** A four-point sparkle. */
-  fairy: [
-    { kind: 'bar', at: [0, 0], size: 0.52, turn: 0 },
-    { kind: 'bar', at: [0, 0], size: 0.52, turn: Math.PI / 2 },
-    { kind: 'pip', at: [0, 0], size: 0.16 },
-    { kind: 'pip', at: [0.36, 0.36], size: 0.09 },
-  ],
-  /** Six spokes. */
-  frost: [
-    { kind: 'bar', at: [0, 0], size: 0.5, turn: 0 },
-    { kind: 'bar', at: [0, 0], size: 0.5, turn: Math.PI / 3 },
-    { kind: 'bar', at: [0, 0], size: 0.5, turn: (2 * Math.PI) / 3 },
-    { kind: 'pip', at: [0, 0], size: 0.14 },
-  ],
-
-  /* ----------------------------------------------------------------------------------------------
-     THE THIRTEEN.
-
-     The rule from the note at the top of this table is the one that matters and it is NOT "draw the
-     crest small": a window gets about eight pixels, where a mane is mush and a nightcap is a blob. Each
-     of these is a SYMBOL of the family — the fewest strokes that survive being tiny — which is a
-     different drawing job from the 3D crest, sometimes deliberately so. Bunny is two ears and a head,
-     not a rabbit. Sleepy is a letter Z, not a cap. Gold is a crown outline, not a reflection.
-
-     Where two families would have collided as symbols, the SYMBOLS were pulled apart rather than
-     accepted: fire is three leaning strokes all raked the same way, ice is three of unequal length
-     splayed both ways, and the two are further separated by skin colour in the window frame.
-     -------------------------------------------------------------------------------------------- */
-
-  /** A three-armed swirl. Reads as rotation at any size, which is air's whole idea. */
-  air: [
-    { kind: 'blade', at: [0, 0.2], size: 0.34, turn: 0.5 },
-    { kind: 'blade', at: [0.2, -0.12], size: 0.34, turn: 2.59 },
-    { kind: 'blade', at: [-0.2, -0.12], size: 0.34, turn: 4.71 },
-    { kind: 'pip', at: [0, 0], size: 0.12 },
-  ],
-  /** Two ears over a head. The most legible symbol in the set at eight pixels. */
-  bunny: [
-    { kind: 'bar', at: [-0.2, 0.34], size: 0.32, turn: Math.PI / 2 },
-    { kind: 'bar', at: [0.2, 0.34], size: 0.32, turn: Math.PI / 2 },
-    { kind: 'pip', at: [0, -0.3], size: 0.3 },
-  ],
-  /** A ring of mane round a face. */
-  lion: [
-    { kind: 'pip', at: [0, 0], size: 0.24 },
-    { kind: 'pip', at: [0, 0.44], size: 0.15 },
-    { kind: 'pip', at: [0.38, 0.22], size: 0.15 },
-    { kind: 'pip', at: [0.38, -0.22], size: 0.15 },
-    { kind: 'pip', at: [0, -0.44], size: 0.15 },
-    { kind: 'pip', at: [-0.38, -0.22], size: 0.15 },
-    { kind: 'pip', at: [-0.38, 0.22], size: 0.15 },
-  ],
-  /** Two pointed ears over a head — the same grammar as bunny's, with the ears short and splayed. */
-  cat: [
-    { kind: 'blade', at: [-0.26, 0.28], size: 0.28, turn: 0.35 },
-    { kind: 'blade', at: [0.26, 0.28], size: 0.28, turn: -0.35 },
-    { kind: 'pip', at: [0, -0.18], size: 0.32 },
-  ],
-  /** The trefoil: three arms at 120° and a hub. */
-  radioactive: [
-    { kind: 'blade', at: [0, 0], size: 0.46, turn: 0 },
-    { kind: 'blade', at: [0, 0], size: 0.46, turn: (2 * Math.PI) / 3 },
-    { kind: 'blade', at: [0, 0], size: 0.46, turn: (4 * Math.PI) / 3 },
-    { kind: 'pip', at: [0, 0], size: 0.18 },
-  ],
-  /** A trunk that forks. */
-  wood: [
-    { kind: 'bar', at: [0, -0.26], size: 0.3, turn: Math.PI / 2 },
-    { kind: 'bar', at: [-0.2, 0.26], size: 0.26, turn: 2.2 },
-    { kind: 'bar', at: [0.2, 0.26], size: 0.26, turn: 0.94 },
-  ],
-  /** Three flames, all raked the same way. The shared rake is what separates it from ice. */
-  fire: [
-    { kind: 'blade', at: [0, -0.08], size: 0.5, turn: 0.22 },
-    { kind: 'blade', at: [-0.3, -0.22], size: 0.34, turn: 0.42 },
-    { kind: 'blade', at: [0.3, -0.24], size: 0.3, turn: 0.16 },
-  ],
-  /** Three shards of unequal length, splayed both ways. Asymmetry is ice's signature everywhere. */
-  ice: [
-    { kind: 'blade', at: [0.06, -0.08], size: 0.52, turn: 0.14 },
-    { kind: 'blade', at: [-0.3, -0.22], size: 0.3, turn: 0.52 },
-    { kind: 'blade', at: [0.38, -0.26], size: 0.22, turn: -0.24 },
-  ],
-  /** A crown: a band and three points. */
-  gold: [
-    { kind: 'bar', at: [0, -0.3], size: 0.44, turn: 0 },
-    { kind: 'blade', at: [-0.3, 0.04], size: 0.3, turn: 0 },
-    { kind: 'blade', at: [0, 0.1], size: 0.36, turn: 0 },
-    { kind: 'blade', at: [0.3, 0.04], size: 0.3, turn: 0 },
-  ],
-  /** A letter Z, which is the one symbol here that is literally a symbol. */
-  sleepy: [
-    { kind: 'bar', at: [0, 0.32], size: 0.3, turn: 0 },
-    { kind: 'bar', at: [0, -0.32], size: 0.3, turn: 0 },
-    { kind: 'bar', at: [0, 0], size: 0.44, turn: -0.86 },
-  ],
-  /** A berry under a calyx. */
-  strawberry: [
-    { kind: 'pip', at: [0, -0.18], size: 0.42 },
-    { kind: 'blade', at: [-0.24, 0.32], size: 0.24, turn: 1.0 },
-    { kind: 'blade', at: [0.24, 0.32], size: 0.24, turn: -1.0 },
-    { kind: 'blade', at: [0, 0.38], size: 0.2, turn: 0 },
-  ],
-  /** A leaning fruit with one leaf. The offset centre is the lean, at window scale. */
-  mango: [
-    { kind: 'pip', at: [-0.08, -0.12], size: 0.44 },
-    { kind: 'blade', at: [0.3, 0.34], size: 0.3, turn: -0.7 },
-  ],
-  /** A bauble with a fuse and a spark. */
-  bomb: [
-    { kind: 'pip', at: [0, -0.18], size: 0.46 },
-    { kind: 'bar', at: [0.22, 0.32], size: 0.22, turn: 1.1 },
-    { kind: 'pip', at: [0.36, 0.5], size: 0.1 },
-  ],
+/**
+ * WHICH WAY A FAMILY FACES IN ITS WINDOW, and this table earned its existence the hard way.
+ *
+ * The first pass turned everything a generous three-quarters, on the reasoning that a three-quarter view
+ * shows both the crown and the profile. In the shots, `bunny` — whose ears are the most legible signature
+ * in the whole set on the grass — came back as a cream teardrop with two THREADS on it. The reason is
+ * written in `buildBunny`: an ear is a broad flat shell posed `RY(±0.24)`, i.e. its face pointed almost
+ * straight at a viewer standing in front, and that builder's own note records that the ears had to be
+ * widened once already because "seen from anywhere but dead ahead, a cupped ear presents its edge and
+ * becomes a line". Turning the portrait 29° is being somewhere but dead ahead. The badge was undoing a
+ * fix that `crests.ts` had already had to make.
+ *
+ * So the angles below are read off the builders rather than guessed, and they split three ways:
+ *
+ *   · BROAD SHELLS POSED FORWARD want to be seen forward. Bunny's ears, lion's mane ring (which is
+ *     centred at FACE height and whose whole point is the face inside it), strawberry's calyx.
+ *   · PARTS POSED AT AN ANGLE want that angle cancelled. Sleepy's cap is built `RY(-0.5)` with its
+ *     pompom on the cap's own +x, so turning the slime +0.5 squares the cap up and puts the pompom out
+ *     on the silhouette. Mango's leaf is `RY(-0.9)` and its body leans in X — the lean shows face-on
+ *     either way, so the turn is spent on the leaf.
+ *   · PARTS BEHIND THE HIP need a turn the other way, and cat is the only one. Its tail is rooted at
+ *     2.3 rad, on the back-right quarter; a NEGATIVE turn walks that quarter round onto the silhouette,
+ *     where `buildCat` says a silhouette feature has to work. A positive turn of the same size hides it
+ *     behind the body, which is what the first pass did.
+ *
+ * Everything not named takes `TURN_DEFAULT`: enough of a three-quarter to give a body form and to show
+ * that this is a solid object rather than a sticker, not enough to foreshorten anything that matters.
+ */
+const TURN: Partial<Record<Family, number>> = {
+  /** Ears are broad shells aimed forward. Almost face-on, with just enough turn to round the body. */
+  bunny: 0.12,
+  /** The tail is on the back-right quarter. Negative brings it round onto the outline. */
+  cat: -0.7,
+  /** The mane is a ring at face height and the face belongs inside it. */
+  lion: 0.15,
+  /** Cancels the cap's own `RY(-0.5)`, which squares the cap and swings the pompom out. */
+  sleepy: 0.5,
+  /** Spends the turn on the leaf; the body's lean is in X and reads at any angle. */
+  mango: 0.35,
+  /** The fuse curves in one plane and the lit tip should be off the shoulder, not behind it. */
+  bomb: 0.45,
+  /** The calyx points are broad and forward-facing, like bunny's ears. */
+  strawberry: 0.2,
+  /** The trunk leans in X and the two forks splay symmetrically: nearly face-on is the widest read. */
+  wood: 0.2,
 };
+const TURN_DEFAULT = 0.3;
 
-export function glyphOf(family: Family): readonly GlyphPiece[] {
-  return GLYPH[family] ?? GLYPH.waffle;
+/**
+ * The bounding box of a whole slime — body plus every feature buffer — in body units.
+ *
+ * Solved rather than typed, which is the point: nineteen families times a crest each is nineteen chances
+ * to hand-tune a scale until a rose's petals are clipped or a rock rattles around in a socket four times
+ * its size. `computeBoundingBox` on a shared buffer is idempotent and its result is the same cache
+ * three.js keeps for frustum culling, so this is free after the first family.
+ */
+function boundsOf(body: THREE.BufferGeometry, feature: FeatureBake): THREE.Box3 {
+  const box = new THREE.Box3();
+  const eat = (g: THREE.BufferGeometry | null, offset?: readonly [number, number, number]) => {
+    if (!g) return;
+    if (!g.boundingBox) g.computeBoundingBox();
+    const b = g.boundingBox;
+    if (!b) return;
+    const own = b.clone();
+    // The aura layer is baked relative to its own origin — see `featureGeometry` — so it has to be put
+    // back into body space before it can be unioned with anything else. Getting this wrong shows up as
+    // a fire slime whose flames are measured at the floor and whose portrait is therefore half-size.
+    if (offset) own.translate(new THREE.Vector3(offset[0], offset[1], offset[2]));
+    box.union(own);
+  };
+  eat(body);
+  eat(feature.trim);
+  eat(feature.glaze);
+  eat(feature.aura, feature.auraOrigin);
+  return box;
+}
+
+const portraits = new Map<Family, Portrait>();
+
+/**
+ * A family's window portrait. Nineteen of these exist at most, each built on first sight.
+ *
+ * Every number in it is derived from the same bakes the ranch is drawn from, so the only way for a
+ * window to disagree with the grass is for the grass itself to have changed.
+ */
+export function portraitOf(family: Family): Portrait {
+  const hit = portraits.get(family);
+  if (hit) return hit;
+
+  const bake = gumdropGeometry(family);
+  const feature = featureGeometry(family, PORTRAIT_STAGE);
+  const box = boundsOf(bake.geometry, feature);
+
+  // The extent the fit is solved against: honest at the bottom, capped at the top and at the sides. See
+  // `ROOM` for why the honest box is the wrong thing to fit.
+  const floor = Math.min(box.min.y, 0);
+  const ceiling = Math.min(box.max.y, floor + bake.height * (1 + ROOM.crest));
+  const across = Math.max(
+    Math.min(Math.max(box.max.x - box.min.x, box.max.z - box.min.z), bake.halfWidth * 2 * ROOM.across),
+    1e-4,
+  );
+  const tall = Math.max(ceiling - floor, 1e-4);
+  const fit = Math.min(FIT.across / across, FIT.tall / tall);
+  // Centre the extent that was fitted, so the crop the cap implies is spent entirely at the TOP — where a
+  // trimmed crest is a crest behind a rim, rather than at the bottom, where a trimmed body is an animal
+  // sinking through the floor of its own window.
+  const lift = -((floor + ceiling) / 2) * fit;
+
+  /* --- the face ---------------------------------------------------------------
+     Low on the body, which is the oldest baby-proportion trick there is and is what `Slime.tsx` does
+     with `eyeRise`. The ring is the body's real half-width at that height, so the pair sits on the
+     hide rather than in front of it, and the eye is capped against that ring so a narrow family does
+     not get eyes wider than its own head. */
+  const t = 0.4;
+  const ring = bake.radiusAt(t);
+  const eyeR = Math.min(bake.halfWidth * 0.3, ring * 0.44);
+  const portrait: Portrait = {
+    body: bake.geometry,
+    feature,
+    fit,
+    lift,
+    eye: {
+      r: eyeR,
+      gap: Math.max(eyeR * 1.1, ring * 0.46),
+      y: t * bake.height,
+      // Set INTO the hide: most of the ball inside the jelly, only its front cap out. Same reasoning as
+      // `Slime.tsx`, and at this size it is also what stops the two eyes reading as ears.
+      z: ring * 0.82,
+    },
+    shut: FAMILY_LOOK[family]?.eyesClosed === true,
+    turn: TURN[family] ?? TURN_DEFAULT,
+  };
+  portraits.set(family, portrait);
+  return portrait;
+}
+
+/** How far to flatten a portrait in depth so it stays behind its own glass. Read by `Pack.tsx`. */
+export const PORTRAIT_SQUASH = SQUASH_Z;
+
+const lenses = new Map<Family, THREE.MeshStandardMaterial>();
+
+/**
+ * Perceived lightness of an sRGB hex, 0..1. Rec.601 weights, which is the cheap one and is more than
+ * accurate enough to answer the only question asked of it below: is this body pale or not.
+ *
+ * PARSED BY HAND RATHER THAN THROUGH `THREE.Color`, and that is not fussiness — the first version used
+ * `THREE.Color` and silently got the wrong answer for the one family it mattered most for. Three's colour
+ * management is on by default from r152, so `new THREE.Color('#cfe6f2').r` is not 0.81, it is 0.63: the
+ * constructor converts sRGB to the LINEAR working space. Every channel comes out lower, so a threshold
+ * reasoned about in sRGB is quietly applied against linear values and lands in the wrong place. `air`
+ * measured 0.75 instead of 0.88, fell on the wrong side of the test, and got the pale backing that makes
+ * a white slime invisible — which is the exact failure this function exists to prevent.
+ */
+function lightness(hex: string): number {
+  const n = Number.parseInt(hex.slice(1), 16);
+  const r = ((n >> 16) & 255) / 255;
+  const g = ((n >> 8) & 255) / 255;
+  const b = (n & 255) / 255;
+  return r * 0.299 + g * 0.587 + b * 0.114;
+}
+
+/**
+ * Above this, a body is too pale to be seen against its own pale inner colour. Set so that exactly the two
+ * families `PAINT`'s own note calls out — `bunny` at 0.90 and `air` at 0.88 — fall on the far side of it,
+ * and the next lightest, `lion` at 0.72, does not.
+ */
+const PALE = 0.78;
+
+/**
+ * THE FLOOD BEHIND THE SLIME, in the family's own colour, chosen to be the one that the family's body is
+ * NOT.
+ *
+ * This is the first tier of the two-tier read and it is doing three jobs at once.
+ *
+ *   1. COLOUR AT ANY SIZE. A portrait needs about fifty pixels; a flooded disc needs four. Whatever
+ *      happens to the pack's size on a small display, the row still says *rose, grass, grass, gold* by
+ *      colour alone, so the read degrades gracefully instead of falling off a cliff.
+ *   2. CONTRAST, WHICHEVER WAY ROUND THE FAMILY NEEDS IT. For the fifteen mid-toned families the flood is
+ *      `inner`, the family's own lit underside: a mid body on a pale backing. For the pale ones —
+ *      `bunny`'s cream and `air`'s almost-white, the two `PAINT` singles out as vanishing at this size —
+ *      that would be white on white, so they take `glyph` instead, the family's darkest relative, which
+ *      is already documented in `Paint` as the value that reads at eight pixels. Same hue either way, so
+ *      job 1 is unaffected; only the direction of the contrast flips. Nothing is hand-picked: the choice
+ *      falls out of the skin's own lightness.
+ *   3. IT SEPARATES THE PAIRS. `frost`/`ice` and `rose`/`strawberry` are near neighbours as bodies and
+ *      clearly different as flooded discs, because `inner` is the most spread channel in `PAINT`.
+ *
+ * Lifted with a little emissive so the row reads the same in the barn's shadow as in the open, which a
+ * purely diffuse disc a centimetre from the eye does not. Nineteen tiny standard materials at most, built
+ * on demand, shared by every window that shows that family.
+ */
+export function lensMaterial(family: Family): THREE.MeshStandardMaterial {
+  const hit = lenses.get(family);
+  if (hit) return hit;
+  const p = paintOf(family);
+  const tone = lightness(p.skin) > PALE ? p.glyph : p.inner;
+  const m = new THREE.MeshStandardMaterial({
+    color: tone,
+    roughness: 0.85,
+    metalness: 0,
+    emissive: new THREE.Color(tone),
+    // Enough to hold its value in shadow, low enough that the socket never out-glows the slime standing
+    // in it — which is the one thing that would turn a portrait back into a silhouette.
+    emissiveIntensity: 0.34,
+  });
+  lenses.set(family, m);
+  return m;
 }

@@ -83,11 +83,20 @@ export const PIG = {
    */
   barnLining: '#8f6f4c',
   straw: '#e0bd71',
+  /**
+   * Door furniture. The one metal on the ranch, and it is brass rather than iron for the palette's reason:
+   * there is no black and no neutral grey in this world, so a dark handle would be the only cold thing on a
+   * warm building. Brass is a warm yellow that still reads as metal once it is given a low roughness, and
+   * against the dark timber of the hut's door it is the brightest 5cm on the wall — which is exactly what a
+   * doorknob is for.
+   */
+  brass: '#c08a3e',
 } as const;
 
 export type MatName =
   | 'ground'
   | 'decal'
+  | 'track'
   | 'barnWall'
   | 'trim'
   | 'shingle'
@@ -110,7 +119,10 @@ export type MatName =
   | 'bloom'
   | 'barnFloor'
   | 'barnLining'
-  | 'straw';
+  | 'straw'
+  | 'brass'
+  | 'twine'
+  | 'stones';
 
 let MATS: Record<MatName, MeshStandardMaterial> | null = null;
 
@@ -164,6 +176,34 @@ export function materials(): Record<MatName, MeshStandardMaterial> {
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -2,
     }),
+    /**
+     * The worn tracks, which are no longer a decal and no longer share the decal's material.
+     *
+     * THREE DIFFERENCES FROM `decal`, AND EACH ONE IS FORCED BY THE TRACK HAVING RELIEF.
+     *
+     * `depthWrite` is ON. A flat decal cannot occlude itself, so switching depth writes off was free and
+     * bought a clean overlap where two paths crossed. A track with 9cm banks absolutely can: with writes
+     * off, whichever bank happens to come later in the index buffer wins, so a far shoulder paints over a
+     * near one and the gully turns inside out from half the angles you can look along it from.
+     *
+     * `side` is the default front-only. `DoubleSide` was there because the flat quads had been wound for a
+     * downward normal, which is the silent failure the note on `decal` records. The strip is wound and
+     * indexed for an upward normal and its normals are computed, not asserted, so there is nothing to
+     * rescue and back faces are triangles nobody can see.
+     *
+     * It keeps a grain map, unlike `decal`, because it is now a surface a child stands on and looks along
+     * rather than a stain seen from above.
+     */
+    track: (() => {
+      const t = make('#ffffff', 0.97, 2.2, true);
+      t.transparent = true;
+      // The outermost lane fades to nothing so the mesh never ends on a cut line; everything inboard of it
+      // is fully opaque, which is what makes writing depth safe.
+      t.polygonOffset = true;
+      t.polygonOffsetFactor = -2;
+      t.polygonOffsetUnits = -2;
+      return t;
+    })(),
     barnWall: make(PIG.barnRed, 0.82, 0.6),
     trim: make(PIG.cream, 0.8, 0.9),
     shingle: make(PIG.shingle, 0.74, 1.4),
@@ -243,6 +283,21 @@ export function materials(): Record<MatName, MeshStandardMaterial> {
     barnFloor: make(PIG.barnFloor, 0.96, 1),
     barnLining: make(PIG.barnLining, 0.88, 2.4),
     straw: make('#ffffff', 0.95, 1),
+
+    /** Door furniture. Metal, so unlike everything else on the ranch it is allowed a specular. */
+    brass: (() => {
+      const b = make(PIG.brass, 0.33, 1);
+      b.metalness = 0.62;
+      return b;
+    })(),
+    /**
+     * Baler twine. Paler and shinier than the hay it holds, which is the point: two bands of a DIFFERENT
+     * material are what turn a rounded box of hay into a bale, and if they share the hay's roughness they
+     * disappear into it and the bale is a box again.
+     */
+    twine: make('#efe0b4', 0.6, 1),
+    /** Stones half-sunk in the worn track. Per-instance colour, warm, and rougher than the buildings. */
+    stones: make('#ffffff', 0.94, 1.2),
   };
   return MATS;
 }

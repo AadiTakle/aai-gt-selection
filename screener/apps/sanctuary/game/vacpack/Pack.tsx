@@ -32,23 +32,26 @@ import { useEffect, useMemo, useRef, type JSX } from 'react';
 import * as THREE from 'three';
 
 import type { Family } from '../contract';
+/**
+ * THE SLIME BAKES, BORROWED. Aliased on import because this directory has its own `trimMaterial` (the
+ * pack's apricot) and its own `bodyMaterial` (the flying proxy's jelly), and two different apricots under
+ * one name in one file is the kind of collision that gets silently resolved the wrong way.
+ */
+import { faceGeometry, irisMaterial as slimeIris, scleraMaterial as slimeSclera, bodyMaterial as slimeSkin, trimMaterial as slimeTrim } from '../slimes/gumdrop';
 import {
   ball,
   disc,
   emptyMaterial,
   glassMaterial,
-  glyphMaterial,
   horn,
-  pennantMaterial,
   pillow,
-  proxyBody,
   ring,
   rubberMaterial,
   shellMaterial,
   throatMaterial,
   trimMaterial,
 } from './blob';
-import { glyphOf } from './families';
+import { PORTRAIT_SQUASH, lensMaterial, portraitOf } from './families';
 import { TANK_CAPACITY, type Held } from './tank';
 
 /* ------------------------------------------------------------------ *\
@@ -118,10 +121,45 @@ const BELL = { back: 0.018, mouth: 0.037, len: 0.095, z: -0.02 };
  * cancels the pack's yaw and then tips about its own X toward the eye, which lands the row square to the camera
  * whatever the pack is doing. It is the only part of the model that is aimed at the viewer rather than posed.
  */
-const WINDOW = { r: 0.0125, y: TANK.h / 2 + 0.003, z: 0.03, tilt: -Math.PI / 2 + 1.15 };
+/**
+ * AND THE WINDOWS GREW, once the thing behind the glass became worth looking at.
+ *
+ * `r` went from 0.0125 to 0.0142 and `rim` from 0.22 of the radius to 0.15. Those two together are what
+ * matter, because a child does not see the disc — a child sees the HOLE, and the rim is a torus of radius
+ * `r` laid over it, so the hole is `1 - rim` of the disc. It was 0.78 r = 0.0098; it is now 0.85 r =
+ * 0.0121, a quarter more aperture. At the game's 62° camera and the pack's 0.42 m stand-off that takes a
+ * window's opening from about 36 to about 45 CSS pixels across, which is the difference between a bunny's
+ * ears being three pixels wide and being four — and at this size that difference is the whole read.
+ *
+ * It is deliberately a QUARTER and not a half. The row now spans 0.118, against a tank 0.105 wide, so the
+ * plate already overhangs its own tank slightly, the way a visor does. Past about this the plate stops
+ * reading as part of the tank and starts reading as a separate object bolted to it, and the pack stops
+ * being a toy — which is the one rule this whole file exists to obey.
+ */
+/**
+ * `y` ROSE, AND THAT IS A BUG FIX, NOT DRESSING.
+ *
+ * The plate sits at `y` and is then tipped 24° about its own X toward the eye, which swings its lower edge
+ * DOWN and BACK — at 0.003 above the tank's shoulder that edge finished up inside the tank, and the tank's
+ * own rounded crown was standing in front of the bottom third of all four sockets. It never showed while
+ * the windows held an abstract mark floating at the middle of the disc; it shows immediately when they hold
+ * a creature standing on the floor of one, because the part being eaten is its face and feet. So the row is
+ * lifted by the plate's own half-height plus a hair, which is the amount the tip costs it.
+ */
+const WINDOW = { r: 0.0142, rim: 0.15, y: TANK.h / 2 + 0.0115, z: 0.03, tilt: -Math.PI / 2 + 1.15 };
 
-/** Four slots across the top of the tank, left to right. Slot 0 is the front of the queue: next one out. */
-export const WINDOW_X: readonly number[] = [-0.04125, -0.01375, 0.01375, 0.04125];
+/**
+ * Four slots across the top of the tank, left to right. Slot 0 is the front of the queue: next one out.
+ *
+ * DERIVED, not typed. The row was four hand-written numbers and its spacing had to be kept in step with
+ * `WINDOW.r` and with the plate's width by hand — three constants that must agree and no way to notice
+ * when they stop. The pitch below is a hair over a diameter, so the sockets nearly touch and the row reads
+ * as one strip of windows rather than four separate portholes.
+ */
+const WINDOW_PITCH = WINDOW.r * 2.1;
+export const WINDOW_X: readonly number[] = [-1.5, -0.5, 0.5, 1.5].map((i) => i * WINDOW_PITCH);
+/** The apricot plate the four sit in, sized off the row so it can never be left too small for it. */
+const PLATE = { w: WINDOW_PITCH * 3 + WINDOW.r * 2.2, h: WINDOW.r * 2.5 };
 
 /* ------------------------------------------------------------------ *\
    The mutable rig the mechanic drives the pack with
@@ -166,55 +204,124 @@ export function makeRig(motion: number): PackRig {
    The tank windows
 \* ------------------------------------------------------------------ */
 
-function Glyph({ family, r }: { family: Family; r: number }): JSX.Element {
-  const pieces = glyphOf(family);
-  const mat = glyphMaterial(family);
+/**
+ * THE THING IN THE WINDOW: the real slime, tiny.
+ *
+ * Body, signature feature and face, all off the shared bakes in `slimes/` — the same buffers and the same
+ * materials the herd on the grass is drawn from, so a window cannot disagree with the animal that just
+ * vanished off the field. `families.ts` explains at length why this replaced nineteen hand-drawn symbols
+ * and why it is also the cheaper of the two.
+ *
+ * Everything here is in WINDOW RADII, converted from the bakes' body units by the portrait's own solved
+ * `fit`. Nothing about the size of any family is typed in.
+ */
+function Portrait({ family, r }: { family: Family; r: number }): JSX.Element {
+  const p = portraitOf(family);
+  const s = p.fit * r;
+  const eye = p.eye;
+
   return (
-    <group>
-      {pieces.map((p, i) => {
-        // Every piece is the same sphere at a different non-uniform scale: a pip is round, a bar is a rounded
-        // ellipsoid, a blade is the same ellipsoid stood on end. Three symbols, one buffer, no sharp corners.
-        const s: [number, number, number] =
-          p.kind === 'pip'
-            ? [p.size * r, p.size * r, p.size * r * 0.55]
-            : p.kind === 'bar'
-              ? [p.size * r, 0.15 * r, 0.1 * r]
-              : [0.11 * r, p.size * r, 0.1 * r];
-        return (
-          <mesh
-            key={i}
-            geometry={ball()}
-            material={mat}
-            position={[p.at[0] * r, p.at[1] * r, r * 0.34]}
-            rotation={[0, 0, p.turn ?? 0]}
-            scale={s}
-          />
-        );
-      })}
+    /* Two nested groups. The outer one carries the flattening and the fit, so the inner one can be
+       authored in plain body units; rolling them together would mean every face offset below carrying
+       the squash by hand. */
+    <group position={[0, p.lift * r, 0]} scale={[s, s, s * PORTRAIT_SQUASH]}>
+      {/* The gumdrop. Family colour and relief baked into a vertex attribute, so this is the real hide
+          and not an approximation of it. */}
+      <mesh geometry={p.body} material={slimeSkin(family)} />
+
+      {/* The signature — the thing that actually NAMES the family. Waffle's butter pat, bunny's ears,
+          gold's crown, sleepy's nightcap, strawberry's calyx: one merged buffer for all of it. */}
+      {p.feature.trim ? <mesh geometry={p.feature.trim} material={slimeTrim(family)} /> : null}
+      {/**
+        * THE TRANSLUCENT LAYERS ARE DRAWN WITH THE OPAQUE MATERIAL HERE, and it is the one place a window
+        * knowingly departs from the grass.
+        *
+        * `glazeMaterial` is the right material for a wing you are standing next to: see-through, so the
+        * wing behind shows through the wing in front. At forty pixels see-through means gone. Fairy's two
+        * pairs of wings, frost's ring of spires, ice's shard cluster and air's spiral are all in this
+        * layer — which is to say four of the nineteen signatures were being drawn as a faint smudge, and
+        * `air`'s own note in `crests.ts` says the family "spends the identification on the crest" and lets
+        * the body be almost invisible. Losing that crest loses the family.
+        *
+        * `trimMaterial` is the same shader with `transparent` off, and both read the SAME baked vertex
+        * colours, so a wing is still wing-coloured and a spire still spire-coloured. Nothing about the
+        * shape changes; only the alpha, and only inside a socket a centimetre wide. It also costs nothing:
+        * it is a material this row is already using, so it is one fewer material bound per window rather
+        * than one more.
+        */}
+      {p.feature.glaze ? <mesh geometry={p.feature.glaze} material={slimeTrim(family)} /> : null}
+      {/* The four families whose feature moves on its own — fire, radioactive, air, sleepy — keep it, at
+          its rest pose. A window is a badge, not a stage: nothing in here is worth a frame callback per
+          slot, and every one of the four was authored to look correct standing still. */}
+      {p.feature.aura ? (
+        <group position={p.feature.auraOrigin}>
+          <mesh geometry={p.feature.aura} material={slimeTrim(family)} />
+        </group>
+      ) : null}
+
+      {/* The face. Two meshes an eye, and no catchlight: a catchlight is a quarter of an eye's radius,
+          which here is well under a pixel, so it would cost two draw calls to render nothing. */}
+      {([-1, 1] as const).map((side) => (
+        <group key={side} position={[side * eye.gap, eye.y, eye.z]}>
+          {p.shut ? (
+            /* Shut, for the one family that is: a shallow arc, convex UP. `Slime.tsx` has the note on
+               why the direction of that curve is the whole difference between asleep and unconscious. */
+            <mesh
+              geometry={faceGeometry().closed}
+              material={slimeIris(family)}
+              rotation={[0, 0, Math.PI * 0.1]}
+              scale={[eye.r * 0.82, eye.r * 0.46, eye.r * 0.82]}
+            />
+          ) : (
+            <>
+              <mesh geometry={faceGeometry().sclera} material={slimeSclera()} scale={eye.r} />
+              <mesh
+                geometry={faceGeometry().iris}
+                material={slimeIris(family)}
+                position={[0, 0, eye.r * 0.56]}
+                // Two thirds of the eye. At fifty pixels the iris IS the eye — a small pupil in a wide
+                // white reads as two blank dots, which is what makes a tiny face look dead.
+                scale={eye.r * 0.68}
+              />
+            </>
+          )}
+        </group>
+      ))}
     </group>
   );
 }
 
 /**
- * ONE WINDOW. A recessed socket, a filleted apricot rim, and a thin bright glass over the top.
+ * ONE WINDOW. A socket flooded with the family's own colour, the slime itself standing in it, a filleted
+ * apricot rim, and a thin bright glass over the top.
  *
- * When it holds something, the something is a little domed blob in the family's own colour with the family
- * mark floating in front of it, TURNING SLOWLY — the brief's "spin lazily in the tank". The spin is the single
- * detail that stops the row reading as four coloured stickers: a sticker cannot turn.
+ * THE TWO-TIER READ. The flood is the family as a COLOUR and needs four pixels; the portrait is the
+ * family as a CREATURE and needs about fifty, which is what a window actually gets. So the row answers
+ * "what have I got" at a glance and "which bunny" on a look, and neither tier depends on the other.
+ *
+ * IT ROCKS, IT DOES NOT SPIN. The brief asked for "spin lazily in the tank" and the old abstract mark
+ * could afford it, because a symbol has no back. A portrait does: a full turn spends half its time
+ * showing a child the arse of a slime, and the signature that names the family — a face, a crown, one
+ * flopped ear — is exactly what is hidden while it does. So the portrait rests at the three-quarter turn
+ * its family reads best from and swings gently either side of it, which keeps the one thing the spin was
+ * for (a sticker cannot move) and drops the one thing it cost.
  */
 function Window({ slot, held, rig }: { slot: number; held: Held | null; rig: PackRig }): JSX.Element {
   const spin = useRef<THREE.Group>(null);
   const flash = useRef<THREE.Mesh>(null);
   const x = WINDOW_X[slot] ?? 0;
-  // Each slot turns at its own rate and starts at its own angle, so four caught slimes are never in lockstep.
+  // Each slot rocks at its own rate and from its own phase, so four caught slimes are never in lockstep.
   const rate = 0.55 + slot * 0.11;
+  const rest = held ? portraitOf(held.family).turn : 0;
 
-  useFrame((_, dt) => {
+  useFrame(() => {
     const g = spin.current;
     if (g) {
-      g.rotation.y += dt * rate * rig.motion;
-      // A slow nod on top of the turn. Held slimes are alive, not exhibits.
-      g.rotation.z = Math.sin(rig.t * 1.3 + slot) * 0.1 * rig.motion;
+      // Just under a quarter turn either way, about the family's own resting angle. Wide enough to be
+      // unmistakably a live thing turning, narrow enough that the face never leaves.
+      g.rotation.y = rest + Math.sin(rig.t * rate + slot * 1.7) * 0.34 * rig.motion;
+      // A slow nod on top of it. Held slimes are alive, not exhibits.
+      g.rotation.z = Math.sin(rig.t * 1.3 + slot) * 0.08 * rig.motion;
     }
     const f = flash.current;
     if (f) {
@@ -229,20 +336,17 @@ function Window({ slot, held, rig }: { slot: number; held: Held | null; rig: Pac
 
   return (
     <group position={[x, 0, 0]}>
-      {/* The socket floor. Pale wadding when empty, which is legible as "there is room here". */}
-      <mesh geometry={disc()} material={emptyMaterial()} scale={[WINDOW.r * 0.94, WINDOW.r * 0.94, 0.06]} />
+      {/* The socket floor. Pale wadding when empty, which is legible as "there is room here"; flooded with
+          the family's own inner colour when full, which is the colour tier of the read. */}
+      <mesh
+        geometry={disc()}
+        material={held ? lensMaterial(held.family) : emptyMaterial()}
+        scale={[WINDOW.r * 0.94, WINDOW.r * 0.94, 0.06]}
+      />
 
       {held ? (
-        <group ref={spin} position={[0, 0, WINDOW.r * 0.18]}>
-          <mesh
-            geometry={proxyBody()}
-            material={pennantMaterial(held.family)}
-            // The blob is authored 0..1 tall about its base, so it is dropped half its height to sit centred
-            // in the window rather than hanging off the top of it.
-            position={[0, -WINDOW.r * 0.5, 0]}
-            scale={[WINDOW.r * 0.78, WINDOW.r * 1.02, WINDOW.r * 0.78]}
-          />
-          <Glyph family={held.family} r={WINDOW.r} />
+        <group ref={spin} position={[0, 0, WINDOW.r * 0.1]}>
+          <Portrait family={held.family} r={WINDOW.r} />
         </group>
       ) : null}
 
@@ -271,7 +375,7 @@ function Window({ slot, held, rig }: { slot: number; held: Held | null; rig: Pac
         scale={[WINDOW.r * 0.98, WINDOW.r * 0.98, 0.03]}
       />
       <mesh
-        geometry={ring(WINDOW.r, WINDOW.r * 0.22)}
+        geometry={ring(WINDOW.r, WINDOW.r * WINDOW.rim)}
         material={trimMaterial()}
         position={[0, 0, WINDOW.r * 0.52]}
       />
@@ -451,7 +555,7 @@ export function Pack({ rig, held }: { rig: PackRig; held: readonly Held[] }): JS
         <group position={[0, WINDOW.y, WINDOW.z]} rotation={[0, -PACK_ROT[1], 0]}>
           <group rotation={[WINDOW.tilt, 0, 0]}>
             {/* A shallow apricot plate under the four, so the row is one feature and not four holes. */}
-            <mesh geometry={pillow(0.112, 0.032, 0.009, 0.015)} material={trimMaterial()} position={[0, 0, -0.006]} />
+            <mesh geometry={pillow(PLATE.w, PLATE.h, 0.009, 0.015)} material={trimMaterial()} position={[0, 0, -0.006]} />
             {Array.from({ length: TANK_CAPACITY }, (_, i) => (
               <Window key={i} slot={i} held={held[i] ?? null} rig={rig} />
             ))}

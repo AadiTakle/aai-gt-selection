@@ -15,7 +15,7 @@ import { Slime, pushOutOfSlimes } from './slimes/Slime';
 import { Stations, STATION_SOLIDS } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
-import { useAudio, MuteButton } from './audio';
+import { useAudio, MuteButton, HeadphonePrompt } from './audio';
 import { useVacpackTank } from './vacpack';
 import { FAMILY_BATTERY, type Family as Fam } from './contract';
 
@@ -536,6 +536,7 @@ export function Game() {
       )}
 
       <CoinFlight trigger={flight} />
+      <HeadphonePrompt />
       {!engaged && !shopOpen && (
         <div className="bh-hud">
           <Purse />

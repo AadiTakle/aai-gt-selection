@@ -78,6 +78,13 @@ class Soup {
     for (let i = 1; i < this.pos.length; i += 3) m = Math.min(m, this.pos[i] ?? Infinity);
     return m;
   }
+
+  /** The same guard for the parts that hang below the wall head instead of standing above it. */
+  maxY(): number {
+    let m = -Infinity;
+    for (let i = 1; i < this.pos.length; i += 3) m = Math.max(m, this.pos[i] ?? -Infinity);
+    return m;
+  }
 }
 
 export interface GableRoofSpec {
@@ -201,6 +208,119 @@ export function hipRoofGeometry(spec: HipRoofSpec): BufferGeometry {
   return s.geometry();
 }
 
+/* ------------------------------------------------------------------ *\
+   Closing the eave
+\* ------------------------------------------------------------------ */
+
+export interface EaveCollarSpec {
+  /** Wall outside width, the same number handed to the roof. */
+  width: number;
+  /** Wall outside depth, the same number handed to the roof. */
+  depth: number;
+  /** The same `eave` handed to the roof: the overhang across the slopes. */
+  eave: number;
+  /** The same `rake` handed to the roof. A hip passes its `eave` here as well. */
+  rake: number;
+  /** Board depth, hanging below the wall head. What reads from the ground as the fascia. */
+  thickness: number;
+  /**
+   * How far the board's inner edge is held OFF the wall face.
+   *
+   * Negative laps it onto the wall and closes the eave completely — the hut, which has no inside. Positive
+   * leaves a vent slot at the wall line — the barn, whose interior is lit through it.
+   */
+  reveal: number;
+  /** `'ring'` closes all four sides. `'eaves'` closes only the two long ones, for a gable. */
+  sides: 'ring' | 'eaves';
+}
+
+/**
+ * THE HOLE THAT MADE THE ROOF LOOK DETACHED, AND THE BOARD THAT CLOSES IT.
+ *
+ * The defect the owner reported — "the roof is now disconnected from the house and you can see the chimney
+ * going through it" — is not a mispositioned roof. Every roof in this module still lands exactly on its
+ * wall head, and `roofInvariantReport` still proves it. It is a MISSING PART, and the part is the soffit.
+ *
+ * Here is the geometry of the complaint. A roof's soffit lies on the wall-head plane at the eave corners
+ * and rises inward, so at the wall FACE it is already `rise * (1 - halfWall / halfRoof)` above the wall —
+ * 41cm on the hut, 38cm on the barn. Between the wall face and the eave edge, therefore, there is a
+ * horizontal annulus of pure daylight: an `eave`-wide slot running the whole way round the building at
+ * exactly the height where the eye looks for the join. Standing anywhere the wall head is above your eye
+ * you look up through that slot into the void under the roof — which is where the chimney's lower half
+ * lives, so the stack appears to pass through open air, and the roof appears to hover.
+ *
+ * SHRINKING THE OVERHANG WOULD ALSO CLOSE IT, and would be the wrong fix twice over: an eave is correct,
+ * and a building without one looks like a box with a lid. What closes it properly is what closes it on a
+ * real building — a soffit board from the wall face out to the eave, with the fascia as its outer edge.
+ *
+ * THE BOARD HANGS BELOW THE WALL HEAD, NOT ABOVE IT, and that is deliberately the opposite of everything
+ * else in this file. A roof may not descend into its wall, which is why `y >= 0` is asserted on all of
+ * them. This is not a roof: it is a board fixed to the top of the wall, so its natural place is
+ * `y ∈ [-thickness, 0]` — under the wall-head plane and, at `reveal >= 0`, entirely OUTSIDE the wall
+ * solid as well. `assertHangsBelowWalls` states that as the mirror-image invariant: no vertex above 0.
+ * Nothing here can push the roof up off its wall or pull it down into it, because it touches neither.
+ *
+ * A MITRED RING, not four overlapping boards. The hut is hip-roofed and is looked at from its corners, and
+ * two rounded boxes crossing at a corner show the lap. Four trapezoids between corresponding corners of
+ * the inner and outer rectangles tile the ring exactly, whatever `eave` and `rake` are.
+ */
+export function eaveCollarGeometry(spec: EaveCollarSpec): BufferGeometry {
+  const { width, depth, eave, rake, thickness: t, reveal, sides } = spec;
+  const ox = width / 2 + eave;
+  const oz = depth / 2 + rake;
+  const ix = width / 2 + reveal;
+  const iz = depth / 2 + reveal;
+
+  const outer: readonly P3[] = [
+    [-ox, 0, -oz],
+    [ox, 0, -oz],
+    [ox, 0, oz],
+    [-ox, 0, oz],
+  ];
+  const inner: readonly P3[] = [
+    [-ix, 0, -iz],
+    [ix, 0, -iz],
+    [ix, 0, iz],
+    [-ix, 0, iz],
+  ];
+  // Sides 1 and 3 are the ±X eaves, which every roof shape needs. Sides 0 and 2 are the ±Z ends, which a
+  // gable already closes with its barge boards and its gable wall.
+  const build = sides === 'ring' ? [0, 1, 2, 3] : [1, 3];
+
+  const at = (p: P3, y: number): P3 => [p[0], y, p[2]];
+  const s = new Soup();
+  for (const k of build) {
+    const o0 = outer[k];
+    const o1 = outer[(k + 1) % 4];
+    const i0 = inner[k];
+    const i1 = inner[(k + 1) % 4];
+    if (!o0 || !o1 || !i0 || !i1) continue;
+    // The soffit: the face you actually see, wound for a downward normal.
+    s.quad(at(o0, -t), at(o1, -t), at(i1, -t), at(i0, -t));
+    // Its back, wound the other way, so the board is a closed solid and never shows a hole from the loft.
+    s.quad(at(i0, 0), at(i1, 0), at(o1, 0), at(o0, 0));
+    // The fascia, on the outer edge, under the roof slab's own.
+    s.quad(at(o0, -t), at(o0, 0), at(o1, 0), at(o1, -t));
+    // And the reveal at the wall, which is seen only where `reveal > 0` leaves a vent slot.
+    s.quad(at(i1, -t), at(i1, 0), at(i0, 0), at(i0, -t));
+  }
+  // The two open ends of a pair of eave boards, so a gable's boards are closed solids too.
+  if (sides === 'eaves') {
+    for (const k of [1, 3]) {
+      const o0 = outer[k];
+      const o1 = outer[(k + 1) % 4];
+      const i0 = inner[k];
+      const i1 = inner[(k + 1) % 4];
+      if (!o0 || !o1 || !i0 || !i1) continue;
+      s.quad(at(o0, -t), at(i0, -t), at(i0, 0), at(o0, 0));
+      s.quad(at(i1, -t), at(o1, -t), at(o1, 0), at(i1, 0));
+    }
+  }
+
+  assertHangsBelowWalls('eave collar', s.maxY());
+  return s.geometry();
+}
+
 /**
  * The triangle of wall a gable roof leaves open, traced from that roof's own soffit.
  *
@@ -288,6 +408,19 @@ function assertSitsOnWalls(kind: string, minY: number): void {
 }
 
 /**
+ * The mirror of the above, for the boards that hang under the wall head rather than sit on it.
+ *
+ * A collar whose top crept above zero would be inside the void the roof occupies, where it would poke
+ * through the soffit it is supposed to be closing — the same class of defect as a roof in a wall, one part
+ * further out.
+ */
+function assertHangsBelowWalls(kind: string, maxY: number): void {
+  if (Math.abs(maxY) > 1e-6) {
+    throw new Error(`${kind} would stand ${maxY}m proud of the wall head instead of hanging below it`);
+  }
+}
+
+/**
  * A one-shot self-check, exported so a preview page or a test can prove the invariant instead of
  * trusting the comment above it. Returns the lowest vertex of each roof kind across a sweep of
  * parameters; every entry must be exactly 0.
@@ -307,6 +440,48 @@ export function roofInvariantReport(): { spec: string; minY: number }[] {
           let m = Infinity;
           for (let i = 0; i < pos.count; i += 1) m = Math.min(m, pos.getY(i));
           out.push({ spec: name, minY: m });
+          g.dispose();
+        }
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * The same sweep for the eave collars, whose invariant runs the other way: nothing above the wall head.
+ *
+ * Reported separately rather than folded into the sweep above, because the two claims are opposites and a
+ * single list of `minY` values could not hold both. A caller checking that roofs sit on walls and collars
+ * hang below them has to check two numbers, so there are two functions.
+ */
+export function eaveInvariantReport(): { spec: string; maxY: number; minY: number }[] {
+  const out: { spec: string; maxY: number; minY: number }[] = [];
+  for (const eave of [0.2, 0.62, 1.2]) {
+    for (const thickness of [0.08, 0.14, 0.3]) {
+      for (const reveal of [-0.02, 0, 0.08]) {
+        for (const sides of ['ring', 'eaves'] as const) {
+          const g = eaveCollarGeometry({
+            width: 10.5,
+            depth: 14,
+            eave,
+            rake: eave + 0.13,
+            thickness,
+            reveal,
+            sides,
+          });
+          const pos = g.getAttribute('position');
+          let hi = -Infinity;
+          let lo = Infinity;
+          for (let i = 0; i < pos.count; i += 1) {
+            hi = Math.max(hi, pos.getY(i));
+            lo = Math.min(lo, pos.getY(i));
+          }
+          out.push({
+            spec: `collar ${sides} eave=${eave} t=${thickness} reveal=${reveal}`,
+            maxY: hi,
+            minY: lo,
+          });
           g.dispose();
         }
       }

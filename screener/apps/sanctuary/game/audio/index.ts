@@ -13,13 +13,15 @@
  *
  * ══ WHAT TO MOUNT ════════════════════════════════════════════════════════════════════════════════
  *
- *     import { AudioProvider, MuteButton, useAudio } from './audio';
+ *     import { AudioProvider, HeadphonePrompt, MuteButton, useAudio } from './audio';
  *
  *     // Wrap the game once, outside the Canvas. Renders nothing and creates no AudioContext.
  *     <AudioProvider>
  *       <div className="bh-root">
  *         <Canvas>…</Canvas>
  *         <MuteButton />          // flat HUD, fixed top right, styles itself, needs no CSS from you
+ *         <HeadphonePrompt />     // flat HUD, fixed top centre, same deal. Shows itself until the first
+ *                                 // gesture, fades out, unmounts, and is never seen again.
  *       </div>
  *     </AudioProvider>
  *
@@ -64,6 +66,12 @@
  *   `touchstart` or `keydown` — captured at window level in the capture phase, so it exists before the
  *   React handler on that same press runs. Nothing is queued while it does not exist.
  *
+ *   THE CHILD IS ASKED FOR HEADPHONES BEFORE ANYTHING HAPPENS. `HeadphonePrompt` is a large drawn headphone
+ *   icon at the top centre, gently breathing, from load until the first gesture — legible to a child who
+ *   cannot read a word, and gone the moment they press anything, leaving `MuteButton` as the only audio
+ *   control on screen. It is absent entirely under `prefers-reduced-motion` and whenever the game starts
+ *   muted, because inviting a child to put headphones on for silence is worse than saying nothing.
+ *
  *   ONE PRESS TO SILENCE IT. `MuteButton` top right, and the `M` KEY from anywhere — which is not a
  *   nicety: the ranch runs under pointer lock, and while it is locked there is no cursor, so a click is
  *   impossible. The choice is remembered in `localStorage` under `gt-sanctuary:muted`.
@@ -92,12 +100,13 @@
  *   pad.ts        the ambience. A drone and randomly spaced swells, so there is no period to recognise.
  *   mute.ts       one boolean with subscribers, independent of the engine.
  *   engine.ts     the AudioContext, the gesture gate, the M key, and the lifecycle.
- *   useAudio.tsx  the three things `Game.tsx` touches.
+ *   useAudio.tsx  the four things `Game.tsx` touches, including both on-screen controls.
  *   measure.ts    TEMPORARY. Offline renders and their measurements.
  *   preview.*     TEMPORARY. A button per sound, at /game/audio/preview.html.
  *   verify.mjs    TEMPORARY. Drives the preview in headless Chrome and prints the table.
  */
 
-export { AudioProvider, MuteButton, useAudio } from './useAudio';
-export { LS_MUTED, muted, setMuted, toggleMuted, useMuted } from './mute';
+export { AudioProvider, HeadphonePrompt, MuteButton, useAudio } from './useAudio';
+export { LS_MUTED, muted, prefersReducedMotion, setMuted, toggleMuted, useMuted } from './mute';
+export { audioGestured, subscribeGestured } from './engine';
 export type { AudioApi } from './engine';

@@ -637,6 +637,23 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
   const nozzleY = waterY + 0.92;
 
   /**
+   * THE NOZZLE, AND THE ONE PLACE WATER MAY LEAVE IT.
+   *
+   * The fall used to hang at a hand-typed `x = 0.63` while the nozzle stood at `0.56` and was TILTED, and
+   * a tilted cylinder's outlet is not where its origin is: turning it by `tilt` about Z swings the lower
+   * end sideways by `sin(tilt) * length / 2`, which puts the outlet at 0.5925. So the stream was leaving
+   * the air 3.7cm to the right of the spout it was supposed to be leaving — the owner's "coming out
+   * outside of the spout, needs to move a hair to the left", seen from in front where local +X is screen
+   * right.
+   *
+   * Derived from the nozzle's own numbers rather than re-typed as a corrected constant, for exactly the
+   * reason the impact point below is derived: a hand-matched pair drifts apart the moment the spout is
+   * nudged, and a stream beside its spout is invisible in the code and obvious on screen.
+   */
+  const NOZZLE = { x: 0.56, lift: 0.02, tilt: 0.3, length: 0.22, z: -0.02 } as const;
+  const spoutX = NOZZLE.x + Math.sin(NOZZLE.tilt) * (NOZZLE.length / 2);
+
+  /**
    * THE SPRING, WHICH NOW RUNS. Everything about how it moves lives in `world/water.ts`; what belongs
    * here is only the arithmetic that connects the water to this particular basin.
    *
@@ -651,7 +668,7 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
    * Derived from the same expressions that place the meshes below rather than typed as constants, so the
    * rings cannot drift away from the fall if the flume is ever nudged.
    */
-  const fallAt = { x: -basin.w / 2 - 0.25 + 0.63, z: basin.z + 0.15 - 0.02 };
+  const fallAt = { x: -basin.w / 2 - 0.25 + spoutX, z: basin.z + 0.15 + NOZZLE.z };
   const spring = useMemo(() => {
     const inner = { w: basin.w - basin.wall * 2 + 0.06, d: basin.d - basin.wall * 2 + 0.06 };
     return {
@@ -766,7 +783,12 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
           rotation={[0, 0, -0.16]}
           castShadow
         />
-        <mesh geometry={g.nozzle} material={m.timberDeep} position={[0.56, nozzleY + 0.02, -0.02]} rotation={[0, 0, 0.3]} />
+        <mesh
+          geometry={g.nozzle}
+          material={m.timberDeep}
+          position={[NOZZLE.x, nozzleY + NOZZLE.lift, NOZZLE.z]}
+          rotation={[0, 0, NOZZLE.tilt]}
+        />
 
         {/*
           THE FALL, as two nested tubes rather than one.
@@ -778,13 +800,13 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
         <mesh
           geometry={g.fall}
           material={spring.fall.material}
-          position={[0.63, (nozzleY + waterY) / 2, -0.02]}
+          position={[spoutX, (nozzleY + waterY) / 2, NOZZLE.z]}
           scale={[1, Math.max(0.1, nozzleY - waterY), 1]}
         />
         <mesh
           geometry={g.thread}
           material={spring.fall.material}
-          position={[0.655, (nozzleY + waterY) / 2 + 0.03, 0.005]}
+          position={[spoutX + 0.025, (nozzleY + waterY) / 2 + 0.03, NOZZLE.z + 0.025]}
           scale={[1, Math.max(0.1, nozzleY - waterY) * 0.94, 1]}
         />
 
@@ -797,7 +819,7 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
         <mesh
           geometry={g.churn}
           material={spring.churn.material}
-          position={[0.63, waterY + 0.008, -0.02]}
+          position={[spoutX, waterY + 0.008, NOZZLE.z]}
           rotation={[-Math.PI / 2, 0, 0]}
           scale={[0.27, 0.27, 1]}
         />
@@ -809,7 +831,7 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
             }}
             geometry={g.splash}
             material={spring.foam[i]}
-            position={[0.63, waterY + 0.014, -0.02]}
+            position={[spoutX, waterY + 0.014, NOZZLE.z]}
             rotation={[-Math.PI / 2, 0, 0]}
           />
         ))}

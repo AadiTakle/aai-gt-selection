@@ -167,7 +167,44 @@ function disposeLive(): void {
    Gestures, mute, and the tab going away
 \* ------------------------------------------------------------------ */
 
+/**
+ * WHETHER THE FIRST GESTURE HAS HAPPENED, which is the one fact the pre-gesture headphone invitation in
+ * `useAudio.tsx` needs and the one fact nothing else here was recording.
+ *
+ * It is deliberately NOT "an AudioContext exists". A machine with no Web Audio at all, or a Safari that has
+ * run out of contexts, never gets a `live` — and a prompt keyed on `live` would then pulse at the child
+ * forever, which is the exact failure the invitation must not have. So this is the honest question: has the
+ * child touched the page yet? Once they have, the invitation's moment is over whatever the audio did.
+ *
+ * Sticky for the life of the page rather than reset by `disposeLive`. StrictMode's mount/unmount/remount all
+ * happen before any gesture, so there is nothing to preserve there; and after a real gesture, a provider
+ * remount must not bring the invitation back on top of a game already in progress.
+ */
+let gestured = false;
+const gestureListeners = new Set<() => void>();
+
+/** Has the page had its first `pointerdown`, `touchstart` or `keydown`? */
+export function audioGestured(): boolean {
+  return gestured;
+}
+
+export function subscribeGestured(l: () => void): () => void {
+  gestureListeners.add(l);
+  return () => {
+    gestureListeners.delete(l);
+  };
+}
+
+function markGestured(): void {
+  if (gestured) return;
+  gestured = true;
+  // Synchronously, inside the gesture. The invitation is fading out in response to this press, and a frame
+  // where the press has visibly done something is worth more than a frame saved.
+  for (const l of gestureListeners) l();
+}
+
 function onGesture(): void {
+  markGestured();
   const l = ensureLive();
   if (!l) return;
   if (l.ctx.state === 'suspended') {

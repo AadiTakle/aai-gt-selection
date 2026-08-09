@@ -604,6 +604,19 @@ const PARTS: WindowParts = (() => {
        * Blooms. Five to eight per box, and the counts and colours are drawn from the window's own seed so
        * the same window is the same window every visit — a flower that moves overnight is the same broken
        * promise as a tree that moves overnight, which `noise.ts` already argues at length.
+       *
+       * THE CLUMP IS SOLVED FIRST AND THE BLOOM IS PUT IN IT, which is the fix for the owner's "the
+       * flowers are a bit disjointed, probably just closer to the little bushy thing beneath the windows".
+       * The first pass drew the two INDEPENDENTLY — a bloom somewhere in a 9cm box of jitter and a leaf
+       * somewhere in a 12cm box of its own — so on average they missed each other, and a sphere hanging
+       * 4cm above and to one side of the only greenery in the box reads as a bead on a wire rather than as
+       * a flower growing out of something. Now one loop places a leaf clump and then hangs its bloom in
+       * the TOP of that same clump, so the two cannot drift apart however the jitter falls: the bloom's
+       * position is the clump's position plus a couple of centimetres, and its height is the clump's own
+       * crown minus a third of the bloom, so the petals sit down among the leaves.
+       *
+       * The clumps are also half again bigger than they were and overlap their neighbours, so the row is
+       * one mounded planting with flowers in it instead of five separate green pebbles.
        */
       const n = 5 + Math.floor(rand() * 4);
       const palette = [
@@ -612,30 +625,29 @@ const PARTS: WindowParts = (() => {
       ];
       for (let i = 0; i < n; i += 1) {
         const t = (i + 0.5) / n;
-        const size = 0.05 + rand() * 0.035;
+        // Held inside the box by its own foliage half-width, so nothing spills off the ends.
+        const leafX = (t - 0.5) * (boxW - 0.42) + (rand() - 0.5) * 0.05;
+        const leafZ = 0.15 + (rand() - 0.5) * 0.06;
+        const leafR = 0.075 + rand() * 0.035;
+        parts.bush.push({
+          position: place(spec, leafX, bedY + 0.085, leafZ),
+          rot: [0, rand() * 6.28, 0],
+          scale: [leafR * 1.7, leafR, leafR * 1.45],
+          color: new Color(PIG.gardenLeaf).lerp(new Color(PIG.gardenLeafLit), rand()),
+        });
+        const size = 0.042 + rand() * 0.026;
         parts.bloom.push({
           position: place(
             spec,
-            (t - 0.5) * (boxW - 0.14),
-            bedY + 0.12 + rand() * 0.09,
-            0.15 + (rand() - 0.5) * 0.1,
+            leafX + (rand() - 0.5) * 0.045,
+            bedY + 0.085 + leafR - size * 0.35,
+            leafZ + (rand() - 0.5) * 0.045,
           ),
           scale: [size, size * 0.85, size],
           color: new Color(palette[i % 2] ?? PIG.bloomPoppy).lerp(
             new Color(PIG.bloomSnow),
             rand() * 0.3,
           ),
-        });
-        // A leaf or two per bloom, greener and lower, so the box is not a row of dots on soil.
-        parts.bush.push({
-          position: place(
-            spec,
-            (t - 0.5) * (boxW - 0.14) + (rand() - 0.5) * 0.08,
-            bedY + 0.075,
-            0.15 + (rand() - 0.5) * 0.12,
-          ),
-          scale: [0.09 + rand() * 0.04, 0.05, 0.08 + rand() * 0.04],
-          color: new Color(PIG.gardenLeaf).lerp(new Color(PIG.gardenLeafLit), rand()),
         });
       }
     } else {
@@ -656,31 +668,41 @@ const PARTS: WindowParts = (() => {
         scale: [bedW, 1.2, 2.8],
       });
       const n = 3 + Math.floor(rand() * 3);
+      /** Kept, because the blooms are hung on these rather than scattered over the same footprint. */
+      const clumps: { x: number; z: number; r: number }[] = [];
       for (let i = 0; i < n; i += 1) {
         const t = (i + 0.5) / n;
         const r = 0.17 + rand() * 0.12;
+        const cx = (t - 0.5) * bedW;
+        const cz = 0.26 + (rand() - 0.5) * 0.14;
+        clumps.push({ x: cx, z: cz, r });
         parts.bush.push({
-          position: place(
-            spec,
-            (t - 0.5) * bedW,
-            groundY + r * 0.62,
-            0.26 + (rand() - 0.5) * 0.14,
-          ),
+          position: place(spec, cx, groundY + r * 0.62, cz),
           rot: [0, rand() * 6.28, 0],
           scale: [r * 1.45, r, r * 1.3],
           color: new Color(PIG.gardenLeaf).lerp(new Color(PIG.gardenLeafLit), 0.15 + rand() * 0.5),
         });
       }
-      // A few blooms among the bushes, so a bed is not just three green lumps.
+      /**
+       * A few blooms among the bushes, so a bed is not just three green lumps — and "among" is now
+       * arithmetic rather than a hope.
+       *
+       * These used to be drawn at `(rand() - 0.5) * bedW`, i.e. anywhere across a bed up to 1.9m wide,
+       * while the three bushes stood at three fixed stations in it. Most of them therefore came up out of
+       * bare soil half a metre from the nearest leaf. Each bloom now takes a clump and sits in its crown,
+       * offset by a fraction of that clump's own radius, so a bigger bush carries its flowers further out
+       * and a small one keeps them tight — which is the difference between planting and confetti.
+       */
       const petals = 3 + Math.floor(rand() * 3);
       for (let i = 0; i < petals; i += 1) {
+        const host = clumps[i % Math.max(1, clumps.length)] ?? { x: 0, z: 0.26, r: 0.2 };
         const size = 0.045 + rand() * 0.03;
         parts.bloom.push({
           position: place(
             spec,
-            (rand() - 0.5) * bedW,
-            groundY + 0.14 + rand() * 0.14,
-            0.24 + (rand() - 0.5) * 0.2,
+            host.x + (rand() - 0.5) * host.r * 1.1,
+            groundY + host.r * 0.62 + host.r * (0.62 + rand() * 0.3),
+            host.z + (rand() - 0.5) * host.r * 0.8,
           ),
           scale: [size, size * 0.85, size],
           color: new Color(blooms[Math.floor(rand() * blooms.length)] ?? PIG.bloomSnow),

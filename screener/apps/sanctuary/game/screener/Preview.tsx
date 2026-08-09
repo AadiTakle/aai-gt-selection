@@ -2,11 +2,16 @@ import { Canvas } from '@react-three/fiber';
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { BalanceBough } from './BalanceBough';
 import { DayLog } from './DayLog';
+import { PodWall } from './PodWall';
+import { Sprouter } from './Sprouter';
+import { StoneBed } from './StoneBed';
 import { TideLine } from './TideLine';
+import { Weave } from './Weave';
 
 /**
- * A LOOKING-GLASS for the two presentations, served by the sanctuary's own vite on 5230.
+ * A LOOKING-GLASS for the presentations, served by the sanctuary's own vite on 5230.
  *
  * WHY IT EXISTS. These are 3D things drawn for a five-year-old, and the only way to know whether a
  * child could tell what is being asked is to LOOK at them. Reaching them through the game means
@@ -27,6 +32,34 @@ import { TideLine } from './TideLine';
  */
 
 const BANKS = '/@fs/Users/alphaintern/gt-dev-view/screener/data/sanctuary/banks';
+
+/**
+ * Every presentation this directory draws, keyed by the `?show=` name, with the bank it reads.
+ *
+ * ONE TABLE rather than a chain of ternaries, which is what this was when there were two of them and
+ * which is how the third one ended up unreachable from the looking-glass for a while. A presentation
+ * that cannot be looked at does not get iterated on, and these are drawings for five-year-olds: looking
+ * at them is the only test that matters.
+ */
+const SHOWS: Record<
+  string,
+  {
+    type: string;
+    Component: React.ComponentType<{
+      content: Record<string, unknown>;
+      onPick: (handed: string) => void;
+      disabled?: boolean;
+    }>;
+  }
+> = {
+  tide: { type: 'QUANT-SERIES-01', Component: TideLine },
+  log: { type: 'VER-SEQUENCE-01', Component: DayLog },
+  pods: { type: 'FLU-MATRIX-01', Component: PodWall },
+  stones: { type: 'SPA-XFORM-01', Component: StoneBed },
+  sprout: { type: 'QUANT-FUNC-01', Component: Sprouter },
+  weave: { type: 'FLU-CARPET-01', Component: Weave },
+  balance: { type: 'QUANT-BALANCE-01', Component: BalanceBough },
+};
 
 interface Item {
   itemId: string;
@@ -50,12 +83,14 @@ function App() {
   const pick = Number(params.get('i') ?? '0');
   const tight = params.get('tight') === '1';
   const band = params.get('band');
+  const entry = SHOWS[show] ?? SHOWS.tide!;
 
   const [items, setItems] = useState<Item[] | null>(null);
 
   useEffect(() => {
-    void loadBank(show === 'log' ? 'VER-SEQUENCE-01' : 'QUANT-SERIES-01').then(setItems);
-  }, [show]);
+    setItems(null);
+    void loadBank(entry.type).then(setItems);
+  }, [entry.type]);
 
   if (!items) return null;
 
@@ -63,8 +98,9 @@ function App() {
   const item = pool[Math.min(pick, pool.length - 1)];
   if (!item) return null;
 
+  const Shown = entry.Component;
   // Reported in the corner so a screenshot can never be mistaken for a different difficulty.
-  const label = `${show === 'log' ? 'VER-SEQUENCE-01' : 'QUANT-SERIES-01'} · ${item.itemId} · b=${item.difficulty} · ${item.ageBands.join('/')}`;
+  const label = `${entry.type} · ${item.itemId} · b=${item.difficulty} · ${item.ageBands.join('/')}`;
 
   return (
     <>
@@ -89,11 +125,7 @@ function App() {
 
         <group position={[0, 3.6, -13]}>
           <pointLight position={[0, 1.5, 5]} intensity={22} distance={16} color="#fff4de" />
-          {show === 'log' ? (
-            <DayLog key={item.itemId} content={item.content} onPick={(h) => console.log('picked', h)} />
-          ) : (
-            <TideLine key={item.itemId} content={item.content} onPick={(h) => console.log('picked', h)} />
-          )}
+          <Shown key={item.itemId} content={item.content} onPick={(h) => console.log('picked', h)} />
         </group>
       </Canvas>
       <p

@@ -29,7 +29,13 @@ import { useSyncExternalStore } from 'react';
 /** Alongside the other `gt-sanctuary:` keys in `contract.ts` and `economy/coins.ts`. */
 export const LS_MUTED = 'gt-sanctuary:muted';
 
-function prefersReduced(): boolean {
+/**
+ * Exported because the headphone invitation in `useAudio.tsx` must answer the same question this file
+ * answers, and must answer it the same way. It cannot ask `muted()` instead: a stored choice overrides this
+ * signal, so an adult who turned the sound ON for a reduced-motion child leaves `muted()` false while the
+ * child's own preference — no pulsing thing on the screen, please — is still set and still binding.
+ */
+export function prefersReducedMotion(): boolean {
   try {
     return !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   } catch {
@@ -46,7 +52,7 @@ function read(): boolean {
     // Private browsing or no storage. Fall through to the sensitivity default rather than throwing on the
     // way to the first frame.
   }
-  return prefersReduced();
+  return prefersReducedMotion();
 }
 
 let state = read();

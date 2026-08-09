@@ -1,10 +1,10 @@
-import { createContext, useContext, useEffect, type JSX, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useSyncExternalStore, type JSX, type ReactNode } from 'react';
 
-import { acquireAudio, audioApi, releaseAudio, type AudioApi } from './engine';
-import { toggleMuted, useMuted } from './mute';
+import { acquireAudio, audioApi, audioGestured, releaseAudio, subscribeGestured, type AudioApi } from './engine';
+import { muted, prefersReducedMotion, toggleMuted, useMuted } from './mute';
 
 /**
- * THE THREE THINGS `Game.tsx` TOUCHES. Everything else in this directory is reachable only through here.
+ * THE FOUR THINGS `Game.tsx` TOUCHES. Everything else in this directory is reachable only through here.
  *
  * The context exists so that a provider is meaningful rather than decorative, but `useAudio` FALLS BACK TO
  * THE REAL API when there is no provider above it instead of throwing. That is a deliberate choice for a
@@ -120,5 +120,216 @@ export function MuteButton(): JSX.Element {
         )}
       </svg>
     </button>
+  );
+}
+
+/* ------------------------------------------------------------------ *\
+   The headphone invitation
+\* ------------------------------------------------------------------ */
+
+/** Whether the first gesture has happened, as a hook. Flips exactly once, then never again. */
+function useGestured(): boolean {
+  return useSyncExternalStore(subscribeGestured, audioGestured, audioGestured);
+}
+
+/** How long the invitation takes to get out of the way once the child has pressed something. */
+const FADE_MS = 460;
+
+/**
+ * The keyframes, and the only reason this file emits a `<style>` element.
+ *
+ * `game.css` belongs to the integrator and this directory may not edit it, so — exactly as `MuteButton`
+ * argues for its inline styles — the invitation has to arrive complete. Inline styles cannot express
+ * `@keyframes`, and the alternative, driving a pulse from `requestAnimationFrame`, would spend a React
+ * render every frame on a decoration that sits over a 3D scene. One scoped rule block is the cheaper trade.
+ *
+ * The names are prefixed like the rest of the app's classes so they cannot collide with the integrator's.
+ * The reduced-motion block is belt and braces: the component already refuses to render at all in that case,
+ * and would still be still if it somehow did.
+ */
+const PROMPT_CSS = `
+@keyframes bh-phones-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.075); }
+}
+@keyframes bh-phones-halo {
+  0% { transform: scale(0.79); opacity: 0.62; }
+  75%, 100% { transform: scale(1.34); opacity: 0; }
+}
+@keyframes bh-phones-arrive {
+  from { transform: scale(0.62); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bh-phones-disc, .bh-phones-halo { animation: none !important; }
+}
+`;
+
+/**
+ * PUT YOUR HEADPHONES ON — said to a child who cannot read, before anything has happened.
+ *
+ * ══ THE OWNER'S REQUEST ═══════════════════════════════════════════════════════════════════════════
+ *
+ *   "make sure it's obvious somewhere for a child to put on headphones or head audio or something. i see
+ *    that you have a little speaker thing playing at the top but before anything even happens, it should
+ *    have like a volume or headphone icon flashing at the top or something."
+ *
+ * Mount it beside `MuteButton` in the flat HUD. It renders a 132 px headphone disc at the top centre, warm,
+ * gently breathing, with one soft halo travelling out of it — and then it leaves.
+ *
+ * ══ WHY THE ICON HAS TO CARRY IT ══════════════════════════════════════════════════════════════════
+ *
+ * The audience is five. The drawn headphones ARE the message: a headband arc over two filled ear cups, at
+ * 78 px, which is a shape a child recognises from the family television long before they can read the word.
+ * The line of text underneath is for the adult in the room and is deliberately secondary — smaller, quieter,
+ * and removable without the invitation losing its meaning. Nothing here depends on a font's glyph coverage
+ * or on an emoji, both of which vary by machine and neither of which a school image can be trusted to have.
+ *
+ * UNMISSABLE WITHOUT BEING ALARMING is the whole brief, and it is a matter of which channel does the work.
+ * Size, contrast against the sky, and a slow 2.4 s breath do the noticing. What it never does is startle:
+ * no red, nothing that flashes (the breath never leaves 1 → 1.075, and its opacity never drops below 0.9),
+ * no sound of its own — a chime to ask for headphones would be the joke that writes itself — and no
+ * hard-edged transition anywhere. It uses the ranch's own amber and the same 0-offset drop shadow as every
+ * other flat-layer control, so it reads as part of the place rather than as a browser warning.
+ *
+ * ══ IT NEVER BLOCKS THE GAME ══════════════════════════════════════════════════════════════════════
+ *
+ * `pointerEvents: 'none'` throughout, and there is nothing to dismiss. It is an invitation, not a modal:
+ * the press that starts the game is also the press that ends it, so a child who ignores it entirely loses
+ * nothing and a child who has already got headphones on is not asked to acknowledge anything. Top centre is
+ * free before the first gesture — the purse owns the top left, `MuteButton` the top right, `.bh-enter` the
+ * bottom — and it sits at z-index 8 beside the mute control, over the flying coins.
+ *
+ * ══ THE TWO THINGS THAT MATTER MOST ═══════════════════════════════════════════════════════════════
+ *
+ *   IT IS ABSENT UNDER `prefers-reduced-motion`. That path starts MUTED on purpose (see `mute.ts`), so the
+ *   invitation would be asking a child to fetch headphones in order to hear nothing at all — worse than
+ *   saying nothing, and it would be a pulsing thing on the screen of the one child who has asked for no
+ *   pulsing things. It is also absent whenever the game starts muted for any other reason, which is the same
+ *   argument without the media query. Both are read ONCE, at mount, so the invitation cannot pop into
+ *   existence later because an adult happened to unmute.
+ *
+ *   IT DOES NOT PULSE FOREVER. On the first gesture it fades out over `FADE_MS`, shrinking slightly as it
+ *   goes, and then unmounts for good — the engine's `gestured` flag is sticky, so nothing brings it back.
+ *   From that moment `MuteButton` is the only audio affordance on screen, which is the point: two of them is
+ *   a decision to make rather than a control to press. Note the flag is "a gesture happened", NOT "an
+ *   AudioContext exists", so a machine with no Web Audio still sees the invitation go away.
+ */
+export function HeadphonePrompt(): JSX.Element | null {
+  const gestured = useGestured();
+
+  /**
+   * Read at mount and never again, on purpose — see the note above. `useState`'s initialiser rather than a
+   * `useMemo` because this must be a fact about this mount, not a value that a dependency could refresh.
+   */
+  const [suppressed] = useState(() => prefersReducedMotion() || muted());
+
+  /** Kept mounted for the length of the fade, then gone. */
+  const [gone, setGone] = useState(false);
+  useEffect(() => {
+    if (!gestured) return;
+    const t = window.setTimeout(() => setGone(true), FADE_MS + 60);
+    return () => window.clearTimeout(t);
+  }, [gestured]);
+
+  if (suppressed || gone) return null;
+
+  return (
+    <>
+      <style>{PROMPT_CSS}</style>
+      <div
+        role="status"
+        aria-label="Put your headphones on"
+        style={{
+          position: 'fixed',
+          top: '1.1rem',
+          // Centred on the screen rather than inside `.bh-hud`, which is a bottom-edge flex row.
+          left: '50%',
+          zIndex: 8,
+          display: 'grid',
+          justifyItems: 'center',
+          // No gap: the disc's box is deliberately roomier than the disc (see below), which is where the
+          // clearance under it comes from. A `gap` on top of that reads as a gap twice as big as it is.
+          gap: 0,
+          // The fade-out. Transform and opacity only, so it costs no layout on the way out.
+          transform: `translateX(-50%) scale(${gestured ? 0.88 : 1})`,
+          opacity: gestured ? 0 : 1,
+          transition: `opacity ${FADE_MS}ms ease-out, transform ${FADE_MS}ms ease-out`,
+          // An invitation, never a gate. Every press goes through to the game underneath.
+          pointerEvents: 'none',
+          userSelect: 'none',
+        }}
+      >
+        {/* 168 for a 132 disc, and the 36 px of slack is doing two jobs a screenshot found: the breath
+            scales the disc to 142, and the halo has to start OUTSIDE the disc's edge to read as a ring
+            rather than as a rim on it. Without the slack both of them overran the label underneath. */}
+        <div style={{ position: 'relative', width: 168, height: 168, display: 'grid', placeItems: 'center' }}>
+          {/* The halo, behind the disc: one soft ring leaving every 2.4 s. Reads as "listen" rather than
+              as "warning" because it travels outward and dies, instead of blinking on and off. */}
+          <span
+            className="bh-phones-halo"
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: 999,
+              border: '7px solid #ffd76b',
+              // Paused rather than removed while leaving, so the ring does not restart mid-fade.
+              animation: 'bh-phones-halo 2400ms ease-out infinite',
+              animationPlayState: gestured ? 'paused' : 'running',
+              opacity: gestured ? 0 : undefined,
+            }}
+          />
+          <div
+            className="bh-phones-disc"
+            style={{
+              width: 132,
+              height: 132,
+              borderRadius: 999,
+              display: 'grid',
+              placeItems: 'center',
+              background: '#ffd76b',
+              // The same 0-offset drop shadow the rest of the flat layer uses.
+              boxShadow: '0 7px 0 #e0ac3a',
+              color: '#4a3218',
+              // Arrives once, then breathes. The delay hands over exactly as the arrival finishes.
+              animation: gestured
+                ? 'none'
+                : 'bh-phones-arrive 520ms cubic-bezier(0.2, 1.2, 0.4, 1) both, bh-phones-breathe 2400ms ease-in-out 520ms infinite',
+            }}
+          >
+            {/* Headphones, drawn: a headband over two fat ear cups. No glyph, no emoji, no font.
+                The cups are deliberately CHUNKY — a first pass drew them as thin tabs and at a child's
+                glance the whole thing read as an arch rather than as something you wear. */}
+            <svg width="78" height="78" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+              <path
+                d="M8.8 30v-6a15.2 15.2 0 0 1 30.4 0v6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="4.8"
+                strokeLinecap="round"
+              />
+              <rect x="4.4" y="27.6" width="8.8" height="15.2" rx="4.4" fill="currentColor" />
+              <rect x="34.8" y="27.6" width="8.8" height="15.2" rx="4.4" fill="currentColor" />
+            </svg>
+          </div>
+        </div>
+        {/* Secondary by design: the icon has already said it. */}
+        <p
+          style={{
+            margin: 0,
+            padding: '0.4rem 0.9rem',
+            borderRadius: 999,
+            background: 'rgb(255 255 255 / 0.86)',
+            color: '#5a4326',
+            fontWeight: 800,
+            fontSize: '0.95rem',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Headphones on, please
+        </p>
+      </div>
+    </>
   );
 }

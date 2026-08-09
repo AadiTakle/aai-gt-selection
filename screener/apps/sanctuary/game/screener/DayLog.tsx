@@ -31,9 +31,15 @@ import { HUE, MAT, bankColor, breath, shade, useReducedMotion, useSlab } from '.
  * which the server does not send and which nothing here may know. A narration that read `events` as
  * flowing prose would therefore tell every child a story in the wrong order, and a child who then picked
  * the row matching what they heard would be picking the shuffle — silently, on every verbal item, with
- * no error anywhere. `speak.ts`'s `storyLines` is where that is handled: it says out loud that the parts
- * are mixed up, says them, then says the item's own prompt. Read that file's header before touching the
- * wording.
+ * no error anywhere.
+ *
+ * So THE NARRATION SAYS NOTHING ABOUT ORDER IN EITHER DIRECTION. It does not imply one, and it no longer
+ * announces that the parts are mixed up either — that wording was the owner's complaint, and it invited a
+ * child to memorise a sequence while telling them the sequence was wrong. What is spoken now is an opening
+ * that names the parts as a set of things that happened, then each part on its own with a real silence after
+ * it, then the item's own authored prompt. `speak.ts` owns every word and every gap of that, including the
+ * reason the gaps are equal; read its header before touching the wording. THE ORDER IS THE PICTURES' JOB —
+ * the rows below are where the child works it out, and they are the only place it is claimed at all.
  *
  * THE ADDRESS HAZARD, and the single most likely way to break this file silently. `VER-*` options are
  * `{order: [...]}` with NO `key` field, and this type's on-disk `answer.correctKey` is an INTEGER.
@@ -464,7 +470,8 @@ export function DayLog({
     });
   }, [content]);
 
-  /** Everything the log says, composed in `speak.ts` for the reasons its header gives. */
+  /** Everything the log says AND the silence between each line, composed in `speak.ts` for the reasons its
+   *  header gives. Nothing in this component may reorder or relabel it. */
   const lines = useMemo(() => storyLines(content), [content]);
 
   const retell = useCallback(() => {
