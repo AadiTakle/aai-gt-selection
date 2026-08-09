@@ -37,20 +37,22 @@ import {
   barnSolids,
 } from './barn';
 import { BALE, BALE_CUT_X, BALE_TWINE_X, BarnInterior, baleGeometries } from './barnInterior';
+import {
+  BOUNDARY,
+  BOUNDARY_RAIL_HEIGHTS,
+  FENCE,
+  GATE_POST_EXTRA,
+  PENS,
+  PEN_RAIL_HEIGHTS,
+  POST_H,
+  POST_W,
+  onBoundary,
+} from './fence';
 import { Instanced, type Placement } from './instanced';
 import { usePrefersReducedMotion } from './motion';
 import { clamp, fbm, lerp, noise2, rng, smoothstep } from './noise';
 import { PIG, materials } from './pigment';
-import {
-  arcLengths,
-  chainOutline,
-  roundedRectOutline,
-  sampleClosed,
-  toWorld,
-  type P2,
-  type Placed,
-  type Solid,
-} from './plan';
+import { chainOutline, roundedRectOutline, toWorld, type P2, type Placed, type Solid } from './plan';
 import { eaveCollarGeometry, gableRoofGeometry, gableWallGeometry, hipRoofGeometry } from './roofs';
 import { rippleTexture } from './textures';
 import { Windows, wallTaken } from './windows';
@@ -154,19 +156,15 @@ const TOWER_H = 6.6;
 const LEG_BASE_R = 1.05;
 const LEG_TOP_R = 0.34;
 
-interface PenSpec extends Placed {
-  halfW: number;
-  halfD: number;
-  cornerR: number;
-  /** A point in the world the gate should open toward. Puts the gate on the path side, always. */
-  gateAim: readonly [number, number];
-}
-
-const PENS: readonly PenSpec[] = [
-  { x: -6.0, z: 15.5, rot: 0.14, halfW: 4.75, halfD: 3.5, cornerR: 1.6, gateAim: [0, 8] },
-  { x: 11.4, z: 4.2, rot: -0.2, halfW: 4.75, halfD: 3.5, cornerR: 1.6, gateAim: [3, 2] },
-  { x: -15.5, z: -16.5, rot: 0.3, halfW: 5.0, halfD: 3.75, cornerR: 1.7, gateAim: [-7, -9] },
-];
+/**
+ * THE PENS AND THE FENCE PLAN NOW LIVE IN `fence.ts`, along with the boundary run around the whole ranch.
+ *
+ * The split happened for the reason the barn's did. The owner asked for a fence "around the entire ranch
+ * ... so the child can't explore beyond the ranch", and a boundary is a promise about a COLLIDER rather
+ * than about a picture of a fence — it has to be provable, and a proof cannot live in a file that imports
+ * a renderer. Moving the pens out with it is what lets `paths.ts` end a worn spur exactly at a pen's gate
+ * without either a cycle or a second hand-copied set of pen positions. This file draws all of it.
+ */
 
 /** Worn tracks, as centrelines. Widths in `PATH_WIDTH`, index-matched. */
 const PATHS: readonly (readonly (readonly [number, number])[])[] = [
@@ -288,118 +286,6 @@ function roundedRectShapeXY(w: number, h: number, r: number): Shape {
 }
 
 /* ------------------------------------------------------------------ *\
-   Fencing plan
-
-   Solved once at module scope so the renderer and `SOLIDS` read the same posts. Generated inside a
-   component, the collider would be a second, hand-maintained opinion about where the fence is, and two
-   opinions drift apart the moment anything moves.
-\* ------------------------------------------------------------------ */
-
-const POST_SPACING = 1.62;
-const POST_H = 1.42;
-const POST_W = 0.17;
-const GATE_POST_EXTRA = 0.42;
-/** Half the gap left for the gate, measured along the fence line. */
-const GATE_HALF = 1.55;
-
-interface Post {
-  x: number;
-  z: number;
-  /** Fence direction at this post, as a world `rotation.y`. Orients the cap board. */
-  angle: number;
-  gatePost: boolean;
-}
-interface Rail {
-  x: number;
-  z: number;
-  angle: number;
-  length: number;
-}
-interface Gate {
-  /** Hinge post, in world. */
-  x: number;
-  z: number;
-  /** World `rotation.y` that points local +X from the hinge post toward the latch post. */
-  angle: number;
-  span: number;
-  /** How far the gate stands open. Always open: an open gate is an invitation to walk in. */
-  swing: number;
-}
-
-const FENCE: { posts: Post[]; rails: Rail[]; gates: Gate[] } = (() => {
-  const posts: Post[] = [];
-  const rails: Rail[] = [];
-  const gates: Gate[] = [];
-
-  for (const pen of PENS) {
-    const outline = roundedRectOutline(pen.halfW, pen.halfD, pen.cornerR, 7);
-    const { at, total } = arcLengths(outline);
-
-    // The gate goes wherever the fence passes closest to the point it should open toward, so it always
-    // lands on the path side without anybody typing a gate position.
-    let sGate = 0;
-    let best = Infinity;
-    for (let i = 0; i < outline.length; i += 1) {
-      const local = outline[i] ?? [0, 0];
-      const w = toWorld(pen, local[0], local[1]);
-      const d = Math.hypot(w[0] - pen.gateAim[0], w[1] - pen.gateAim[1]);
-      if (d < best) {
-        best = d;
-        sGate = at[i] ?? 0;
-      }
-    }
-
-    // Posts march from one side of the gate opening all the way round to the other. The spacing is
-    // solved to fit the run rather than fixed, so the last bay is never a stub.
-    const run = total - 2 * GATE_HALF;
-    const bays = Math.max(2, Math.round(run / POST_SPACING));
-    const step = run / bays;
-    const made: { x: number; z: number }[] = [];
-    for (let i = 0; i <= bays; i += 1) {
-      const sample = sampleClosed(outline, at, total, sGate + GATE_HALF + i * step);
-      const w = toWorld(pen, sample.p[0], sample.p[1]);
-      posts.push({
-        x: w[0],
-        z: w[1],
-        // The local tangent angle `a` maps to a world direction of `a - rot`, and three's rotation.y is
-        // the negative of an atan2(dz, dx) heading. Hence `rot - a`.
-        angle: pen.rot - sample.angle,
-        gatePost: i === 0 || i === bays,
-      });
-      made.push({ x: w[0], z: w[1] });
-    }
-
-    for (let i = 0; i < made.length - 1; i += 1) {
-      const a = made[i];
-      const b = made[i + 1];
-      if (!a || !b) continue;
-      const length = Math.hypot(b.x - a.x, b.z - a.z) - POST_W;
-      if (length <= 0.05) continue;
-      rails.push({
-        x: (a.x + b.x) / 2,
-        z: (a.z + b.z) / 2,
-        angle: -Math.atan2(b.z - a.z, b.x - a.x),
-        length,
-      });
-    }
-
-    const hinge = made[made.length - 1];
-    const latch = made[0];
-    if (hinge && latch) {
-      gates.push({
-        x: hinge.x,
-        z: hinge.z,
-        angle: -Math.atan2(latch.z - hinge.z, latch.x - hinge.x),
-        span: Math.hypot(latch.x - hinge.x, latch.z - hinge.z),
-        swing: 0.62,
-      });
-    }
-  }
-
-  return { posts, rails, gates };
-})();
-
-/* ------------------------------------------------------------------ *\
    Props, in their building's local frame
 \* ------------------------------------------------------------------ */
 
@@ -496,6 +382,9 @@ function blocked(x: number, z: number, pad = 0): boolean {
     if (insideOrientedRect(pen, pen.halfW, pen.halfD, x, z, 1.2 + pad)) return true;
   }
   if (distanceToPaths(x, z) < 2.4 + pad) return true;
+  // And off the boundary run, so nothing grows up through the rails. A trunk standing in a fence is the
+  // one defect that makes a fence look painted on rather than built.
+  if (onBoundary(x, z, pad)) return true;
   return false;
 }
 
@@ -516,21 +405,37 @@ interface Tree {
  * a fence made of shrubbery, an uneven belt reads as the edge of a wood. The belt starts inside the
  * walkable radius so a child can walk among the first of them, and the density curve is what closes the
  * horizon without a wall.
+ *
+ * REBALANCED WHEN THE BOUNDARY LANDED, and the reason is the owner's own words: the fence had to go
+ * "beyond the trees". The old curve put only ten of seventy-eight trees inside 32m, so a fence at the
+ * furthest radius a child can actually reach — see `BOUNDARY_R` in `fence.ts` for why 34 is a hard
+ * ceiling — would have stood in front of the wood rather than behind part of it, and the walk out from
+ * the yard would have been meadow, fence, trees. That is a wall in a field.
+ *
+ * So the belt starts half a metre further in, the radius curve is bent the OTHER way (1.15 rather than
+ * 0.6, which draws more of the belt into the inner rings instead of piling it on the rim), and the
+ * thinning reaches full density by 29m instead of 40m. Measured rather than guessed: this puts 31 trees
+ * inside the fence and 81 outside it, against 10 and 68 before. Walking out from the yard a child now
+ * crosses meadow, then eight metres of open wood at about seven metres a tree, then meets the boundary
+ * with the thick of the wood carrying on over the top rail.
+ *
+ * The count rises from 78 to 112 to fill the wider band. At ~490 triangles a tree that is about 17k
+ * triangles on a scene that already draws 400k, and it is still two draw calls.
  */
 const TREES: readonly Tree[] = (() => {
   const out: Tree[] = [];
   const rand = rng(0x5eed1a);
-  for (let attempt = 0; attempt < 1200 && out.length < 78; attempt += 1) {
+  for (let attempt = 0; attempt < 3000 && out.length < 112; attempt += 1) {
     const a = rand() * Math.PI * 2;
-    const r = 23 + Math.pow(rand(), 0.6) * 25;
+    const r = 22.5 + Math.pow(rand(), 1.15) * 25.5;
     const x = Math.cos(a) * r;
     const z = Math.sin(a) * r;
     if (blocked(x, z, 1.2)) continue;
     // Thin them near the middle so the first few read as individuals rather than as a hedge.
-    if (rand() > smoothstep(23, 40, r) * 0.75 + 0.25) continue;
+    if (rand() > smoothstep(22.5, 29, r) * 0.45 + 0.55) continue;
     let tooClose = false;
     for (const t of out) {
-      if (Math.hypot(t.x - x, t.z - z) < 3.4) {
+      if (Math.hypot(t.x - x, t.z - z) < 3.2) {
         tooClose = true;
         break;
       }
@@ -613,6 +518,18 @@ export const SOLIDS: Solid[] = (() => {
   for (const post of FENCE.posts) {
     out.push({ position: [post.x, post.z], radius: post.gatePost ? 0.36 : 0.42 });
   }
+
+  /**
+   * THE BOUNDARY, AND THE REASON IT IS IN HERE RATHER THAN BEING SCENERY.
+   *
+   * The owner asked for a fence the child cannot get past. A fence you can walk through is worse than no
+   * fence, because it teaches a five-year-old that the edge of their world is a picture — so the run
+   * carries a collider at every post AND at every mid-bay, which is what closes the diagonal approach.
+   * `fence.ts` explains the spacing arithmetic; `boundary.test.ts` walks the whole perimeter and proves
+   * there is no angle that finds a hole, and that the keeper is always stopped by THIS rather than by
+   * `Game.tsx`'s invisible 34-metre clamp.
+   */
+  out.push(...BOUNDARY.solids);
 
   out.push({ position: [WINDMILL.x, WINDMILL.z], radius: 1.5 });
   out.push({ position: [TROUGH.x, TROUGH.z], radius: 1.55 });
@@ -1695,35 +1612,105 @@ function Pens(): JSX.Element {
     [],
   );
 
-  const posts = useMemo<Placement[]>(
-    () =>
-      FENCE.posts
-        .filter((p) => !p.gatePost)
-        .map((p) => ({ position: [p.x, POST_H / 2, p.z] as const, rot: [0, p.angle, 0] as const })),
-    [],
-  );
-  const gatePosts = useMemo<Placement[]>(
-    () =>
-      FENCE.posts
-        .filter((p) => p.gatePost)
-        .map((p) => ({
-          position: [p.x, (POST_H + GATE_POST_EXTRA) / 2, p.z] as const,
-          rot: [0, p.angle, 0] as const,
-        })),
-    [],
-  );
-  const caps = useMemo<Placement[]>(
-    () =>
-      FENCE.posts.map((p) => ({
-        position: [p.x, (p.gatePost ? POST_H + GATE_POST_EXTRA : POST_H) + 0.03, p.z] as const,
+  /**
+   * WEATHERING, AS AN INSTANCE COLOUR, AND WHY THE BOUNDARY GETS IT AND THE PENS DO NOT.
+   *
+   * Two hundred metres of identical posts does not read as a fence, it reads as an array — the eye finds
+   * the repeat instantly at that length, and once it has, the thing stops being carpentry. A pen is nine
+   * metres round and has no such problem, so its posts stay at the material's own pigment.
+   *
+   * The range is narrow and biased BRIGHT — 0.96 to 1.18 rather than either side of neutral — and the
+   * bias is the whole point rather than a taste. Darkening timber in this world is dangerous: a face
+   * that catches no sun already resolves close to black, which is the defect the barn's eaves had to be
+   * painted trim to escape. A screenshot of the run's shaded side settled the numbers; at 0.9 the north
+   * face of the fence crushed into the tree trunks behind it and two hundred metres of carpentry read as
+   * a smear. So the variation is spent entirely on "some rails are more sun-bleached than others" and
+   * never on shadow.
+   *
+   * Values above 1 are fine: `setColorAt` writes a float multiplier, and `new Color(r, g, b)` built from
+   * numbers is taken as LINEAR rather than sRGB — unlike `new Color('#8a6a49')`, which is converted — so
+   * 1.18 is exactly eighteen percent brighter and nothing clamps it on the way to the shader.
+   *
+   * `heavy` lifts harder still. The corner and jamb posts hang in the pens' `timberDeep` mesh so they
+   * cost no extra draw call, but `timberDeep` is the darkest pigment on the ranch and on the shaded side
+   * of the run it was the one thing that genuinely went black. Multiplying it back up by about a third
+   * puts a corner post between the two timbers: still visibly deeper than the line posts either side of
+   * it, which is what makes a corner read as a corner, and no longer a hole in the fence.
+   */
+  const weather = useMemo(() => {
+    const worn = new Color(0.96, 0.94, 0.9);
+    const bleached = new Color(1.18, 1.15, 1.08);
+    const heavyWorn = new Color(1.24, 1.2, 1.14);
+    const heavyBleached = new Color(1.46, 1.42, 1.32);
+    return (t: number, heavy = false): Color =>
+      heavy ? heavyWorn.clone().lerp(heavyBleached, t) : worn.clone().lerp(bleached, t);
+  }, []);
+
+  const posts = useMemo<Placement[]>(() => {
+    const out: Placement[] = FENCE.posts
+      .filter((p) => !p.gatePost)
+      .map((p) => ({ position: [p.x, POST_H / 2, p.z] as const, rot: [0, p.angle, 0] as const }));
+    // The boundary's line posts join the pens' in the same mesh, so the whole ranch is still one call.
+    for (const p of BOUNDARY.posts) {
+      if (p.heavy) continue;
+      out.push({
+        position: [p.x, POST_H / 2, p.z] as const,
         rot: [0, p.angle, 0] as const,
-      })),
-    [],
-  );
+        color: weather(p.tint),
+      });
+    }
+    return out;
+  }, [weather]);
+  const gatePosts = useMemo<Placement[]>(() => {
+    const out: Placement[] = FENCE.posts
+      .filter((p) => p.gatePost)
+      .map((p) => ({
+        position: [p.x, (POST_H + GATE_POST_EXTRA) / 2, p.z] as const,
+        rot: [0, p.angle, 0] as const,
+      }));
+    // Corner and jamb posts on the boundary take the same heavier stock a pen's gate post does. A long
+    // run needs punctuation or it reads as extrusion, and a corner is where a real fence is strained.
+    for (const p of BOUNDARY.posts) {
+      if (!p.heavy) continue;
+      out.push({
+        position: [p.x, (POST_H + GATE_POST_EXTRA) / 2, p.z] as const,
+        rot: [0, p.angle, 0] as const,
+        color: weather(p.tint, true),
+      });
+    }
+    return out;
+  }, [weather]);
+  /**
+   * CAPS ON THE BOUNDARY'S CORNER POSTS ONLY, AND THE OMISSION IS A MEASUREMENT RATHER THAN A STYLE.
+   *
+   * `RoundedBoxGeometry` costs 300 triangles at 2 segments whatever size it is asked for, so a 28 x 9cm
+   * cap board costs exactly as much as the 1.42m post under it — and every one of them is counted twice,
+   * because `SHADOW_RADIUS` is 52m and the whole boundary sits inside the shadow camera. Capping all 142
+   * boundary posts was 85,000 triangles a frame for a detail that is 9cm tall at 30 metres through fog.
+   *
+   * The 18 corner and jamb posts keep theirs, because those are the ones the eye stops on and a capped
+   * strainer post is what says a person built this. Tonal variation across the run does not depend on
+   * them: line posts are timber with a weathering tint, corners are the deeper timber, rails are timber
+   * again at a different tint, and the gates are cream. Four tones between members without the boards.
+   */
+  const caps = useMemo<Placement[]>(() => {
+    const out: Placement[] = FENCE.posts.map((p) => ({
+      position: [p.x, (p.gatePost ? POST_H + GATE_POST_EXTRA : POST_H) + 0.03, p.z] as const,
+      rot: [0, p.angle, 0] as const,
+    }));
+    for (const p of BOUNDARY.posts) {
+      if (!p.heavy) continue;
+      out.push({
+        position: [p.x, POST_H + GATE_POST_EXTRA + 0.03, p.z] as const,
+        rot: [0, p.angle, 0] as const,
+      });
+    }
+    return out;
+  }, []);
   const rails = useMemo<Placement[]>(() => {
     const out: Placement[] = [];
     for (const r of FENCE.rails) {
-      for (const h of [0.52, 1.02] as const) {
+      for (const h of PEN_RAIL_HEIGHTS) {
         out.push({
           position: [r.x, h, r.z] as const,
           rot: [0, r.angle, 0] as const,
@@ -1731,8 +1718,34 @@ function Pens(): JSX.Element {
         });
       }
     }
+    // The boundary's three rails per bay, already resolved to a height each by `fence.ts`.
+    for (const r of BOUNDARY.rails) {
+      out.push({
+        position: [r.x, r.y, r.z] as const,
+        rot: [0, r.angle, 0] as const,
+        scale: [r.length, 1, 1] as const,
+        color: weather(r.tint),
+      });
+    }
     return out;
-  }, []);
+  }, [weather]);
+
+  /**
+   * The two boundary gates, SHUT, and instanced with the pens' gate stock so they cost nothing extra.
+   *
+   * A pen's gate stands open because a pen is somewhere a child is invited into. The boundary's are shut
+   * and barred, because the whole job here was to say "the ranch ends" — and the collider in `fence.ts`
+   * runs across the closed leaf, so what stops a child is exactly the thing they can see stopping them.
+   *
+   * These cannot be built the way the pen gates below are, as a rotated `<group>` of tilted meshes: a
+   * group's yaw-then-tilt is not the ZYX Euler an `InstancedMesh` composes, and a brace given the pens'
+   * angles here lands flat on its face. `barBetween` in `fence.ts` solves the two angles from the bar's
+   * endpoints instead, which is both correct and easier to read than either.
+   */
+  const gateBars = useMemo<Placement[]>(
+    () => BOUNDARY.bars.map((b) => ({ position: b.position, rot: b.rot, scale: b.scale })),
+    [],
+  );
 
   return (
     <group>
@@ -1740,6 +1753,7 @@ function Pens(): JSX.Element {
       <Instanced geometry={g.gatePost} material={m.timberDeep} items={gatePosts} />
       <Instanced geometry={g.cap} material={m.timberDeep} items={caps} />
       <Instanced geometry={g.rail} material={m.timber} items={rails} />
+      <Instanced geometry={g.gateRail} material={m.trim} items={gateBars} />
       {FENCE.gates.map((gate, i) => (
         <group key={i} position={[gate.x, 0, gate.z]} rotation={[0, gate.angle + gate.swing, 0]}>
           {[0.5, 1.0].map((h) => (
