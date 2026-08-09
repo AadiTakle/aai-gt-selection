@@ -551,7 +551,7 @@ export function analyseTonality(mono: Float32Array, sr: number): Tonality {
 
   // 40 Hz to 5 kHz: below 40 there is nothing but the highpass, and above 5 k a "tone" would be a whistle this
   // design has never been at risk of.
-  const lo = Math.max(3, Math.floor((40 * N) / sr));
+  const lo = Math.max(4, Math.ceil((60 * N) / sr));
   const hi = Math.min(bins - 16, Math.floor((5000 * N) / sr));
 
   let bestDb = 0;

@@ -74,6 +74,15 @@ const AS_SITE: StationSite = {
   verbId: 'shop',
   typeCode: 'none',
   battery: 'Nonverbal',
+  /**
+   * EMPTY ON PURPOSE, and it is the one field here worth a sentence.
+   *
+   * Every other unused field is filled with an honest-but-arbitrary value. This one is not arbitrary: a
+   * non-empty list would say the shop is a place questions can be asked. It is not, and the invariant that
+   * keeps it that way is that this record is absent from `SITES`, so the stations' proximity loop cannot
+   * see it. An empty set is the same statement in the type.
+   */
+  types: [],
   build: 'tideledge',
   at: AT,
   yaw: YAW,

@@ -278,10 +278,16 @@ function squelch(
   const cavitySeconds = c.seconds * k.t;
   const cavityDecay = c.decay * k.t;
 
-  const tearEnd = at + (spec.tear.at + spec.tear.grains.seconds) * k.t;
-  const bubbleEnd = at + (spec.bubbles.at + spec.bubbles.grains.seconds) * k.t;
-  const sprayEnd = at + (spec.spray.at + spec.spray.grains.seconds) * k.t;
-  const chirpEnd = spec.chirp ? at + (spec.chirp.at + spec.chirp.grains.seconds) * k.t : at;
+  // A grain cluster's buffer runs one whole grain past its nominal span — see the note in `resonantGrains` — so
+  // a layer's real length has to include `grainHiMs`. Leaving it out would put `end` before the last grain had
+  // finished and detach the subtree from underneath it, which is the click this pass is trying to remove.
+  const layerEnd = (layer: Layer): number =>
+    at + (layer.at + layer.grains.seconds + layer.grains.grainHiMs / 1000 + 0.01) * k.t;
+
+  const tearEnd = layerEnd(spec.tear);
+  const bubbleEnd = layerEnd(spec.bubbles);
+  const sprayEnd = layerEnd(spec.spray);
+  const chirpEnd = spec.chirp ? layerEnd(spec.chirp) : at;
   const cavityEnd = at + c.attack + cavityDecay;
   const thudEnd = at + 0.012 + spec.thud.decay * k.t;
   // 120 ms of slack past everything, for the comb's feedback to finish ringing — detaching a comb that is
@@ -369,7 +375,10 @@ function squelch(
   thudLow.frequency.setValueAtTime(spec.thud.f0 * k.f, at);
   // Fast, and to a frequency low enough that what is left has no identifiable pitch — only weight.
   thudLow.frequency.exponentialRampToValueAtTime(spec.thud.f1 * k.f, at + 0.016 * k.t);
-  const thudEnv = envelope(ctx, at, spec.thud.gain, 0.006, spec.thud.decay * k.t);
+  // 18 ms of rise, not 6. A low layer with a fast attack is a KICK DRUM, and it was the single most percussive
+  // thing left in the family — a slime touching down should yield, not land. Slow enough that the weight arrives
+  // after the wet detail rather than punching underneath it.
+  const thudEnv = envelope(ctx, at, spec.thud.gain, 0.018, spec.thud.decay * k.t);
   noise.connect(thudLow);
   thudLow.connect(thudEnv);
   thudEnv.connect(voiceOut);
@@ -441,46 +450,61 @@ function partial(
 const SQUISH: SquelchSpec = {
   tear: {
     at: 0,
-    gain: 0.34,
+    gain: 0.26,
     grains: {
-      seconds: 0.042, count: 5, fLo: 900, fHi: 3200, bw: 420,
-      ampTilt: -0.85, gapTilt: 0.95, grainLoMs: 2, grainHiMs: 6, glide: 0.9, damp: 10,
+      // Grains 14–30 ms against a mean gap of 8 ms: two to four are always sounding, so the "tear" is a
+      // continuous rush rather than five separate ticks. `fSweep` 1.35 carries it upward — away up the tube.
+      seconds: 0.042, count: 8, fLo: 900, fHi: 3200, bw: 420,
+      ampTilt: -0.85, gapTilt: 0.95, grainLoMs: 14, grainHiMs: 30, glide: 0.9, damp: 2.5,
+      attackMs: 4, sustain: 0.9, fSweep: 1.35,
     },
   },
   cavity: {
     gain: 0.3, gain2: 0.16, gain3: 0.075,
-    // Up fast as it is drawn away and stretches, then easing back down: elastic, not a sweep.
+    // Up fast as it is drawn away and stretches, then easing back down: elastic, not a sweep. The 16 ms attack
+    // is the body's own soft onset — at 5 ms the whole sound started with an edge on it.
     f0: 780, f1: 3200, seconds: 0.048, f2: 2400, seconds2: 0.055, segments: 5, wobble: 0.14,
-    q: 4.5, ratio2: 2.42, ratio3: 4.13, attack: 0.005, decay: 0.1,
+    q: 4.5, ratio2: 2.42, ratio3: 4.13, attack: 0.02, decay: 0.1,
   },
   bubbles: {
     at: 0.028,
-    gain: 0.24,
+    gain: 0.2,
     grains: {
-      seconds: 0.1, count: 7, fLo: 700, fHi: 2800, bw: 150,
-      ampTilt: 1.4, gapTilt: -0.8, grainLoMs: 3, grainHiMs: 9, glide: 1.15, damp: 8,
+      seconds: 0.1, count: 11, fLo: 700, fHi: 2800, bw: 150,
+      ampTilt: 1.4, gapTilt: -0.8, grainLoMs: 16, grainHiMs: 32, glide: 1.15, damp: 2.5,
+      attackMs: 4, sustain: 0.9, fSweep: 1.25,
     },
   },
-  // Rising: the creature being drawn in. Narrow bandwidth so the resonance rings enough to read as a voice.
+  // Rising: the creature being drawn in. Narrow bandwidth so the resonance rings enough to read as a voice, and
+  // a lower `sustain` than the wet layers precisely so it DOES ring — a voice has pitch where a swish does not.
   chirp: {
     at: 0.03,
     gain: 0.15,
     grains: {
       seconds: 0.075, count: 2, fLo: 1150, fHi: 1900, bw: 70,
       ampTilt: 0.4, gapTilt: 0, grainLoMs: 26, grainHiMs: 42, glide: 1.45, damp: 4.5,
+      attackMs: 8, sustain: 0.35,
     },
   },
+  /**
+   * THE SPRAY IS NOW AIR, NOT CRACKLE, and this was a real contributor to "hard".
+   *
+   * It used to be sub-2 ms grains at `damp` 15, which is by definition a crackle — dozens of tiny sharp edges in
+   * the brightest part of the spectrum, where the ear is most sensitive to sharpness. Moisture up top is right;
+   * making it out of tiny clicks was not. Grains are now 10–22 ms with `damp` 3 and near-full sustain, so the
+   * same frequency band arrives as a soft airy hiss that swishes instead of spitting.
+   */
   spray: {
     at: 0.003,
-    gain: 0.085,
+    gain: 0.06,
     grains: {
       seconds: 0.045, count: 8, fLo: 4200, fHi: 8400, bw: 950,
-      ampTilt: 1.2, gapTilt: 0.4, grainLoMs: 0.8, grainHiMs: 2.2, glide: 0.9, damp: 15,
+      ampTilt: 1.2, gapTilt: 0.4, grainLoMs: 10, grainHiMs: 22, glide: 0.9, damp: 3,
+      attackMs: 5, sustain: 0.95, fSweep: 1.3,
     },
   },
-  // A trace of weight, and no more. It collapsed to 118 Hz before, which is a thump from something heavy; it
-  // now stops at 240, which is a small thing landing.
-  thud: { gain: 0.075, f0: 520, f1: 240, decay: 0.055 },
+  // A trace of weight, and no more — felt, not heard.
+  thud: { gain: 0.04, f0: 520, f1: 240, decay: 0.055 },
   /**
    * SHORT AND BRIGHT DELAYS, 1.9 to 4.7 ms rather than 4.7 to 11.9.
    *
@@ -510,37 +534,50 @@ const SQUISH: SquelchSpec = {
 const LAND: SquelchSpec = {
   tear: {
     at: 0,
-    gain: 0.44,
+    gain: 0.28,
     grains: {
-      seconds: 0.028, count: 4, fLo: 1400, fHi: 4800, bw: 620,
-      ampTilt: 1.3, gapTilt: -0.5, grainLoMs: 1.5, grainHiMs: 5, glide: 0.82, damp: 12,
+      seconds: 0.028, count: 7, fLo: 1400, fHi: 4800, bw: 620,
+      ampTilt: 1.3, gapTilt: -0.5, grainLoMs: 12, grainHiMs: 26, glide: 0.82, damp: 2.8,
+      // Falling, because the thing has arrived and is spreading out downward and away from the ear.
+      attackMs: 3.5, sustain: 0.9, fSweep: 0.78,
     },
   },
   cavity: {
     gain: 0.3, gain2: 0.16, gain3: 0.07,
-    // Hard down on the impact, then back up as it recovers. The bounce is in the f2.
+    // Down on the impact, then back up as it recovers. The bounce is in the f2.
     f0: 3000, f1: 1150, seconds: 0.042, f2: 1500, seconds2: 0.05, segments: 5, wobble: 0.16,
-    q: 5, ratio2: 2.24, ratio3: 3.71, attack: 0.004, decay: 0.12,
+    q: 5, ratio2: 2.24, ratio3: 3.71, attack: 0.018, decay: 0.12,
   },
   bubbles: {
     at: 0.024,
-    gain: 0.28,
+    gain: 0.22,
     grains: {
-      seconds: 0.12, count: 8, fLo: 600, fHi: 2400, bw: 130,
-      ampTilt: 1.5, gapTilt: -1, grainLoMs: 4, grainHiMs: 12, glide: 1.1, damp: 7,
+      seconds: 0.12, count: 12, fLo: 600, fHi: 2400, bw: 130,
+      ampTilt: 1.5, gapTilt: -1, grainLoMs: 16, grainHiMs: 34, glide: 1.1, damp: 2.5,
+      attackMs: 4, sustain: 0.9, fSweep: 0.85,
     },
   },
   // No chirp on the landing: this one is the physics, and chirping all three would make the creature a tic.
   chirp: null,
   spray: {
     at: 0.002,
-    gain: 0.1,
+    gain: 0.06,
     grains: {
       seconds: 0.04, count: 9, fLo: 4600, fHi: 9000, bw: 1150,
-      ampTilt: 1.4, gapTilt: 0.3, grainLoMs: 0.8, grainHiMs: 2, glide: 0.85, damp: 16,
+      ampTilt: 1.4, gapTilt: 0.3, grainLoMs: 9, grainHiMs: 20, glide: 0.85, damp: 3,
+      attackMs: 5, sustain: 0.95, fSweep: 0.85,
     },
   },
-  thud: { gain: 0.16, f0: 620, f1: 210, decay: 0.06 },
+  /**
+   * THE THUD, CUT FROM 0.16 TO 0.045, AND THIS IS THE MOST LIKELY SINGLE CAUSE OF "HARD".
+   *
+   * A low layer with a fast attack under a bright transient is the construction of a kick drum, and that is what
+   * this was: at 0.16 it was the loudest single element in the landing and it arrived first. A slime hitting the
+   * ground should YIELD — the weight should be the thing you notice afterwards, not the thing that hits you. Now
+   * a quarter of the level, with an 18 ms rise (see `thudEnv`) so it swells in behind the wet detail instead of
+   * punching under it. Felt rather than heard, as asked.
+   */
+  thud: { gain: 0.045, f0: 620, f1: 210, decay: 0.07 },
   comb: { delaysMs: [1.3, 2.6, 4.1, 6.3], feedback: 0.32, damp: 3800, wet: 0.42, dry: 0.9 },
   combDrift: 1.2,
 };
@@ -560,23 +597,25 @@ const LAND: SquelchSpec = {
 const PLOP: SquelchSpec = {
   tear: {
     at: 0,
-    gain: 0.36,
+    gain: 0.24,
     grains: {
-      seconds: 0.02, count: 3, fLo: 1000, fHi: 3000, bw: 380,
-      ampTilt: 1.2, gapTilt: -0.4, grainLoMs: 2, grainHiMs: 6, glide: 0.7, damp: 9,
+      seconds: 0.02, count: 5, fLo: 1000, fHi: 3000, bw: 380,
+      ampTilt: 1.2, gapTilt: -0.4, grainLoMs: 10, grainHiMs: 22, glide: 0.7, damp: 2.8,
+      attackMs: 3, sustain: 0.88, fSweep: 0.8,
     },
   },
   cavity: {
     gain: 0.28, gain2: 0.14, gain3: 0.062,
     f0: 2200, f1: 950, seconds: 0.028, f2: 1250, seconds2: 0.03, segments: 4, wobble: 0.18,
-    q: 4, ratio2: 2.13, ratio3: 3.44, attack: 0.003, decay: 0.07,
+    q: 4, ratio2: 2.13, ratio3: 3.44, attack: 0.015, decay: 0.07,
   },
   bubbles: {
     at: 0.014,
-    gain: 0.22,
+    gain: 0.18,
     grains: {
-      seconds: 0.07, count: 5, fLo: 650, fHi: 2200, bw: 140,
-      ampTilt: 1.3, gapTilt: -0.7, grainLoMs: 4, grainHiMs: 11, glide: 1.18, damp: 7.5,
+      seconds: 0.07, count: 8, fLo: 650, fHi: 2200, bw: 140,
+      ampTilt: 1.3, gapTilt: -0.7, grainLoMs: 12, grainHiMs: 24, glide: 1.18, damp: 2.5,
+      attackMs: 4, sustain: 0.9, fSweep: 0.88,
     },
   },
   // Falling: the creature being let go. The mirror of the squish's rising chirp, which is what makes the pair
@@ -587,17 +626,19 @@ const PLOP: SquelchSpec = {
     grains: {
       seconds: 0.06, count: 2, fLo: 980, fHi: 1600, bw: 75,
       ampTilt: 0.4, gapTilt: 0, grainLoMs: 20, grainHiMs: 34, glide: 0.7, damp: 5,
+      attackMs: 8, sustain: 0.35,
     },
   },
   spray: {
     at: 0.001,
-    gain: 0.065,
+    gain: 0.045,
     grains: {
       seconds: 0.028, count: 6, fLo: 4000, fHi: 7800, bw: 950,
-      ampTilt: 1.3, gapTilt: 0.2, grainLoMs: 0.7, grainHiMs: 1.8, glide: 0.9, damp: 15,
+      ampTilt: 1.3, gapTilt: 0.2, grainLoMs: 8, grainHiMs: 18, glide: 0.9, damp: 3,
+      attackMs: 5, sustain: 0.95, fSweep: 0.9,
     },
   },
-  thud: { gain: 0.09, f0: 480, f1: 225, decay: 0.045 },
+  thud: { gain: 0.035, f0: 480, f1: 225, decay: 0.045 },
   comb: { delaysMs: [1.1, 2.3, 3.7], feedback: 0.28, damp: 3600, wet: 0.42, dry: 0.9 },
   combDrift: 0.9,
 };

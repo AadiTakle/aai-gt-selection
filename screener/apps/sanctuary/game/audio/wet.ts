@@ -92,23 +92,68 @@ export interface GrainSpec {
   glide: number;
   /** How fast a grain's ring dies, in e-folds across its own length. 4 is round, 12 is a tick. */
   damp: number;
+  /**
+   * A REAL FADE-IN PER GRAIN, in milliseconds. Defaults to 3.
+   *
+   * THIS IS THE "HARD" FIX. Grains used to open over ten samples — 0.23 ms — which is instantaneous, and a
+   * cluster of instantaneous onsets is a burst of tiny clicks however wet each one is individually. A few
+   * milliseconds of raised-cosine rise is the whole difference between a tap and a stroke. It costs nothing,
+   * and it is the most important number in this interface.
+   */
+  attackMs?: number;
+  /**
+   * What fraction of the grain the resonator keeps being EXCITED for. Defaults to 0.85.
+   *
+   * At 0.12 — the old value — the resonator takes a tiny impulse and then rings on by itself, which is a bubble
+   * PINGING: percussive by construction. At 0.85 it is driven by noise nearly the whole way through, which
+   * makes each grain a short band of moving air instead — a breath rather than a blip. That is what "swish"
+   * means, and no amount of envelope shaping on a ping will produce it.
+   */
+  sustain?: number;
+  /**
+   * DIRECTION: a geometric multiplier applied to the whole draw band across the cluster. Defaults to 1 (none).
+   *
+   * Above 1 successive grains are drawn from a rising band, below 1 a falling one. Without it the grains
+   * scatter around a fixed centre, and a cluster with no directional trend reads as SOMETHING RATTLING IN ONE
+   * PLACE. A swish moves through and away; this is what gives the crowd of micro-events somewhere to go.
+   */
+  fSweep?: number;
 }
 
 /**
  * A cluster of resonant micro-events, peak-normalised, in a mono buffer.
  *
- * THE GAP DISTRIBUTION IS THE POINT. Gaps are a shifted exponential: `0.22 + 0.78 · Exp(1)`. A plain uniform
- * jitter has a coefficient of variation of about 0.3, which still reads as a regular pattern that has been
- * nudged. A pure exponential has CV 1.0 and clusters so hard that a third of the grains land on top of one
- * another and are wasted. The shift is the compromise: CV lands near 0.7, so gaps genuinely scatter over an
- * order of magnitude while most grains stay far enough apart to be heard as separate events.
+ * GAPS ARE A SHIFTED EXPONENTIAL: `0.4 + 0.6 · Exp(1)`, for a coefficient of variation near 0.6. A plain
+ * uniform jitter sits around 0.3 and still reads as a regular pattern that has been nudged; a pure exponential
+ * is 1.0 and clusters so hard that grains pile into lumps. It was `0.22 + 0.78` for a CV near 0.8, which was
+ * chasing irregularity for its own sake — and irregularity past a point stops sounding organic and starts
+ * sounding like a fault, because the pile-ups become audible amplitude bumps.
+ *
+ * WHAT MAKES THE CROWD BLEND IS OVERLAP, NOT SPACING, and this is the correction that matters most in this
+ * function. If grains are shorter than the gaps between them, the cluster is a sequence of separate taps no
+ * matter how cleverly the taps are scattered — and separate taps are what "hard" means. Grain lengths are now
+ * set LONGER than the mean gap by the callers, so two to four are sounding at any moment and they sum into a
+ * continuous stroke. The irregularity then colours the stroke instead of chopping it up.
  *
  * Peak-normalised at the end, so the caller's gain means the same thing whatever the grain count — which is
- * what lets the count be changed for character without also changing the mix.
+ * what lets the count be changed for character without also changing the mix. Note that a blended cluster has
+ * a much higher RMS for the same peak than a spiky one, so the callers' gains needed re-trimming when this
+ * changed; that is expected, not a bug.
  */
 export function resonantGrains(ctx: BaseAudioContext, spec: GrainSpec, rand: Rand): AudioBuffer {
   const sr = ctx.sampleRate;
-  const length = Math.max(2, Math.ceil(sr * spec.seconds));
+  /**
+   * THE BUFFER IS LONGER THAN THE SPAN BY ONE WHOLE GRAIN, and it has to be now that grains are long.
+   *
+   * Grains start within 82 % of `seconds` but each runs for up to `grainHiMs` past where it started. When grains
+   * were 2–9 ms that overhang fitted inside the remaining 18 % and nothing noticed. Now that they are 20–40 ms
+   * — deliberately longer than the gaps, so they blend — the last few would run off the end of the buffer and be
+   * TRUNCATED MID-ENVELOPE. The envelope's `(1 − v⁴)` term is relative to each grain's own length, so a cut
+   * grain does not reach zero: it stops at whatever value it had, which is a step, which is a click, once per
+   * truncated grain. Exactly the hardness this pass exists to remove, introduced by the fix for it.
+   */
+  const tailSeconds = spec.grainHiMs / 1000 + 0.01;
+  const length = Math.max(2, Math.ceil(sr * (spec.seconds + tailSeconds)));
   const buffer = ctx.createBuffer(1, length, sr);
   const data = buffer.getChannelData(0);
   const n = Math.max(1, Math.floor(spec.count));
@@ -124,12 +169,16 @@ export function resonantGrains(ctx: BaseAudioContext, spec: GrainSpec, rand: Ran
     const tilt = Math.pow(Math.max(0.06, 1 - u), spec.gapTilt);
     const draw = -Math.log(1 - Math.min(0.9999, rand()));
     raw.push(acc);
-    acc += tilt * (0.22 + 0.78 * draw);
+    acc += tilt * (0.4 + 0.6 * draw);
   }
   // The last grain starts at 82 % of the span, leaving its own ring room to finish inside the buffer.
   const span = acc > 1e-9 ? (spec.seconds * 0.82) / acc : 0;
 
   /* --- and what each one is ------------------------------------------------------------------- */
+
+  const attackMs = spec.attackMs ?? 3;
+  const sustain = Math.min(1, Math.max(0, spec.sustain ?? 0.85));
+  const fSweep = spec.fSweep ?? 1;
 
   for (let i = 0; i < n; i += 1) {
     const u = i / n;
@@ -138,11 +187,18 @@ export function resonantGrains(ctx: BaseAudioContext, spec: GrainSpec, rand: Ran
 
     const durMs = spec.grainLoMs + rand() * (spec.grainHiMs - spec.grainLoMs);
     const dur = Math.max(12, Math.floor((durMs / 1000) * sr));
-    // Two amplitude terms: the trend across the cluster, and a wide per-grain scatter. The scatter matters
-    // as much as the timing — a crowd of identically loud events is a rattle.
-    const amp = Math.pow(Math.max(0.03, 1 - u), spec.ampTilt) * (0.25 + 0.75 * rand());
-    const f0 = spec.fLo + rand() * (spec.fHi - spec.fLo);
+    // Two amplitude terms: the trend across the cluster, and a per-grain scatter. The scatter was 0.25–1.0, a
+    // four-to-one range, which made the loudest grains stick out of the blend as individual events. Narrowed to
+    // under two-to-one: enough variety that the crowd is not uniform, not enough for any one grain to be heard
+    // on its own.
+    const amp = Math.pow(Math.max(0.03, 1 - u), spec.ampTilt) * (0.68 + 0.32 * rand());
+    // Direction: the band the grain is drawn from travels across the cluster, so the stroke goes somewhere.
+    const sweep = Math.pow(fSweep, u);
+    const f0 = (spec.fLo + rand() * (spec.fHi - spec.fLo)) * sweep;
     const f1 = Math.max(25, f0 * spec.glide);
+
+    const aSamples = Math.max(1, Math.floor((attackMs / 1000) * sr));
+    const sustainUntil = sustain * dur;
 
     let y1 = 0;
     let y2 = 0;
@@ -151,16 +207,20 @@ export function resonantGrains(ctx: BaseAudioContext, spec: GrainSpec, rand: Ran
       if (idx >= length) break;
       const v = s / dur;
       const [a0, b1, b2] = resonator(sr, f0 + (f1 - f0) * v, spec.bw);
-      // The resonator is excited only at the very front. Everything after that is its own ring, which is
-      // what a bubble collapsing actually is: one impulse of pressure and then a cavity sounding.
-      const x = v < 0.12 ? rand() * 2 - 1 : 0;
+      // Excited for most of its length rather than pinged at the front, which is what makes this a moving band
+      // of air rather than a struck cavity. `sustain` is the dial and the note on it explains the difference.
+      const x = s < sustainUntil ? rand() * 2 - 1 : 0;
       const y = a0 * x - b1 * y1 - b2 * y2;
       y2 = y1;
       y1 = y;
-      // THE ENVELOPE IS ON THE OUTPUT, not on the excitation, and it reaches exactly zero at v = 1. Applied
-      // to the excitation instead, the resonator would still be ringing when the loop ended and the buffer
-      // would hold a step — which is a click, per grain, thirty times over.
-      const env = Math.exp(-spec.damp * v) * (1 - v ** 4) * Math.min(1, s / 10);
+      // THE ENVELOPE IS ON THE OUTPUT, not on the excitation, and it reaches exactly zero at v = 1. Applied to
+      // the excitation instead, the resonator would still be ringing when the loop ended and the buffer would
+      // hold a step — a click, per grain, thirty times over.
+      //
+      // The rise is a raised cosine over `attackMs`, not the 10-sample ramp it used to be. Ten samples is a
+      // quarter of a millisecond, which is an edge; this is the difference between a tap and a stroke.
+      const rise = s < aSamples ? 0.5 - 0.5 * Math.cos(Math.PI * (s / aSamples)) : 1;
+      const env = Math.exp(-spec.damp * v) * (1 - v ** 4) * rise;
       data[idx] = (data[idx] as number) + y * env * amp;
     }
   }

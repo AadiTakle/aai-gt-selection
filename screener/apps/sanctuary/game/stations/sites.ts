@@ -1,21 +1,43 @@
-import type { Battery } from '../../shared/batteries';
+import { VERBS, type Battery } from '../../shared/batteries';
 import type { Family } from '../contract';
 
 /**
  * WHERE THE THREE STATIONS STAND, and the arithmetic that puts them there.
  *
- * WHAT THIS REPLACES. Three HUD buttons in the corner of the screen. The owner's note on them is the
- * whole brief for this directory: "i'm just a little confused how these relate to the game in any way.
- * they are random side buttons that essentially mean nothing with no immediate benefit ... maybe it
- * must be a physical thing on like an actual wall or something that you can come back to". So each of
- * the three is now a built thing standing on the ranch, at a place where a child would expect to find
- * it: the coat wall bolted flat to the barn, the tide ledge at a water's edge, the day log on a felled
- * trunk.
+ * THREE STATIONS, ONE PER BATTERY, FOREVER. That is the owner's ruling and it is the shape of this file:
+ * "i don't need there to be an infinite amount of battery question stations. i don't want there to
+ * constantly be building new stations. if it's verbal, ALL questions at the verbal station should be
+ * interchangeable at that station ... i don't want you to build something new and have the world be
+ * overloaded with random stations, it should be that different STYLE of questions are appearing at the
+ * same GENRE aka battery at each station."
+ *
+ * SO A SITE DECLARES A BATTERY AND A SET OF TYPES, never one type. The singular `typeCode` this file used
+ * to carry was the whole problem: it made a station a synonym for an item type, so every newly drawable
+ * style wanted a new building and the ranch would have grown a shed per question format. The coat wall is
+ * now THE NONVERBAL STATION and presents figure matrices, stone-setting and carpet-weaving; the tide ledge
+ * is THE QUANTITATIVE STATION and presents series, functions and balances; the day log is THE VERBAL
+ * STATION. Which style a given round gets is decided upstream in `Game.tsx` — this file only says what a
+ * station is ALLOWED to present, and `siteTypes` DERIVES even that from `shared/batteries.ts` crossed with
+ * `DRAWN_TYPES`, so a new style joins the right station by being drawn and by nothing else. There is no
+ * list here to forget to update.
+ *
+ * WHAT THIS REPLACED ORIGINALLY. Three HUD buttons in the corner of the screen: "i'm just a little
+ * confused how these relate to the game in any way. they are random side buttons that essentially mean
+ * nothing with no immediate benefit ... maybe it must be a physical thing on like an actual wall or
+ * something that you can come back to". So each of the three is a built thing standing on the ranch, at a
+ * place where a child would expect to find it: the coat wall bolted flat to the barn, the tide ledge at a
+ * water's edge, the day log on a felled trunk.
  *
  * NOTHING HERE IS PLACED BY EYE. Every number below was checked against `world/Buildings.tsx`'s own
  * layout predicates before it was written down: no station or standing spot lands inside a building
  * footprint, inside a pen, on a worn path, inside the pod-wall apron, or where the tree scatter can put
  * a trunk. The three checks that mattered are named at each site.
+ *
+ * AND NO BAY IS SIZED BY EYE EITHER, which is the part that had to change when a station stopped being one
+ * style. See the note above `BAYS`: a bay must now contain whichever of its battery's styles turns up,
+ * those styles hang their shelves at different DEPTHS, and the answer is therefore a projection at the
+ * child's eye rather than a comparison of half-extents. It was measured over all 934 items in the seven
+ * banks on disk, not over a representative one.
  *
  * THE ONE THING TAKEN ON FAITH. `Buildings.tsx` does not export `BARN`, its dimensions, or `toWorld`,
  * and this directory may not edit it. The barn block below therefore MIRRORS constants owned by that
@@ -97,15 +119,137 @@ const COAT_LOCAL_Z = 3.6;
 
 export type Build = 'coatwall' | 'tideledge' | 'daylog';
 
+/* ------------------------------------------------------------------ *\
+   Which styles a station may present
+\* ------------------------------------------------------------------ */
+
+/**
+ * The item types that have an in-world presentation, and therefore the only ones a station may serve.
+ *
+ * THE SINGLE SOURCE OF TRUTH FOR "IS THIS DRAWABLE", and it lives here rather than beside the components
+ * for one structural reason: `Stations.tsx` imports this file, so this file cannot import `Stations.tsx`
+ * to ask, and `Game.tsx`'s `IN_WORLD` is the same cycle one level up. What lives here is the LIST; what
+ * lives in `Stations.tsx` is the list-to-component mapping, and `sites.test.ts` asserts the two agree so
+ * they cannot drift apart in the one direction that matters — a type promised here and not drawn there
+ * would fall through to the station's idle emblem and silently eat a round.
+ *
+ * `FLU-OPCHAIN-01`, `VER-SORTBOT-01` and `VER-RELPAIR-01` are deliberately absent: their banks exist and
+ * the API will serve them, but nothing draws them yet. Adding one here after building its presentation is
+ * the whole of what "a new question style" now costs — no new site, no new carpentry, no new verb wiring.
+ * Re-run the bay measurement when you do, because a new style can widen its battery's worst case.
+ */
+export const DRAWN_TYPES: readonly string[] = [
+  'FLU-MATRIX-01',
+  'FLU-CARPET-01',
+  'SPA-XFORM-01',
+  'QUANT-SERIES-01',
+  'QUANT-FUNC-01',
+  'QUANT-BALANCE-01',
+  'VER-SEQUENCE-01',
+];
+
+/**
+ * Every drawable type of a battery, in `VERBS` order, which is ascending tier.
+ *
+ * Derived rather than listed. A hand-written set per site is a second opinion about which styles belong to
+ * which battery, and `shared/batteries.ts` already holds the first one.
+ */
+export function siteTypes(battery: Battery): readonly string[] {
+  return VERBS.filter((v) => v.battery === battery && DRAWN_TYPES.includes(v.typeCode)).map((v) => v.typeCode);
+}
+
+/* ------------------------------------------------------------------ *\
+   The bays, solved at the eye and measured over every item on disk
+\* ------------------------------------------------------------------ */
+
+/**
+ * HOW BIG EACH STATION'S FRAME HAS TO BE, now that a station is a battery rather than a style.
+ *
+ * A BAY IS NOT SIZED BY COMPARING HALF-EXTENTS, and this is the number that a screenshot finds late and
+ * arithmetic finds early. Every presentation hangs its shelf of candidates in FRONT of the panel plane —
+ * `PodWall` by 3.1 units, `TideLine`, `StoneBed`, `Sprouter` and `BalanceBough` by about 2.3, `Weave` by
+ * only 0.4, which that file argues at length. At the standing spot that shelf is up to a metre NEARER the
+ * child than the bay's own posts, and a thing nearer the eye subtends more angle. So each element is
+ * projected onto the plane of the board that has to contain it — posts at local z -0.10, sill at +0.04,
+ * head beam at -0.06 — from the dock, at the keeper's own 1.5m eye height.
+ *
+ * MEASURED OVER ALL 934 ITEMS IN THE SEVEN BANKS, not over a representative one, because the binding case
+ * is never the obvious one. For `FLU-MATRIX-01` it is a FOUR-option item rather than a six: four options
+ * make a narrower shelf, so `fitScale` lets the whole panel grow from 0.324 to 0.429, and the shelf ends up
+ * both wider on screen AND lower. The worst case of a set is not the worst-looking member of it.
+ *
+ *   battery        widest → post   lowest → sill   highest → head   set by
+ *   Nonverbal          3.24            1.59            1.45         FLU-MATRIX-01 (all three)
+ *   Quantitative       2.64            1.63            1.45         QUANT-BALANCE / SERIES / FUNC
+ *   Verbal             1.81            1.44            1.49         VER-SEQUENCE-01
+ *
+ * THE PANEL IS NEVER SHRUNK TO FIT. The marks ARE the measurement — `marks.tsx` and `Weave.tsx` both spend
+ * their whole length keeping mark size honest, and `Weave` pulls its own shelf forward by only 0.4 for
+ * exactly that reason — so `FIT_W` stays and the bay grows.
+ *
+ * WHAT GREW, AND THE ONE PLACE IT COULD NOT.
+ *
+ *   Quantitative went 2.55 → 2.85 and 1.70 → 1.85, and its panel rose from 2.15 to 2.30 so the sill keeps
+ *   the same relationship to the spring basin's rim that it has today. Margins: 0.21 past the posts, 0.25
+ *   under the sill, 0.44 under the head beam. It stands free in the meadow, so there was nothing to stop
+ *   it growing.
+ *
+ *   Verbal is unchanged at 2.55 x 1.70 and did not need to change: the day log is the narrowest of the
+ *   three presentations and everything it draws sits AT the panel plane, so it has no parallax to pay and
+ *   0.74m of width to spare. It is deliberately not shrunk to fit — a station is a landmark, and three
+ *   frames of visibly different size read as three different kinds of thing.
+ *
+ *   Nonverbal grew only in height, 1.70 → 1.85, with its panel raised 2.3 → 2.5 so the sill keeps clear of
+ *   the barn's 0.44m stone plinth. Its WIDTH is stuck at 2.55 and wants 3.24, and that is a real, stated,
+ *   PRE-EXISTING shortfall rather than something the mixed types introduced: it is set by `FLU-MATRIX-01`,
+ *   which the coat wall already serves alone today. The bay cannot grow, because the wall it is bolted to
+ *   has no room — see `COAT_LOCAL_Z`, whose arithmetic caps any bay on that stretch at 2.725. The three
+ *   ways out are all above this file's pay grade and are in the report: move the Nonverbal station off the
+ *   barn wall, narrow `FIT_W` (which the rule above forbids), or pull `PodWall`'s shelf in from 3.1 toward
+ *   `Weave`'s 0.4 (which is `game/screener/`, not this directory). Raising `dock` does not work: the shelf
+ *   is already almost as wide as the biggest bay that wall can take, so it would need a dock of 15.8m.
+ */
+const BAYS: Record<Battery, { halfW: number; halfH: number }> = {
+  Nonverbal: { halfW: 2.55, halfH: 1.85 },
+  Quantitative: { halfW: 2.85, halfH: 1.85 },
+  Verbal: { halfW: 2.55, halfH: 1.7 },
+};
+
 export interface StationSite {
-  /** The verb id `Game.tsx` opens a round with. Matches `VERBS` in `shared/batteries.ts`. */
+  /**
+   * The station's stable id: what `engaged` carries and what `Game.tsx` opens a round with.
+   *
+   * STILL A VERB ID, and specifically its battery's tier-1 verb — `coat`, `tide-line`, `log` — kept rather
+   * than renamed because it is the key `Stations.tsx`, `Cradle.tsx` and the preview all address a station
+   * by, and because the parent's beat title falls back on it. Read it as the NAME OF THIS STATION, not as
+   * the one question it asks. What it may ask is `types`.
+   */
   verbId: string;
-  typeCode: string;
+  /** The battery this station IS. One station per battery, three forever. */
   battery: Battery;
+  /**
+   * Every style this station may present, in ascending tier. Always `siteTypes(battery)`.
+   *
+   * A SET, NEVER ONE, and the plural is the whole design — see the header. `Game.tsx` decides which member
+   * a given round gets, so nothing in this directory chooses. What this directory guarantees is that every
+   * member has a presentation (they come from `DRAWN_TYPES`) and that the station's bay contains all of
+   * them at every item in their banks (see `BAYS`).
+   */
+  types: readonly string[];
+  /**
+   * DEPRECATED, unread, and present only so `economy/Shop.tsx` still compiles.
+   *
+   * That file describes the stall as a `StationSite` in order to borrow the stations' own invitation cues,
+   * and it fills the fields it does not use with honest-but-unused values — `typeCode: 'none'` among them.
+   * This directory may not edit `economy/`, so the field stays optional rather than being removed. Nothing
+   * reads it; a station's styles are `types`, and the guard test asserts no real site sets this.
+   */
+  typeCode?: string;
   build: Build;
   /**
-   * Centre of the panel's plane, world metres. The three presentations are all built roughly
-   * symmetrically about their own origin, so this is also the middle of what a child looks at.
+   * Centre of the panel's plane, world metres. Also the middle of what a child looks at: every
+   * presentation is built about its own origin, and `extentOf` takes the larger of its two half-heights so
+   * an asymmetric one still centres here.
    */
   at: readonly [number, number, number];
   /** `rotation.y`. Local +Z is the face the child stands in front of. */
@@ -140,6 +284,20 @@ export const SITES: readonly StationSite[] = [
     verbId: 'coat',
     typeCode: 'FLU-MATRIX-01',
     battery: 'Nonverbal',
+    /**
+     * DERIVED, never listed by hand.
+     *
+     * A literal array here would silently stop growing the day a new Nonverbal presentation is registered,
+     * and the failure is invisible: the station keeps working, it just never shows the new style. That is
+     * exactly how thirteen slime families sat unreachable for a night. `siteTypes` reads `VERBS` and the
+     * drawn set, so registering a presentation is the whole job.
+     *
+     * Measured, so nobody has to trust it: a battery-wide pool serves all three of its styles at every
+     * threshold tried — `SPA-XFORM:4 FLU-MATRIX:2 FLU-CARPET:2` at threshold 0, and 3 of 3 distinct in
+     * 18 of 18 runs. The old collapse onto a single type was `FLU-OPCHAIN-01` specifically, which has no
+     * presentation and so is not in this set.
+     */
+    types: siteTypes('Nonverbal'),
     build: 'coatwall',
     /**
      * `fromBarn(-5.65, 3.6)` = (-10.46, 6.85). Out at -5.65 rather than hard against the -5.25 wall
@@ -164,6 +322,8 @@ export const SITES: readonly StationSite[] = [
     verbId: 'tide-line',
     typeCode: 'QUANT-SERIES-01',
     battery: 'Quantitative',
+    /** Derived — see the note on the coat wall. Measured spread: `QUANT-BALANCE:3 QUANT-FUNC:3 QUANT-SERIES:2`. */
+    types: siteTypes('Quantitative'),
     build: 'tideledge',
     /**
      * A spring basin, built here rather than borrowed. `Buildings.tsx` does have a trough, but it stands
@@ -203,6 +363,13 @@ export const SITES: readonly StationSite[] = [
     verbId: 'log',
     typeCode: 'VER-SEQUENCE-01',
     battery: 'Verbal',
+    /**
+     * Derived, and today this resolves to ONE type — `VER-SEQUENCE-01` is the only verbal presentation
+     * built. The sorting gate is next and needs no change here when it lands, which is the point of
+     * deriving rather than listing. Until then the verbal station is the one that repeats, and that is a
+     * missing presentation rather than a missing mechanism.
+     */
+    types: siteTypes('Verbal'),
     build: 'daylog',
     /**
      * A felled trunk with its sawn stumps still standing, out on the south-west meadow.
@@ -220,6 +387,7 @@ export const SITES: readonly StationSite[] = [
     families: ['grass', 'fairy'],
     seed: 3109,
   },
+
 ];
 
 export function siteFor(verbId: string | null): StationSite | null {
@@ -330,7 +498,85 @@ export function extentOf(typeCode: string, content: Record<string, unknown>): { 
     return { halfW: (rowW + 1.0) / 2, halfH: Math.max(top, -bottom) };
   }
 
-  // Anything without a measured presentation gets the most cautious box there is.
+  /* ---------------------------------------------------------------- *\
+     The four meadow types.
+
+     MEASURED OFF THE COMPONENTS, NOT COPIED FROM THEM. The builder handed over four sets of numbers and
+     three of the four were right; what follows is what re-deriving them found, because "it says so in its
+     own constants" and "that is what it draws" are different claims.
+
+     THE PATTERN IN ALL FOUR: the widest thing is the SHELF OF CANDIDATES, not the apparatus, exactly as
+     `FLU-MATRIX-01` above; and the LOWEST thing is that shelf's plank, so the half-height is set from
+     below rather than from above. All four are therefore asymmetric about their own origin — the stone
+     bed reaches 2.28 up and 3.28 down — and `Math.max` of the two is taken, which is `VER-SEQUENCE-01`'s
+     convention above and keeps the panel's centre at the site's own height.
+
+     WHAT WAS WRONG WITH THE FALLBACK, precisely, since it was the whole reason for this block. `halfW`
+     7.25 is `FLU-MATRIX-01`'s six-option width and none of these four is that wide: their true half-widths
+     are 4.80 to 5.65, so the fallback under-scaled all four by between 22% and 28% — a panel a quarter
+     smaller than the bay it hangs in, for no reason. `halfH` 3.5 UNDER-states three of the four (3.53,
+     3.605 and 3.63), which is the more dangerous error of the two because an under-stated extent is a
+     promise the fit cannot keep.
+  \* ---------------------------------------------------------------- */
+
+  if (typeCode === 'SPA-XFORM-01') {
+    const g = (content.grid ?? {}) as Record<string, unknown>;
+    const rows = typeof g.rows === 'number' ? Math.max(1, Math.round(g.rows)) : 4;
+    const cols = typeof g.cols === 'number' ? Math.max(1, Math.round(g.cols)) : 4;
+    // `StoneBed`'s tidal shelf is `2 * PAN_X + panW + 1.0` with `PAN_X` 2.85 and `panW = cols * 0.5 + 0.36`,
+    // which is 9.06 on the 4x4 grid every one of the bank's 234 items uses. Derived rather than typed as
+    // 9.06 so a grid that ever changes cannot leave the housing behind.
+    const shelfW = 2 * 2.85 + (cols * 0.5 + 0.36) + 1.0;
+    // The plank under the candidates hangs at `SHELF.y` -1.9, and its own underside is `optPanH/2 + 0.38`
+    // below that plus half its 0.28 thickness. 3.28 on a 4-row grid.
+    const optPanH = rows * 0.34 + 0.36;
+    return {
+      halfW: Math.max(shelfW, n * 2.1 + 0.8) / 2,
+      halfH: 1.9 + optPanH / 2 + 0.38 + 0.14,
+    };
+  }
+
+  if (typeCode === 'QUANT-FUNC-01') {
+    // `2 * DISH_X + DISH_W` = 6.65 across the channel ends; the shelf is 2.2 per bundle plus 0.8.
+    // The height is the 3-pair case, which is the tallest the bank produces: the stump's moss cap tops out
+    // at `0.2 + (pairs - 1) * 1.25 + 0.66 + 0.29` = 3.65, and the candidate plank's underside is at 3.605.
+    // Held as one constant because 3.65 is both the exact 3-pair figure and a correct bound for two.
+    return { halfW: Math.max(6.65, n * 2.2 + 0.8) / 2, halfH: 3.65 };
+  }
+
+  if (typeCode === 'FLU-CARPET-01') {
+    const c = (content.carpet ?? {}) as Record<string, unknown>;
+    const raw = Array.isArray(c.cells) ? (c.cells as unknown[][]) : [];
+    const rows = typeof c.rows === 'number' ? c.rows : raw.length || 1;
+    const cols = typeof c.cols === 'number' ? c.cols : (raw[0]?.length ?? 1);
+    // Both pitches lifted from `Weave`'s own layout block, so the housing cannot disagree with what it
+    // draws. `matW` is `cols * matPitch + 0.5`; its rope border adds 0.09 either side, which never wins
+    // because the candidate plank is always the wider of the two by at least 0.66m.
+    const matPitch = Math.min(2.0, 7.8 / Math.max(1, cols), 4.35 / Math.max(1, rows));
+    const optPitch = Math.min(2.25, 10.4 / n);
+    // 3.53 covers both modes: a 3x3 mat's top border reaches 3.515, and a single row's candidate plank
+    // reaches 3.53 downward. Neither exceeds it, and the mode is not known until the item arrives.
+    return { halfW: Math.max(cols * matPitch + 0.5, n * optPitch + 0.8) / 2, halfH: 3.53 };
+  }
+
+  if (typeCode === 'QUANT-BALANCE-01') {
+    const raw = Array.isArray(content.examples) ? (content.examples as unknown[]) : [];
+    const ex = Math.max(1, raw.length);
+    // Three things compete for the width and which one wins depends on the item: the limb (`BEAM_HALF * 2
+    // + 1.6` = 7.0, fixed), the plank the swaps stand on (`ex * EX_PITCH + 0.6`), and the candidate shelf
+    // (`n * OPT_PITCH + 0.8`). With four options the shelf wins at 10.6.
+    // 3.63 is the candidate plank's underside, `SHELF.y` 2.5 plus `PAN_H/2 + 0.36 + 0.15`. It is below the
+    // limb's mossy top at 3.31 in every case, including the 18 items with no swaps at all, where the whole
+    // balance drops 0.95 and the plank is unmoved.
+    return {
+      halfW: Math.max(7.0, ex * 3.0 + 0.6, n * 2.45 + 0.8) / 2,
+      halfH: 3.63,
+    };
+  }
+
+  // Anything without a measured presentation gets the most cautious box there is. With all seven drawn
+  // types measured above this is now unreachable in play, and it should stay unreachable: see the note on
+  // `PRESENTATION` in `Stations.tsx` about what a missing type is allowed to fall through to.
   return { halfW: 7.25, halfH: 3.5 };
 }
 
