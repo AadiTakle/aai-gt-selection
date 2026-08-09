@@ -26,6 +26,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { handedFor } from './address';
+import { SORTING_GATE_BANDS, sortingGateServes } from './SortingGate';
 
 const API = process.env.GT_API ?? 'http://localhost:5203';
 const BANKS = fileURLToPath(new URL('../../../../data/sanctuary/banks/', import.meta.url));
@@ -36,7 +37,7 @@ const BANKS = fileURLToPath(new URL('../../../../data/sanctuary/banks/', import.
  * `VER-SEQUENCE-01` is the one that matters most and it is first among equals for a reason: its
  * `correctKey` is an INTEGER and its options carry no `key`, so POSITION is the answer. Everything else
  * here is lettered. A presentation that handed back a letter where a position was wanted — or the other
- * way round — would fail line 1 below and nowhere else in the whole system, which is why all six go
+ * way round — would fail line 1 below and nowhere else in the whole system, which is why all seven go
  * through the same `handedFor` rather than each deciding for itself.
  */
 const TYPES = [
@@ -46,6 +47,17 @@ const TYPES = [
   'QUANT-FUNC-01',
   'FLU-CARPET-01',
   'QUANT-BALANCE-01',
+  /**
+   * The second positional type, and worth its own round trip rather than being assumed to behave like
+   * `VER-SEQUENCE-01`.
+   *
+   * Both are addressed by position, but they arrive at it from different shapes: `VER-SEQUENCE-01`
+   * options are `{order: [...]}` and these are `{token: {text}}`. Neither carries a `key`, so `handedFor`
+   * falls through to the index for both — and that fall-through is a DEFAULT, which is precisely the kind
+   * of thing that holds for the case somebody checked and not for the one they did not. `correctKey` is
+   * an integer on all 100 items of this bank, so the integer-versus-string trap is live here too.
+   */
+  'VER-SORTBOT-01',
 ] as const;
 
 /** `shared/ItemStage.tsx`, copied. Resolves whichever address family the item uses. */
@@ -169,4 +181,148 @@ for (const t of TYPES) {
 }
 
 console.log(`\n${TYPES.length - failed}/${TYPES.length} drawn types marked correctly.`);
-if (failed) process.exitCode = 1;
+
+/* ============================================================================
+   POSITION REALLY IS THE ANSWER — the pass the loop above cannot make on its own
+   ========================================================================== */
+
+/**
+ * A HIT ON A NONZERO INDEX, because a hit on index 0 proves less than it looks like it proves.
+ *
+ * The loop above serves whatever the fixed seed serves, and for `VER-SORTBOT-01` the first item it draws
+ * has `correctKey: 0`. Work through what that actually tests. A broken component that ignored its index
+ * entirely and always handed back the string `"0"` would pass line 1, because the key IS 0; and it would
+ * pass line 2 as well, because the second item's key is 2 and `"0"` is duly marked wrong. Both assertions
+ * green, the whole address rule unexercised, and the failure mode this script exists to catch — a
+ * presentation that hands back something other than its option's position — sails straight through.
+ *
+ * So this walks the pool until it finds an item whose answer is NOT at position 0 and submits that
+ * position. Now a constant, an off-by-one and a letter all fail, which is the claim the file's header
+ * actually makes. `VER-SEQUENCE-01` gets the same treatment for the same reason: it is the other
+ * positional type and it has the same shape of hole.
+ */
+async function proveNonZeroPosition(typeCode: string) {
+  const disk = keysOnDisk(typeCode);
+  const sess = await api<{ sessionId: string }>('/bank/sessions', {
+    types: [typeCode],
+    abilityThreshold: -2.5,
+    precisionIndex: 3,
+    perDomainMinimum: 1,
+    seed: 90210,
+  });
+
+  for (let tries = 0; tries < 12; tries += 1) {
+    const next = await api<Served>(`/bank/sessions/${sess.sessionId}/next`);
+    if (next.done || !next.served) break;
+    const content = next.served.content;
+    const options = Array.isArray(content.options) ? (content.options as Record<string, unknown>[]) : [];
+    const key = disk.get(next.served.itemId);
+    // Only an integer key that is not 0 can carry this proof.
+    if (typeof key !== 'number' || key <= 0 || key >= options.length) {
+      // Spend the item on a deliberate miss so the session advances.
+      await api<Marked>(`/bank/sessions/${sess.sessionId}/answer`, {
+        response: { key: '0', selectedKey: '0', selectedIndex: 0 },
+        latencyMs: 900,
+      });
+      continue;
+    }
+    const handed = handedFor(options[key], key);
+    const ref = toRef(content, handed);
+    const res = await api<Marked>(`/bank/sessions/${sess.sessionId}/answer`, {
+      response: { key: ref.key, selectedKey: ref.key, selectedIndex: ref.index },
+      latencyMs: 900,
+    });
+    return { itemId: next.served.itemId, key, handed, ref, correct: res.correct, unscorable: res.state.unscorable };
+  }
+  return null;
+}
+
+console.log('\nposition-is-the-answer, on a NONZERO index');
+let posFailed = 0;
+for (const t of ['VER-SORTBOT-01', 'VER-SEQUENCE-01']) {
+  const r = await proveNonZeroPosition(t);
+  if (!r) {
+    console.log(`  ${t}: no nonzero-key item found in 12 draws — proof not made`);
+    posFailed += 1;
+    continue;
+  }
+  const ok = r.correct === true && r.unscorable === 0;
+  if (!ok) posFailed += 1;
+  console.log(
+    `  ${t}: on-disk key ${r.key} (nonzero) → handedFor gave ${JSON.stringify(r.handed)} → ` +
+      `ref ${JSON.stringify(r.ref)} → correct: ${r.correct}   unscorable: ${r.unscorable}   ${ok ? 'PASS' : 'FAIL'}`,
+  );
+}
+
+/* ============================================================================
+   THE SORTING GATE'S OWN GATE
+   ========================================================================== */
+
+/**
+ * `VER-SORTBOT-01` is the first type here that REFUSES most of its bank, so the refusal needs proving too.
+ *
+ * Marking and drawability are independent claims and both can fail on their own. The loop above proves the
+ * server understands this type's address; this proves the component will only ever be handed items it can
+ * draw honestly. Without it the gate is a comment, and a comment is not a measurement — the numbers in
+ * `SortingGate.tsx`'s header would quietly stop being true the first time somebody added a noun to
+ * `eventMeaning.ts`, in either direction.
+ *
+ * THE SHIPPED PREDICATE, IMPORTED, not a copy. `toRef` above is copied because `shared/ItemStage.tsx`
+ * drags a dozen lazily-imported renderers in behind it; `SortingGate.tsx` does not have that problem —
+ * `tsx` loads it and its `@react-three/fiber` import without a bundler and without a browser, because the
+ * predicate is a pure function over the payload and nothing in the module needs a canvas to be defined. So
+ * the thing under test here is the same function the component gates on.
+ *
+ * WHAT THE NUMBERS SHOULD BE, measured over the bank on disk:
+ *
+ *     K-1        13 of 17 servable
+ *     2-3        14 of 20 servable
+ *     4-5         0 of 20 servable      vocabulary is abstract; nothing draws `ad hominem`
+ *     6-8         0 of 43 servable      same, and 26 of them have two options drawn alike
+ *
+ * The two zeroes are the important ones and they are why the band list is a convenience rather than the
+ * mechanism: the content gate rejects every single item of both large bands on its own merits, so it
+ * SUBSUMES the band gate. If a future noun ever made a 4-5 item pass, the gate would let it through and it
+ * would be right to — the band list would then be the thing that was wrong.
+ */
+const SORTBOT = 'VER-SORTBOT-01';
+const BANDS = ['K-1', '2-3', '4-5', '6-8'] as const;
+/** Every band the gate is allowed to serve must be in `SORTING_GATE_BANDS`, and vice versa. */
+const WANT: Record<string, [number, number]> = {
+  'K-1': [13, 17],
+  '2-3': [14, 20],
+  '4-5': [0, 20],
+  '6-8': [0, 43],
+};
+/** What the served pool comes to. Asserted, so a regenerated bank cannot silently invalidate `REFUSED`. */
+const WANT_POOL = 27;
+
+interface SortRow {
+  ageBands: string[];
+  content: Record<string, unknown>;
+}
+
+const sortRows: SortRow[] = readFileSync(`${BANKS}${SORTBOT}.jsonl`, 'utf8')
+  .split('\n')
+  .filter((l) => l.trim())
+  .map((l) => JSON.parse(l) as SortRow);
+
+console.log(`\n${SORTBOT} drawability gate  (declared bands: ${SORTING_GATE_BANDS.join(', ')})`);
+let gateFailed = 0;
+for (const band of BANDS) {
+  const rows = sortRows.filter((r) => r.ageBands.includes(band));
+  const ok = rows.filter((r) => sortingGateServes(r.content)).length;
+  const [wantOk, wantTotal] = WANT[band] ?? [0, 0];
+  const good = ok === wantOk && rows.length === wantTotal;
+  if (!good) gateFailed += 1;
+  const served = SORTING_GATE_BANDS.includes(band) ? 'served' : 'gated out';
+  console.log(`  ${band.padEnd(4)} ${String(ok).padStart(2)}/${String(rows.length).padStart(2)} servable  [want ${wantOk}/${wantTotal}]  ${served}  ${good ? 'ok' : 'MISMATCH'}`);
+}
+const pool = sortRows.filter(
+  (r) => r.ageBands.some((b) => SORTING_GATE_BANDS.includes(b)) && sortingGateServes(r.content),
+).length;
+console.log(`  pool actually served: ${pool}   [want ${WANT_POOL}]`);
+if (pool !== WANT_POOL) gateFailed += 1;
+console.log(`  ${gateFailed === 0 ? 'PASS' : 'FAIL'}`);
+
+if (failed || gateFailed || posFailed) process.exitCode = 1;

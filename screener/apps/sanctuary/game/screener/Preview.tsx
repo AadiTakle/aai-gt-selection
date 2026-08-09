@@ -4,9 +4,13 @@ import { createRoot } from 'react-dom/client';
 
 import { BalanceBough } from './BalanceBough';
 import { DayLog } from './DayLog';
+import { EventGlyph } from './EventGlyph';
+import { tokenGlyph } from './eventMeaning';
 import { PodWall } from './PodWall';
+import { SortingGate, sortingGateServes } from './SortingGate';
 import { Sprouter } from './Sprouter';
 import { StoneBed } from './StoneBed';
+import { HUE } from './theme';
 import { TideLine } from './TideLine';
 import { Weave } from './Weave';
 
@@ -50,6 +54,8 @@ const SHOWS: Record<
       onPick: (handed: string) => void;
       disabled?: boolean;
     }>;
+    /** Present where a type does not draw its whole bank. Applied under `?served=1`. */
+    servedOnly?: (content: Record<string, unknown>) => boolean;
   }
 > = {
   tide: { type: 'QUANT-SERIES-01', Component: TideLine },
@@ -59,6 +65,16 @@ const SHOWS: Record<
   sprout: { type: 'QUANT-FUNC-01', Component: Sprouter },
   weave: { type: 'FLU-CARPET-01', Component: Weave },
   balance: { type: 'QUANT-BALANCE-01', Component: BalanceBough },
+  /**
+   * `served=1` narrows the pool to what `SortingGate` will actually be given in play.
+   *
+   * Every other entry here can be browsed whole, because every other type draws its whole bank. This one
+   * refuses 70 of its 100 items — see `sortingGateServes` for the measurement and the five items it
+   * catches that would otherwise lead a picture-reading child to a wrong answer. Looking at a rejected
+   * item is occasionally useful (it is how you see WHY it was rejected), so the filter is opt-in rather
+   * than forced; but a shot taken without it is not a shot of what ships.
+   */
+  sortbot: { type: 'VER-SORTBOT-01', Component: SortingGate, servedOnly: sortingGateServes },
 };
 
 interface Item {
@@ -77,6 +93,88 @@ async function loadBank(typeCode: string): Promise<Item[]> {
     .map((l) => JSON.parse(l) as Item);
 }
 
+/* ============================================================================
+   the contact sheet
+   ========================================================================== */
+
+/**
+ * EVERY BARE TOKEN, LAID OUT IN A GRID — the pass that had never been possible before `SortingGate`.
+ *
+ * About forty of the drawings in `EventGlyph.tsx` exist solely for `VER-SORTBOT-01`: the whole menagerie,
+ * the kitchen drawer, the tool bag, the fruit bowl, the three colour swatches. They are typechecked and
+ * they are exhaustively keyed off `GlyphName`, so a wrong one cannot fail to compile and cannot fail to
+ * render — it just draws the wrong object, forever, and no test in the repo can tell. And until now
+ * NOTHING DREW A BARE TOKEN: the log draws sentences, so these forty had been written, shipped and never
+ * once looked at.
+ *
+ * A grid rather than one at a time, because the question that matters about this set is not "is the pig
+ * good" but "can a child tell the pig from the cow from the goat", and that is a question about the set.
+ * Collisions and near-collisions are visible here in one glance and invisible anywhere else.
+ *
+ * `?show=tokens&set=animals`. The words are printed in the corner in reading order so a shot can be mapped
+ * back to the table without counting.
+ */
+const TOKEN_SETS: Record<string, readonly string[]> = {
+  /** The subject of this bank. `farm animals`, `mammals`, `birds`, `fish`, `insects`, `sea animals`. */
+  animals: [
+    'dog', 'cat', 'cow', 'pig', 'hen', 'horse', 'goat', 'bear',
+    'lion', 'frog', 'snake', 'owl', 'hawk', 'crow', 'duck', 'bird',
+    'fish', 'whale', 'shark', 'squid', 'crab', 'seal', 'bat', 'spider',
+    'ant', 'moth', 'butterfly', 'caterpillar', 'bee', 'egg', 'dragon', 'baby',
+  ],
+  /** Everything else the small bands sort by: kitchen, tools, body, fruit, shapes, colours. */
+  things: [
+    'chair', 'sofa', 'table', 'bed', 'plate', 'bowl', 'fork', 'spoon',
+    'cup', 'glass', 'hammer', 'nail', 'wrench', 'hand', 'foot', 'nose',
+    'apple', 'banana', 'pear', 'plum', 'lime', 'carrot', 'pea', 'tomato',
+    'bean', 'bread', 'ring', 'tire', 'triangle', 'corner', 'roll', 'ball',
+    'red', 'blue', 'green', 'car', 'bike', 'kite', 'book', 'shoe',
+  ],
+  /** The words the gate leans on hardest: substitutes, and the neutral tokens that are real words. */
+  suspect: [
+    'bone', 'hail', 'brick', 'door', 'fern', 'wing', 'stone', 'leaf',
+    'feather', 'oven', 'lamp', 'doll', 'box', 'hat', 'mirror', 'desk',
+    'robot', 'phone', 'barn', 'nest', 'juice', 'rice', 'wax', 'bus',
+  ],
+};
+
+function TokenSheet({ words, cols }: { words: readonly string[]; cols: number }) {
+  const pitch = 1.3;
+  const rows = Math.ceil(words.length / cols);
+  return (
+    <group>
+      {words.map((w, i) => {
+        const c = i % cols;
+        const r = Math.floor(i / cols);
+        const mark = tokenGlyph(w);
+        return (
+          <group
+            key={w}
+            position={[(c - (cols - 1) / 2) * pitch, ((rows - 1) / 2 - r) * pitch, 0]}
+          >
+            {/* Same face colour the gate's cards use, so a drawing that vanishes here vanishes there. */}
+            <mesh>
+              <boxGeometry args={[1.02, 1.02, 0.14]} />
+              <meshStandardMaterial color={HUE.stone} roughness={0.88} metalness={0} />
+            </mesh>
+            {/* An unmatched word gets a red-brown backing, so a neutral fallback cannot be mistaken for a
+                drawing that was chosen on purpose. Nothing in these sets should show one. */}
+            {mark.matched ? null : (
+              <mesh position={[0, 0, -0.1]}>
+                <boxGeometry args={[1.2, 1.2, 0.1]} />
+                <meshStandardMaterial color="#b4573f" roughness={0.9} metalness={0} />
+              </mesh>
+            )}
+            <group position={[0, 0.02, 0.12]} scale={0.84}>
+              <EventGlyph glyph={mark.glyph} state={mark.state} bg={HUE.stone} />
+            </group>
+          </group>
+        );
+      })}
+    </group>
+  );
+}
+
 function App() {
   const params = new URLSearchParams(window.location.search);
   const show = params.get('show') ?? 'tide';
@@ -92,16 +190,66 @@ function App() {
     void loadBank(entry.type).then(setItems);
   }, [entry.type]);
 
+  /** The contact sheet reads no bank and renders no item — see `TokenSheet`. */
+  if (show === 'tokens') {
+    const setName = params.get('set') ?? 'animals';
+    const words = TOKEN_SETS[setName] ?? TOKEN_SETS.animals!;
+    const cols = Number(params.get('cols') ?? '8');
+    // Big enough to JUDGE. The first sheet went out at 0.42 and every animal was forty pixels across —
+    // which is a picture of the grid, not a look at the drawings, and the whole point of the pass is the
+    // look. Sized instead to fill the tight frame: 8 columns at 0.85 is 8.8 units against about 9.6 of
+    // visible width.
+    const scale = Number(params.get('scale') ?? '0.85');
+    return (
+      <Stage tight={tight} label={`tokens · ${setName} · ${cols} cols · ${words.join(' ')}`} scale={scale}>
+        <TokenSheet words={words} cols={cols} />
+      </Stage>
+    );
+  }
+
   if (!items) return null;
 
-  const pool = band ? items.filter((it) => it.ageBands.includes(band)) : items;
+  const banded = band ? items.filter((it) => it.ageBands.includes(band)) : items;
+  const served = params.get('served') === '1' && entry.servedOnly;
+  const pool = served ? banded.filter((it) => entry.servedOnly!(it.content)) : banded;
   const item = pool[Math.min(pick, pool.length - 1)];
   if (!item) return null;
 
   const Shown = entry.Component;
-  // Reported in the corner so a screenshot can never be mistaken for a different difficulty.
-  const label = `${entry.type} · ${item.itemId} · b=${item.difficulty} · ${item.ageBands.join('/')}`;
+  // Reported in the corner so a screenshot can never be mistaken for a different difficulty. The pool
+  // size is here too, because `?served=1` silently changes which item a given `?i=` is.
+  const label =
+    `${entry.type} · ${item.itemId} · b=${item.difficulty} · ${item.ageBands.join('/')}` +
+    ` · ${pick + 1}/${pool.length}${served ? ' served' : ''}`;
 
+  return (
+    <Stage tight={tight} label={label}>
+      <Shown key={item.itemId} content={item.content} onPick={(h) => console.log('picked', h)} />
+    </Stage>
+  );
+}
+
+/**
+ * The vantage, the lights and the ground, in one place.
+ *
+ * EXTRACTED RATHER THAN DUPLICATED when the contact sheet arrived, because a second copy of the camera is a
+ * second copy of the ONE THING this whole file is for: the framing here has to be the framing the child
+ * gets, or a shot taken through it proves nothing. Two copies drift, and the drift is invisible — both
+ * shots look fine, they just no longer agree about what a child can see.
+ *
+ * `scale` exists only for the contact sheet, which is not an item and has no bay to fit.
+ */
+function Stage({
+  children,
+  tight,
+  label,
+  scale = 1,
+}: {
+  children: React.ReactNode;
+  tight: boolean;
+  label: string;
+  scale?: number;
+}) {
   return (
     <>
       <Canvas
@@ -123,9 +271,9 @@ function App() {
           <meshStandardMaterial color="#8fc46b" roughness={0.95} />
         </mesh>
 
-        <group position={[0, 3.6, -13]}>
+        <group position={[0, 3.6, -13]} scale={scale}>
           <pointLight position={[0, 1.5, 5]} intensity={22} distance={16} color="#fff4de" />
-          <Shown key={item.itemId} content={item.content} onPick={(h) => console.log('picked', h)} />
+          {children}
         </group>
       </Canvas>
       <p

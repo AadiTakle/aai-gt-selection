@@ -30,17 +30,29 @@ import { chainSegment, pushOut, toWorld, type P2, type Placed, type Solid } from
  *    that makes the building look planted is kept; it just stops being a plug.
  *
  * WHY THE DOORS CANNOT CLIP, and this is proved rather than asserted — see `doorSweepReport()`. Each leaf
- * hangs from a hinge at the OUTER edge of the opening and swings outward, so:
+ * hangs from a pivot at the OUTER edge of the opening, IN THE WALL'S OUTER FACE, with the whole assembly
+ * hanging back from that face into the reveal. So:
  *
- *   - Its every point stays at or beyond the hinge plane in z, and the hinge plane is `HINGE_STANDOFF`
- *     in front of the wall's outer face. It therefore cannot enter the wall at any angle, including zero.
- *   - The right leaf's x never falls below `halfW - leaf` and the left leaf's never rises above
- *     `-(halfW - leaf)`. With a leaf shorter than the half-opening those two ranges are separated by a
- *     gap that exists at every angle, so the two leaves cannot reach each other either.
+ *   - Its every point stays at or inboard of `±halfW` in x, because every member has `x` between the
+ *     hinge and the middle and `z` at or behind the pivot plane, and rotating such a point outward can
+ *     only carry it further inboard. It therefore cannot enter a jamb at any angle, including zero.
+ *   - Its every point stays at or in front of `wallFace - depth` in z, so it cannot reach the wall's inner
+ *     face and appear inside the room either.
+ *   - The right leaf's x never falls below `halfW - hypot(leaf, depth)` and the left leaf's never rises
+ *     above the mirror of that. With a leaf short enough that those two ranges are separated, the leaves
+ *     cannot reach each other at any angle.
  *
- * Both facts are consequences of the hinge being outboard. Hinging at the INNER edges — the arrangement
- * that looks the same when shut — makes both of them false: the leaves would sweep through each other
- * across the middle of the opening.
+ * All three are consequences of the pivot being outboard AND in the outer face. Hinging at the INNER edges
+ * — the arrangement that looks the same when shut — makes them all false: the leaves would sweep through
+ * each other across the middle of the opening. Keeping the pivot outboard but sinking it into the reveal
+ * fails differently and more quietly: the leaf's back corner would then scythe sideways THROUGH the jamb
+ * as it opened, hidden inside the masonry it was cutting.
+ *
+ * WHY THE DOORS ARE FLUSH. Because that pivot plane is the wall's outer face, and every member of the leaf
+ * is at or behind it, the shut door's proudest face is coplanar with the wall to the millimetre — which is
+ * `maxZ` at angle zero in the same report. The doors used to hang 6cm proud of the wall on their hinge
+ * standoff and up to 27cm proud at their applied ledges, and the owner read that, correctly, as two slabs
+ * stuck on the front of the barn rather than two doors in it.
  */
 
 /* ------------------------------------------------------------------ *\
@@ -116,7 +128,7 @@ export const DOOR = {
   /** Head of the opening above the plinth top. Leaves the header 1.38m of wall to carry the gable. */
   height: 3.62,
   /**
-   * Leaf width. 1.87 against a 1.9 half-opening, which leaves a 3cm reveal at each hinge and a 6cm gap
+   * Leaf width. 1.86 against a 1.9 half-opening, which leaves a 4cm reveal at each hinge and an 8cm gap
    * where the two leaves meet in the middle when shut.
    *
    * THAT GAP IS DELIBERATE AND IT IS DOING TWO JOBS. Cosmetically, a pair of barn doors that meet in a
@@ -124,9 +136,21 @@ export const DOOR = {
    * it is what makes `doorSweepReport()`'s separation claim true with room to spare instead of exactly
    * true: leaves sized to meet at x = 0 would touch at every angle, and "touching" is one floating-point
    * rounding away from "intersecting".
+   *
+   * TRIMMED FROM 1.87 WHEN THE LEAVES WERE SEATED INTO THE WALL, and the 1cm is not a rounding. Hung on a
+   * pivot in its own OUTER face — see `DOOR_HINGE_Z` — a leaf's back inner corner turns on a radius of
+   * `hypot(leaf, depth)` rather than of `leaf`, so early in the swing it reaches 13mm PAST where it stood
+   * shut before coming back. At 1.87 that ate the meeting gap down to 35mm at about 7° open, which is
+   * under the clearance `doorSweepReport()` asserts. At 1.86 the worst gap anywhere in the swing is 54mm.
+   * A real pair solves this with a rebated meeting stile; taking 1cm off each leaf is the same fix with no
+   * extra geometry.
+   *
+   * AND IT IS THE SEAM, SO IT IS ALSO A LOOK. The gap has to clear the arithmetic and then be as narrow as
+   * that allows, because what a child sees through it is the lit inside of the barn — a bright slot down
+   * the middle of a shut door. 8cm on a 3.8m opening reads as two doors that meet; the 10cm an earlier
+   * pass at this used read, in a close shot, as a door left ajar.
    */
-  leaf: 1.87,
-  leafT: 0.14,
+  leaf: 1.86,
   /**
    * Leaf height, and it is set by where the FLOOR is rather than by where the wall starts.
    *
@@ -139,14 +163,29 @@ export const DOOR = {
    */
   leafH: 3.9,
   /**
-   * How far the hinge plane stands in front of the wall's outer face.
+   * How deep the whole leaf assembly hangs BEHIND its own outer face: core, boarding, framing, ironwork.
    *
-   * This single number is what makes the no-clip proof trivial. Every point of a leaf is at or beyond its
-   * hinge plane in z for any opening angle in [0, 90°], so putting the hinge plane 6cm proud of the wall
-   * puts the whole swing 6cm proud of the wall — at every angle, with no case analysis. Hung flush, the
-   * proof would depend on the leaf's thickness and the answer at 0° would be "exactly touching".
+   * THIS REPLACES `standoff`, AND THE SWAP IS THE WHOLE OF THE SEATING FIX. The old number hung the hinge
+   * plane 6cm in FRONT of the wall and ran the leaf forward from there, so a 14cm leaf finished 20cm proud
+   * of the masonry and its applied ledges finished 27cm proud. The owner's words were that the doors "are
+   * disconnected from the actual walls" — that 27cm is the defect, and no amount of detail fixes it,
+   * because a slab floating in front of an opening reads as a slab whatever is carved on it.
+   *
+   * Now the hinge plane IS the wall's outer face and every member hangs back from it into the 34cm reveal.
+   * The proof it replaces is no harder, only different: with the pivot in the outer face and every member
+   * at `z <= 0` and `x` between the hinge and the middle, the rotation
+   *
+   *     X = hingeX + x·cos φ + z·sin φ        Z = wallFace − x·sin φ + z·cos φ
+   *
+   * has `x <= 0` and `z <= 0` for the `+x` leaf, so `X <= hingeX` for every angle in [0°, 90°] — the leaf
+   * can never reach into a jamb — while `Z >= wallFace − depth`, so it can never reach the wall's inner
+   * face either. Both bounds hold at every angle with no case analysis, which is what the old standoff
+   * bought and this buys back.
+   *
+   * 0.22 against a 0.34 wall leaves 12cm of reveal behind the shut leaf. It is the sum of the layer table
+   * in `barnInterior.tsx`, and it is a real dependency of `leaf` above — see the note there.
    */
-  standoff: 0.06,
+  depth: 0.22,
   /**
    * Fully open, in radians. 82° rather than 90°: a barn door swung dead flat against the wall reads as
    * missing, and stopping a little short leaves the leaf angled into the light so it catches the sun and
@@ -159,8 +198,16 @@ export const DOOR = {
   farRadius: 9.5,
 } as const;
 
-/** The hinge plane's local z. */
-export const DOOR_HINGE_Z = BARN_D / 2 + DOOR.standoff;
+/**
+ * The hinge plane's local z, which is the wall's own outer face.
+ *
+ * SEATED, NOT STOOD OFF. `BARN_GABLE_Z` puts the gable wall's mid-plane at `BARN_D / 2 - BARN_WALL_T / 2`
+ * and it is `BARN_WALL_T` thick, so its outer face is at exactly `BARN_D / 2`. The pivot sits in that
+ * plane, on the jamb line at `x = ±DOOR.halfW`, and the leaf hangs back from it — so shut, the door's
+ * outermost face is coplanar with the wall to the millimetre, and open, it swings out into the yard about
+ * a hinge that is where a real pintle would be driven.
+ */
+export const DOOR_HINGE_Z = BARN_D / 2;
 
 /** The middle of the doorway, on the outside face, in world metres. Where proximity is measured from. */
 export const DOORWAY_WORLD: P2 = toWorld(BARN, 0, BARN_D / 2);
@@ -321,9 +368,16 @@ export const BARN_PLINTH: readonly Slab[] = (() => {
    * The notch, 28cm wider than the opening on each side, and both reasons are geometric.
    *
    * Cut flush with the jamb, the footing's rounded corner would stand up inside the doorway as a 3cm stone
-   * lip in the one place a child's foot goes. And a swinging leaf reaches `leafT * sin θ` past its own
-   * hinge in x — 14cm at full open — so a notch that stopped at the hinge line would have the doors
-   * grazing the stone every time they opened. 28cm clears both with room over.
+   * lip in the one place a child's foot goes. And when the leaves hung on a standoff in front of the wall,
+   * a swinging leaf reached its own thickness times `sin θ` past its hinge in x — 14cm at full open — so a
+   * notch that
+   * stopped at the hinge line would have had the doors grazing the stone every time they opened. 28cm
+   * cleared both with room over.
+   *
+   * SEATING THE LEAVES RETIRED THE SECOND REASON WITHOUT CHANGING THE NUMBER. On a pivot in the wall's own
+   * outer face no leaf ever passes `±halfW` in x at all — `doorSweepReport()`'s `maxAbsX` is the guard —
+   * so the swing now clears the stone by the full 28cm at every angle instead of by 14cm at the worst one.
+   * The notch stays as it is because the first reason, the stone lip under a child's foot, still stands.
    */
   const notchHalf = DOOR.halfW + 0.28;
   const sideW = outerHalfW - width - notchHalf;
@@ -509,19 +563,38 @@ export function barnSolids(): Solid[] {
 
 export interface LeafExtent {
   angle: number;
-  /** Smallest local z reached by any corner of either leaf. Must never be below the wall's outer face. */
+  /**
+   * Smallest local z reached by any corner of either leaf — how deep into the reveal the assembly ever
+   * gets. Must never reach the wall's inner face, or a leaf is inside the room.
+   */
   minZ: number;
+  /**
+   * Largest local z reached. Shut this is the flushness number: it has to be the wall's outer face
+   * exactly, because that is the whole claim the seating makes.
+   */
+  maxZ: number;
+  /**
+   * The furthest either leaf reaches from the centreline. Must never exceed `DOOR.halfW`, or the leaf has
+   * swung into a jamb — which is the failure a wall hides, and the reason the pivot is where it is.
+   */
+  maxAbsX: number;
   /** Largest local x of the left leaf, and smallest of the right. Must stay on their own sides of zero. */
   leftMaxX: number;
   rightMinX: number;
 }
 
 /**
- * The eight corners of one leaf at one angle, in the barn's local frame.
+ * The eight corners of one leaf's ENVELOPE at one angle, in the barn's local frame.
  *
- * The leaf is modelled in its hinge's frame as `x ∈ [-leaf, 0]` running inward and `z ∈ [0, leafT]`
- * running outward, then rotated by `side * angle` about the hinge and translated to it. Only x and z
- * matter: the swing is about Y, so y is invariant and cannot be the thing that clips.
+ * ENVELOPE, not the leaf slab, and that is the change that makes this proof cover the ironwork. The leaf
+ * is no longer one box with a couple of ledges on it — it is a core, boarding, a braced frame, straps,
+ * bolts and a latch, in the layer table in `barnInterior.tsx`. Every one of those lives inside the box
+ * `x ∈ [-leaf, 0]` inward from the hinge and `z ∈ [-depth, 0]` BEHIND the pivot plane, so sweeping that
+ * box is a conservative superset of sweeping all of them, and it stays true when a later edit adds another
+ * bolt head. What it costs is that the report is a bound rather than a silhouette, which for a no-clip
+ * claim is the side to err on.
+ *
+ * Only x and z matter: the swing is about Y, so y is invariant and cannot be the thing that clips.
  */
 function leafCorners(side: 1 | -1, angle: number): P2[] {
   const hingeX = side * DOOR.halfW;
@@ -531,7 +604,8 @@ function leafCorners(side: 1 | -1, angle: number): P2[] {
   const out: P2[] = [];
   // `-side * leaf` runs from the hinge toward the middle of the opening whichever side we are on.
   for (const lx of [0, -side * DOOR.leaf]) {
-    for (const lz of [0, DOOR.leafT]) {
+    // Negative: every member hangs back from the pivot plane, into the reveal.
+    for (const lz of [0, -DOOR.depth]) {
       out.push([hingeX + lx * c + lz * s, DOOR_HINGE_Z - lx * s + lz * c]);
     }
   }
@@ -541,30 +615,45 @@ function leafCorners(side: 1 | -1, angle: number): P2[] {
 /**
  * Sweeps both leaves through their whole range and reports the extremes.
  *
- * Exported so a test — or a preview page — can PROVE the no-clip claim instead of believing the comment
- * at the top of this file. The two things every row must satisfy:
+ * Exported so a test — or a preview page — can PROVE the claims instead of believing the comments at the
+ * top of this file. Rewritten when the leaves were seated in the wall, because the old invariant was
+ * `minZ >= BARN_D / 2` — "the leaf is never behind the wall's outer face" — and a seated door is behind it
+ * by construction, all the time. That claim was never the real one; it was a cheap sufficient condition
+ * bought by hanging the door 6cm proud, and it bought the defect the owner reported.
  *
- *   minZ >= BARN_D / 2      the leaf never enters the wall, at any angle including shut
- *   leftMaxX < 0 < rightMinX   the two leaves never reach each other
+ * What every row must satisfy now:
+ *
+ *   maxAbsX <= DOOR.halfW              no leaf ever reaches into a jamb, at any angle
+ *   minZ >= BARN_D/2 - DOOR.depth      no leaf ever reaches past the reveal into the room
+ *   leftMaxX < 0 < rightMinX           the two leaves never reach each other
+ *
+ * Together those put the whole assembly, at every angle, either inside the doorway prism or out in the air
+ * in front of it — and the doorway prism is a hole. Nothing else is needed, and nothing weaker will do.
  *
  * Swept at 1° so the endpoints and the whole interior of the range are covered; the extremes of a
- * rotation about a fixed axis are on the boundary or at 90°, so a fine sweep is belt and braces.
+ * rotation about a fixed axis are on the boundary or at 90°, so a fine sweep is belt and braces. It also
+ * catches the one extreme that is NOT on a boundary: `leftMaxX` peaks at about 7° open, not at 0° and not
+ * at 82°, which is the whole reason `DOOR.leaf` had to come down when the pivot moved.
  */
 export function doorSweepReport(steps = 90): LeafExtent[] {
   const out: LeafExtent[] = [];
   for (let i = 0; i <= steps; i += 1) {
     const angle = (i / steps) * DOOR.open;
     let minZ = Infinity;
+    let maxZ = -Infinity;
+    let maxAbsX = 0;
     let leftMaxX = -Infinity;
     let rightMinX = Infinity;
     for (const side of DOOR_SIDES) {
       for (const p of leafCorners(side, angle)) {
         minZ = Math.min(minZ, p[1]);
+        maxZ = Math.max(maxZ, p[1]);
+        maxAbsX = Math.max(maxAbsX, Math.abs(p[0]));
         if (side < 0) leftMaxX = Math.max(leftMaxX, p[0]);
         else rightMinX = Math.min(rightMinX, p[0]);
       }
     }
-    out.push({ angle, minZ, leftMaxX, rightMinX });
+    out.push({ angle, minZ, maxZ, maxAbsX, leftMaxX, rightMinX });
   }
   return out;
 }
@@ -572,7 +661,11 @@ export function doorSweepReport(steps = 90): LeafExtent[] {
 /** True when every angle in the sweep keeps the leaves out of the wall and off each other. */
 export function doorSweepOk(): boolean {
   return doorSweepReport().every(
-    (r) => r.minZ >= BARN_D / 2 - 1e-9 && r.leftMaxX < -1e-6 && r.rightMinX > 1e-6,
+    (r) =>
+      r.maxAbsX <= DOOR.halfW + 1e-9 &&
+      r.minZ >= BARN_D / 2 - DOOR.depth - 1e-9 &&
+      r.leftMaxX < -1e-6 &&
+      r.rightMinX > 1e-6,
   );
 }
 

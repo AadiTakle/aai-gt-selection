@@ -76,6 +76,21 @@ const LOOK = triple('look', [0, 2.2, -13]);
 const ORBIT = params.get('orbit') === '1';
 const PROBES = params.get('probes') === '1';
 
+/**
+ * A LONGER LENS, FOR ONE KIND OF SHOT THAT IS OTHERWISE UNTAKEABLE.
+ *
+ * The default is 62°, which is `Game.tsx`'s, and every shot that is about how the ranch LOOKS must stay
+ * there or it is a photograph of a different game. This exists for the shots that are about a DETAIL on
+ * something the camera changes by approaching.
+ *
+ * The barn doors are the case that forced it. They swing open when the keeper comes within 7.5m and shut
+ * again past 9.5m, so a close-up of the SHUT doors — the boarding, the drop bar, the seam where the two
+ * leaves meet — cannot be had by walking up to them, because walking up to them opens them. At 62° from
+ * the 10m the doors insist on, the whole join is sixty pixels across. A long lens from that same 10m
+ * frames it without moving the camera, and the camera moving is the only thing the doors can detect.
+ */
+const FOV = Number.parseFloat(params.get('fov') ?? '') || 62;
+
 const roofs = roofInvariantReport();
 const walk = doorwayWalkReport(SOLIDS, 0.45);
 window.__ranch = {
@@ -209,7 +224,7 @@ createRoot(document.getElementById('root')!).render(
   <Canvas
     // Matches `Game.tsx` exactly, so what is seen here is what the game will show.
     shadows
-    camera={{ fov: 62, near: 0.1, far: 220 }}
+    camera={{ fov: FOV, near: 0.1, far: 220 }}
     dpr={[1, 1.75]}
     gl={{ antialias: true }}
   >

@@ -3,6 +3,8 @@ import { appendFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
+import { sortingGateServes } from './game/screener/sortbotGate';
+
 /**
  * The sanctuary's own server side, and the reason it has to exist at all.
  *
@@ -101,6 +103,39 @@ function ensureData(): void {
   mkdirSync(dirname(LEDGER), { recursive: true });
 }
 
+/**
+ * Items that exist, are scorable, and still must never be served.
+ *
+ * `VER-SORTBOT-01` asks a child to judge category membership from pictures, and on some of its items the
+ * pictures cannot carry the question — a distractor drawn as a member of the category, or an answer whose
+ * substitute drawing does not have the visible attribute the category is about. On five of them the item
+ * INVERTS: a child reasoning correctly from what is on screen picks the trap and is marked wrong, and the
+ * engine records that as inability.
+ *
+ * The gate has to run HERE, not in the component. A render-time check runs after selection, when the child
+ * is already looking at the question and an answer will be recorded against it — declining to draw at that
+ * point produces an unanswerable item plus a blank panel, which is strictly worse than not gating.
+ *
+ * 27 of 37 survive at K-1 and 2-3; 4-5 and 6-8 are rejected entirely on their own merits, so this subsumes
+ * the band gate rather than merely agreeing with it. Better 27 honest items than 37 with six traps.
+ */
+function ungatedSortbotIds(): string[] {
+  const dir = process.env.GT_QBANK_BANKS ?? '../qbank-library/banks';
+  const out: string[] = [];
+  try {
+    const raw = readFileSync(`${dir}/VER-SORTBOT-01.jsonl`, 'utf8');
+    for (const line of raw.split('\n')) {
+      if (!line.trim()) continue;
+      const rec = JSON.parse(line) as { itemId?: string; content?: Record<string, unknown> };
+      if (rec.itemId && rec.content && !sortingGateServes(rec.content)) out.push(rec.itemId);
+    }
+  } catch {
+    /* The bank is not where we guessed. Better to serve nothing of this type than to serve traps. */
+    return ['*'];
+  }
+  return out;
+}
+
 /** Last line per keeperId wins, mirroring the append-only reasoning in `apps/api/src/store.ts`. */
 function load(): void {
   if (!existsSync(KEEPERS)) return;
@@ -155,6 +190,9 @@ function body(req: import('node:http').IncomingMessage): Promise<Record<string, 
 export function sanctuaryPlugin(): Plugin {
   ensureData();
   load();
+  /* Computed once at start-up rather than per session: it reads a bank file and runs a predicate over 100
+     items, and nothing about it changes while the server is up. */
+  const UNGATED = ungatedSortbotIds();
 
   /**
    * Mounted on BOTH the dev server and `vite preview`.
@@ -186,7 +224,9 @@ export function sanctuaryPlugin(): Plugin {
           const k = keeper(keeperId);
           const threshold = clamp(k.theta[battery] ?? PRIOR);
 
-          const seen = k.seen[battery] ?? [];
+          /* Already-served items plus the ones no child may ever be shown. Both go down the same channel
+             because the engine offers exactly one way to remove an item from a pool. */
+          const seen = [...(k.seen[battery] ?? []), ...UNGATED];
           const s = await apiJson<{ sessionId: string; state: unknown }>('/bank/sessions', {
             types,
             abilityThreshold: threshold,

@@ -5,6 +5,7 @@ import {
   BARN_D,
   BARN_IN_HALF_W,
   BARN_W,
+  BARN_WALL_T,
   DOOR,
   STALL_DEPTH,
   STALL_DIVIDERS,
@@ -16,6 +17,7 @@ import {
   doorwayWalkReport,
   insideBarn,
 } from './barn';
+import { LEAF_STACK_DEPTH } from './barnInterior';
 import { SOLIDS } from './Buildings';
 import { pushOut, toWorld } from './plan';
 import { eaveInvariantReport, roofInvariantReport } from './roofs';
@@ -152,16 +154,53 @@ describe('the door leaves cannot clip', () => {
   const sweep = doorSweepReport();
 
   it('never puts a leaf inside the wall, at any angle', () => {
+    /**
+     * REWRITTEN WHEN THE LEAVES WERE SEATED INTO THE WALL, and the old assertion could not survive it.
+     *
+     * It used to read `minZ >= BARN_D / 2` — no part of a leaf is ever behind the wall's outer face — and
+     * that was true only because the doors hung on a 6cm standoff IN FRONT of that face. Which is the
+     * defect the owner reported: two slabs stuck on the front of the barn. A door seated in its reveal is
+     * behind the outer face all the time, so the old test would fail on the fix rather than on a fault.
+     *
+     * The claim it was standing in for is that no leaf ever occupies masonry, and the wall at this end is
+     * two jambs and a header with a hole between them. So the real assertion is that the swing stays inside
+     * that hole: never wider than the opening, never deeper than the reveal. Both hold at every angle
+     * because the pivot is in the outer face with the whole leaf hung back from it — and the FIRST of them
+     * is the one that would have caught the tempting wrong fix, which is to push the leaf back in local
+     * space and leave the pivot in front of the wall. That seats the shut door and scythes the open one
+     * sideways through the jamb, where nothing can see it.
+     */
     for (const row of sweep) {
-      // The wall's outer face is at BARN_D / 2, the hinge plane is DOOR.standoff in front of it, and a leaf
-      // hinged outboard can never fall behind its own hinge plane.
-      expect(row.minZ, `angle ${row.angle.toFixed(3)}`).toBeGreaterThanOrEqual(BARN_D / 2);
+      expect(row.maxAbsX, `angle ${row.angle.toFixed(3)} reaches into a jamb`).toBeLessThanOrEqual(
+        DOOR.halfW + 1e-9,
+      );
+      expect(row.minZ, `angle ${row.angle.toFixed(3)} breaks the inner face`).toBeGreaterThanOrEqual(
+        BARN_D / 2 - BARN_WALL_T,
+      );
     }
   });
 
-  it('holds the whole swing clear of the wall by the hinge standoff', () => {
-    const worst = Math.min(...sweep.map((r) => r.minZ));
-    expect(worst).toBeCloseTo(BARN_D / 2 + DOOR.standoff, 6);
+  it('hangs the leaf flush in the reveal rather than on the front of the wall', () => {
+    // THE OWNER'S COMPLAINT, AS A NUMBER. Shut, the proudest point of the whole assembly — ironwork
+    // included, because the sweep bounds the envelope rather than the bare slab — is the wall's outer face
+    // itself, to the millimetre. It used to be 27cm in front of it.
+    const shut = sweep[0];
+    expect(shut?.angle).toBe(0);
+    expect(shut?.maxZ).toBeCloseTo(BARN_D / 2, 9);
+    // And it is seated IN the wall rather than pushed through it: the assembly fits the reveal with room
+    // behind, so a keeper inside sees a door in a thick wall rather than a leaf poking into the room.
+    expect(DOOR.depth).toBeLessThan(BARN_WALL_T);
+    expect(Math.min(...sweep.map((r) => r.minZ))).toBeCloseTo(BARN_D / 2 - DOOR.depth, 9);
+    /**
+     * AND THE BOX THE SWEEP MEASURES IS THE OBJECT THAT IS DRAWN.
+     *
+     * `doorSweepReport` bounds the leaf by a box `DOOR.depth` deep, which is only a proof of anything if
+     * the leaf really is that deep. The renderer builds the leaf out of a layer table — core, boarding,
+     * frame, ironwork, and ledges on the back — and the back of its last layer is what this has to equal.
+     * Put a fourth layer on the back and forget to widen `DOOR.depth` and the sweep would carry on
+     * reporting a clean swing for geometry that had grown out of the box it was measuring.
+     */
+    expect(LEAF_STACK_DEPTH).toBeCloseTo(DOOR.depth, 9);
   });
 
   it('never lets the two leaves reach each other', () => {

@@ -13,6 +13,7 @@ import { StoneBed } from './screener/StoneBed';
 import { Sprouter } from './screener/Sprouter';
 import { Weave } from './screener/Weave';
 import { BalanceBough } from './screener/BalanceBough';
+import { SortingGate } from './screener/SortingGate';
 import { Buildings, SOLIDS } from './world/Buildings';
 import { Lighting } from './world/Lighting';
 import { Slime, pushOutOfSlimes } from './slimes/Slime';
@@ -169,6 +170,10 @@ export const IN_WORLD: Record<
   'QUANT-FUNC-01': Sprouter,
   'FLU-CARPET-01': Weave,
   'QUANT-BALANCE-01': BalanceBough,
+  /* The verbal station's second style, and the reason it stops repeating. Its pool is gated in
+     `server-plugin.ts`, not here: 10 of its 37 small-band items cannot be answered from pictures, and a
+     gate that runs at render time runs after the child is already looking at the question. */
+  'VER-SORTBOT-01': SortingGate,
 };
 
 export interface LiveItem {
