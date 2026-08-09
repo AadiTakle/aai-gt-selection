@@ -11,7 +11,15 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { createWander, rngFor, stepWander, type Circle, type WanderState, type WanderWorld } from './wander';
+import {
+  createWander,
+  reseatWander,
+  rngFor,
+  stepWander,
+  type Circle,
+  type WanderState,
+  type WanderWorld,
+} from './wander';
 
 const BOUNDS = { cx: 4, cz: -3, r: 12 };
 const RADIUS = 0.7;
@@ -137,6 +145,120 @@ describe('slime wander', () => {
     });
     // Not all of them — some are mid-pause at 45 seconds, and that is the point of the pauses.
     expect(moved.length).toBeGreaterThan(herd.length * 0.6);
+  });
+
+  /* ----------------------------------------------------------------------- *
+     The leash, the sidestep and the watchdog, in isolation. `ground.test.ts`
+     exercises all three against the real ranch; these pin down the mechanisms.
+   * ----------------------------------------------------------------------- */
+
+  it('a slime that was PUT somewhere never gets further than its leash from it', () => {
+    // The bug in one line: `putSlime` handed a plopped slime a bounds circle sixteen metres across,
+    // centred on a pen it had never been in. The leash is measured from where it was actually set down
+    // and is applied independently of whatever bounds the caller believed in.
+    const wide = { cx: 0, cz: 0, r: 30 };
+    const s = createWander({
+      seed: 31,
+      x: 12,
+      z: -4,
+      radius: 0.4,
+      height: 1,
+      jiggle: 1,
+      bounds: wide,
+      roam: 6,
+    });
+    let worst = 0;
+    for (let f = 0; f < 60 * 600; f += 1) {
+      stepWander(s, 1 / 60, { bounds: wide, solids: [], herd: [] });
+      worst = Math.max(worst, Math.hypot(s.x - 12, s.z + 4));
+    }
+    expect(worst).toBeLessThanOrEqual(6 + 1e-6);
+    // And it is a leash rather than a pin: it does use the room it has.
+    expect(worst).toBeGreaterThan(2);
+  });
+
+  it('a leash moves with the slime when it is set down somewhere else', () => {
+    const wide = { cx: 0, cz: 0, r: 30 };
+    const s = createWander({ seed: 5, x: 0, z: 0, radius: 0.4, height: 1, jiggle: 1, bounds: wide, roam: 6 });
+    reseatWander(s, -20, 11);
+    expect(s.x).toBe(-20);
+    expect(s.z).toBe(11);
+    for (let f = 0; f < 60 * 300; f += 1) stepWander(s, 1 / 60, { bounds: wide, solids: [], herd: [] });
+    expect(Math.hypot(s.x + 20, s.z - 11)).toBeLessThanOrEqual(6 + 1e-6);
+  });
+
+  it('the ranch clamp holds even when the assigned bounds are wrong', () => {
+    // Bounds are only as good as whoever set them, and the one that lost a slime was set by a caller
+    // that meant well. The ranch is the same for everybody and is applied last.
+    const wrong = { cx: 20, cz: 20, r: 40 };
+    const ranch = { cx: 0, cz: 0, r: 34 };
+    const s = createWander({ seed: 12, x: 0, z: 0, radius: 0.5, height: 1, jiggle: 1, bounds: wrong });
+    let worst = 0;
+    for (let f = 0; f < 60 * 600; f += 1) {
+      stepWander(s, 1 / 60, { bounds: wrong, solids: [], herd: [], ranch });
+      worst = Math.max(worst, Math.hypot(s.x, s.z));
+    }
+    expect(worst).toBeLessThanOrEqual(34);
+  });
+
+  it('walks out of a dead-end corner instead of vibrating in it', () => {
+    /**
+     * The jam this is about. Three walls of a box: the old steering summed avoidance straight into the
+     * seek, so an obstacle dead ahead cancelled the desired direction to zero and two of them cancelled
+     * it in both axes. A slime driven into that corner kept its heading, walked in, got pushed out,
+     * walked in again, and shivered there.
+     *
+     * The slime is started deep in the pocket with nothing but the mouth to leave by.
+     */
+    const wall: Circle[] = [];
+    for (let i = 0; i <= 12; i += 1) {
+      const t = -3 + (i / 12) * 6;
+      wall.push({ x: t, z: -3, r: 0.5 }); // back
+      wall.push({ x: -3, z: t, r: 0.5 }); // left
+      wall.push({ x: 3, z: t, r: 0.5 }); // right
+    }
+    const bounds = { cx: 0, cz: 6, r: 14 };
+    const s = createWander({ seed: 88, x: 0, z: -2, radius: 0.45, height: 1, jiggle: 1, bounds });
+    // Aimed straight at the back wall, which is the worst possible start.
+    s.heading = Math.PI;
+    let stalled = 0;
+    let run = 0;
+    let last = { x: s.x, z: s.z };
+    for (let f = 0; f < 60 * 120; f += 1) {
+      stepWander(s, 1 / 60, { bounds, solids: wall, herd: [] });
+      run += Math.hypot(s.x - last.x, s.z - last.z);
+      last = { x: s.x, z: s.z };
+      if ((f + 1) % 600 === 0) {
+        // Ten-second windows. A slime is allowed to rest; it is not allowed to be held.
+        if (run < 0.4) stalled += 1;
+        run = 0;
+      }
+      for (const o of wall) {
+        expect(Math.hypot(s.x - o.x, s.z - o.z)).toBeGreaterThanOrEqual(o.r + s.radius - 1e-6);
+      }
+    }
+    expect(stalled).toBe(0);
+    // And it actually got out of the pocket rather than merely shuffling about in it.
+    expect(s.z).toBeGreaterThan(-3);
+  });
+
+  it('slides along a wall rather than sticking to the spot it touched', () => {
+    // A long straight wall, and a slime walking into it at 45 degrees. Sticking is the failure: the
+    // sideways half of its travel has to survive the push-out.
+    const wall: Circle[] = [];
+    for (let i = -30; i <= 30; i += 1) wall.push({ x: i * 0.5, z: 0, r: 0.35 });
+    const bounds = { cx: 0, cz: 6, r: 20 };
+    const s = createWander({ seed: 4, x: 0, z: 2, radius: 0.4, height: 1, jiggle: 1, bounds });
+    s.heading = Math.PI * 0.75;
+    s.mode = 'walk';
+    s.tx = 8;
+    s.tz = -6;
+    s.effort = 1;
+    const startX = s.x;
+    for (let f = 0; f < 60 * 8; f += 1) stepWander(s, 1 / 60, { bounds, solids: wall, herd: [] });
+    expect(s.z).toBeGreaterThan(-1e-6);
+    // Travelled ALONG the wall, which is the whole difference between sliding and sticking.
+    expect(Math.abs(s.x - startX)).toBeGreaterThan(0.6);
   });
 
   it('hands out uncorrelated first draws for consecutive seeds', () => {

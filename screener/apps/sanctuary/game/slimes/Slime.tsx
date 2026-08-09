@@ -74,7 +74,24 @@ import {
 } from './gumdrop';
 import { FAMILY_LOOK, resolveStage } from './look';
 import { joinHerd, leaveHerd, slimeColliders, type SlimeCollider } from './herd';
-import { createWander, holdWander, rngFor, stepWander, type Circle, type WanderWorld } from './wander';
+import {
+  ROAM,
+  fieldFor,
+  nearbySolids,
+  placeSlime,
+  ranchField,
+  ranchRadius,
+  type SolidField,
+} from './ground';
+import {
+  createWander,
+  holdWander,
+  reseatWander,
+  rngFor,
+  stepWander,
+  type Circle,
+  type WanderWorld,
+} from './wander';
 
 export { SLIME_RADIUS, slimeRadius, slimeHeight, GUMDROP, stageScale, worldScale };
 export { FAMILY_FEATURE } from './crests';
@@ -84,11 +101,34 @@ export {
   nearestSlime,
   type SlimeCollider,
 } from './herd';
+export {
+  ROAM,
+  canStand,
+  groundCost,
+  isFindable,
+  nearbySolids,
+  placeSlime,
+  ranchSolids,
+  seedRanchSolids,
+  setRanchSolids,
+  type Circle as SolidCircle,
+} from './ground';
 
 /** How close the child has to be before a slime turns its eyes to look at them. */
 const NOTICE = 9;
 /** Assumed player radius, only for the slime's own gentle yielding. The controller passes its own. */
 const PLAYER_R = 0.45;
+
+/**
+ * How far around itself a slime asks about colliders, on top of its own radius.
+ *
+ * It is the widest thing the brain looks at, not the widest thing it touches: `chooseTarget` scores
+ * candidate spots up to 4.5m away against the furniture near THEM, so a list that only covered the 1.7m
+ * steering skirt would have a slime picking targets inside a barn it cannot see from here. 5.6 covers the
+ * furthest candidate plus the largest collider on the ranch with room to spare, and it is what makes the
+ * grid query worth doing: on the real set it hands back about 30 circles instead of 514.
+ */
+const SEE = 5.6;
 
 /**
  * Frame scratch for the sparkle instances, at module scope.
@@ -110,7 +150,21 @@ export interface SlimeProps {
   seed: number;
   /** The ranch. A slime may not leave this, ever. */
   bounds: { center: [number, number]; radius: number };
-  /** Things to walk around: hut, trees, corral posts, and other slimes if you want to pass them. */
+  /**
+   * STATIC FURNITURE ONLY: buildings, the shop stall, stations, fence posts, trees.
+   *
+   * Optional, and normally omitted — the ranch's colliders are registered once with `setRanchSolids`
+   * and every slime reads them from there through a shared grid. This overrides that, for the preview
+   * pages that stand a few slimes next to three posts with no ranch around them.
+   *
+   * NEVER live slime positions. An earlier version of this prop tolerated them via a heuristic that
+   * masked out any obstacle a slime happened to be standing on, which with a real collider set silently
+   * deletes whichever fence post a slime was born beside — and that post is then one slimes can walk
+   * through forever. Slime-versus-slime comes from the live registry in `herd.ts`.
+   *
+   * Pass a STABLE array. A grid is built per array identity, so a fresh literal on every render rebuilds
+   * it on every render; `useMemo` it, as the previews do.
+   */
   obstacles?: { position: [number, number]; radius: number }[];
   /** Radians. Poses a slime on purpose instead of taking the seeded heading. */
   facing?: number;
@@ -222,19 +276,65 @@ export function Slime({
     };
   }, [bake, st]);
 
+  /* --- where it is actually allowed to be ----------------------------------
+     THE GUARANTEE, and it is applied here rather than only at the call site on purpose.
+
+     Every slime in the game arrives through this component: the fifteen the ranch starts with, the one a
+     station grants, the one a shop sells and the one the vacpack plops. Putting the check on the last
+     step means there is no way to add a sixteenth route that forgets it. `placeSlime` keeps a legal spot
+     to the millimetre — a slime must appear exactly where the child watched it land — and moves an
+     illegal one to the nearest spot the child could walk to. See `ground.ts` for what "illegal" means and
+     why "does not overlap a collider" was not enough. */
+  const spot = useMemo(
+    () => placeSlime(position[0], position[2], radius),
+    // Deliberately not `position`: a tuple literal is a new array every render, and re-resolving every
+    // frame would be both wasteful and — if the answer ever changed — a teleport.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [position[0], position[2], radius],
+  );
+
+  /**
+   * How far it may wander from where it was set down.
+   *
+   * Only for slimes that were PUT somewhere. A penned slime's `bounds` is its pen and is already local,
+   * so leashing it as well would shrink the pen; the leash exists for the case that went wrong, which is
+   * a bounds circle big enough to cross the ranch. `ROAM` is the cutoff and the leash length both.
+   */
+  const roam = bounds.radius > ROAM ? ROAM : Infinity;
+
   /* --- the brain ----------------------------------------------------------- */
   const state = useRef(
     createWander({
       seed,
-      x: position[0],
-      z: position[2],
+      x: spot.x,
+      z: spot.z,
       radius,
       facing,
       height: bake.height * scale,
       jiggle: look.jiggle * st.jiggle,
       bounds: { cx: bounds.center[0], cz: bounds.center[1], r: bounds.radius },
+      roam,
     }),
   );
+
+  /**
+   * A DIFFERENT CREATURE IN THE SAME SLOT.
+   *
+   * `Game.tsx` keys its slimes by array index, so removing one — which is what catching one does —
+   * renumbers every slime after it: the component that was drawing slime 7 is handed slime 8's family,
+   * stage, seed and bounds while keeping slime 7's wander state, which is its POSITION. Left alone that
+   * teleports a creature to the edge of a pen it has never been in, because the new bounds clamp fires
+   * on the old coordinates.
+   *
+   * Re-seating on a change of seed makes this component correct under any keying scheme rather than only
+   * under a stable one. `Game.tsx` should key by identity as well — that is the real fix and it is one
+   * line — but this directory should not depend on it having been made.
+   */
+  const was = useRef(seed);
+  if (was.current !== seed) {
+    was.current = seed;
+    reseatWander(state.current, spot.x, spot.z, roam);
+  }
 
   /**
    * The sparkle clock, offset per slime so a field of fairies does not twinkle in unison.
@@ -259,6 +359,7 @@ export function Slime({
     solids: [],
     herd: [],
     player: { x: 0, z: 0, r: PLAYER_R },
+    ranch: { cx: 0, cz: 0, r: ranchRadius() },
   });
   /**
    * The neighbour list, as a pool plus a view.
@@ -274,26 +375,23 @@ export function Slime({
   const herdPool = useRef<Circle[]>([]);
   const herdView = useRef<Circle[]>([]);
   const solidScratch = useRef<Circle[]>([]);
+
   /**
-   * Which entries of `obstacles` are actually other slimes and must be ignored.
+   * THE BROAD PHASE, and it is why this component can afford to collide at all.
    *
-   * The integrator is told it may pass slime positions in `obstacles`, and it is a reasonable thing to
-   * pass. But those are the positions the slimes STARTED at, and once everything has wandered they are
-   * phantom pillars sitting in empty grass that the herd politely walks around forever. So on the first
-   * frame — when every slime is still on its start position and so still matches its own entry — any
-   * obstacle sitting on top of a live slime is marked and skipped from then on. Slime-versus-slime is
-   * handled from the live registry instead, which is the only version of it that stays true.
+   * There are 514 colliders on the ranch — the boundary fence alone added 258 — and `stepWander` walks
+   * the list three times a step. Handing every slime the whole set is about 20,000 distance tests a frame
+   * at forty slimes, before anything is drawn. `ground.ts` files them into a uniform grid once and each
+   * slime reads back the circles within `SEE` of itself, which on the real set is about thirty.
+   *
+   * `obstacles` overrides the registered ranch, for the preview pages that stand a few slimes next to
+   * three posts and have no ranch to register. It is STATIC FURNITURE ONLY — never live slime positions.
+   * Passing those used to be tolerated by a heuristic that masked out any obstacle a slime happened to be
+   * standing on, which was worse than the problem: with a real collider set it silently deletes whichever
+   * fence post a slime was born next to, and that post is then one a slime can walk through forever.
+   * Slime-versus-slime comes from the live registry below, which is the only version that stays true.
    */
-  const phantom = useRef<Uint8Array | null>(null);
-
-  const solids = useMemo<Circle[]>(
-    () => (obstacles ?? []).map((o) => ({ x: o.position[0], z: o.position[1], r: o.radius })),
-    [obstacles],
-  );
-
-  useEffect(() => {
-    phantom.current = null;
-  }, [solids]);
+  const field = useMemo<SolidField | null>(() => (obstacles ? fieldFor(obstacles) : null), [obstacles]);
 
   /* --- registration, so the player can collide with this ------------------- */
   const collider = useRef<SlimeCollider | null>(null);
@@ -320,6 +418,11 @@ export function Slime({
     w.bounds.cx = bounds.center[0];
     w.bounds.cz = bounds.center[1];
     w.bounds.r = bounds.radius;
+    if (w.ranch) w.ranch.r = ranchRadius();
+    // Kept in step with the props rather than frozen at birth, because a slime can change stage — and a
+    // collider that is the wrong size for the body it belongs to is how a warden ends up half inside a
+    // wall while a pip is held a metre off one.
+    s.radius = radius;
 
     /* neighbours, live, minus self */
     const live = slimeColliders();
@@ -345,33 +448,10 @@ export function Slime({
     }
     w.herd = near;
 
-    /* furniture, minus the phantoms described above */
-    if (!phantom.current && solids.length > 0) {
-      const mask = new Uint8Array(solids.length);
-      for (let i = 0; i < solids.length; i += 1) {
-        const o = solids[i];
-        if (!o) continue;
-        if (Math.hypot(o.x - s.x, o.z - s.z) < 0.6) mask[i] = 1;
-        else {
-          for (const other of live) {
-            if (Math.hypot(o.x - other.x, o.z - other.z) < 0.6) {
-              mask[i] = 1;
-              break;
-            }
-          }
-        }
-      }
-      phantom.current = mask;
-    }
+    /* furniture within reach, from the grid. One query, no allocation, ~30 circles instead of 514. */
     const keep = solidScratch.current;
-    keep.length = 0;
-    const mask = phantom.current;
-    for (let i = 0; i < solids.length; i += 1) {
-      if (mask && mask[i]) continue;
-      const o = solids[i];
-      if (o) keep.push(o);
-    }
-    w.solids = keep;
+    const see = s.radius + SEE;
+    w.solids = field ? field.near(s.x, s.z, see, keep) : nearbySolids(s.x, s.z, see, keep);
 
     /* the child */
     const player = w.player;

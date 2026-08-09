@@ -8,6 +8,7 @@ import { Sprouter } from './Sprouter';
 import { Weave } from './Weave';
 import { BalanceBough } from './BalanceBough';
 import { SortingGate } from './SortingGate';
+import { KinshipStone } from './KinshipStone';
 
 /**
  * THE ONE REGISTRY OF ITEM TYPES THAT HAVE AN IN-WORLD PRESENTATION.
@@ -47,6 +48,11 @@ import { SortingGate } from './SortingGate';
  *
  * Note that being in this table is not sufficient for an item to be SERVED: `VER-SORTBOT-01` additionally
  * has a pool gate in `server-plugin.ts` that removes the items whose pictures cannot carry the question.
+ *
+ * `VER-RELPAIR-01` has a gate of the same shape in `kinshipGate.ts` and it refuses NOTHING, which is a
+ * claim rather than an oversight: that type is answered by listening, and speech has no vocabulary gap.
+ * Its second predicate, `kinshipStoneDraws`, decides only whether pictures accompany the voice, and must
+ * never be wired into the pool — it is false for all 100 items and would delete the bank.
  */
 export const IN_WORLD: Record<
   string,
@@ -64,4 +70,5 @@ export const IN_WORLD: Record<
   'FLU-CARPET-01': Weave,
   'QUANT-BALANCE-01': BalanceBough,
   'VER-SORTBOT-01': SortingGate,
+  'VER-RELPAIR-01': KinshipStone,
 };

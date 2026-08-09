@@ -74,8 +74,7 @@ export const VERBS: readonly Verb[] = [
   { id: 'sprouter', typeCode: 'QUANT-FUNC-01', battery: 'Quantitative', domain: 'quantitative', title: 'The Sprouter', drives: 'how much of a bed fills', tier: 2 },
   { id: 'bough', typeCode: 'QUANT-BALANCE-01', battery: 'Quantitative', domain: 'quantitative', title: 'The weighing bough', drives: 'who may share a glade', tier: 3 },
   /* Verbal — the material is words and the judgement is about what words mean. */
-  { id: 'log', typeCode: 'VER-SEQUENCE-01', battery: 'Verbal', domain: 'verbal', title: 'The day’s log', drives: 'the journal', tier: 1 },
-  { id: 'gate', typeCode: 'VER-SORTBOT-01', battery: 'Verbal', domain: 'verbal', title: 'The sorting gate', drives: 'admissions', tier: 2 },
+  { id: 'log', typeCode: 'VER-SORTBOT-01', battery: 'Verbal', domain: 'verbal', title: 'The sorting gate', drives: 'admissions', tier: 2 },
   { id: 'kinship', typeCode: 'VER-RELPAIR-01', battery: 'Verbal', domain: 'verbal', title: 'The kinship stone', drives: 'lineage', tier: 3 },
 ];
 
@@ -125,6 +124,14 @@ export const RETIRED: readonly RetiredType[] = [
       'The same thing as `SPA-XFORM-01`, on a single figure rather than a lattice: six badges standing for six operators (twin, swap, ring, turn, flip, slant) by one fixed mapping, absent from `content`, chains up to four long.',
     why:
       "Worse on the only number that matters, and by the bank's own accounting: `relabelling.viableOptions` is 5 of 5 on all 468 items, `maxVoteShare` 0.20 — chance — on every single one. Its own research note records that it needs THREE UNSCORED WORKED DEMONSTRATIONS before the first scored item, and the sanctuary has no mechanism for a warm-up. It never had a presentation, so retiring it costs the world nothing; it is listed because leaving it in `VERBS` left a type one `IN_WORLD` line away from being served, and because it is the same construct as the entry above and they should stand or fall together.",
+  },
+  {
+    typeCode: 'VER-SEQUENCE-01',
+    wasBattery: 'Verbal',
+    measures:
+      'Hear 3-5 story parts read aloud once, in an order the bank shuffles on disk, then choose which of 3-4 ARRANGEMENTS is chronological. Temporal-causal reasoning over narrated events, plus holding those events and their identities long enough to check each candidate arrangement against them.',
+    why:
+      "All three CogAT Verbal subtests — Verbal Analogies, Sentence Completion, Verbal Classification — ask what a word means relative to other words, and all three are answered by choosing ONE word or pair. None asks for a sequence, and the response channel is the tell: `packages/ui-contract/src/requirements.ts` types this one `ordered: 4`, while every real Verbal type in the library is `nominal`. Strip the sentences out and the task still works from pictures alone, which is the residue and it is not verbal reasoning. The working-memory load is not incidental to the presentation either — it is created by it: `DayLog.tsx` establishes that `events` is shuffled on disk and that the narration must therefore imply no order at all, so the child hears the parts once, in the wrong order, told nothing about order, and must construct and hold the right one. `packages/ui-contract/src/cogat.ts` reached the same conclusion independently: it is the only verbal type in this app that file declines to map, `direct` or `loose`. The owner called it before any of this was measured. Its narration was the game's only spoken feature and its component is kept — the voice moved to `VER-RELPAIR-01`, which is a real Verbal subtest and has no order to hold.",
   },
 ];
 

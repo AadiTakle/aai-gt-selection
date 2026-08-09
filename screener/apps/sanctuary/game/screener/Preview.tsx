@@ -6,6 +6,7 @@ import { BalanceBough } from './BalanceBough';
 import { DayLog } from './DayLog';
 import { EventGlyph } from './EventGlyph';
 import { tokenGlyph } from './eventMeaning';
+import { KinshipStone, kinshipStoneDraws } from './KinshipStone';
 import { PodWall } from './PodWall';
 import { SortingGate, sortingGateServes } from './SortingGate';
 import { Sprouter } from './Sprouter';
@@ -75,6 +76,17 @@ const SHOWS: Record<
    * than forced; but a shot taken without it is not a shot of what ships.
    */
   sortbot: { type: 'VER-SORTBOT-01', Component: SortingGate, servedOnly: sortingGateServes },
+  /**
+   * `served=1` here does NOT narrow the pool, because nothing narrows this type's pool — every one of its
+   * 100 items is served, since it is answered by listening and speech has no vocabulary gap.
+   *
+   * What the filter narrows to instead is the items that additionally carry PICTURES, which is the thing
+   * worth being able to look at and which today is the empty set. That is a deliberate reuse of the flag
+   * rather than a second one: the question a shot of this type has to answer is "is this what ships", and
+   * for the sorting gate that means the served pool while for the kinship stone it means the drawn pool.
+   * A run with `?served=1` that renders nothing IS the measurement — see `kinshipGate.ts`.
+   */
+  kinship: { type: 'VER-RELPAIR-01', Component: KinshipStone, servedOnly: kinshipStoneDraws },
 };
 
 interface Item {

@@ -141,3 +141,21 @@ export function nearestSlime(x: number, z: number, within = Infinity): SlimeColl
 export function clearHerd(): void {
   herd.clear();
 }
+
+/**
+ * WHERE EVERY SLIME IS, published for a browser harness. Same idea as `Game.tsx`'s `window.__keeper`,
+ * and it exists for the same reason that one does.
+ *
+ * Nothing in the game reads this and nothing writes it per frame: it is a FUNCTION the harness calls,
+ * so it costs one property assignment at module load and nothing thereafter. The alternative — writing
+ * a snapshot array every frame — is forty objects a frame for a debug hook, which is exactly the kind of
+ * cost this directory spends whole comments avoiding.
+ *
+ * It is here because "slimes do not walk through walls" and "no slime is stuck" are claims about the
+ * running page, and headless Chrome refuses pointer lock, so the only way to check them in the real
+ * renderer rather than in a simulation is to read the live registry out of it.
+ */
+if (typeof window !== 'undefined') {
+  (window as unknown as { __slimes?: unknown }).__slimes = (): SlimeCollider[] =>
+    [...herd.values()].map((s) => ({ ...s }));
+}

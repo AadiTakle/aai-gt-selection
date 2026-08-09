@@ -26,6 +26,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { handedFor } from './address';
+import { kinshipStoneDraws, kinshipStoneServes } from './KinshipStone';
 import { SORTING_GATE_BANDS, sortingGateServes } from './SortingGate';
 
 const API = process.env.GT_API ?? 'http://localhost:5203';
@@ -58,6 +59,17 @@ const TYPES = [
    * an integer on all 100 items of this bank, so the integer-versus-string trap is live here too.
    */
   'VER-SORTBOT-01',
+  /**
+   * The third positional type, and it gets its own round trip for the reason given just above rather than
+   * being assumed to behave like the other two.
+   *
+   * Its options are `{pair: [{text}, {text}]}` — a third shape again — and they carry no `key`, while
+   * `answer.correctKey` is an integer on all 100 items. So `handedFor` falls through to the index here as
+   * well, and the fall-through is still a DEFAULT. The nonzero-index pass below covers this type too,
+   * because 24 of its 100 items answer at position 0 and a component that ignored its index entirely would
+   * pass a two-pass proof on any one of them.
+   */
+  'VER-RELPAIR-01',
 ] as const;
 
 /** `shared/ItemStage.tsx`, copied. Resolves whichever address family the item uses. */
@@ -239,7 +251,7 @@ async function proveNonZeroPosition(typeCode: string) {
 
 console.log('\nposition-is-the-answer, on a NONZERO index');
 let posFailed = 0;
-for (const t of ['VER-SORTBOT-01', 'VER-SEQUENCE-01']) {
+for (const t of ['VER-SORTBOT-01', 'VER-SEQUENCE-01', 'VER-RELPAIR-01']) {
   const r = await proveNonZeroPosition(t);
   if (!r) {
     console.log(`  ${t}: no nonzero-key item found in 12 draws — proof not made`);
@@ -325,4 +337,65 @@ console.log(`  pool actually served: ${pool}   [want ${WANT_POOL}]`);
 if (pool !== WANT_POOL) gateFailed += 1;
 console.log(`  ${gateFailed === 0 ? 'PASS' : 'FAIL'}`);
 
-if (failed || gateFailed || posFailed) process.exitCode = 1;
+/* ============================================================================
+   THE KINSHIP STONE'S TWO GATES
+   ========================================================================== */
+
+/**
+ * `VER-RELPAIR-01` has two predicates where every other type has one, and BOTH have to be asserted,
+ * for opposite reasons.
+ *
+ * `kinshipStoneServes` refuses nothing. A gate that refuses nothing looks like a gate nobody finished, so
+ * the 100 is asserted rather than assumed: it is the claim that every word of every item reaches the child
+ * through the voice, and if a regenerated bank ever ships a malformed pair this is what says so.
+ *
+ * `kinshipStoneDraws` refuses everything, and that is the measurement the whole design rests on — the
+ * reason this type is spoken instead of pictured. `tokenGlyph` covers 91 of the bank's 445 distinct words,
+ * and the count of items in which EVERY word has a drawing is zero in all four bands:
+ *
+ *     band   items   servable   drawable
+ *     K-1      17       17          0        every one is `is a kind of`; a category has no picture
+ *     2-3      20       20          0
+ *     4-5      20       20          0
+ *     6-8      43       43          0
+ *
+ * THE ZEROES ARE ASSERTED RATHER THAN REPORTED, so that a noun added to `eventMeaning.ts` turns pictures on
+ * DELIBERATELY. Somebody drawing a `petal` for another type would otherwise silently flip an item of this
+ * one into picture mode, unlooked at, and picture mode is exactly where the inversion hazard in
+ * `kinshipGate.ts` lives. A failure here is not a regression; it is a prompt to go and LOOK at the item
+ * that became drawable and then raise the number.
+ */
+const RELPAIR = 'VER-RELPAIR-01';
+/** `[servable, drawable, total]` per band. */
+const WANT_KINSHIP: Record<string, [number, number, number]> = {
+  'K-1': [17, 0, 17],
+  '2-3': [20, 0, 20],
+  '4-5': [20, 0, 20],
+  '6-8': [43, 0, 43],
+};
+
+const relRows: SortRow[] = readFileSync(`${BANKS}${RELPAIR}.jsonl`, 'utf8')
+  .split('\n')
+  .filter((l) => l.trim())
+  .map((l) => JSON.parse(l) as SortRow);
+
+console.log(`\n${RELPAIR} gates  (spoken type: serving and drawing are different questions)`);
+let kinFailed = 0;
+for (const band of BANDS) {
+  const rows = relRows.filter((r) => r.ageBands.includes(band));
+  const serves = rows.filter((r) => kinshipStoneServes(r.content)).length;
+  const draws = rows.filter((r) => kinshipStoneDraws(r.content)).length;
+  const [wantServes, wantDraws, wantTotal] = WANT_KINSHIP[band] ?? [0, 0, 0];
+  const good = serves === wantServes && draws === wantDraws && rows.length === wantTotal;
+  if (!good) kinFailed += 1;
+  console.log(
+    `  ${band.padEnd(4)} ${String(serves).padStart(2)}/${String(rows.length).padStart(2)} servable, ` +
+      `${String(draws).padStart(2)} with pictures  [want ${wantServes}/${wantTotal}, ${wantDraws}]  ${good ? 'ok' : 'MISMATCH'}`,
+  );
+}
+const relServed = relRows.filter((r) => kinshipStoneServes(r.content)).length;
+console.log(`  pool actually served: ${relServed}   [want 100 — nothing is gated out]`);
+if (relServed !== 100) kinFailed += 1;
+console.log(`  ${kinFailed === 0 ? 'PASS' : 'FAIL'}`);
+
+if (failed || gateFailed || posFailed || kinFailed) process.exitCode = 1;

@@ -16,7 +16,7 @@ import { BalanceBough } from './screener/BalanceBough';
 import { IN_WORLD as IN_WORLD_MAP } from './screener/inWorld';
 import { Buildings, SOLIDS } from './world/Buildings';
 import { Lighting } from './world/Lighting';
-import { Slime, pushOutOfSlimes } from './slimes/Slime';
+import { Slime, pushOutOfSlimes, setRanchSolids, ROAM } from './slimes/Slime';
 import { Stations, STATION_SOLIDS, SITES } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
@@ -50,14 +50,44 @@ const JUMP = 6.4;
 const BOUND = 34;
 /** How wide the keeper is, for pushing out of solids. */
 const KEEPER_RADIUS = 0.45;
+
+/**
+ * Everything a slime may not walk through. One definition, read by the whole game.
+ *
+ * Slimes had no collision at all: `Slime`'s `obstacles` prop existed and the previews passed it, but the
+ * game rendered `<Slime {...sl} />` and `sl` never carried it, so `wander.ts`'s push-out code was being
+ * handed an empty array and had been for the life of the build.
+ *
+ * `from` is where the keeper spawns, and it is what makes "findable" mean something. A landing spot that
+ * is merely outside a collider is not enough — 9% of this ranch's open ground is UNREACHABLE: the inside
+ * of the hut, the second paddock before its gate is unbarred, and a ring of slivers between the boundary
+ * fence and the keeper's own 34m clamp. A slime plopped there is gone permanently, because the child
+ * physically cannot walk to it.
+ */
+setRanchSolids([...SOLIDS, ...STATION_SOLIDS, ...SHOP_SOLIDS, ...INTRO_SOLIDS], {
+  worldRadius: BOUND,
+  from: [0, 8],
+});
 /** Pen centres, from the buildings track. */
 interface Slimelet {
+  /**
+   * Stable identity, because the array index is not one.
+   *
+   * Slimes were keyed `key={i}`, so catching the seventh renumbered every slime after it: React handed
+   * the component that had been drawing slime 7 the family, stage, seed and bounds of slime 8 while it
+   * kept slime 7's position, and the LAST slime in the list unmounted instead. A child watching sees a
+   * creature change costume and a different one blink out.
+   */
+  uid: number;
   family: Fam;
   stage: 'pip' | 'tuffet' | 'crested' | 'warden';
   position: [number, number, number];
   seed: number;
   bounds: { center: [number, number]; radius: number };
 }
+
+/** Never reused, never derived from position in the list. */
+let nextUid = 1;
 
 const PEN_RADIUS = 3.4;
 const PENS: [number, number][] = [
@@ -393,7 +423,7 @@ export function Game() {
   const [live, setLive] = useState<LiveItem | null>(null);
   const [cares, setCares] = useState(0);
 
-  const [slimes, setSlimes] = useState(() =>
+  const [slimes, setSlimes] = useState<Slimelet[]>(() =>
     // Inside the three pens the buildings track actually placed, five to a pen. Each is bounded to
     // its own pen so wandering never leaks across the ranch.
     PENS.flatMap((pen, p) =>
@@ -401,6 +431,7 @@ export function Game() {
           const a = (k / 5) * Math.PI * 2 + p * 1.1;
           const r = 1.1 + (k % 3) * 0.85;
           return {
+            uid: nextUid++,
             family: FAMILIES[(p * 5 + k) % FAMILIES.length]!,
             stage: (['pip', 'tuffet', 'crested', 'warden'] as const)[k % 4]!,
             position: [pen[0] + Math.cos(a) * r, 0, pen[1] + Math.sin(a) * r] as [number, number, number],
@@ -462,33 +493,35 @@ export function Game() {
     const queue = inTank.current.get(family) ?? [];
     const held = queue.shift();
     inTank.current.set(family, queue);
-    setSlimes((prev) => {
-      // Bounded to the pen it landed nearest, so its wander stays local wherever it was plopped.
-      let pen = PENS[0]!;
-      let bestD = Infinity;
-      for (const c of PENS) {
-        const d = Math.hypot(position[0] - c[0], position[2] - c[1]);
-        if (d < bestD) { bestD = d; pen = c; }
-      }
-      // Bounded to wherever it was put down, so it wanders locally instead of walking home. The
-      // radius grows to cover the distance from the nearest pen, which is what lets a slime live
-      // outside a pen at all.
-      const loose = Math.max(PEN_RADIUS, bestD + 1.5);
-      return [
-        ...prev,
-        held
-          ? { ...held, position, bounds: { center: pen, radius: loose } }
-          : {
-              // Only reachable if a release arrives with nothing recorded, e.g. the tank flushing on
-              // unmount after a reload. Keep it whole rather than dropping the slime.
-              family,
-              stage: 'tuffet' as const,
-              position,
-              seed: 9001 + prev.length * 211,
-              bounds: { center: pen, radius: loose },
-            },
-      ];
-    });
+    /**
+     * BOUNDED TO WHERE IT WAS PUT DOWN, and this is the fix for the slime that vanished in the barn.
+     *
+     * It used to be bounded to the NEAREST PEN, with the radius stretched to reach that pen:
+     * `max(PEN_RADIUS, distanceToPen + 1.5)`. The barn is about 15m from the nearest pen, so a slime set
+     * down in a stall was handed a 16.4m roaming circle centred on a pen it had never been in — and with
+     * no collision it walked out through the barn wall. Simulated over five minutes from each stall it
+     * ended up as far as 29.8m from where the child left it, and spent up to a fifth of its time PAST THE
+     * BOUNDARY FENCE, where the keeper's own 34m clamp means the child can never follow.
+     *
+     * It had not disappeared. It had left, and one slime among nineteen at the far end of the ranch,
+     * wearing a body a child cannot tell from the others, is a lost slime.
+     */
+    const bounds = { center: [position[0], position[2]] as [number, number], radius: ROAM };
+    setSlimes((prev) => [
+      ...prev,
+      held
+        ? { ...held, position, bounds }
+        : {
+            // Only reachable if a release arrives with nothing recorded, e.g. the tank flushing on
+            // unmount after a reload. Keep it whole rather than dropping the slime.
+            family,
+            uid: nextUid++,
+            stage: 'tuffet' as const,
+            position,
+            seed: 9001 + prev.length * 211,
+            bounds,
+          },
+    ]);
   }, []);
 
   /**
@@ -514,6 +547,7 @@ export function Game() {
         ...prev,
         {
           family,
+          uid: nextUid++,
           stage: 'pip' as const,
           position: [pen[0] + Math.cos(a) * r, 0, pen[1] + Math.sin(a) * r] as [number, number, number],
           seed: 4001 + prev.length * 173,
@@ -553,8 +587,8 @@ export function Game() {
         <Suspense fallback={null}>
           <Lighting />
           <Buildings />
-          {slimes.map((sl, i) => (
-            <Slime key={i} {...sl} />
+          {slimes.map((sl) => (
+            <Slime key={sl.uid} {...sl} />
           ))}
         </Suspense>
         {/* Suck, carry, plop. Disabled while a station is engaged so a click means "choose" there

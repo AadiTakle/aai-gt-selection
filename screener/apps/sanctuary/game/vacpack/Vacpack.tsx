@@ -45,6 +45,7 @@ import * as THREE from 'three';
 import { FAMILIES, type Family, type Stage } from '../contract';
 import { featureGeometry } from '../slimes/crests';
 import { glazeMaterial, trimMaterial, worldScale } from '../slimes/gumdrop';
+import { placeSlime, seedRanchSolids } from '../slimes/ground';
 import { pushOutOfSlimes, slimeColliders } from '../slimes/herd';
 import { SOLIDS } from '../world/Buildings';
 import { LeanRig, MOTE_COUNT, Motes } from './airflow';
@@ -90,6 +91,20 @@ const wantSpot = { x: 0, z: 0 };
 
 /** Every building, post, tree and trough as a circle. Converted once; static for the life of the page. */
 const SOLID_CIRCLES = circlesFrom(SOLIDS);
+
+/**
+ * A FLOOR UNDER THE PLACEMENT GUARANTEE, in case the integrator never raises it.
+ *
+ * `slimes/ground.ts` owns "somewhere a child can walk to" and needs the ranch's colliders handed to it.
+ * The authoritative call belongs in `Game.tsx`, because the full set includes the shop stall, the
+ * stations and the intro paddock and this directory may not reach into any of those. But this file
+ * already imports `world/Buildings`, so the barn, the hut, the pens and the boundary fence can be
+ * registered from here for nothing — and a seed is a no-op once the real set has been registered.
+ *
+ * Without it, a build that forgot the `Game.tsx` line would have `placeSlime` fall back to "anywhere
+ * inside 34 metres", which is exactly the guarantee that was not strong enough in the first place.
+ */
+seedRanchSolids(SOLIDS, { worldRadius: 34, from: [0, 8] });
 
 /**
  * WHAT THE MECHANIC COSTS, measured rather than asserted. Rolling one-second average and worst case of this
@@ -383,6 +398,16 @@ export function Vacpack({
    * (`pushOutOfSlimes` from `herd.ts`), then buildings and bounds AGAIN — because pushing out of a slime can
    * push into a fence, and the bound has to be the last word. A residual overlap with another slime is fine and
    * resolves itself; a slime inside a barn wall never would.
+   *
+   * AND THEN `placeSlime`, WHICH IS THE LAST WORD NOW.
+   *
+   * `settleLanding` proves a spot is not inside a collider and not outside the world, and both of those turned
+   * out to be too weak to keep the promise this file opens with. Nine per cent of the ranch's open ground is
+   * open and UNREACHABLE — the inside of the hut, the second paddock before its gate is unbarred, and a ring of
+   * slivers between the boundary fence and the 34-metre clamp. Standing at the fence and plopping outward lands
+   * a slime at r = 32.98 on four bearings out of six, which is past the fence, and no child can ever get it
+   * back. `placeSlime` is the test `settleLanding` cannot make, because it is a question about connectivity
+   * rather than about overlap: is this the same piece of ground the child is standing on. See `slimes/ground.ts`.
    */
   const placeInWorld = useCallback(
     (family: Family, r: number, want: { x: number; z: number }): [number, number, number] => {
@@ -395,7 +420,8 @@ export function Vacpack({
       p.x = v.x;
       p.z = v.z;
       settleLanding(p, r, ground);
-      const at: [number, number, number] = [p.x, groundY, p.z];
+      const legal = placeSlime(p.x, p.z, r);
+      const at: [number, number, number] = [legal.x, groundY, legal.z];
       releaseRef.current(family, at);
       return at;
     },
@@ -579,6 +605,11 @@ export function Vacpack({
       p.x = v.x;
       p.z = v.z;
       settleLanding(p, clear, ground);
+      // The arc is fitted to the landing spot, so the spot has to be the FINAL one — see `placeInWorld`
+      // for what this adds over `settleLanding` and why it is not optional.
+      const legal = placeSlime(p.x, p.z, clear);
+      p.x = legal.x;
+      p.z = legal.z;
       flyers.current.push({
         key: nextKey++,
         kind: 'out',

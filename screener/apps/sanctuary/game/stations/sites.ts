@@ -157,6 +157,11 @@ export const DRAWN_TYPES: readonly string[] = [
      its 37 small-band items cannot be answered from their pictures. Being drawable is necessary to reach
      a child; it is not sufficient. */
   'VER-SORTBOT-01',
+  /* Verbal Analogies, and the type that lets `VER-SEQUENCE-01` be retired without leaving the verbal
+     station on one style. Answered by LISTENING: 0 of its 100 items are fully picturable, because the
+     undrawable half is always the category word and drawing it would hand over the answer. Its gate
+     refuses nothing. */
+  'VER-RELPAIR-01',
 ];
 
 /**
@@ -520,6 +525,17 @@ export function extentOf(typeCode: string, content: Record<string, unknown>): { 
    * same KIND as those" a size difference is a false signal about membership. So it projects smaller than
    * its half-extents imply and has parallax to spare.
    */
+  /**
+   * The kinship stone. The candidate row is always the widest thing — the horn is 2.31 and never wins —
+   * so this is a function of the option count alone: 3.90 at three options (K-1 only), 5.20 at four.
+   */
+  if (typeCode === 'VER-RELPAIR-01') {
+    const n = Array.isArray((content as { options?: unknown[] }).options)
+      ? ((content as { options: unknown[] }).options.length ?? 4)
+      : 4;
+    return { halfW: Math.max(1.43, n * 1.3), halfH: 2.9 };
+  }
+
   if (typeCode === 'VER-SORTBOT-01') {
     return { halfW: 4.37, halfH: 2.84 };
   }
