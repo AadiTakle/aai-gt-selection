@@ -9,7 +9,7 @@ import { Lighting } from '../world/Lighting';
 import { CoinFlight, Purse } from './Purse';
 import { Shop } from './Shop';
 import { EARN, balance, earn, earnTicks, priceOf } from './coins';
-import { AT, dockPoint } from './site';
+import { AT, dockPoint, facing } from './site';
 import '../game.css';
 
 /**
@@ -29,9 +29,15 @@ import '../game.css';
  * Query parameters:
  *   ?view=far|near|open   across the meadow, in range with the prompt up, or docked at the counter
  *   &coins=N              start the purse at N, to photograph both sides of the affordability line
+ *   &back=D               stand D metres out from the middle of the shelf, on the stall's own facing
+ *                         vector, at a child's eye height, looking at the middle of the stock. This is
+ *                         the distance dial the eyes-at-distance work is judged on: 4, 11, 16, 21.6.
  *
  * `window.__shop` carries what a screenshot cannot see: the purse, whether the counter is open, and every
- * family bought so far.
+ * family bought so far. `window.__gl` carries what a screenshot cannot MEASURE — the frame's draw calls and
+ * triangles, the camera's distance to the stall, and the on-screen diameter of a slime's eye in real
+ * pixels, which is the number the whole distance-LOD argument turns on and was previously only ever
+ * estimated.
  *
  * Not part of the game. Nothing imports it. Delete when the stall is wired into `Game.tsx`.
  */
@@ -43,16 +49,40 @@ declare global {
     __earn?: (n: number) => void;
     __moveTo?: (x: number, y: number, z: number) => void;
     __lookAt?: (x: number, y: number, z: number) => void;
+    __gl?: {
+      ready: boolean;
+      calls: number;
+      tris: number;
+      /** Camera to the stall's reference point, metres. */
+      dist: number;
+      /** Eye sclera world radius, metres, as actually posed this frame. */
+      eyeR: number;
+      /** That eye's diameter on screen, in device-independent pixels. */
+      eyePx: number;
+      /** How many eye meshes the frame found, so a dropped face is visible in the numbers. */
+      eyeMeshes: number;
+      height: number;
+    };
   }
 }
 
 const params = new URLSearchParams(window.location.search);
 const VIEW = params.get('view') ?? 'near';
 const START_COINS = Number.parseInt(params.get('coins') ?? '0', 10) || 0;
+const BACK = Number.parseFloat(params.get('back') ?? '');
 
 /** Three vantages, all at a child's own eye height of 1.5m so nothing is seen from an adult's view. */
 function vantage(): { eye: [number, number, number]; at: [number, number, number] } {
   const dock = dockPoint();
+  if (Number.isFinite(BACK)) {
+    // Straight out along the stall's own facing vector, so 4m and 21.6m frame the same shelf from the
+    // same angle and the only thing that changes between two shots is the distance.
+    const f = facing();
+    return {
+      eye: [AT[0] + f[0] * BACK, 1.5, AT[2] + f[1] * BACK],
+      at: [AT[0], AT[1] + 0.42, AT[2]],
+    };
+  }
   if (VIEW === 'far') {
     // The arrival. Exactly where `Game.tsx` puts a child on their first frame.
     return { eye: [0, 1.5, 8], at: [AT[0], AT[1] - 0.2, AT[2]] };
@@ -107,6 +137,58 @@ function Look({ eye, at }: { eye: [number, number, number]; at: [number, number,
   return null;
 }
 
+/**
+ * WHAT A SCREENSHOT CANNOT MEASURE, published every frame.
+ *
+ * The whole distance-LOD argument in `Shop.tsx` rested on one claim — "at twenty metres they are under a
+ * pixel" — that had never been measured, only reasoned about. So this reads it off the posed scene rather
+ * than off the source: it finds a real sclera as it is actually scaled this frame, takes its WORLD radius
+ * (which folds in the cubby's fit scale, the body's squash and any distance compensation), and converts it
+ * to screen pixels through the live camera. Draw calls and triangles come from the renderer's own counter,
+ * reset every frame by three itself, so the number is this frame's and not a running total.
+ */
+function Probe(): null {
+  const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+  useFrame(() => {
+    const p = new THREE.Vector3();
+    const s = new THREE.Vector3();
+    let eyeR = 0;
+    let eyeD = 0;
+    let found = 0;
+    scene.traverse((o) => {
+      // Up close a real sclera mesh carries its own world scale. At distance the meshes are gone and the
+      // eyes are instanced off the anchor, so the anchor's world scale times the family's authored eye
+      // radius is the same number — which is the point of measuring it this way rather than from source.
+      const anchored = o.name === 'eye-anchor' ? (o.userData.eye as { r: number } | undefined) : undefined;
+      if (o.name !== 'eye-sclera' && !anchored) return;
+      found += o.name === 'eye-sclera' ? 1 : 2;
+      if (eyeR > 0) return;
+      o.getWorldPosition(p);
+      o.getWorldScale(s);
+      eyeR = s.x * (anchored ? anchored.r : 1);
+      eyeD = camera.position.distanceTo(p);
+    });
+    const cam = camera as THREE.PerspectiveCamera;
+    const h = gl.domElement.clientHeight || 800;
+    // Small-angle projection: a sphere of radius r at distance d covers 2r/(2 d tan(fov/2)) of the
+    // viewport's height.
+    const px = eyeR > 0 ? ((2 * eyeR) / (2 * eyeD * Math.tan((cam.fov * Math.PI) / 360))) * h : 0;
+    window.__gl = {
+      ready: true,
+      calls: gl.info.render.calls,
+      tris: gl.info.render.triangles,
+      dist: Math.hypot(AT[0] - camera.position.x, AT[2] - camera.position.z),
+      eyeR,
+      eyePx: px,
+      eyeMeshes: found,
+      height: h,
+    };
+  });
+  return null;
+}
+
 function App(): JSX.Element {
   const [open, setOpen] = useState(VIEW === 'open');
   const [bought, setBought] = useState<Family[]>([]);
@@ -151,6 +233,7 @@ function App(): JSX.Element {
           onBuy={(family) => setBought((b) => [...b, family])}
         />
         <Look eye={v.eye} at={v.at} />
+        <Probe />
       </Canvas>
 
       <Purse />

@@ -22,10 +22,45 @@ export interface Placed {
   rot: number;
 }
 
+/**
+ * The keeper's eye height, which is `Game.tsx`'s `KEEPER_HEIGHT`.
+ *
+ * MIRRORED HERE FOR THE SAME REASON `pushOut` BELOW IS. That controller integrates over a flat plane and
+ * clamps the camera to this number; every claim this file makes about where a child can stand is a claim
+ * about a body whose eye is here. A test cannot import `Game.tsx` without dragging a renderer into node,
+ * so the number is restated where the arithmetic lives. `world/ladder.ts` imports it rather than declaring
+ * a third copy.
+ */
+export const KEEPER_EYE = 1.5;
+
 /** A collider: a circle in the ground plane, as `Game.tsx` and `Vacpack.tsx` both expect it. */
 export interface Solid {
   position: [number, number];
   radius: number;
+  /**
+   * The band of EYE heights over which this circle is solid, `[low, high]` inclusive. Absent means every
+   * height, which is what a collider on a flat world means and what all but a handful of them are.
+   *
+   * WHY A FLAT WORLD SUDDENLY NEEDS THIS. The barn has a hayloft a child can now climb into, so for the
+   * first time there are two floors over one footprint and some of the furniture belongs to only one of
+   * them. The posts holding the loft up stop at its underside, so somebody standing ON the loft has to be
+   * able to walk over where they are; the guard rail along the loft's open edge is three and a half metres
+   * in the air, so somebody on the threshing floor has to be able to walk under it. As circles with no
+   * height the first pair fence off the part of the loft you arrive at, and the second draws an invisible
+   * wall across the middle of the barn.
+   *
+   * IGNORING THIS FIELD IS ALWAYS SAFE AT GROUND LEVEL, and that is deliberate. Every banded circle inside
+   * `SOLIDS` is banded to stop existing ABOVE the loft, so a consumer that never reads the field sees
+   * exactly the collider set it saw before this existed. The circles that exist only UP THERE are kept out
+   * of `SOLIDS` altogether — see `LOFT_SOLIDS` in `barn.ts` — so they cannot leak into a caller that has
+   * no notion of height.
+   */
+  eye?: readonly [number, number];
+}
+
+/** Whether a collider is solid at this eye height. A circle with no band is solid at all of them. */
+export function solidBites(solid: Solid, eyeY: number): boolean {
+  return !solid.eye || (eyeY >= solid.eye[0] && eyeY <= solid.eye[1]);
 }
 
 /**
@@ -172,16 +207,21 @@ export function chainSegment(p: Placed, a: P2, b: P2, radius: number, spacing: n
  * which is a failure worth having, because the alternative is a doorway that looks open and is not.
  *
  * Returns the total push-out distance. Zero means the keeper stands there unimpeded.
+ *
+ * `eyeY` defaults to the ground, so every caller written before the barn had an upstairs keeps asking the
+ * question it was already asking: "can a child walk here, standing on the meadow".
  */
 export function pushOut(
   solids: readonly Solid[],
   x: number,
   z: number,
   radius: number,
+  eyeY: number = KEEPER_EYE,
 ): { pushed: number; by: Solid | null } {
   let worst = 0;
   let by: Solid | null = null;
   for (const solid of solids) {
+    if (!solidBites(solid, eyeY)) continue;
     const dx = x - solid.position[0];
     const dz = z - solid.position[1];
     const d = Math.hypot(dx, dz);

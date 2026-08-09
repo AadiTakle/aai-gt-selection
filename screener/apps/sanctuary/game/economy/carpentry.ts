@@ -200,6 +200,61 @@ export function coinPile(price: number, radius: number): { at: [number, number][
 }
 
 /* ------------------------------------------------------------------ *\
+   The far face
+\* ------------------------------------------------------------------ */
+
+interface FarEye {
+  sclera: SphereGeometry;
+  iris: SphereGeometry;
+  catchlight: SphereGeometry;
+}
+
+let farEye: FarEye | null = null;
+
+/**
+ * THE SAME THREE BALLS A SLIME'S EYE IS MADE OF, AT THE TESSELLATION A DISTANT ONE NEEDS.
+ *
+ * `slimes/gumdrop.ts`'s `faceGeometry` builds the eye at 20x14, which is right for a creature you are
+ * standing next to and is 520 triangles spent on something four pixels across at the arrival point. These
+ * are the same unit spheres at a quarter of the triangles, used only by the shelf's instanced eye pool —
+ * so a shop full of faces at 21m costs about 9k triangles rather than 35k.
+ *
+ * THIS IS NOT A SECOND LOOK, IT IS A LEVEL OF DETAIL, and it is the same one `Effigy.tsx` already takes for
+ * the body: that file asks `gumdropGeometry` for its `'far'` bake for exactly this reason and says so. The
+ * radii, the layout and the materials are unchanged — only the number of sides is, and at the distances the
+ * pool is used a ten-sided sphere and a twenty-sided one differ nowhere a pixel could show it.
+ */
+export function farEyeGeometry(): FarEye {
+  farEye ??= {
+    sclera: new SphereGeometry(1, 10, 7),
+    iris: new SphereGeometry(1, 8, 6),
+    catchlight: new SphereGeometry(1, 5, 4),
+  };
+  return farEye;
+}
+
+let farIris: MeshStandardMaterial | null = null;
+
+/**
+ * The iris, for the pool, and the one material in the shop that is a copy of a slime material rather than
+ * the slime material itself.
+ *
+ * IT HAS TO BE, AND IT IS STILL NOT A FORK. `slimes/gumdrop.ts` keeps ONE iris material PER FAMILY because
+ * the colour lives on the material — which is exactly what an instanced draw cannot have, since nineteen
+ * materials is nineteen draw calls and the whole point of the pool is one. So the colour moves to the
+ * instance colour attribute instead, and this material carries only the numbers, which are copied from
+ * `irisMaterial` and are the only two it has: roughness 0.08, metalness 0. An instance colour multiplies
+ * the diffuse term, and white multiplied by the family's own iris colour is the family's own iris colour.
+ *
+ * The colour itself is READ OFF `irisMaterial(family).color` at fill time rather than out of the look
+ * table, so it cannot drift from the herd's even if the table moves.
+ */
+export function farIrisMaterial(): MeshStandardMaterial {
+  farIris ??= new MeshStandardMaterial({ color: '#ffffff', roughness: 0.08, metalness: 0 });
+  return farIris;
+}
+
+/* ------------------------------------------------------------------ *\
    Shared shapes
 \* ------------------------------------------------------------------ */
 

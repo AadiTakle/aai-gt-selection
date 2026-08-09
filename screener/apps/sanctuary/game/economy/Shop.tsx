@@ -1,14 +1,36 @@
 import { useFrame, useThree, type ComputeFunction } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import { MeshStandardMaterial, Raycaster, Vector2, Vector3, type Group, type Mesh } from 'three';
+import {
+  Color,
+  Matrix4,
+  MeshStandardMaterial,
+  Quaternion,
+  Raycaster,
+  Vector2,
+  Vector3,
+  type Group,
+  type InstancedMesh,
+  type Mesh,
+  type Object3D,
+} from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
 import type { Family } from '../contract';
 import { breath } from '../screener/theme';
+import { catchlightMaterial, irisMaterial, scleraMaterial } from '../slimes/gumdrop';
 import { PressBadge, Reticle, StandMark } from '../stations/Beacon';
 import type { StationSite } from '../stations/sites';
 import { usePrefersReducedMotion } from '../world/motion';
-import { HONEY, coinGeometry, coinPile, mats, shopShapes, useEase } from './carpentry';
+import {
+  HONEY,
+  coinGeometry,
+  coinPile,
+  farEyeGeometry,
+  farIrisMaterial,
+  mats,
+  shopShapes,
+  useEase,
+} from './carpentry';
 import { Effigy } from './Effigy';
 import { Kiosk } from './Kiosk';
 import { STOCK, priceOf, useCoins } from './coins';
@@ -96,7 +118,7 @@ const AS_SITE: StationSite = {
 const CENTRE = new Vector2(0, 0);
 
 /**
- * How close before the stock grows FACES.
+ * HOW CLOSE BEFORE THE STOCK GROWS FACES — WHICH IS NOW A QUESTION ABOUT HOW, NOT WHETHER.
  *
  * THE STOCK ITSELF IS ALWAYS BUILT, and that reversal is the most useful thing a screenshot produced. The
  * first pass gated the whole shelf on being within sixteen metres, on a perfectly reasonable frame-budget
@@ -105,13 +127,97 @@ const CENTRE = new Vector2(0, 0);
  * has to be able to see from across the meadow that this building is full of creatures, because that is the
  * entire reason to walk to it.
  *
- * So the budget comes out of the faces instead. Six of a portrait's nine meshes are its eyes, and at twenty
- * metres they are under a pixel; past eleven metres they are simply not built, which takes a full shelf from
- * about 170 draw calls to about 57 and costs nothing anybody could see. Hysteresis of two metres, so standing
- * exactly on the line does not flicker.
+ * The budget then came out of the faces instead: six of a portrait's nine meshes are its eyes, so past
+ * eleven metres they were not built at all. That took a full shelf from about 170 draw calls to about 57
+ * and it was defended with a claim — "at twenty metres they are under a pixel" — that had never once been
+ * measured. IT IS WRONG BY A FACTOR OF FOUR. `preview.tsx` now reads a posed sclera's world radius straight
+ * off the scene and projects it through the live camera: at 21.6m in a 1280x800 window an eye is 4.0 pixels
+ * across. Four pixels of white with a dark core is plainly a face. Zero pixels is a lump, and the owner
+ * said so — "if you back away too far from the slimes in the atm, you can't see their eyes".
+ *
+ * So the eyes are drawn at every distance now, and the two halves of the old argument are both kept:
+ *
+ *   COST. Past this line the six meshes per slime become NO meshes per slime. Every eye on the shelf is
+ *   drawn instead by the instanced pool below — the same trick the boundary fence uses to buy 200m of
+ *   fence for two draw calls — which is 3 draw calls for all nineteen faces rather than 114. Measured, a
+ *   full shelf at the arrival goes from 682 calls with no faces to 685 with them, against 796 for the
+ *   naive version that simply deletes the gate. See `ShelfEyes`.
+ *
+ *   SIZE. Four pixels is legible but it is thin, and it keeps shrinking. `EYE_HOLD` gives it a floor.
+ *
+ * The line stays where it was, with the same two metres of hysteresis so standing on it does not flicker,
+ * and it is now purely a level-of-detail switch: the face does not move, change size, or change colour
+ * across it. What changes is how many draw calls it took.
  */
 const FACES_IN = 11;
 const FACES_OUT = 13;
+
+/**
+ * THE APPARENT-SIZE FLOOR. THE RULE, STATED ONCE AND IN ONE LINE OF ARITHMETIC:
+ *
+ *   PAST `EYE_HOLD` METRES THE SHELF'S FACES STOP SHRINKING. Every slime's whole face is scaled by
+ *   `d / EYE_HOLD`, capped at `EYE_GROWTH_MAX`, where `d` is the camera's distance to the STALL. Inside
+ *   `EYE_HOLD` the factor is 1 and nothing whatsoever changes.
+ *
+ * Scaling by distance over a fixed distance is exactly the statement "hold the apparent size you had at
+ * thirteen metres", because apparent size goes as 1/d and this multiplies by d. That is why the rule is
+ * written this way rather than as a pixel count or an angle: it needs no reference eye, no field of view
+ * and no window size, it is right for all nineteen families at once, and it cannot be invalidated by
+ * somebody adding a twentieth family with bigger eyes. An earlier version measured a reference eye and
+ * floored it at a fraction of the screen; it worked, and it was three constants and a mean where this is
+ * two constants and a divide.
+ *
+ * Four decisions are packed into it, and each of them is a way of not being the obvious version:
+ *
+ *   IT IS A FLOOR, NOT A SCALING. `EYE_HOLD` is `FACES_OUT`, so the factor is exactly 1 everywhere the
+ *   shop is walked up to, docked at and bought from — the stall a child actually shops at is untouched,
+ *   which is the whole point of expressing this as a floor. It also means ONE line in the world is the
+ *   only place anything happens: the same crossing that swaps six meshes for the pool is the crossing
+ *   where growth begins, and at that crossing the growth is 1.0, so there is nothing to see.
+ *
+ *   ONE FACTOR FOR THE WHOLE SHELF, from the distance to the STALL rather than to each slime. Nineteen
+ *   cubbies spread over six metres are at slightly different distances, and letting each solve its own
+ *   floor would make the slimes at the ends of the shelf visibly different from the ones in the middle for
+ *   a reason no child could ever work out. One number means the shelf always looks like one shelf. It also
+ *   keeps the families' eyes in proportion to each other: the stock's authored eye sizes vary by half
+ *   again from smallest to largest, and any rule that pushed each family to the same absolute size would
+ *   flatten a real difference between them into sameness.
+ *
+ *   IT SCALES THE WHOLE FACE, not the eyeballs. See `EffigyProps.eyeScale`: these eyes already sit closer
+ *   together than their own diameters, so fattening them in place merges them into one bar with a dark
+ *   smear across it. Scaling the assembly keeps the face similar to itself and simply draws it larger.
+ *
+ *   IT IS CAPPED, AND THE CAP IS THE WHOLE OF WHAT KEEPS THIS FROM BECOMING A CARTOON — it is also the
+ *   one number here that was chosen with pictures rather than arithmetic. Unbounded, the face would be
+ *   nine times over-size at the far fence. A quarter over-size is reached at 16.25m and held from there
+ *   out: the growth buys back most of what distance takes, and past the cap the face recedes honestly, a
+ *   quarter larger than it would have been. Measured at the arrival point, 21.6m, that is a 5.0-pixel eye
+ *   against 4.0 untreated and 0.0 before this work.
+ *
+ *   1.15, 1.25, 1.35 and 1.6 were all rendered at 21.6m and compared against the authored face at 4m.
+ *   1.6 and 1.35 are the failure the brief warned about and it is very easy to see once it is on screen:
+ *   the two scleras together are WIDER THAN THE HEAD, so the slime stops being a creature with eyes and
+ *   becomes a pair of googly eyes with a body behind them, and the pale families lose their silhouette
+ *   into the whites. 1.15 is barely distinguishable from doing nothing. 1.25 is the largest the face can
+ *   be drawn while every one of the nineteen still reads as itself.
+ */
+const EYE_HOLD = FACES_OUT;
+const EYE_GROWTH_MAX = 1.25;
+
+/**
+ * How a cubby divides between its price shelf and its slime. Solved in one place because three of them
+ * need the same two numbers and a second opinion about where the slime stands would drift.
+ */
+function cubbyBody(halfH: number): { band: number; bodyH: number } {
+  /**
+   * The price has to be countable, which means the coins cannot be smaller than about an eighth of the
+   * cubby's width, which means a price of ten needs two rows of five and roughly a third of the cubby's
+   * height. So the bottom third is the price shelf and the slime gets the rest. Derived rather than typed,
+   * so a six-family shelf with big cubbies and a nineteen-family shelf with small ones both work out.
+   */
+  const band = Math.min(0.34, halfH * 0.74);
+  return { band, bodyH: Math.max(0.2, (halfH * 2 - band) * 0.82) };
+}
 
 /* ------------------------------------------------------------------ *\
    One cubby
@@ -140,8 +246,10 @@ interface CubbyProps {
    * the crosshair is pointing where the child is looking.
    */
   active: boolean;
-  /** Whether the slime gets a face. Distance-gated; see `FACES_IN`. */
-  eyes: boolean;
+  /** How the face is drawn — six meshes, or an anchor for the shelf's pool. See `FACES_IN`. */
+  eyes: 'near' | 'far';
+  /** The shelf's shared apparent-size factor for faces. See `EYE_HOLD`. */
+  eyeScale: { current: number };
   reduced: boolean;
   seed: number;
   onPick: (family: Family) => void;
@@ -157,6 +265,7 @@ function Cubby({
   nudge,
   active,
   eyes,
+  eyeScale,
   reduced,
   seed,
   onPick,
@@ -200,21 +309,12 @@ function Cubby({
     [gauze, recess, ledge],
   );
 
-  /**
-   * How the cubby divides up, and the one measurement that decided it.
-   *
-   * The price has to be countable, which means the coins cannot be smaller than about an eighth of the
-   * cubby's width, which means a price of ten needs two rows of five and roughly a third of the cubby's
-   * height. So the bottom third is the price shelf and the slime gets the rest. Derived rather than typed,
-   * so a six-family shelf with big cubbies and a nineteen-family shelf with small ones both work out.
-   */
-  const band = Math.min(0.34, halfH * 0.74);
+  /** How the cubby divides up. See `cubbyBody` for the one measurement that decided it. */
+  const { band, bodyH } = cubbyBody(halfH);
   // Two constraints on the coin, whichever bites first: five across the cubby's width, and two rows up
   // the price shelf.
   const coinR = Math.min((halfW * 1.78) / (5 * 2.24), band / (2 * 2.24 * 0.92));
   const pileAt = useMemo(() => coinPile(price, coinR), [price, coinR]);
-  /** The slime's share: everything above the price shelf, less a little air. */
-  const bodyH = Math.max(0.2, (halfH * 2 - band) * 0.82);
   const bodyY = -halfH + band + bodyH / 2 - bodyH * 0.42;
 
   const g = useMemo(
@@ -289,7 +389,15 @@ function Cubby({
       {/* The slime. Always here, whatever the purse says: a child has to be able to see what they are
           saving up for, and a hidden reward is not a reward. */}
       <group position={[0, bodyY, 0.06]}>
-        <Effigy family={family} height={bodyH} reduced={reduced} seed={seed} lift={aimed ? 1 : 0} eyes={eyes} />
+        <Effigy
+          family={family}
+          height={bodyH}
+          reduced={reduced}
+          seed={seed}
+          lift={aimed ? 1 : 0}
+          eyes={eyes}
+          eyeScale={eyeScale}
+        />
       </group>
 
       {/* The cloth, with its hem. In front of the slime, behind the price. */}
@@ -327,6 +435,165 @@ function Cubby({
           }}
         />
       ) : null}
+    </group>
+  );
+}
+
+/* ------------------------------------------------------------------ *\
+   Every eye on the shelf, in three draw calls
+\* ------------------------------------------------------------------ */
+
+/** The most eyes the shelf can ever hold: one face per family, two eyes per face. */
+const EYE_CAP = STOCK.length * 2;
+
+/**
+ * THE SHELF'S EYES, POOLED.
+ *
+ * ══ WHY THIS EXISTS ══════════════════════════════════════════════════════════════════════════════
+ *
+ * The eyes have to be visible from across the meadow and they cannot cost 114 draw calls to be so. Six
+ * meshes per slime times nineteen slimes was measured at exactly +114 calls and +35,000 triangles over an
+ * eyeless shelf, which is the bill the old distance gate was avoiding by drawing no eyes at all. Neither
+ * end of that is acceptable: a slime with no eyes is not a creature, and a shop that costs a seventh of the
+ * frame is not a shop.
+ *
+ * `world/instanced.tsx` and the boundary fence already answer this — 200 metres of fence for two draw calls
+ * — and the same answer works here for a reason specific to how a portrait is built: THE FACE IS RIGID WITH
+ * THE BODY. `Effigy`'s eye group is a child of the same `shell` that takes the squash, inside the same
+ * `root` that takes the slow display turn, so a slime's entire face is one transform away from its cubby.
+ * That means every eye on the shelf can be one instance of one unit sphere, and all the per-family
+ * variation — where the eyes sit, how far apart, how big — lives in the instance matrix where it is free.
+ *
+ * Three calls, not one, because three genuinely different materials are involved and every one of them is
+ * the SLIMES' OWN: the sclera and the catchlight are literally `scleraMaterial()` and `catchlightMaterial()`
+ * shared with the herd, and the iris is the one copy, for the reason `farIrisMaterial` sets out — a colour
+ * that differs per family has to move from the material to the instance attribute or it is nineteen calls
+ * again. Its colour is read off `irisMaterial(family)` so it cannot drift from the herd's.
+ *
+ * ══ WHY IT IS NOT `Instanced` ═══════════════════════════════════════════════════════════════════
+ *
+ * That helper fills its matrices once in a layout effect, and says so: "every placement is static: solved
+ * at module scope, never animated". These are not. Every slime turns, breathes and leans forward when it is
+ * aimed at, so the matrices are rebuilt each frame. Everything else about the approach is that file's.
+ *
+ * ══ WHY IT READS THE SCENE INSTEAD OF A REGISTRY ════════════════════════════════════════════════
+ *
+ * The pool needs each face's current world transform. A registry of nineteen refs is nineteen mount and
+ * unmount edges to get wrong. The scene graph already IS that registry: an `Effigy` in far mode leaves an
+ * empty, named group exactly where its face would be, so this walks the shelf once a frame and reads them.
+ * A group that is not mounted is not found, which is the entire lifecycle handled.
+ *
+ * `updateWorldMatrix` is called per anchor because R3F updates world matrices at render time, i.e. after
+ * every `useFrame`. Without it the pool would draw the previous frame's pose; with it the pose is this
+ * frame's, whatever order the callbacks happen to run in.
+ *
+ * ══ NOTHING HERE IS CLICKABLE ═══════════════════════════════════════════════════════════════════
+ *
+ * No pointer handler is attached to any of the three, and R3F only raycasts objects that have one — so the
+ * rule that a cubby's hit volume exists only while the counter is open is untouched, and a child hoovering
+ * near the stall still cannot buy anything by accident. The pool also sits OUTSIDE the `shelf` group, so
+ * the crosshair's own raycast never even walks it.
+ */
+function ShelfEyes({ shelf, on }: { shelf: { current: Group | null }; on: boolean }): JSX.Element {
+  const root = useRef<Group>(null);
+  const sclera = useRef<InstancedMesh>(null);
+  const iris = useRef<InstancedMesh>(null);
+  const spark = useRef<InstancedMesh>(null);
+  const geo = farEyeGeometry();
+
+  const kit = useMemo(
+    () => ({
+      found: [] as Object3D[],
+      inv: new Matrix4(),
+      rel: new Matrix4(),
+      local: new Matrix4(),
+      out: new Matrix4(),
+      pos: new Vector3(),
+      scale: new Vector3(),
+      spin: new Quaternion(),
+      tint: new Color(),
+    }),
+    [],
+  );
+
+  useFrame(() => {
+    const a = sclera.current;
+    const b = iris.current;
+    const c = spark.current;
+    const g = root.current;
+    if (!a || !b || !c || !g) return;
+
+    if (!on || !shelf.current) {
+      a.visible = false;
+      b.visible = false;
+      c.visible = false;
+      return;
+    }
+
+    kit.found.length = 0;
+    shelf.current.traverse((o) => {
+      if (o.name === 'eye-anchor') kit.found.push(o);
+    });
+
+    g.updateWorldMatrix(true, false);
+    kit.inv.copy(g.matrixWorld).invert();
+
+    let n = 0;
+    for (const anchor of kit.found) {
+      const eye = anchor.userData.eye as { r: number; gap: number; depth: number } | undefined;
+      const family = anchor.userData.family as Family | undefined;
+      if (!eye || !family || n + 2 > EYE_CAP) continue;
+      anchor.updateWorldMatrix(true, false);
+      kit.rel.multiplyMatrices(kit.inv, anchor.matrixWorld);
+      // The family's own iris colour, taken from the herd's own material rather than restated here.
+      kit.tint.copy(irisMaterial(family).color);
+
+      for (const side of [-1, 1] as const) {
+        // Every piece of a face is a translation and a uniform scale inside the anchor, exactly as the
+        // six-mesh path nests them, so each one composes without a rotation and reads identically.
+        const put = (mesh: InstancedMesh, x: number, y: number, z: number, s: number): void => {
+          kit.pos.set(x, y, z);
+          kit.scale.setScalar(s);
+          kit.local.compose(kit.pos, kit.spin, kit.scale);
+          kit.out.multiplyMatrices(kit.rel, kit.local);
+          mesh.setMatrixAt(n, kit.out);
+        };
+        put(a, side * eye.gap, 0, eye.depth, eye.r);
+        put(b, side * eye.gap, 0, eye.depth + eye.r * 0.56, eye.r * 0.66);
+        put(c, side * eye.gap - side * eye.r * 0.24, eye.r * 0.34, eye.depth + eye.r * 0.9, eye.r * 0.26);
+        b.setColorAt(n, kit.tint);
+        n += 1;
+      }
+    }
+
+    for (const mesh of [a, b, c]) {
+      mesh.visible = n > 0;
+      mesh.count = n;
+      mesh.instanceMatrix.needsUpdate = true;
+      // Recomputed rather than left to the geometry's own sphere: the instances span the whole shelf, and
+      // a bounding sphere that only covered one unit ball would cull the lot the moment the middle of the
+      // shelf left the frame.
+      mesh.computeBoundingSphere();
+    }
+    if (b.instanceColor) b.instanceColor.needsUpdate = true;
+  });
+
+  /*
+    BORN EMPTY AND HIDDEN, which is not tidiness. An `InstancedMesh` starts with identity matrices, so for
+    the one frame between mounting and the first `useFrame` these would be thirty-eight UNIT SPHERES — one
+    metre across — stacked at the middle of the shelf. On a shelf of half-metre slimes that is a flash of
+    giant white balls across the whole stall. The frame loop turns them on the moment it has posed them.
+  */
+  return (
+    <group ref={root}>
+      <instancedMesh ref={sclera} args={[geo.sclera, scleraMaterial(), EYE_CAP]} count={0} visible={false} />
+      <instancedMesh ref={iris} args={[geo.iris, farIrisMaterial(), EYE_CAP]} count={0} visible={false} />
+      <instancedMesh
+        ref={spark}
+        args={[geo.catchlight, catchlightMaterial(), EYE_CAP]}
+        count={0}
+        visible={false}
+      />
     </group>
   );
 }
@@ -433,8 +700,13 @@ export function Shop({
 
   /** In range and roughly faced. Changes rarely, so state rather than a ref. */
   const [near, setNear] = useState(false);
-  /** Close enough for the stock to be worth giving faces to. */
+  /** Close enough that each face is worth its own six meshes. Past it the pool draws them. */
   const [faces, setFaces] = useState(false);
+  /**
+   * The shelf's shared face size, written every frame and read by all nineteen cubbies. A ref because a
+   * number that changes with the camera must not re-render anything; see `EYE_HOLD` for the rule.
+   */
+  const eyeK = useRef(1);
   /** Whether the crosshair is on a cubby. Drives the reticle only. */
   const [hot, setHot] = useState(false);
   /** Which cubby the crosshair is on, so it can lean forward and light up. */
@@ -472,6 +744,9 @@ export function Shop({
 
     const wantFaces = faces ? d < FACES_OUT : d < FACES_IN;
     if (wantFaces !== faces) setFaces(wantFaces);
+
+    // The apparent-size floor, and the whole of it. See `EYE_HOLD`.
+    eyeK.current = Math.min(EYE_GROWTH_MAX, Math.max(1, d / EYE_HOLD));
 
     if (engaged) {
       if (near) setNear(false);
@@ -568,12 +843,11 @@ export function Shop({
 
       const index = STOCK.indexOf(family);
       const cell = SHELF.cell(Math.max(0, index));
-      const band = Math.min(0.34, SHELF.halfH * 0.74);
       setBought({
         family,
         from: cell,
         startedAt: performance.now(),
-        height: Math.max(0.2, (SHELF.halfH * 2 - band) * 0.82),
+        height: cubbyBody(SHELF.halfH).bodyH,
       });
       timers.current.push(
         window.setTimeout(() => {
@@ -716,7 +990,7 @@ export function Shop({
           </group>
         ) : null}
 
-        {/* The stock. ALWAYS built — see `FACES_IN` for what is dropped at distance instead. */}
+        {/* The stock. ALWAYS built, faces and all — see `FACES_IN` for what changes at distance. */}
         <group ref={shelf}>
             {STOCK.map((family, i) => {
               const cell = SHELF.cell(i);
@@ -731,7 +1005,8 @@ export function Shop({
                     aimed={aimed === family}
                     nudge={nudges[family] ?? 0}
                     active={engaged}
-                    eyes={faces}
+                    eyes={faces ? 'near' : 'far'}
+                    eyeScale={eyeK}
                     reduced={reduced}
                     seed={131 + i * 197}
                     onPick={buy}
@@ -740,6 +1015,11 @@ export function Shop({
               );
             })}
         </group>
+
+        {/* Every face on the shelf, at distance, in three draw calls. AFTER the shelf in the tree so its
+            per-frame callback runs after the cubbies have posed themselves, and OUTSIDE it so the
+            crosshair's raycast never walks it. */}
+        <ShelfEyes shelf={shelf} on={!faces} />
 
         {bought ? <Flourish bought={bought} reduced={reduced} /> : null}
       </group>

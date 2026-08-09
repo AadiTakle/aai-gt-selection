@@ -17,6 +17,13 @@ import { IN_WORLD as IN_WORLD_MAP } from './screener/inWorld';
 import { Buildings, SOLIDS } from './world/Buildings';
 import { Lighting } from './world/Lighting';
 import { Slime, pushOutOfSlimes, setRanchSolids, ROAM } from './slimes/Slime';
+import {
+  EYE as KEEPER_HEIGHT,
+  LOFT_SOLIDS,
+  solidBites,
+  stepKeeper,
+  type Ladder,
+} from './world/ladder';
 import { Stations, STATION_SOLIDS, SITES } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
@@ -43,10 +50,11 @@ import { FAMILY_BATTERY, type Family as Fam } from './contract';
  * a night with no ability to run the page.
  */
 
-const KEEPER_HEIGHT = 1.5;
-const WALK = 4.2;
-const GRAVITY = -18;
-const JUMP = 6.4;
+/**
+ * Imported rather than declared, because `world/ladder.ts` integrates the keeper now and two copies of
+ * the eye height cannot be allowed to drift — the loft's deck is resolved against it, so a disagreement
+ * of a few centimetres is a child standing with their feet through the floor.
+ */
 const BOUND = 34;
 /** How wide the keeper is, for pushing out of solids. */
 const KEEPER_RADIUS = 0.45;
@@ -101,6 +109,8 @@ function Keeper({ locked }: { locked: boolean }) {
   const { camera, gl } = useThree();
   const keys = useRef<Record<string, boolean>>({});
   const vy = useRef(0);
+  /** The ladder currently being held, if any. */
+  const climbing = useRef<Ladder | null>(null);
   const yaw = useRef(0);
   const pitch = useRef(0);
 
@@ -132,26 +142,49 @@ function Keeper({ locked }: { locked: boolean }) {
 
     const f = (keys.current.KeyW ? 1 : 0) - (keys.current.KeyS ? 1 : 0);
     const s = (keys.current.KeyD ? 1 : 0) - (keys.current.KeyA ? 1 : 0);
-    const dir = new THREE.Vector3(s, 0, -f);
-    if (dir.lengthSq() > 0) dir.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw.current);
-    camera.position.addScaledVector(dir, WALK * step);
 
-    const onGround = camera.position.y <= KEEPER_HEIGHT + 1e-3;
-    if (onGround && keys.current.Space) vy.current = JUMP;
-    vy.current += GRAVITY * step;
-    camera.position.y += vy.current * step;
-    if (camera.position.y < KEEPER_HEIGHT) {
-      camera.position.y = KEEPER_HEIGHT;
-      vy.current = 0;
+    /**
+     * Walking, jumping, gravity, the loft's floor and the barn's ladder, in one pure step.
+     *
+     * Owner: "i want to be able to climb the ladder in the barn, basically by using w and d up and down
+     * it as if we are continuing the walking mechanic just up and down the ladder." W is up, S is down —
+     * D is strafe, and the ask itself says the walking mechanic continues, so it has to be the same two
+     * keys. The whole integrator moved rather than only the ladder part, because the TRANSITIONS are
+     * where the bugs live and a ladder-only helper would have left them in this untestable file. A test
+     * asserts the pure version reproduces the old one frame-for-frame to nine decimals out on the meadow.
+     */
+    const moved = stepKeeper(
+      {
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z,
+        vy: vy.current,
+        onLadder: climbing.current,
+      },
+      { forward: f, strafe: s, yaw: yaw.current, jump: !!keys.current.Space },
+      step,
+    );
+    camera.position.set(moved.x, moved.y, moved.z);
+    vy.current = moved.vy;
+    climbing.current = moved.onLadder;
+
+    /* A keeper holding a ladder is held BY the ladder, and nothing else may move them. The barn's +X
+       wall chain and the ladder's own circle both sit within a metre of the rungs and would walk a
+       climbing child sideways off them in about four frames. */
+    if (!moved.onLadder) {
+      // Slimes are solid too: they slide rather than stick, and yield a little if you are inside one.
+      pushOutOfSlimes(camera.position, KEEPER_RADIUS);
     }
-
-    // Slimes are solid too: they slide rather than stick, and yield a little if you are inside one.
-    pushOutOfSlimes(camera.position, KEEPER_RADIUS);
 
     // Push out of anything solid. SOLIDS is a chain of small circles per structure rather than one
     // circle per building, so a child can walk up to a barn door instead of being stopped short of it,
     // and gate openings are deliberately left empty so every pen is walkable.
-    for (const solid of [...SOLIDS, ...STATION_SOLIDS, ...SHOP_SOLIDS, ...INTRO_SOLIDS]) {
+    if (!moved.onLadder)
+    for (const solid of [...SOLIDS, ...STATION_SOLIDS, ...SHOP_SOLIDS, ...INTRO_SOLIDS, ...LOFT_SOLIDS]) {
+      /* Some circles belong to one storey only, now the barn has two — including a gable infill that
+         exists solely to stop a child on the loft walking out of the 65cm slot above the big doors and
+         falling into the yard. Ignoring the band is always safe; see `Solid.eye` in world/plan.ts. */
+      if (!solidBites(solid, camera.position.y)) continue;
       const dx = camera.position.x - solid.position[0];
       const dz = camera.position.z - solid.position[1];
       const d = Math.hypot(dx, dz);

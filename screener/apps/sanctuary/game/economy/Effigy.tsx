@@ -117,21 +117,39 @@ export interface EffigyProps {
   /** 0 resting, 1 leaning forward and up — the cubby the crosshair is on. */
   lift?: number;
   /**
-   * Whether to build the face, and it is the whole of this component's level of detail.
+   * HOW THE FACE IS DRAWN, WHICH IS THE WHOLE OF THIS COMPONENT'S LEVEL OF DETAIL — AND NOTE THAT THERE IS
+   * NO LONGER AN OPTION THAT LEAVES IT OFF.
    *
-   * THE STOCK HAS TO BE VISIBLE FROM THE ARRIVAL. That was the most useful thing a screenshot from the spawn
-   * point produced: the stall at 21.6m with empty shelves reads as a shop that is SHUT, which is the exact
-   * opposite of what it is for, and the first attempt at a frame budget gated the whole of the stock on being
-   * within sixteen metres — so the shop looked closed from the one place every child stands on their first
-   * frame.
+   * The stock has always been built at any distance, because a stall with empty shelves reads as a stall
+   * that is SHUT and 21.6m is where every child stands on their first frame. Past eleven metres the EYES
+   * were dropped instead, on the argument that at twenty metres they are under a pixel. That argument was
+   * never measured, and it is wrong: `preview.tsx`'s probe reads a posed sclera off the scene and projects
+   * it, and at 21.6m in a 1280x800 window an eye is FOUR pixels across, not one. Four pixels of white with
+   * a dark core is a face. Nothing is a face. The owner noticed, which is how this got fixed.
    *
-   * The eyes are the honest thing to drop instead. Two spheres, two irises and two catchlights per slime is
-   * six of the nine meshes a portrait costs, and at twenty metres a half-metre slime's eye is under a pixel.
-   * Dropping them past eleven metres takes a full shelf from about 170 draw calls to about 57 and removes
-   * nothing anybody could have seen. What survives at distance is silhouette and colour, which `look.ts`
-   * argues at length is the entire identification anyway.
+   *   'near'  Six meshes — two scleras, two irises, two catchlights — exactly as they have always been.
+   *           Bit for bit the look that was approved up close, and untouched by any of this.
+   *   'far'   No meshes at all. An EMPTY ANCHOR is left where the eye group would be, and the shelf's
+   *           instanced pool in `Shop.tsx` draws every eye on every slime through it in three draw calls
+   *           for the whole shelf. Same unit spheres, same layout, same materials, same colours; a coarser
+   *           tessellation and no per-slime draw call.
    */
-  eyes?: boolean;
+  eyes?: 'near' | 'far';
+  /**
+   * THE APPARENT-SIZE FLOOR, as a plain multiplier on the whole face, shared by every slime on the shelf.
+   *
+   * A ref rather than a number because it changes every frame with the camera and a prop would re-render
+   * nineteen cubbies for it. `Shop.tsx` owns the rule and writes the value; see `EYE_HOLD` there. 1 means
+   * "the eyes are already big enough", which is true at every distance the shop is walked up to, so a
+   * child at the counter sees precisely what they always saw.
+   *
+   * It scales the face ASSEMBLY — radius, separation and standoff together, about the body's own axis —
+   * rather than the eyeballs alone. Growing the radius on its own would slide two spheres that are already
+   * closer together than their own diameters into one blob with a dark bar across it, which is what
+   * "bug-eyed" actually looks like on this face. Scaling the whole assembly keeps every proportion inside
+   * the face exactly as authored: the face is simply drawn bigger, and stays similar to itself.
+   */
+  eyeScale?: { current: number };
 }
 
 export function Effigy({
@@ -140,12 +158,14 @@ export function Effigy({
   reduced,
   seed,
   lift = 0,
-  eyes = true,
+  eyes = 'near',
+  eyeScale,
 }: EffigyProps): JSX.Element {
   const p = useMemo(() => portrait(family), [family]);
   const face = useMemo(() => faceGeometry(), []);
   const shell = useRef<Group>(null);
   const root = useRef<Group>(null);
+  const eyeAt = useRef<Group>(null);
 
   /** Body units to world metres, for this cubby. */
   const fit = height / (p.bake ? p.bake.height : 1.24);
@@ -169,9 +189,17 @@ export function Effigy({
       g.position.y = (reduced ? 0 : Math.sin(t * 1.5 + phase) * 0.008) + lift * 0.045;
       g.position.z = lift * 0.06;
     }
+    // The face's apparent-size floor, applied here rather than as a prop so a distance that changes every
+    // frame does not re-render the shelf. In both modes: in 'far' the pool reads this node's world matrix,
+    // so the one line serves both paths and they cannot disagree.
+    const e = eyeAt.current;
+    if (e && p.eye) {
+      const k = eyeScale ? eyeScale.current : 1;
+      e.scale.set(k, k * p.eye.open, k);
+    }
   });
 
-  const eye = eyes ? p.eye : null;
+  const eye = p.eye;
 
   return (
     <group ref={root}>
@@ -191,26 +219,44 @@ export function Effigy({
             gives — a depth-only pass draws a see-through wing as an opaque black one. */}
         {p.feature?.glaze ? <mesh geometry={p.feature.glaze} material={glazeMaterial(family)} /> : null}
 
-        {/* The doe eyes. Not negotiable per `look.ts`, and they are most of why a child wants one. */}
+        {/*
+          The doe eyes. Not negotiable per `look.ts`, and they are most of why a child wants one.
+
+          ONE NODE, TWO WAYS OF FILLING IT. The group is in the same place, at the same scale, whichever
+          mode is on — so switching between them cannot move the face by so much as a millimetre. Up close
+          it holds the six meshes it always has. At distance it holds nothing and is named, and the shelf's
+          pool draws through it. It is a child of `shell`, so the body's squash and the slow display turn
+          carry the face rigidly with them, which is the property that makes pooling possible at all.
+        */}
         {eye ? (
-          <group position={[0, eye.y, 0]} scale={[1, eye.open, 1]}>
-            {([-1, 1] as const).map((side) => (
-              <group key={side} position={[side * eye.gap, 0, eye.depth]}>
-                <mesh geometry={face.sclera} material={scleraMaterial()} scale={eye.r} />
-                <mesh
-                  geometry={face.iris}
-                  material={irisMaterial(family)}
-                  position={[0, 0, eye.r * 0.56]}
-                  scale={eye.r * 0.66}
-                />
-                <mesh
-                  geometry={face.catchlight}
-                  material={catchlightMaterial()}
-                  position={[eye.r * 0.24 * side * -1, eye.r * 0.34, eye.r * 0.9]}
-                  scale={eye.r * 0.26}
-                />
-              </group>
-            ))}
+          <group
+            ref={eyeAt}
+            name={eyes === 'far' ? 'eye-anchor' : 'eye'}
+            position={[0, eye.y, 0]}
+            scale={[1, eye.open, 1]}
+            userData={{ eye, family }}
+          >
+            {eyes === 'far'
+              ? null
+              : ([-1, 1] as const).map((side) => (
+                  <group key={side} position={[side * eye.gap, 0, eye.depth]}>
+                    {/* Named so `preview.tsx`'s probe can read a real eye's WORLD radius off the posed
+                        scene and turn it into screen pixels. Nothing in the game reads the name. */}
+                    <mesh name="eye-sclera" geometry={face.sclera} material={scleraMaterial()} scale={eye.r} />
+                    <mesh
+                      geometry={face.iris}
+                      material={irisMaterial(family)}
+                      position={[0, 0, eye.r * 0.56]}
+                      scale={eye.r * 0.66}
+                    />
+                    <mesh
+                      geometry={face.catchlight}
+                      material={catchlightMaterial()}
+                      position={[eye.r * 0.24 * side * -1, eye.r * 0.34, eye.r * 0.9]}
+                      scale={eye.r * 0.26}
+                    />
+                  </group>
+                ))}
           </group>
         ) : null}
       </group>

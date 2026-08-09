@@ -1,4 +1,12 @@
-import { chainSegment, pushOut, toWorld, type P2, type Placed, type Solid } from './plan';
+import {
+  KEEPER_EYE,
+  chainSegment,
+  pushOut,
+  toWorld,
+  type P2,
+  type Placed,
+  type Solid,
+} from './plan';
 
 /**
  * THE BARN, AS A PLAN. No three.js, no React — just the numbers and the promises they have to keep.
@@ -476,6 +484,28 @@ export const STALL_DIVIDERS: readonly number[] = (() => {
  */
 export const LOFT = { from: 1.2, to: BARN_IN_HALF_D, y: 3.35 } as const;
 
+/** Thickness of the loft's floor deck, so its walking surface can be derived rather than re-typed. */
+export const LOFT_DECK = 0.12;
+
+/**
+ * THE SURFACE A CHILD STANDS ON UP THERE, which is not `LOFT.y`.
+ *
+ * `LOFT.y` is where the deck's mesh is CENTRED, because a `RoundedBoxGeometry` is centred on its origin.
+ * The floor is 6cm above that. This is the sort of half-thickness that gets typed as a corrected constant
+ * in one file and forgotten in the other, at which point a keeper stands 6cm inside their own floor or 6cm
+ * over it, so it is derived once and everything that needs it — the climb's stopping height, the one-way
+ * platform, the collider bands — imports this.
+ */
+export const LOFT_TOP = LOFT.y + LOFT_DECK / 2;
+
+/**
+ * The eye height of somebody standing on the loft, and the line that divides the barn's two storeys.
+ *
+ * Every height-banded collider in the building is banded on this: below it you are on the threshing floor
+ * and the loft's posts are in your way; above it you are on the loft and its guard rail is.
+ */
+export const LOFT_EYE = LOFT_TOP + KEEPER_EYE;
+
 /** The two posts under the loft's open edge. */
 export const LOFT_POSTS: readonly { x: number; z: number }[] = [
   { x: -(BARN_IN_HALF_W - 0.7), z: LOFT.from + 0.3 },
@@ -484,6 +514,22 @@ export const LOFT_POSTS: readonly { x: number; z: number }[] = [
 
 /** The ladder to the loft, standing just clear of its edge on the +X wall. */
 export const LADDER = { x: BARN_IN_HALF_W - 0.32, z: LOFT.from - 0.55 } as const;
+
+/**
+ * WHERE THE GUARD RAIL ALONG THE LOFT'S EDGE STOPS, leaving the ladder's opening.
+ *
+ * A hayloft with a rail right across its edge is a hayloft you cannot get onto, and this one now has a
+ * ladder a child climbs. So the rail runs from the -X wall to here and the last 1.55m — the bay the ladder
+ * stands in, out to the +X wall — is left open. At the END of the run rather than as a hole punched in the
+ * middle of it, because that is both how a real loft opening is arranged and the arrangement that needs
+ * one post instead of two.
+ *
+ * IT IS ALSO A COLLIDER, and that is the half that matters more. Without a rail the child walks off a
+ * 3.4m edge anywhere along ten metres of it; with one, the ONLY way off the loft is the opening, and the
+ * opening is inside the ladder's grab circle — so walking out of it puts them on the ladder rather than in
+ * the air. `ladder.test.ts` asserts exactly that.
+ */
+export const LOFT_RAIL_TO = LADDER.x - 1.24;
 
 /** The two feed bins against the closed end. */
 export const FEED_BINS: readonly { x: number; z: number }[] = [
@@ -546,16 +592,72 @@ export function barnSolids(): Solid[] {
    * `doorwayWalkReport` clean: furniture that blocked the way in would be the same defect as a sealed
    * collider chain, arrived at from the other direction.
    */
+  /**
+   * THE POSTS AND THE LADDER STOP AT THE LOFT'S UNDERSIDE, so their circles do too.
+   *
+   * All three are things that hold the loft up or lead to it, and there is nothing at all where they stand
+   * once you are ON it. Left unbanded, the two posts alone make the corner of the loft the ladder arrives
+   * at unstandable — a 0.3m circle against a 0.45m keeper reserves 0.75m, and the post nearest the ladder
+   * is 0.4m from where a child steps off it, so the collider would shove them straight back into the
+   * opening they had just climbed out of. See `Solid.eye` in `plan.ts` for why the band reads the way it
+   * does, and note that a consumer which ignores it gets today's behaviour unchanged.
+   */
+  const belowLoft: readonly [number, number] = [-Infinity, LOFT_EYE - 0.1];
   for (const post of LOFT_POSTS) {
-    out.push({ position: [...toWorld(BARN, post.x, post.z)] as [number, number], radius: 0.3 });
+    out.push({
+      position: [...toWorld(BARN, post.x, post.z)] as [number, number],
+      radius: 0.3,
+      eye: belowLoft,
+    });
   }
-  out.push({ position: [...toWorld(BARN, LADDER.x, LADDER.z)] as [number, number], radius: 0.36 });
+  out.push({
+    position: [...toWorld(BARN, LADDER.x, LADDER.z)] as [number, number],
+    radius: 0.36,
+    eye: belowLoft,
+  });
   for (const bin of FEED_BINS) {
     out.push({ position: [...toWorld(BARN, bin.x, bin.z)] as [number, number], radius: 0.62 });
   }
 
   return out;
 }
+
+/**
+ * The colliders that exist only for somebody standing ON the loft, which is why they are not in `SOLIDS`.
+ *
+ * KEPT SEPARATE ON PURPOSE. Everything in `barnSolids()` is either unbanded or banded to disappear
+ * upstairs, so a caller that has never heard of `Solid.eye` — `stations/preview.tsx`, say — reads the same
+ * world it always read. These two chains are the opposite: they do not exist downstairs, and a caller that
+ * ignored their band would find an invisible wall across the middle of the barn's floor and another across
+ * its doorway. Making them opt-in means the only thing that can be wrong about them is the one loop that
+ * asks for them, rather than every loop that does not.
+ *
+ * TWO CHAINS, AND THE SECOND IS THE ONE NOBODY WOULD THINK OF.
+ *
+ * The RAIL is the loft's open edge, and it stops at `LOFT_RAIL_TO` to leave the ladder's opening.
+ *
+ * The GABLE INFILL closes the doorway — at loft height only. The loft's floor is at 3.41 and the head of
+ * the big doors is at 4.06, so there is a 65cm slot in the +Z wall right at a child's feet up there, and
+ * the doorway's collider is deliberately absent across it because that gap is the whole point of the
+ * doorway downstairs. A flat-world collider set has no way to tell those two apart, so on the loft a child
+ * would walk straight out through the top of the barn doors and fall into the yard. It is exactly the kind
+ * of failure this file exists to catch: invisible in every screenshot, and found by walking.
+ */
+export const LOFT_SOLIDS: readonly Solid[] = (() => {
+  const out: Solid[] = [];
+  const aboveLoft: readonly [number, number] = [LOFT_EYE - 0.1, Infinity];
+  const rail = chainSegment(
+    BARN,
+    [-BARN_IN_HALF_W, LOFT.from + 0.06],
+    [LOFT_RAIL_TO, LOFT.from + 0.06],
+    0.3,
+    0.5,
+  );
+  const jambX = DOOR.halfW - 0.05;
+  const infill = chainSegment(BARN, [-jambX, BARN_D / 2], [jambX, BARN_D / 2], 0.55, 0.85);
+  for (const s of [...rail, ...infill]) out.push({ ...s, eye: aboveLoft });
+  return out;
+})();
 
 /* ------------------------------------------------------------------ *\
    The two invariants, as reports rather than as claims

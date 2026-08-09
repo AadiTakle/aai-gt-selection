@@ -41,9 +41,7 @@ import {
   BALE_CUT_X,
   BALE_TWINE_X,
   BarnInterior,
-  SACK,
   baleGeometries,
-  sackGeometries,
 } from './barnInterior';
 import {
   BOUNDARY,
@@ -63,7 +61,7 @@ import { LANES, NETWORK, TRACK, distanceToTracks } from './paths';
 import { PIG, materials } from './pigment';
 import { chainOutline, roundedRectOutline, toWorld, type P2, type Placed, type Solid } from './plan';
 import { eaveCollarGeometry, gableRoofGeometry, gableWallGeometry, hipRoofGeometry } from './roofs';
-import { rippleTexture } from './textures';
+import { flowingWater, useWaterClock } from './water';
 import { Windows, wallTaken } from './windows';
 
 /**
@@ -239,13 +237,14 @@ function roundedRectShapeXY(w: number, h: number, r: number): Shape {
    Props, in their building's local frame
 \* ------------------------------------------------------------------ */
 
+/**
+ * A bale in the yard. No `kind` and no `scale` any more: the sacks that needed both are gone (see
+ * `BARN_YARD`), and a bale is a fixed object — see `BALE` in `barnInterior.tsx`.
+ */
 interface YardProp {
-  kind: 'bale' | 'sack';
   lx: number;
   lz: number;
   rot: number;
-  /** Sacks only. A bale is a fixed object — see `BALE` in `barnInterior.tsx`. */
-  scale: number;
   /**
    * Which course of the stack a bale is in, and it has to be STATED rather than inferred.
    *
@@ -258,24 +257,137 @@ interface YardProp {
   lift?: 0 | 1;
 }
 
-/** Beside the barn doors: bales one side, feed sacks the other, both clear of the door leaves. */
+/**
+ * Beside the barn doors: bales on the right, and a water trough on the left where the sacks used to be.
+ *
+ * WHAT THE OWNER WAS LOOKING AT, because he called them hay bales and they were not. "fix the haybales
+ * next to the left side of the barn doors because they look like weird jugs" — approaching the doors from
+ * the yard you are looking down the barn's local -Z, so your left hand points down its local -X, and the
+ * three things standing at local x = -3.4 to -4.2 were the FEED SACKS. The bales are the other side, at
+ * +3.15 to +3.55, on his right. Nothing on the left was ever a bale.
+ *
+ * AND "WEIRD JUGS" IS AN EXACT DESCRIPTION OF WHAT WAS THERE. The sacks had just been rebuilt from a badly
+ * filleted capsule into four stacked stages — body, shoulder, neck, tie — and `SACK`'s own note records the
+ * failure mode it was trying to walk away from: "Two stages is a jar. Three is a sack." Three stages plus a
+ * pale band across the top is a jar with a lid on it, at any spacing, and a screenshot from a child's eye
+ * height shows three canisters with screw caps. The rebuild is what he is reacting to and he is right.
+ *
+ * SO THEY ARE GONE, and his own suggestion is what stands there: a trough of water. The sack geometry stays
+ * exported from `barnInterior.tsx` — nothing else uses it today, but deleting a shape is a separate
+ * decision from deleting a placement, and the four-part construction is sound work whose only fault is
+ * that a sack is the wrong object to put beside a door.
+ */
 const BARN_YARD: readonly YardProp[] = [
-  { kind: 'bale', lx: 3.15, lz: 8.55, rot: 0.3, scale: 1, lift: 0 },
-  { kind: 'bale', lx: 3.55, lz: 9.42, rot: -0.12, scale: 1, lift: 0 },
+  { lx: 3.15, lz: 8.55, rot: 0.3, lift: 0 },
+  { lx: 3.55, lz: 9.42, rot: -0.12, lift: 0 },
   // Thrown on top of the first, turned a little out of true with it.
-  { kind: 'bale', lx: 3.22, lz: 8.62, rot: 0.52, scale: 1, lift: 1 },
-  { kind: 'sack', lx: -3.4, lz: 8.3, rot: 0.2, scale: 1 },
-  { kind: 'sack', lx: -4.2, lz: 8.1, rot: -0.5, scale: 0.9 },
-  { kind: 'sack', lx: -3.9, lz: 7.6, rot: 0.9, scale: 0.85 },
+  { lx: 3.22, lz: 8.62, rot: 0.52, lift: 1 },
 ];
 
-/** The trough stands inside the near pen, where a trough belongs. */
-const TROUGH = (() => {
-  const pen = PENS[1];
-  if (!pen) return { x: 14, z: 3, rot: 0 };
-  const w = toWorld(pen, 2.8, -1.5);
-  return { x: w[0], z: w[1], rot: pen.rot + 0.18 };
-})();
+/**
+ * The two troughs, and there is ONE trough on this ranch rather than two different ones.
+ *
+ * Same doctrine as `BALE` in `barnInterior.tsx`, and it is here for the same reason it is there: the ranch
+ * used to have two bales, "a pillow out here and a different pillow in the loft", and a child walks past
+ * both. A trough beside the barn doors and a trough in the pen are forty metres apart in a world you can
+ * walk across in fifteen seconds. So `TROUGH` below is one object at one size, and this is only where it
+ * stands — which also means the fillet on it is a fixed radius on a fixed geometry and cannot be scaled
+ * into a pillow at one site and a stick of butter at the other.
+ *
+ * The barn-door one is turned 4° out of square with the wall. Dead parallel reads as placed by a level;
+ * a few degrees off reads as put down by somebody carrying it.
+ */
+const TROUGHS: readonly Placed[] = [
+  (() => {
+    const w = toWorld(BARN, -3.75, 8.15);
+    return { x: w[0], z: w[1], rot: BARN.rot + 0.07 };
+  })(),
+  (() => {
+    const pen = PENS[1];
+    if (!pen) return { x: 14, z: 3, rot: 0 };
+    const w = toWorld(pen, 2.8, -1.5);
+    return { x: w[0], z: w[1], rot: pen.rot + 0.18 };
+  })(),
+];
+
+/**
+ * WHAT A TROUGH IS, and the one thing the trough that was already here was not: a VESSEL.
+ *
+ * The old one was `RoundedBoxGeometry(2.7, 0.62, 1.0)` in stone with a water plane laid at y = 0.79. The
+ * box's top face is at 0.87. So the water was twelve centimetres INSIDE a solid block and had never once
+ * been visible — the same failure `stations/carpentry.tsx` records against the first spring basin, "a
+ * rounded box is SOLID: its top face is closed, so the water was sealed inside an opaque stone block",
+ * repeated forty metres away. A trough with no visible water is a bench.
+ *
+ * So it is built the way the basin was rebuilt: FOUR WALLS AND A FLOOR, with a real thickness, and the
+ * water is a surface inside them with a dark wet bed under it and 12cm of freeboard above it. The
+ * freeboard is the number that does the work — water level WITH the rim reads as a painted lid, and the
+ * only thing that says "there is a volume here" is being able to see the inside face of the far board
+ * above the waterline.
+ *
+ * PLANKS, NOT STONE, and that is a deliberate move away from the old one. The barn-door trough stands
+ * two metres in front of a stone plinth, and stone on stone in the same frame loses the object entirely;
+ * the timber sits against it the way the fence rails sit against the pens. The two stone blocks it stands
+ * on are what tie it back to the building, and they are the pale member in a stack that runs
+ * pale stone → mid timber boards → dark capping rail and battens → darker wet bed → teal water. Five
+ * values, because a flat unlit face on this ranch resolves to near-black and a trough built out of one
+ * material would be a silhouette from the shaded side.
+ *
+ * ONE FIXED SIZE. Both troughs are this size and the fillets are radii in world units on a geometry that
+ * is never scaled — the bale's doctrine, for the reason `BALE` gives.
+ */
+const TROUGH_BODY = {
+  /** Outside, along the long axis. */
+  l: 2.24,
+  /** Outside, across. 88cm, and the width is set by the WATER rather than by the vessel — see below. */
+  w: 0.88,
+  /** Board thickness. Every wall and the floor. */
+  t: 0.085,
+  /** Height of the side boards, from the stone up. */
+  h: 0.46,
+  /** The capping rail laid over the boards' top edges, and how far it oversails them. */
+  cap: 0.07,
+  capOut: 0.04,
+  /** The two stone blocks it stands on. */
+  foot: 0.14,
+  footL: 0.44,
+  /**
+   * How far the water sits below the top of the boards, and 5.5cm is a screenshot's answer rather than a
+   * guess.
+   *
+   * EVERY NUMBER IN THIS BLOCK IS SET BY ONE SIGHTLINE: a five-year-old's eye is 1.5m up and they meet
+   * this thing from three or four metres away, which is a depression of fifteen to twenty degrees. At that
+   * angle a rim only has to stand a little above the water to hide all of it — the first pass had the
+   * boards 74cm tall with 12cm of freeboard, and the shot from the approach showed a planter box. Nothing
+   * about it was wrong except that the one thing it exists to show was behind a board.
+   *
+   * So the rim came down to 67cm over the grass and the water came up to 5.5cm under it, which is where a
+   * trough somebody actually fills sits anyway. Deeper freeboard is not more realistic, it is emptier.
+   */
+  freeboard: 0.055,
+} as const;
+
+/** Heights derived once, so the boards, the bed and the water cannot drift out of agreement. */
+const TROUGH_AT = {
+  /** Underside of the boards, top of the stone. */
+  base: TROUGH_BODY.foot,
+  /** Top edge of the boards, under the cap. */
+  lip: TROUGH_BODY.foot + TROUGH_BODY.h,
+  /** Centre of a side board. */
+  board: TROUGH_BODY.foot + TROUGH_BODY.h / 2,
+  /** Centre of the capping rail. */
+  cap: TROUGH_BODY.foot + TROUGH_BODY.h + TROUGH_BODY.cap / 2,
+  /** Centre of the floor board. */
+  bed: TROUGH_BODY.foot + TROUGH_BODY.t / 2,
+  /** The waterline. */
+  water: TROUGH_BODY.foot + TROUGH_BODY.h - TROUGH_BODY.freeboard,
+} as const;
+
+/** Clear inside the boards, which is what the water has to fit in. */
+const TROUGH_IN = {
+  l: TROUGH_BODY.l - TROUGH_BODY.t * 2,
+  w: TROUGH_BODY.w - TROUGH_BODY.t * 2,
+} as const;
 
 /* ------------------------------------------------------------------ *\
    Keep-out, then the scatter
@@ -477,17 +589,34 @@ export const SOLIDS: Solid[] = (() => {
   out.push(...BOUNDARY.solids);
 
   out.push({ position: [WINDMILL.x, WINDMILL.z], radius: 1.5 });
-  out.push({ position: [TROUGH.x, TROUGH.z], radius: 1.55 });
+
+  /**
+   * THE TROUGH'S COLLIDER, AND WHY IT IS A CHAIN NOW.
+   *
+   * One 1.55m circle for a 2.24 x 0.82m box is the same mistake the barn's old closed chain was: a single
+   * circle round an oblong thing is either inscribed and lets a child walk through the ends, or
+   * circumscribed and holds them 1.1m off the sides of a vessel they are supposed to be able to lean over
+   * and look into. 1.55 was the second, and the whole point of putting a trough where the sacks were is
+   * that a child gets close enough to see the water in it.
+   *
+   * Three 0.46m circles along the long axis approximate a 2.2 x 0.92m capsule to about 4cm, and hold a
+   * 0.45m keeper 0.45m off the boards — near enough to look down into, too far to stand inside.
+   *
+   * `TROUGH_BODY.l / 2 - 0.46` is arithmetic rather than a typed 0.66 for the reason the whole file
+   * prefers derivation: a collider sized for a shape that has since changed is the defect the sacks'
+   * 0.55m circle recorded, and it is invisible in every screenshot.
+   */
+  for (const t of TROUGHS) {
+    const reach = TROUGH_BODY.l / 2 - 0.46;
+    for (const along of [-reach, 0, reach]) {
+      const w = toWorld(t, along, 0);
+      out.push({ position: [w[0], w[1]], radius: 0.46 });
+    }
+  }
 
   for (const prop of BARN_YARD) {
     const w = toWorld(BARN, prop.lx, prop.lz);
-    /**
-     * The sack's circle came down with its geometry. 0.55 was sized for the 62cm marshmallow that used
-     * to stand here; a real sack is 54 x 38cm, whose half-diagonal is 0.33, so the old circle held a
-     * child a fifth of a metre off thin air beside the barn doors. A collider that outlives the shape it
-     * was cut for is exactly the kind of thing nobody sees and everybody bumps into.
-     */
-    out.push({ position: [w[0], w[1]], radius: prop.kind === 'bale' ? 0.72 : 0.4 });
+    out.push({ position: [w[0], w[1]], radius: 0.72 });
   }
 
   // Only the trees a child can reach. `BOUND` is 34, so anything past 36 is decoration.
@@ -1681,42 +1810,149 @@ function Pens(): JSX.Element {
    Props
 \* ------------------------------------------------------------------ */
 
-function Trough(): JSX.Element {
+/**
+ * Both troughs, in seven instanced draw calls plus one surface each.
+ *
+ * INSTANCED ACROSS BOTH SITES rather than a component per trough, and the reason is the same one
+ * `instanced.tsx` gives: a plank trough is eighteen members, so two of them modelled as plain meshes would
+ * cost thirty-six calls against a whole-ranch budget of about two hundred and seventy. Built through
+ * `Instanced` the two cost nine, and the two that are not instanced are the water surfaces — which cannot
+ * be, because each carries its own uniforms.
+ *
+ * THE BATTENS ARE ONE GEOMETRY TURNED, not two. The four on the long sides and the two on the ends are the
+ * same board; the end ones are yawed a quarter turn. Two geometries would be two chances for them to stop
+ * matching, and a fillet is a radius so a "just scale it" second copy is the bug this file keeps catching.
+ */
+function Troughs(): JSX.Element {
   const m = materials();
   const reduced = usePrefersReducedMotion();
-  const ripple = useMemo(() => rippleTexture(), []);
 
-  const g = useMemo(
-    () => ({
-      body: new RoundedBoxGeometry(2.7, 0.62, 1.0, 3, 0.16),
-      leg: new RoundedBoxGeometry(0.18, 0.28, 0.7, 2, 0.06),
-      water: new ShapeGeometry(roundedRectShapeXY(2.34, 0.68, 0.14)),
-    }),
+  const g = useMemo(() => {
+    const b = TROUGH_BODY;
+    return {
+      /** A side board. 2.2cm on an 8.5cm board: soft sawn timber that still keeps an edge for the sun. */
+      side: new RoundedBoxGeometry(b.l, b.h, b.t, 2, 0.022),
+      /** An end board, let in BETWEEN the sides, which is why it is `w - 2t` and not `w`. */
+      end: new RoundedBoxGeometry(b.t, b.h, b.w - b.t * 2, 2, 0.022),
+      /** The floor, sitting on the stone inside the four walls. */
+      bed: new RoundedBoxGeometry(b.l - b.t * 2, b.t, b.w - b.t * 2, 1, 0.018),
+      capLong: new RoundedBoxGeometry(b.l + b.capOut * 2, b.cap, b.t + b.capOut * 2, 1, 0.02),
+      capEnd: new RoundedBoxGeometry(b.t + b.capOut * 2, b.cap, b.w - b.t * 2, 1, 0.02),
+      /** A batten over the board joint. Turned a quarter for the two on the ends. */
+      batten: new RoundedBoxGeometry(0.1, b.h + 0.04, 0.05, 1, 0.016),
+      foot: new RoundedBoxGeometry(b.footL, b.foot, b.w - 0.1, 1, 0.03),
+      /**
+       * The water, 2cm over the clear opening so it tucks a centimetre under the boards all round. Without
+       * that there is a hairline of bed showing at the join from a low angle, which reads as a gap between
+       * the water and the vessel — the spring's surface oversails its basin by 6cm for the same reason.
+       */
+      water: new ShapeGeometry(roundedRectShapeXY(TROUGH_IN.l + 0.02, TROUGH_IN.w + 0.02, 0.05)),
+    };
+  }, []);
+
+  /**
+   * THE SAME WATER AS THE SPRING, and the differences are stated rather than invented.
+   *
+   * `world/water.ts` is the ranch's only water and this reuses its surface whole: the two drift layers, the
+   * lensed caustics, the displaced bed and the fresnel that opens the alpha at a grazing angle. What a
+   * trough is not is FED — there is no flume over it — so `disturbance` is 0, which takes the impact rings,
+   * the churn patch and the travelling foam crest away together. Leaving them on would put ripples on the
+   * surface radiating from a source that does not exist, which `water.ts` argues is worse than none.
+   *
+   * `speed` 0.3 because a trough does not turn over, and `rimBand` 0.035 because the wet line has to scale
+   * with the vessel: the spring's 6cm band across a 65cm-wide trough would be a painted border, which is
+   * the exact criticism that got it lowered to 6cm in the first place.
+   *
+   * ONE MATERIAL PER TROUGH, not one shared, because each carries its own `uHalf` — a shared material would
+   * put the pen trough's waterline on the barn trough's boards.
+   */
+  const water = useMemo(
+    () =>
+      TROUGHS.map(() =>
+        flowingWater({
+          half: [(TROUGH_IN.l + 0.02) / 2, (TROUGH_IN.w + 0.02) / 2],
+          speed: 0.3,
+          disturbance: 0,
+          rimBand: 0.035,
+        }),
+      ),
     [],
   );
 
-  const water = useMemo(() => {
-    const mat = m.water.clone();
-    if (ripple) {
-      mat.normalMap = ripple;
-      mat.normalScale.set(0.55, 0.55);
-    }
-    return mat;
-  }, [m.water, ripple]);
+  /** One tick for every piece of water in the world; `useWaterClock` advances it once however many call. */
+  useWaterClock(reduced);
 
-  useFrame(({ clock }) => {
-    if (reduced || !ripple) return;
-    ripple.offset.set(clock.elapsedTime * 0.012, clock.elapsedTime * 0.008);
-  });
+  /**
+   * Every member of both troughs, in world space.
+   *
+   * `toWorld` for each offset rather than a `<group>` per trough, because an `InstancedMesh` has one
+   * transform and its instances are already absolute. Getting this wrong is not subtle — the parts end up
+   * in a heap at the origin — but writing it out is what lets both troughs share one call per member.
+   */
+  const parts = useMemo(() => {
+    const b = TROUGH_BODY;
+    const side: Placement[] = [];
+    const end: Placement[] = [];
+    const bed: Placement[] = [];
+    const capLong: Placement[] = [];
+    const capEnd: Placement[] = [];
+    const batten: Placement[] = [];
+    const foot: Placement[] = [];
+
+    for (const t of TROUGHS) {
+      const put = (into: Placement[], lx: number, y: number, lz: number, spin = 0) => {
+        const w = toWorld(t, lx, lz);
+        into.push({ position: [w[0], y, w[1]], rot: [0, t.rot + spin, 0] });
+      };
+      for (const sz of [-1, 1] as const) {
+        put(side, 0, TROUGH_AT.board, (sz * (b.w - b.t)) / 2);
+        put(capLong, 0, TROUGH_AT.cap, (sz * (b.w - b.t)) / 2);
+      }
+      for (const sx of [-1, 1] as const) {
+        put(end, (sx * (b.l - b.t)) / 2, TROUGH_AT.board, 0);
+        put(capEnd, (sx * (b.l - b.t)) / 2, TROUGH_AT.cap, 0);
+        // The end batten, turned a quarter so the same board reads across the end grain.
+        put(batten, sx * (b.l / 2 + 0.015), TROUGH_AT.board, 0, Math.PI / 2);
+        for (const sz of [-1, 1] as const) {
+          put(batten, sx * (b.l / 2 - 0.3), TROUGH_AT.board, sz * (b.w / 2 + 0.015));
+        }
+        put(foot, sx * (b.l / 2 - b.footL / 2 - 0.12), b.foot / 2, 0);
+      }
+      put(bed, 0, TROUGH_AT.bed, 0);
+    }
+    return { side, end, bed, capLong, capEnd, batten, foot };
+  }, []);
 
   return (
-    <group position={[TROUGH.x, 0, TROUGH.z]} rotation={[0, TROUGH.rot, 0]}>
-      {[-1, 1].map((s) => (
-        <mesh key={s} geometry={g.leg} material={m.timberDeep} position={[s * 1.05, 0.14, 0]} castShadow />
+    <group>
+      <Instanced geometry={g.foot} material={m.stone} items={parts.foot} />
+      <Instanced geometry={g.side} material={m.timber} items={parts.side} />
+      <Instanced geometry={g.end} material={m.timber} items={parts.end} />
+      {/*
+        The bed, the cap and the battens are all `timberDeep` against the boards' `timber`. That is the
+        tonal separation the whole thing rests on: a rim in the same tone as the board under it is not a
+        rim, it is a thicker board, and the vessel goes back to being a box.
+      */}
+      <Instanced geometry={g.bed} material={m.timberDeep} items={parts.bed} receiveShadow />
+      <Instanced geometry={g.capLong} material={m.timberDeep} items={parts.capLong} />
+      <Instanced geometry={g.capEnd} material={m.timberDeep} items={parts.capEnd} />
+      <Instanced geometry={g.batten} material={m.timberDeep} items={parts.batten} />
+      {/*
+        The surface, in a group of its own per trough. A group rather than a composed rotation on the mesh
+        because the plane is laid flat by a turn about X and then has to be yawed about world Y, and those
+        two do not commute in three's default Euler order — the same -90° that works inside a parent turns
+        the sheet on edge when the yaw is written beside it.
+      */}
+      {TROUGHS.map((t, i) => (
+        <group key={`${t.x},${t.z}`} position={[t.x, 0, t.z]} rotation={[0, t.rot, 0]}>
+          <mesh
+            geometry={g.water}
+            material={water[i]?.material ?? m.water}
+            position={[0, TROUGH_AT.water, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+          />
+        </group>
       ))}
-      <mesh geometry={g.body} material={m.stone} position={[0, 0.56, 0]} castShadow receiveShadow />
-      {/* Water sits below the rim, so the trough reads as containing it rather than wearing it. */}
-      <mesh geometry={g.water} material={water} position={[0, 0.79, 0]} rotation={[-Math.PI / 2, 0, 0]} />
     </group>
   );
 }
@@ -1737,27 +1973,22 @@ function BarnYard(): JSX.Element {
       bale: bale.body,
       band: bale.twine,
       cut: bale.cut,
-      /**
-       * THE SAME SACK AS INSIDE THE BARN, for exactly the reason the bale above is shared.
-       *
-       * This file used to carry its own: one `RoundedBoxGeometry(0.62, 0.86, 0.5)` with a 22cm fillet.
-       * On a 50cm depth that is 88% of the half-span, which is not a rounded box at all — it is a
-       * capsule, and `barnInterior.tsx` records that the same mistake inside the barn is exactly why a
-       * sack "lit as a marshmallow". So the ranch had two sacks: four-part tied sacks in the barn and
-       * three white pillows outside its doors, six metres apart, in the same frame from the yard.
-       */
-      sack: sackGeometries(),
     };
   }, []);
 
   /**
-   * NO PER-BALE SCALE ANY MORE. A bale is a fixed object — see `BALE` in `barnInterior.tsx` — so the yard's
-   * `scale` field now varies only the sacks, and the bales get their variety from being turned and stacked.
-   * Two on the ground and one thrown on top of them, which is how bales wait beside a door.
+   * NO PER-BALE SCALE. A bale is a fixed object — see `BALE` in `barnInterior.tsx` — so the bales get their
+   * variety from being turned and stacked. Two on the ground and one thrown on top of them, which is how
+   * bales wait beside a door.
+   *
+   * THE SACKS THAT USED TO BE THE OTHER HALF OF THIS COMPONENT ARE GONE; see `BARN_YARD` for what the owner
+   * was actually looking at and what stands there now. Their geometry is still exported from
+   * `barnInterior.tsx` and is still the right way to build a sack — it is the OBJECT that was wrong beside
+   * a door, not the modelling.
    */
   const bales = useMemo<Placement[]>(
     () =>
-      BARN_YARD.filter((p) => p.kind === 'bale').map((p) => {
+      BARN_YARD.map((p) => {
         const w = toWorld(BARN, p.lx, p.lz);
         return {
           position: [w[0], BALE.h * (0.5 + (p.lift ?? 0)), w[1]] as const,
@@ -1766,36 +1997,6 @@ function BarnYard(): JSX.Element {
       }),
     [],
   );
-  /**
-   * A sack is four parts, and the heights come from `SACK` rather than from here.
-   *
-   * The old single box was placed at a hand-typed `0.43 * scale`, which is the sort of number that is
-   * right once and then silently wrong the moment the thing it describes changes shape. `SACK` publishes
-   * a centre height for each stage — body, shoulder, neck and the twine round the throat — precisely so
-   * that a caller placing the four parts of one sack cannot get them out of agreement with each other.
-   * Every one is multiplied by the sack's own scale, so a 0.85 sack is a small sack rather than a normal
-   * sack sunk into the ground.
-   */
-  const sacks = useMemo(() => {
-    const body: Placement[] = [];
-    const shoulder: Placement[] = [];
-    const neck: Placement[] = [];
-    const tie: Placement[] = [];
-    for (const prop of BARN_YARD) {
-      if (prop.kind !== 'sack') continue;
-      const w = toWorld(BARN, prop.lx, prop.lz);
-      const rot = [0, BARN.rot + prop.rot, 0] as const;
-      const scale = [prop.scale, prop.scale, prop.scale] as const;
-      const put = (list: Placement[], y: number): void => {
-        list.push({ position: [w[0], y * prop.scale, w[1]] as const, rot, scale });
-      };
-      put(body, SACK.bodyY);
-      put(shoulder, SACK.shoulderY);
-      put(neck, SACK.neckY);
-      put(tie, SACK.tieY);
-    }
-    return { body, shoulder, neck, tie };
-  }, []);
   /**
    * Twine and cut ends, at the offsets `barnInterior.tsx` publishes, so the two sets of bales are wrapped
    * identically. The one bale here with a roll on it is why the offsets are turned by the full placement
@@ -1831,16 +2032,6 @@ function BarnYard(): JSX.Element {
       <Instanced geometry={g.bale} material={m.hay} items={bales} />
       <Instanced geometry={g.band} material={m.twine} items={dressing.twine} />
       <Instanced geometry={g.cut} material={m.straw} items={dressing.cut} />
-      {/*
-        Three sacks, twelve parts, four draw calls — one per stage rather than one per sack, which is
-        the whole reason the stages are separate geometries. The tie is on `twine` and everything else
-        on `burlap`: a band that shares the cloth's material disappears into it and the sack goes back
-        to being a box, which is the same note the bale's twine carries.
-      */}
-      <Instanced geometry={g.sack.body} material={m.burlap} items={sacks.body} />
-      <Instanced geometry={g.sack.shoulder} material={m.burlap} items={sacks.shoulder} />
-      <Instanced geometry={g.sack.neck} material={m.burlap} items={sacks.neck} />
-      <Instanced geometry={g.sack.tie} material={m.twine} items={sacks.tie} />
     </group>
   );
 }
@@ -2090,7 +2281,7 @@ export function Buildings(): JSX.Element {
       */}
       <Windows />
       <Pens />
-      <Trough />
+      <Troughs />
       <BarnYard />
       <Windmill reduced={reduced} />
       <Foliage />

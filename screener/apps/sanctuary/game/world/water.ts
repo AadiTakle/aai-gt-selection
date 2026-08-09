@@ -72,13 +72,31 @@ export function reducedRate(reduced: boolean): number {
 }
 
 /**
- * Advances the shared water clock. Call from exactly one `useFrame` per scene.
+ * The frame the clock was last advanced on, so it advances ONCE however many callers there are.
+ *
+ * There is more than one piece of water in the world now — the spring in `stations/carpentry.tsx` and the
+ * troughs in `world/Buildings.tsx` — and the old contract, "call from exactly one `useFrame` per scene",
+ * cannot be kept by either of them alone: the spring is not mounted in the `world/` preview, and a scene
+ * with no spring in it would leave every trough frozen. Nor can it be kept by *both* of them, because two
+ * tickers advance the shared clock twice a frame and every surface in the world runs at double speed.
+ *
+ * So the rule moves from the caller to here: every water component may tick, and only the first one each
+ * frame does anything. `state.clock.elapsedTime` is the stamp because R3F reads it once per loop and hands
+ * the same value to every subscriber in that loop, so it identifies a frame exactly.
+ */
+let TICKED_AT = -1;
+
+/**
+ * Advances the shared water clock. Safe to call from every component that owns water; see `TICKED_AT`.
  *
  * Returns the clock so a caller can read it for anything it wants to drive in step — the splash rings
  * do, which is how they stay married to the fall.
  */
 export function useWaterClock(reduced: boolean): IUniform<number> {
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
+    const stamp = state.clock.elapsedTime;
+    if (stamp === TICKED_AT) return;
+    TICKED_AT = stamp;
     // Clamped, so a tab that was in the background for a minute does not resume with the surface
     // teleported half a metre downstream.
     CLOCK.value += Math.min(dt, 0.05) * reducedRate(reduced);
@@ -184,12 +202,18 @@ const SURFACE_GLSL = /* glsl */ `
   );
 
   // ---- rings from where the stream lands ------------------------------------
+  //
+  // uDisturb IS "IS THERE A SOURCE AT ALL". Everything in this block — the ring slope, the churn patch
+  // and the travelling foam crest — is a consequence of water arriving from somewhere, and the file's own
+  // rule about the impact point is that a feature implying a source that is not there is worse than no
+  // feature. A trough standing in a yard has no inflow, so it passes 0 and gets only the drift layers and
+  // the wet line at its rim; the spring passes 1 and is unchanged to the bit.
   vec2 fromImpact = pos - uImpact;
   float d = length( fromImpact );
   vec2 outward = fromImpact / max( d, 1e-4 );
   // uRing = ( spatial frequency, radians/sec, falloff per metre, amplitude )
   float phase = d * uRing.x - uTime * uRing.y;
-  float decay = exp( -d * uRing.z );
+  float decay = exp( -d * uRing.z ) * uDisturb;
   slope += outward * cos( phase ) * uRing.w * decay;
 
   // ---- the normal -----------------------------------------------------------
@@ -229,14 +253,16 @@ const SURFACE_GLSL = /* glsl */ `
   // ---- foam ----------------------------------------------------------------
   // Three sources, all of them consequences of something visible rather than decoration.
   // 1. Where the stream lands: a churn patch, held off a clean circle by the wave field itself.
-  float churn = smoothstep( uImpactRadius, uImpactRadius * 0.35, d + ( nA.x + nB.y ) * 0.09 );
-  // 2. The crest of each travelling ring, thin and outward-running.
+  float churn = smoothstep( uImpactRadius, uImpactRadius * 0.35, d + ( nA.x + nB.y ) * 0.09 ) * uDisturb;
+  // 2. The crest of each travelling ring, thin and outward-running. decay already carries uDisturb.
   float crest = smoothstep( 0.45, 0.95, cos( phase ) ) * decay * 0.85;
   // 3. The wet line where the water meets the kerb, wobbled so it is never a drawn outline.
   // 6cm and weighted 0.3: this basin is only 93cm across inside, so the 8.5cm band the first pass used
-  // covered a fifth of the whole surface and read as a painted border rather than as a waterline.
+  // covered a fifth of the whole surface and read as a painted border rather than as a waterline. It is a
+  // uniform because that argument is about the band as a FRACTION of the vessel, and a trough is 65cm
+  // across inside — the same 6cm there is the painted border this number was lowered to avoid.
   vec2 toRim = uHalf - abs( pos );
-  float rim = 1.0 - smoothstep( 0.0, 0.06, min( toRim.x, toRim.y ) + slope.x * 0.02 );
+  float rim = 1.0 - smoothstep( 0.0, uRimBand, min( toRim.x, toRim.y ) + slope.x * 0.02 );
   float foam = saturate( churn * 0.9 + crest + rim * 0.3 );
 
   // ---- put it together -----------------------------------------------------
@@ -257,14 +283,33 @@ export interface SurfaceSpec {
    * `ShapeGeometry`, is metres in the mesh's local X/Y. Passed in rather than assumed: the caller is the
    * only thing that knows where it put the flume, and a ring centred on the wrong spot is worse than no
    * ring at all because it implies a source that is not there.
+   *
+   * Optional only because `disturbance: 0` water has no source to point at, and a required field whose
+   * value is meaningless is a field that gets filled in with a lie.
    */
-  impact: readonly [number, number];
+  impact?: readonly [number, number];
   /** Half extents of the pool in the same frame, for the wet line at the kerb. */
   half: readonly [number, number];
   /** Radius of the churn patch under the stream. */
   impactRadius?: number;
   /** Downstream direction, unit-ish. The broad layer drifts this way, away from the impact. */
   flow?: readonly [number, number];
+  /**
+   * How fast the two drift layers run, as a multiple of the spring's own rate.
+   *
+   * A fed basin turns over; a trough does not. The trough passes 0.3, which is slow enough that what a
+   * child sees is the sun's highlight crawling across the surface rather than a current — and that
+   * crawling highlight is the single cue that says "water" rather than "a blue lid", which is the whole
+   * complaint this module was written to answer.
+   */
+  speed?: number;
+  /**
+   * 1 for water with a source, 0 for water without one. Scales the impact rings, the churn patch and the
+   * travelling foam crest together, because all three are the same wave. See the note in `SURFACE_GLSL`.
+   */
+  disturbance?: number;
+  /** Width of the wet line at the rim, in metres. Scale it with the vessel, not with the spring. */
+  rimBand?: number;
 }
 
 export interface FlowingWater {
@@ -287,15 +332,19 @@ export function flowingWater(spec: SurfaceSpec): FlowingWater {
   const flow = spec.flow ?? [1, 0.18];
   const flowLen = Math.hypot(flow[0], flow[1]) || 1;
 
+  const speed = spec.speed ?? 1;
+
   const uniforms: Record<string, IUniform> = {
     uTime: CLOCK,
     // Metres per second, and slow. Fast water is a river; a fed spring basin turns over gently, and the
     // first pass of this at 0.4 m/s read as a conveyor belt.
-    uFlowA: { value: new Vector2((flow[0] / flowLen) * 0.115, (flow[1] / flowLen) * 0.115) },
-    uFlowB: { value: new Vector2(0.052, -0.086) },
+    uFlowA: {
+      value: new Vector2((flow[0] / flowLen) * 0.115 * speed, (flow[1] / flowLen) * 0.115 * speed),
+    },
+    uFlowB: { value: new Vector2(0.052 * speed, -0.086 * speed) },
     uScaleA: { value: 0.55 },
     uScaleB: { value: 1.28 },
-    uImpact: { value: new Vector2(spec.impact[0], spec.impact[1]) },
+    uImpact: { value: new Vector2(spec.impact?.[0] ?? 0, spec.impact?.[1] ?? 0) },
     uImpactRadius: { value: spec.impactRadius ?? 0.34 },
     uHalf: { value: new Vector2(spec.half[0], spec.half[1]) },
     /** frequency (rad/m), speed (rad/s), falloff (1/m), amplitude. 9.2 rad/m is a 68cm wavelength. */
@@ -305,6 +354,8 @@ export function flowingWater(spec: SurfaceSpec): FlowingWater {
     uFoam: { value: new Color(WATER.foam) },
     /** Opacity looking straight down, and at a grazing angle. */
     uAlpha: { value: new Vector2(0.68, 0.97) },
+    uDisturb: { value: spec.disturbance ?? 1 },
+    uRimBand: { value: spec.rimBand ?? 0.06 },
   };
 
   const material = new MeshStandardMaterial({
@@ -348,6 +399,8 @@ export function flowingWater(spec: SurfaceSpec): FlowingWater {
         'uniform vec3 uShallow;',
         'uniform vec3 uFoam;',
         'uniform vec2 uAlpha;',
+        'uniform float uDisturb;',
+        'uniform float uRimBand;',
         '#include <common>',
       ].join('\n'),
     );
