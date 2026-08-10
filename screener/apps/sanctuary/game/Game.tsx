@@ -403,9 +403,24 @@ function Beat({
           })}
         </div>
       )}
-      <p className="bh-beat-note">
-        {s.answered} of about 4 · {battery}
-      </p>
+      {/*
+        * NO LABEL, AND NO COUNTER. This line used to read `{answered} of about 4 · {battery}`, so the
+        * weighing bough announced itself as "Quantitative" over the child's head.
+        *
+        * Owner: "i think it's best if the tests/stations didn't have the 'quantitative,' 'verbal,'
+        * 'nonverbal' label because these are supposed to be stealth screeners. the students aren't
+        * supposed to know that they're being tested in these regards ... if anything, no label needs to
+        * pop up."
+        *
+        * The battery name is the whole game given away: it is the name of a TEST SECTION, it is the one
+        * piece of vocabulary that tells a child their answers are being sorted into abilities, and it
+        * appeared on the one screen they cannot look away from.
+        *
+        * The count went with it rather than being kept. "0 of about 4" is a section length, which is the
+        * same disclosure in weaker words, and it is also the kind of progress bar that makes a child rush
+        * the last one — which corrupts the estimate this exists to produce. What remains above is the
+        * verb's own in-world name, which is a job on a ranch and not a category of mind.
+        */}
     </div>
   );
 }
