@@ -49,8 +49,20 @@ export interface VarietyConfig {
   readonly personaLookbackSessions: number;
 }
 
+/**
+ * Measured, not chosen. See `platform/scripts/simulate-variety.ts` and spec section 9.2.1.
+ *
+ * Against the real catalog with 1,000 simulated children of known ability, these settings classify
+ * true ability as accurately as the deterministic engine (0.920 both) for about 0.2 extra items per
+ * decision, while taking the cohort from 16 distinct items served to 507 and from one opening question
+ * to over 400.
+ *
+ * `randomesqueK` is 6 rather than 3 because 6 measured better: at K=3 accuracy was 0.914, at K=6 it was
+ * 0.920, and at K=10 it fell to 0.913. All three are within sampling noise of each other, and 6 is the
+ * best of them at no cost in session length.
+ */
 export const DEFAULT_VARIETY_CONFIG: VarietyConfig = {
-  randomesqueK: 3,
+  randomesqueK: 6,
   earlyKFraction: 0.1,
   earlyItemCount: 3,
   sameTypeDamping: true,

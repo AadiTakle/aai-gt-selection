@@ -437,19 +437,45 @@ looks alike.
 
 ### 9.2.1 What the layers are worth, measured
 
-Over 1,000 simulated 16-item sessions on a 120-item fixture, comparing the deterministic argmax the
-prototype uses today against the defaults above:
+Against the **real compiled catalog** — 4,534 scorable items across the 32 types that have any — with
+1,000 simulated children drawn from a standard normal, answering per the same 3PL the engine scores
+with. `platform/scripts/simulate-variety.ts` produces this table.
 
-| Property | Deterministic argmax | With variety |
+| Property | Deterministic argmax | With variety (defaults) |
 |---|---|---|
-| Distinct opening items | **1** | 24 |
-| Most common opening, as a share of sessions | **100%** | 5.8% |
-| Highest exposure rate of any item | **1.000** | 0.304 |
-| Adjacent pairs repeating a domain | **66.7%** | 1.2% |
-| Largest share of a session taken by one type | 12.5% | 12.5% |
+| Mean items to a decision | 10.16 | 10.37 |
+| **Accuracy against the child's true ability** | **0.920** | **0.920** |
+| Sensitivity / specificity | 0.835 / 0.937 | 0.805 / 0.943 |
+| Distinct opening items across 1,000 sessions | **1** | 406 |
+| Most common opening, as a share of sessions | **100%** | 0.7% |
+| Highest exposure rate of any item | **1.000** | 0.204 |
+| **Distinct items the whole cohort touched, of 4,534** | **16** | 506 |
+| Adjacent pairs repeating a domain | **51.0%** | 0.0% |
+| Largest share of a session taken by one type | **60.4%** | 10.5% |
 
-The first column is the honest statement of the problem: today every child gets the same opening
-question, and the engine's favourite item appears in every single session.
+The first column is the honest statement of the problem, and it is worse than "sessions look alike."
+A thousand children between them see **sixteen questions**. One item appears in every session. One
+question type fills three fifths of a session, which means that type — not the domain it belongs to —
+is what the session measures.
+
+**Variety is close to free.** It costs about 0.2 items per decision, and it classifies true ability
+exactly as well as the deterministic engine: 0.920 against 0.920. Agreement between the two policies
+is 0.948, but that is two policies being noisy in different directions near the threshold rather than
+one being worse, which is why accuracy against known ability is the number reported and agreement is
+reported beside it rather than instead of it.
+
+**Two findings worth carrying elsewhere.**
+
+*Sensitivity is the weak side.* Every policy sits near 0.80 sensitivity against 0.94 specificity: the
+screener misses roughly one in five truly-above children. That is the asymmetry
+`brainlifting/talent-screening-brainlift` SPOV 3 says is the first obligation to measure, and it is a
+consequence of the recommendation probability and item budget rather than of the selection policy.
+Raising sensitivity is a threshold and length decision, not a variety decision.
+
+*Same-type damping costs a little accuracy and buys construct validity.* Switching it off measured
+0.921 accuracy against 0.914 at the default, within sampling noise, while the largest share of a
+session taken by one type jumped from 10.5% to 26.4%. It stays on: a session that is a quarter one
+type is measuring that type.
 
 ### 9.3 The cost of variety, and how it gets set
 
@@ -460,24 +486,30 @@ the deterministic baseline — not by guessing.
 
 ```ts
 interface VarietyConfig {
-  readonly randomesqueK: number;              // 3
+  readonly randomesqueK: number;              // 6, measured (§9.2.1)
   readonly earlyKFraction: number;            // 0.10
   readonly earlyItemCount: number;            // 3
   readonly sameTypeDamping: boolean;          // true
   readonly domainInterleaveTolerance: number; // 0.10
   readonly targetExposureRate: number;        // 0.20, zero disables
-  readonly exposureDampingExponent: number;   // 3, measured (§9.2 layer 6)
+  readonly exposureDampingExponent: number;   // 3, see below
   readonly openingJitterLogits: number;       // 0.5, zero disables
   readonly personaLookbackSessions: number;   // 2
 }
 ```
 
-The figures in §9.2.1 come from a 120-item fixture, which is the hard case: 16 items per session out
-of 120 gives a mean achievable exposure rate of 0.133, so exposure control has little headroom. The
-real compiled catalog holds 4,534 scorable items, roughly thirty-eight times larger, where every one
-of these numbers gets easier. The fixture figures are therefore floors on the behaviour rather than
-predictions of production, and Task 9 of the implementation plan re-measures against the real
-catalog before the defaults are finalised.
+`randomesqueK` is 6 because 6 measured best: accuracy 0.920 at K=6 against 0.914 at K=3 and 0.913 at
+K=10, with no difference in session length. All three sit within sampling noise of each other at
+n=1,000, so this is choosing the best of several equivalent options rather than a strong result.
+
+**The exposure exponent's justification is narrower than it first appeared, and this is worth being
+straight about.** It was set to 3 after measuring a 120-item fixture, where proportional damping left
+maximum exposure at 0.425 against a 0.20 target. Against the real 4,534-item catalog the exponent
+barely matters: exponent 1 gives 0.213, exponent 3 gives 0.205, exponent 6 gives 0.202, all effectively
+at target. The exponent therefore earns its keep only when the eligible pool is *thin* — which is not a
+hypothetical, because eligibility is per app: an app that approves two question types has a pool closer
+to the fixture than to the catalog. It stays at 3 as the setting that is safe in both cases rather than
+tuned for one.
 
 ---
 
