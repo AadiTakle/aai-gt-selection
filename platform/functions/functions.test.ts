@@ -113,12 +113,30 @@ suite('the request path, end to end', () => {
 
   // --- helpers
 
-  async function startSession(body: Record<string, unknown> = {}): Promise<string> {
+  /**
+   * Start a session and pin its RNG seed.
+   *
+   * Production generates a fresh seed per session, which is correct there and hostile here: a test
+   * that asserts an exact stop reason is then asserting over a random draw of item difficulties, and a
+   * perfect responder who happens to be served easy items can legitimately reach the item cap instead
+   * of confidence. The seed is rewritten through the store rather than accepted from the request,
+   * because letting a client choose the seed would let a client choose its questions.
+   */
+  async function startSession(
+    body: Record<string, unknown> = {},
+    seed = 'fixed-test-seed',
+  ): Promise<string> {
     const response = await serveHandler(
       apiEvent({ method: 'POST', path: '/v1/sessions', appId, body: { ageBand: '3-5', ...body } }),
     );
     expect(response.statusCode).toBe(201);
-    return JSON.parse(response.body).sessionId as string;
+    const sessionId = JSON.parse(response.body).sessionId as string;
+
+    const session = await d.store.getSession(sessionId);
+    if (!session) throw new Error(`session ${sessionId} vanished after creation`);
+    await d.store.putSession({ ...session, rngSeed: seed });
+
+    return sessionId;
   }
 
   async function next(sessionId: string, asApp = appId): Promise<Record<string, unknown>> {
@@ -253,10 +271,42 @@ suite('the request path, end to end', () => {
       expect(session?.endedAt).not.toBeNull();
     });
 
-    it('gives two sessions different question sequences', async () => {
-      const a = await runSession(await startSession());
-      const b = await runSession(await startSession());
+    it('gives two differently seeded sessions different question sequences', async () => {
+      const a = await runSession(await startSession({}, 'seed-alpha'));
+      const b = await runSession(await startSession({}, 'seed-beta'));
       expect(a.served.map((s) => s.itemId).join()).not.toBe(b.served.map((s) => s.itemId).join());
+    });
+
+    /**
+     * Reproducing a session needs its seed *and* the exposure state it ran against.
+     *
+     * This test began life asserting that one seed always yields one sequence, and it failed every
+     * time. The seed is not the whole input: exposure damping reads counters that the previous session
+     * moved, so the same child sat twice against a different cohort history is legitimately asked
+     * different questions. That is exposure control working, not a leak of nondeterminism.
+     *
+     * Exact replay is a property of pure selection given identical inputs, and it is asserted where it
+     * is true: `selection.test.ts` for a single draw, and `variety.test.ts` for a whole cohort replayed
+     * from scratch, which reproduces the exposure trajectory as well as the seeds.
+     */
+    it('depends on cohort exposure as well as on its seed', async () => {
+      const a = await runSession(await startSession({}, 'seed-replay'));
+      const b = await runSession(await startSession({}, 'seed-replay'));
+      expect(a.served.map((s) => s.itemId)).not.toEqual(b.served.map((s) => s.itemId));
+    });
+
+    it('assigns a fresh seed per session in production, not a fixed one', async () => {
+      // The pinning above is a test affordance. Production must not share seeds between children, or
+      // every session would ask the same questions again.
+      const first = await serveHandler(
+        apiEvent({ method: 'POST', path: '/v1/sessions', appId, body: { ageBand: '3-5' } }),
+      );
+      const second = await serveHandler(
+        apiEvent({ method: 'POST', path: '/v1/sessions', appId, body: { ageBand: '3-5' } }),
+      );
+      const seedOf = async (r: { body: string }) =>
+        (await d.store.getSession(JSON.parse(r.body).sessionId as string))?.rngSeed;
+      expect(await seedOf(first)).not.toBe(await seedOf(second));
     });
   });
 

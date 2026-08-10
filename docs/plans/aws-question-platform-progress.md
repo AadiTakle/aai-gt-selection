@@ -93,13 +93,27 @@ Recorded because each one was a belief that survived review and died on contact 
    client weaken it would let a client decide how confident the platform has to be.
 9. `randomesqueK` defaults to 6 rather than 3, measured (spec §9.2.1).
 
-## Known open item
+## The intermittent failure, and what it turned out to be
 
-One test failed once during a full-suite run and did not reproduce across four subsequent full runs
-(`242 passed` each time, then `267 passed` after the infra suite landed). The failure was not captured
-before it cleared, so its cause is unknown. Most likely a first-run race between the store and handler
-suites both creating tables in DynamoDB Local. Worth watching; if it recurs, capture the name and give
-each suite its own container.
+A single test failed on two of roughly twelve full-suite runs and could not be reproduced on demand —
+thirteen consecutive clean runs, eight of them driving the handler suite alone. The name was never
+captured before it cleared.
+
+The likely cause was found by removing the nondeterminism rather than by catching it. `POST /v1/sessions`
+generates a fresh RNG seed per session, which is right in production and hostile in a test that asserts
+an exact stop reason: a perfect responder served a random draw of easy items can legitimately reach the
+item cap instead of confidence. Tests now pin the seed by rewriting the session record through the store
+— not by accepting a seed on the request, since letting a client choose the seed would let a client
+choose its questions. A separate test asserts production still assigns a fresh seed per session.
+
+Eight consecutive clean full runs at 269 tests followed. This is a hardening measure supported by a
+plausible mechanism, not a confirmed diagnosis, and it is recorded that way.
+
+**It also corrected a claim in the design.** The test written to prove "same seed, same sequence" failed
+every single time. The seed is not the whole input: exposure damping reads counters the previous session
+moved, so one seed replayed against a different cohort history is legitimately asked different
+questions. Spec §9.2 layer 1 now states that reproducing a session needs the seed *and* the exposure
+snapshot, and the test asserts the true property.
 
 ## External effects log
 

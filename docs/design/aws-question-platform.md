@@ -396,8 +396,15 @@ GET  /v1/sessions/{id}/next  → { item, typeCode, domain, difficulty, uiRequire
 The current engine is deterministic argmax over a fixed pool, which is precisely why every session
 looks alike.
 
-1. **Seeded RNG.** Every stochastic choice derives from `hash(rngSeed, ordinal)`. Sessions differ
-   from each other; each replays exactly for debugging.
+1. **Seeded RNG.** Every stochastic choice derives from `hash(rngSeed, ordinal)`, so sessions differ
+   from each other and a single selection is reproducible from its inputs.
+
+   **Reproducing a whole session needs the seed and the exposure state it ran against**, not the seed
+   alone. Exposure damping reads counters that earlier sessions moved, so the same seed replayed
+   against a different cohort history legitimately yields a different sequence. This is stated
+   precisely because an earlier draft of this design claimed the seed was sufficient, and a test
+   written against that claim failed every time. Exact replay holds for pure selection given identical
+   inputs, and for a whole cohort replayed from scratch.
 2. **Randomesque.** Sample from the top-K by information rather than taking the max. K is wide early
    — when the posterior is broad, information differences between candidates are numerically
    trivial — and tapers to 3. Default `K = max(3, ceil(0.10 × eligible))` for the first three items,
