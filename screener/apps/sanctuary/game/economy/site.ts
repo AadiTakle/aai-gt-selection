@@ -186,6 +186,141 @@ export function shelfLayout(count: number): Shelf {
 /** The layout the stall actually uses, solved once from the family list. */
 export const SHELF = shelfLayout(STOCK.length);
 
+/**
+ * How much of the shelf's width a given layout actually fills, as a half-extent.
+ *
+ * The joinery needs it to keep out of the stock's way: `Kiosk.tsx`'s head-beam brackets used to reach
+ * 60cm INTO the outermost cubby, which is the second half of the bug this section exists to fix.
+ */
+export function shelfOuter(shelf: Shelf): number {
+  return ((shelf.cols - 1) / 2) * shelf.pitchX + shelf.halfW;
+}
+
+/**
+ * How a cubby divides between its price shelf and its slime.
+ *
+ * Solved in one place because four callers need the same three numbers and a second opinion about where a
+ * slime stands would drift. It moved here from `Shop.tsx` when the stall's head height and the docking
+ * distance both turned out to depend on it.
+ */
+export function cubbyBody(halfH: number): { band: number; bodyH: number; bodyY: number } {
+  /**
+   * The price has to be countable, which means the coins cannot be smaller than about an eighth of the
+   * cubby's width, which means a price of ten needs two rows of five and roughly a third of the cubby's
+   * height. So the bottom third is the price shelf and the slime gets the rest. Derived rather than typed,
+   * so a six-family shelf with big cubbies and a nineteen-family shelf with small ones both work out.
+   */
+  const band = Math.min(0.34, halfH * 0.74);
+  const bodyH = Math.max(0.2, (halfH * 2 - band) * 0.82);
+  return { band, bodyH, bodyY: -halfH + band + bodyH / 2 - bodyH * 0.42 };
+}
+
+/**
+ * THE CREST SKY: the clear height a portrait has ABOVE ITS BODY, and the whole of the top-row bug.
+ *
+ * ══ WHAT WAS WRONG ═══════════════════════════════════════════════════════════════════════════════
+ *
+ * `cubbyBody` budgets a cubby for a BODY. A slime is taller than its body: `slimes/crests.ts` authors the
+ * signature feature above the profile, and measured across the nineteen it adds between 0 and 89% of the
+ * body's own height on top of it — at this cubby size, up to 409mm for `wood`'s branch, 330mm for `ice`,
+ * 313mm for `frost`, 290mm for `bunny`'s ears, 91mm for `cat`'s. None of that was ever accounted for.
+ *
+ * It did not matter for the two lower rows, because they get their sky by accident: the row above starts
+ * with a price shelf and a gap, so between one row's body top and the next row's lip there is 476mm of
+ * clear air. Every crest in the stock fits inside that with 67mm to spare, which is exactly why the middle
+ * and bottom rows always looked right and nobody found this by reading the code.
+ *
+ * The TOP row has no row above it. It had the head beam instead, whose underside sat at local 1.820 — on
+ * the shelf band's own ceiling — against a top-row body top of 1.802. EIGHTEEN MILLIMETRES of sky, so
+ * seventeen of the nineteen families lost their crest, `bunny` was a bare dome, `wood` kept two leaf tips,
+ * and two families whose crests were both cut off were the same slime. On a shelf where the crest IS the
+ * identification and the coins are already spent, that is the worst bug the shop can have.
+ *
+ * ══ THE FIX, IN ONE SENTENCE ══════════════════════════════════════════════════════════════════════
+ *
+ * GIVE THE TOP ROW THE SKY EVERY OTHER ROW ALREADY HAS. This returns the distance from a body's top to the
+ * underside of the lip of the row above it, and `CEILING` puts the head beam's underside exactly where the
+ * lip of the row that ISN'T THERE would be. So the top row becomes an ordinary row, the number is derived
+ * from the layout rather than typed, and it cannot drift when the family list or the pitch changes.
+ *
+ * It is also the right place for the guarantee to be checked: `shelf.test.ts` builds all nineteen crests
+ * for real and asserts every one of them fits in this. A twentieth family with a monster crest now fails a
+ * test instead of quietly losing its head, and it fails in EVERY row at once rather than only in the top
+ * one — which is the property that made the original bug invisible.
+ */
+export function crestSky(shelf: Shelf): number {
+  const { band, bodyH, bodyY } = cubbyBody(shelf.halfH);
+  return shelf.pitchY - shelf.halfH + band - PLINTH_T / 2 - (bodyY + bodyH);
+}
+
+/** The local y of a row's body top: what a crest is measured up from. */
+export function bodyTop(shelf: Shelf, row: number): number {
+  const { bodyH, bodyY } = cubbyBody(shelf.halfH);
+  return shelf.cell(row * shelf.cols)[1] + bodyY + bodyH;
+}
+
+/** Where the top row's ceiling has to be for a given layout: its body top plus a full row's crest sky. */
+function ceilingOf(shelf: Shelf): number {
+  return bodyTop(shelf, 0) + crestSky(shelf);
+}
+
+/**
+ * THE STALL'S CEILING. Nothing solid may cross this line in front of the shelf, and the head beam's
+ * underside sits exactly on it.
+ *
+ * Taken as the MAXIMUM over every layout `shelfLayout` can produce — one row, two, three — for the reason
+ * `BAY` already gives: the joinery is built once, at the size a full shelf needs, so that the roof and the
+ * posts are not a different building every time somebody adds a slime. A one-row shelf wants 1.408 and a
+ * two-row 2.028; three rows want 2.277, and 2.277 is what gets built.
+ */
+export const CEILING = Math.max(...[4, 8, 9].map((n) => ceilingOf(shelfLayout(n))));
+
+/**
+ * How far out along +Z the keeper is docked while the shop is open. SOLVED, NOT CHOSEN — and it moved.
+ *
+ * ══ WHY IT IS ARITHMETIC NOW ══════════════════════════════════════════════════════════════════════
+ *
+ * It used to be 4.4, defended like this: "Any closer and the top row of a three-row shelf leaves the top of
+ * the frame." That reasoning is exactly right and the number under it was measured against the wrong thing
+ * — THE TOP CUBBY'S EDGE, not the slime standing in it. It is the same omission `CREST_SKY` documents, in
+ * the same file, one screenful apart: at 4.4m a level gaze reached local 1.908, the top cubby's edge is
+ * 1.865, and it fitted with 43mm to spare — while the crest of a top-row slime reaches 2.277 and was a
+ * third of a metre off the top of the screen. Revealing the crests and then framing only the cubbies would
+ * have fixed the occlusion and left the child unable to see the thing that had been uncovered.
+ *
+ * So the same sentence is kept and applied to the whole slime: STAND BACK FAR ENOUGH THAT A CHILD LOOKING
+ * DEAD LEVEL SEES THE TOP OF THE TALLEST CREST. Half of `FOV_Y` at this distance must cover the climb from
+ * a 1.5m eye to `CEILING`, which is 5.01m rather than 4.40m. There is no fudge factor in it: the equality is
+ * the rule, and `shelf.test.ts` asserts it both ways so it cannot rot.
+ *
+ * ══ WHAT IT COSTS, STATED PLAINLY ═════════════════════════════════════════════════════════════════
+ *
+ * 14% of apparent size at the counter, and that is a real loss — the old note spent its extra 20cm on
+ * "the slimes being that much larger" and this takes it back and more. It is still the right trade, twice
+ * over. A slime 14% smaller is a slime a child can identify; a slime with no ears is not, whatever size it
+ * is drawn at. And NOT ONE SLIME CHANGED SIZE, in the shop or relative to any other slime: the geometry,
+ * the cubbies, the eye layout and the eye floor are all bit-for-bit what they were, and the only thing
+ * that moved is where the child stands. That distinction is the whole reason this is the dial that gave.
+ *
+ * The other constraints still hold at 5.01m: the 6.2m shelf spans 3.05m of half-width against 3.97m
+ * available in a 4:3 window, so it is still comfortably inside the frame; the mark is still well within
+ * `REACH`; and the counter's collider line is 4.81m away, so the stall still cannot block its own approach.
+ */
+export const DOCK = (CEILING + AT[1] - EYE_HEIGHT) / Math.tan((FOV_Y * Math.PI) / 360) + CUBBY_Z;
+
+/**
+ * Where the keeper is held while the shop is open, at a child's eye height.
+ *
+ * `EYE_HEIGHT` because `Game.tsx`'s `KEEPER_HEIGHT` is 1.5 and it returns the camera there the moment
+ * walking resumes; docking to any other height would produce a hop on leaving. This point lands at
+ * (-1.02, -8.71), which is 1.0m from where the spine path stops — so a child who simply walked to the end
+ * of the track is already standing on the mark, slightly more so than at the old 4.4m.
+ */
+export function dockPoint(): [number, number, number] {
+  const f = facing();
+  return [AT[0] + f[0] * DOCK, EYE_HEIGHT, AT[2] + f[1] * DOCK];
+}
+
 /* ------------------------------------------------------------------ *\
    Colliders
 \* ------------------------------------------------------------------ */
@@ -207,7 +342,7 @@ export const SHELF = shelfLayout(STOCK.length);
  * apart the moment one of them moves.
  *
  * Nothing is placed within 3m of the standing spot, so the stall can never block its own approach: the
- * counter line sits 4.2m from the mark.
+ * counter line sits 4.81m from the mark.
  */
 export const SHOP_SOLIDS: { position: [number, number]; radius: number }[] = (() => {
   const out: { position: [number, number]; radius: number }[] = [];

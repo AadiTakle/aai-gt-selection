@@ -34,7 +34,20 @@ import {
 import { Effigy } from './Effigy';
 import { Kiosk } from './Kiosk';
 import { STOCK, priceOf, useCoins } from './coins';
-import { AT, BAY, DOCK, FACING_DOT, REACH, SHELF, YAW, dockPoint, facing } from './site';
+import {
+  AT,
+  BAY,
+  CUBBY_Z,
+  DOCK,
+  FACING_DOT,
+  PLINTH_T,
+  REACH,
+  SHELF,
+  YAW,
+  cubbyBody,
+  dockPoint,
+  facing,
+} from './site';
 
 /**
  * THE SHOP. A stall on the ranch you walk up to, press E at, and buy a slime from.
@@ -204,21 +217,6 @@ const FACES_OUT = 13;
 const EYE_HOLD = FACES_OUT;
 const EYE_GROWTH_MAX = 1.25;
 
-/**
- * How a cubby divides between its price shelf and its slime. Solved in one place because three of them
- * need the same two numbers and a second opinion about where the slime stands would drift.
- */
-function cubbyBody(halfH: number): { band: number; bodyH: number } {
-  /**
-   * The price has to be countable, which means the coins cannot be smaller than about an eighth of the
-   * cubby's width, which means a price of ten needs two rows of five and roughly a third of the cubby's
-   * height. So the bottom third is the price shelf and the slime gets the rest. Derived rather than typed,
-   * so a six-family shelf with big cubbies and a nineteen-family shelf with small ones both work out.
-   */
-  const band = Math.min(0.34, halfH * 0.74);
-  return { band, bodyH: Math.max(0.2, (halfH * 2 - band) * 0.82) };
-}
-
 /* ------------------------------------------------------------------ *\
    One cubby
 \* ------------------------------------------------------------------ */
@@ -309,13 +307,12 @@ function Cubby({
     [gauze, recess, ledge],
   );
 
-  /** How the cubby divides up. See `cubbyBody` for the one measurement that decided it. */
-  const { band, bodyH } = cubbyBody(halfH);
+  /** How the cubby divides up. `site.ts` owns it, because the stall's head height depends on it too. */
+  const { band, bodyH, bodyY } = cubbyBody(halfH);
   // Two constraints on the coin, whichever bites first: five across the cubby's width, and two rows up
   // the price shelf.
   const coinR = Math.min((halfW * 1.78) / (5 * 2.24), band / (2 * 2.24 * 0.92));
   const pileAt = useMemo(() => coinPile(price, coinR), [price, coinR]);
-  const bodyY = -halfH + band + bodyH / 2 - bodyH * 0.42;
 
   const g = useMemo(
     () => ({
@@ -325,7 +322,9 @@ function Cubby({
       cloth: new RoundedBoxGeometry(halfW * 2 - 0.03, halfH * 2 - 0.03, 0.035, 2, 0.06),
       /** The cloth's weighted hem. One bar along the bottom edge is what turns a pale panel into fabric. */
       hem: new RoundedBoxGeometry(halfW * 2 - 0.03, 0.055, 0.05, 2, 0.022),
-      plinth: new RoundedBoxGeometry(halfW * 1.5, 0.055, 0.34, 2, 0.025),
+      // `PLINTH_T` rather than 0.055, because `site.ts`'s crest-sky arithmetic measures up to the underside
+      // of the row above's lip and cannot be reading a different board from the one drawn here.
+      plinth: new RoundedBoxGeometry(halfW * 1.5, PLINTH_T, 0.34, 2, 0.025),
       /** A dark strip behind the coins, so a brass pile is never read against a lit board. */
       strip: new RoundedBoxGeometry(halfW * 1.94, band * 0.94, 0.05, 2, 0.03),
       // Generous, and deliberately deeper than the cubby: a five-year-old aiming a crosshair by turning
@@ -388,7 +387,7 @@ function Cubby({
 
       {/* The slime. Always here, whatever the purse says: a child has to be able to see what they are
           saving up for, and a hidden reward is not a reward. */}
-      <group position={[0, bodyY, 0.06]}>
+      <group position={[0, bodyY, CUBBY_Z]}>
         <Effigy
           family={family}
           height={bodyH}

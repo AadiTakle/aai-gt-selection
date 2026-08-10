@@ -12,7 +12,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 
 import { breath } from '../screener/theme';
 import { HONEY, coinGeometry, mats, useEase } from './carpentry';
-import { AT, BAY, type Shelf } from './site';
+import { AT, BAY, CEILING, shelfOuter, type Shelf } from './site';
 
 /**
  * THE COIN STALL — the carpentry, with nothing interactive in it.
@@ -51,8 +51,34 @@ import { AT, BAY, type Shelf } from './site';
 const GROUND = -AT[1];
 /** Top of the counter, local. World 1.02m — a five-year-old's chest, an adult's hip. */
 const COUNTER_TOP = -1.18;
-/** Underside of the head beam, local. */
-const HEAD = 1.98;
+/** The head beam's thickness. Named because the beam's UNDERSIDE is the number that matters now. */
+const BEAM_T = 0.32;
+/**
+ * THE HEAD BEAM'S CENTRE, local — AND IT ROSE BY 457mm, WHICH IS THE TOP-ROW OCCLUSION FIX.
+ *
+ * It used to be a typed 1.98, which put the beam's underside at 1.820: on the shelf band's own ceiling,
+ * 18mm above a top-row body, and IN FRONT OF IT — the beam's box runs from z -0.33 to +0.29 and a portrait
+ * stands at z +0.06, so the beam does not merely sit above the top row, it encloses it. Everything a
+ * top-row slime wore on its head was inside the woodwork. Seventeen of the nineteen families lost their
+ * crest there; `bunny` was a bare dome and `wood` kept two leaf tips out of a whole branch.
+ *
+ * It is now derived: `site.ts`'s `CEILING` is where the shelf lip of a fourth row would be, so the beam's
+ * underside lands exactly there and the top row gets the same crest sky the two rows below it always had.
+ * Nothing about the shelf, the cubbies or the slimes changed to achieve it — see `CREST_SKY` for why that
+ * matters — and the beam, the braces, the awning, the lanterns and the sign all rise together, so the
+ * stall is 46cm taller and is otherwise the same building.
+ */
+const HEAD = CEILING + BEAM_T / 2;
+/**
+ * The bottom of the shelf's back board, local. Unchanged; its TOP now follows `HEAD`.
+ *
+ * A crest that clears the beam has to be read against something, and the interior rows already answer
+ * that: their crests rise out of their own dark recess and are read against this board. The top row's
+ * tallest — `wood` at 2.210, `ice` at 2.127, `frost` at 2.114 — used to reach past the board's old top of
+ * 2.130 and be read against the sky, which is the one background a pale rime spire disappears into. The
+ * board now runs all the way up behind the beam, so every row is backed the same way.
+ */
+const BACK_BOTTOM = -1.29;
 
 export function Kiosk({
   lit,
@@ -77,16 +103,40 @@ export function Kiosk({
 
   const g = useMemo(() => {
     const postH = HEAD - GROUND;
+    const backH = HEAD - BACK_BOTTOM;
+    /**
+     * THE HEAD-BEAM BRACKET, RE-CUT SO IT CANNOT STAND IN A CUBBY.
+     *
+     * The old brace was a fixed 0.72m knee at `HEAD - 0.42`, and its box reached from x 2.44 to 3.28 while
+     * the outermost cubby runs 2.27 to 3.05 — so it stood 60cm INSIDE the outer cubby, in front of that
+     * cubby's back board and behind the slime's face. That did not show while the beam was hiding
+     * everything above 1.82 anyway; the moment the beam rose it would have become the new occluder for the
+     * outermost family in the top row, which is the same bug with a different piece of timber.
+     *
+     * So it is now solved from the shelf rather than typed: it fills the clear span between the edge of the
+     * stock and the end of the beam's own oversail, and it hangs tight up under the beam. On the nineteen
+     * shelf that is x 3.045 to 3.550 and y 2.024 to 2.277 — springing off the post, under the oversail it
+     * actually supports, which is where a bracket belongs, and nowhere near a slime. A six-family shelf has
+     * wider cubbies and less spare width, and the bracket shrinks to match without a second number.
+     */
+    const braceLo = shelfOuter(shelf);
+    const braceHi = W + 0.25;
+    const braceHalf = Math.max(0.1, (braceHi - braceLo) / 2);
+    // A 0.16-square bar turned 45° covers (len + 0.16)/√2 either side of its centre, so this is the length
+    // whose box is exactly the span — the bracket touches the beam and the stock's edge and crosses neither.
+    const braceLen = Math.max(0.12, braceHalf * 2 * Math.SQRT2 - 0.16);
     return {
+      braceAt: [(braceLo + braceHi) / 2, CEILING - braceHalf] as [number, number],
       footing: new RoundedBoxGeometry(W * 2 + 0.6, 0.34, 1.9, 2, 0.09),
       stoop: new RoundedBoxGeometry(W * 1.7, 0.12, 0.9, 2, 0.05),
       post: new RoundedBoxGeometry(0.3, 1, 0.3, 2, 0.09),
       counter: new RoundedBoxGeometry(W * 2 + 0.34, 0.26, 0.95, 3, 0.1),
       apron: new RoundedBoxGeometry(W * 2 + 0.1, 0.62, 0.17, 2, 0.07),
-      back: new RoundedBoxGeometry(W * 2, 3.42, 0.2, 3, 0.1),
+      back: new RoundedBoxGeometry(W * 2, backH, 0.2, 3, 0.1),
+      backY: BACK_BOTTOM + backH / 2,
       slat: new RoundedBoxGeometry(W * 2 - 0.18, 0.1, 0.52, 2, 0.045),
-      head: new RoundedBoxGeometry(W * 2 + 0.5, 0.32, 0.62, 2, 0.1),
-      brace: new RoundedBoxGeometry(Math.hypot(0.72, 0.72), 0.16, 0.16, 1, 0.06),
+      head: new RoundedBoxGeometry(W * 2 + 0.5, BEAM_T, 0.62, 2, 0.1),
+      brace: new RoundedBoxGeometry(braceLen, 0.16, 0.16, 1, 0.06),
       stripe: new RoundedBoxGeometry(0.62, 0.11, 1.44, 2, 0.05),
       // The valance. A scalloped edge hanging off the awning's front lip, which is the single most
       // recognisable thing about a market stall and costs one flat disc per stripe.
@@ -107,7 +157,7 @@ export function Kiosk({
       halo: new TorusGeometry(0.58, 0.05, 8, 26),
       postH,
     };
-  }, [W]);
+  }, [W, shelf]);
 
   /** Where each row's shelf board sits, so the stock stands ON something. */
   const boards = useMemo(() => {
@@ -175,16 +225,21 @@ export function Kiosk({
             castShadow
             receiveShadow
           />
-          {/* One brace per post under the beam. The cheapest shape there is that says "this was framed"
-              rather than "this was placed". */}
-          <mesh
-            geometry={g.brace}
-            material={m.timberDeep}
-            position={[-side * 0.44, HEAD - 0.42, -0.05]}
-            rotation={[0, 0, side * (Math.PI / 4)]}
-            castShadow
-          />
         </group>
+      ))}
+
+      {/* One bracket per post under the beam's oversail. The cheapest shape there is that says "this was
+          framed" rather than "this was placed" — and, since the beam rose, cut to the clear span beside the
+          stock so it can never be the thing a child cannot see past. See `braceAt` in the geometry above. */}
+      {([-1, 1] as const).map((side) => (
+        <mesh
+          key={side}
+          geometry={g.brace}
+          material={m.timberDeep}
+          position={[side * g.braceAt[0], g.braceAt[1], -0.05]}
+          rotation={[0, 0, side * (Math.PI / 4)]}
+          castShadow
+        />
       ))}
       <mesh geometry={g.head} material={m.timberDeep} position={[0, HEAD, -0.02]} castShadow>
         <meshStandardMaterial
@@ -201,7 +256,7 @@ export function Kiosk({
       <mesh
         geometry={g.back}
         material={m.paintDeep}
-        position={[0, 0.42, -0.62]}
+        position={[0, g.backY, -0.62]}
         castShadow
         receiveShadow
       />
