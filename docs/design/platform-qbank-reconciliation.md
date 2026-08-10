@@ -22,7 +22,32 @@ on qbank is where everything moved.
 
 ---
 
-## 2. The decision that needs an owner
+## 2. The decision, and how it was settled
+
+**Resolved by the owner, 2026-08-10:** a caller must not have to think about a database or a backend at
+all. It calls the API and uses the library and the engines. The only place a database surfaces is
+choosing which qbank questions an app may use, and registering the app with that list.
+
+So:
+
+- **Durable server-side state stays.** The platform owns the table; the caller never provisions, sees or
+  reasons about one. A consumer's entire runtime contract is HTTP: create a session, ask for the next
+  question, submit a response.
+- **The database is an admin-time concern, not a runtime one.** Publishing a catalog, registering an app,
+  and approving its question types are the only operations where anyone thinks about storage. Everything a
+  child's session touches is behind the API.
+- **`portable.ts` is not the platform's session mechanism.** It stays valuable for a genuinely different
+  deployment — embedding the engine library with no backend at all, which is the case Felipe's commit
+  argues for and which this decision does not remove. But the platform has the trace, so it does not need
+  the transcript in a token, and a caller must not be handed one to manage. The platform keeps its own
+  short-lived `servedToken`, which binds one response to one served item and is a different thing.
+- **Requirement 4 survives**, because the trace is server-side: `GSI1` can still answer "which sessions
+  served this item," a corrected difficulty can still be propagated, and a persona can still be contacted.
+
+The original framing of this conflict is kept below, because the reasoning in Felipe's commit is worth
+preserving and because the alternatives explain why this shape was chosen rather than assumed.
+
+### 2.1 The conflict as it stood
 
 Commit `b6988fb` says, in its first line:
 
@@ -55,10 +80,14 @@ token and provisions nothing. A consumer that needs retroactive re-scoring or fa
 the GT screener itself — gets the durable trace as well. The token stays the source of truth for belief
 during a session, since it replays bit-for-bit; the durable rows are what make the session findable later.
 
-**Alternatives, if the owner disagrees:** (a) caller-held only, and requirement 4 is dropped, along with
-gifted outreach; (b) durable only, and every consumer provisions a table; (c) the synthesis above. I
-recommend (c) and the rest of this document assumes it, but Tasks 3 and 5 below change materially under
-(a).
+**The alternatives that were on the table:** (a) caller-held only, dropping requirement 4 and gifted
+outreach with it; (b) durable only, with every consumer provisioning a table; (c) both, as complements.
+
+The owner chose neither (a) nor (b) but something sharper than my (c): **durable, and hidden**. My framing
+had assumed a consumer might want to hold its own state and would choose between the two. The answer is
+that a consumer should never face the choice — the reason (b) looked costly was that I had left
+provisioning in the caller's lap, and that was an artefact of my framing rather than a property of
+durable storage.
 
 ---
 
@@ -144,8 +173,8 @@ None of this exists in `@gt/qbank`, and all of it was in the original ask.
 
 Replaces Task 1 of `docs/plans/sanctuary-platform-integration.md` and inserts before it.
 
-- [ ] **Task 0 — settle §2.** Blocking. Nothing below is stable until caller-held versus durable versus
-      both is decided.
+- [x] **Task 0 — settle §2.** Done. Durable server-side state, fronted by the API; the database is an
+      admin-time concern only. `portable.ts` is not adopted as the platform's session mechanism.
 
 - [ ] **Task 1 — make the platform build against current dev.** Already partly done: the platform's
       tsconfig and vitest config now alias `@gt/ui-contract/cogat`, which the qbank engine began importing.
@@ -158,10 +187,10 @@ Replaces Task 1 of `docs/plans/sanctuary-platform-integration.md` and inserts be
       posterior implementation. The composite-equivalence test becomes a test that the adapter agrees with
       `QbankState`, which is a stronger statement than the one it replaces.
 
-- [ ] **Task 3 — decide where session state lives, then wire it.** Under the synthesis: `serve` issues a
-      sealed token *and* appends the response row; `score` opens the token, grades with `grade()`, and
-      completes the row. Under caller-held-only, the store shrinks to the registry and Tasks 5–7 of the
-      sanctuary plan lose the persona path.
+- [ ] **Task 3 — keep session state server-side, and grade with `grade()`.** Settled by §2, so this is now
+      mechanical rather than a decision: `serve` appends the response row and returns a `servedToken`;
+      `score` verifies that token, calls `grade()` for the mark and the posterior update, and completes the
+      row. No transcript crosses to the client.
 
 - [ ] **Task 4 — keep variety, over his pool.** Compose the eight layers on top of `buildPool` and
       `selectNext`'s objective rather than re-deriving information. Then open the question of contributing
