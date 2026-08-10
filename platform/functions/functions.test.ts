@@ -1,0 +1,653 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import { DOMAIN_NAMES, type ScoreSheet } from '@platform/domain';
+import { createRawClient, createTables, deleteTables, type StoreConfig } from '@platform/store';
+import {
+  clearSnapshotCache,
+  configureSnapshotSource,
+  deps,
+  resetDeps,
+  signServedToken,
+  type Deps,
+} from '@platform/shared';
+import { handler as adminHandler } from './admin/src/handler.js';
+import { publishCatalog } from './admin/src/publish.js';
+import { handler as catalogHandler } from './catalog/src/handler.js';
+import { handler as scoreHandler } from './score/src/handler.js';
+import { handler as serveHandler } from './serve/src/handler.js';
+import { rescoreSession } from './rescore-worker/src/handler.js';
+import { apiEvent, memoryObjectStore, writeFixtureBanks } from './test-fixtures.js';
+
+import { LOCAL_REGION, SKIP_MESSAGE, resolveDdbEndpoint } from '../test-support/ddb.js';
+
+/**
+ * Discovered rather than assumed. An open socket is not proof of DynamoDB: on this machine port 8010
+ * was held by an unrelated server that answered HTTP happily and then failed every DynamoDB call.
+ */
+const ENDPOINT = await resolveDdbEndpoint();
+const suite = ENDPOINT ? describe : describe.skip;
+if (!ENDPOINT) console.warn(SKIP_MESSAGE);
+
+suite('the request path, end to end', () => {
+  const suffix = randomUUID().slice(0, 8);
+  const cfg: StoreConfig = {
+    tableName: `gt-fn-main-${suffix}`,
+    answerKeyTableName: `gt-fn-keys-${suffix}`,
+    personaTableName: `gt-fn-personas-${suffix}`,
+    endpoint: ENDPOINT as string,
+    region: LOCAL_REGION,
+  };
+
+  const banks = writeFixtureBanks(12);
+  const objects = memoryObjectStore();
+  let d: Deps;
+  let appId: string;
+  let snapshotId: string;
+
+  beforeAll(async () => {
+    process.env.AWS_ACCESS_KEY_ID = 'local';
+    process.env.AWS_SECRET_ACCESS_KEY = 'local';
+    process.env.AWS_REGION = LOCAL_REGION;
+    process.env.GT_TABLE_NAME = cfg.tableName;
+    process.env.GT_ANSWER_KEY_TABLE_NAME = cfg.answerKeyTableName;
+    process.env.GT_PERSONA_TABLE_NAME = cfg.personaTableName;
+    process.env.GT_SNAPSHOT_BUCKET = 'test-bucket';
+    process.env.GT_TOKEN_SECRET = 'test-secret-for-served-tokens';
+    process.env.GT_DDB_ENDPOINT = ENDPOINT as string;
+    delete process.env.GT_RESCORE_QUEUE_URL;
+
+    resetDeps();
+    clearSnapshotCache();
+    configureSnapshotSource(objects.fetch);
+
+    const raw = createRawClient({ endpoint: ENDPOINT as string, region: LOCAL_REGION });
+    await createTables(raw, cfg);
+
+    d = deps();
+
+    const published = await publishCatalog(d, {
+      publishedBy: 'test',
+      bankDir: banks.dir,
+      putObject: objects.put,
+    });
+    snapshotId = published.snapshotId;
+
+    const appResponse = await adminHandler(
+      apiEvent({
+        method: 'POST',
+        path: '/v1/admin/apps',
+        body: {
+          name: 'Fixture app',
+          surfaceKind: 'web',
+          ageBands: ['3-5'],
+          perDomainMinimum: 1,
+          piiPolicy: 'guardian_email',
+        },
+      }),
+    );
+    appId = JSON.parse(appResponse.body).app.appId as string;
+
+    for (const typeCode of banks.typeCodes) {
+      const approved = await adminHandler(
+        apiEvent({
+          method: 'PUT',
+          path: `/v1/admin/apps/${appId}/types/${typeCode}`,
+          pathParameters: { appId, typeCode },
+          body: { enabled: true },
+        }),
+      );
+      // Asserted rather than assumed. A silently failing approval leaves an empty eligible pool and
+      // makes every downstream test fail for a reason that has nothing to do with what it tests.
+      if (approved.statusCode !== 200) {
+        throw new Error(`approving ${typeCode} failed: ${approved.statusCode} ${approved.body}`);
+      }
+    }
+  }, 120_000);
+
+  afterAll(async () => {
+    const raw = createRawClient({ endpoint: ENDPOINT as string, region: LOCAL_REGION });
+    await deleteTables(raw, cfg);
+    configureSnapshotSource(null);
+    resetDeps();
+  }, 60_000);
+
+  // --- helpers
+
+  async function startSession(body: Record<string, unknown> = {}): Promise<string> {
+    const response = await serveHandler(
+      apiEvent({ method: 'POST', path: '/v1/sessions', appId, body: { ageBand: '3-5', ...body } }),
+    );
+    expect(response.statusCode).toBe(201);
+    return JSON.parse(response.body).sessionId as string;
+  }
+
+  async function next(sessionId: string, asApp = appId): Promise<Record<string, unknown>> {
+    const response = await serveHandler(
+      apiEvent({
+        method: 'GET',
+        path: `/v1/sessions/${sessionId}/next`,
+        appId: asApp,
+        pathParameters: { sessionId },
+      }),
+    );
+    return { statusCode: response.statusCode, ...JSON.parse(response.body) };
+  }
+
+  async function answer(
+    sessionId: string,
+    servedToken: string,
+    key: string,
+    asApp = appId,
+  ): Promise<Record<string, unknown>> {
+    const response = await scoreHandler(
+      apiEvent({
+        method: 'POST',
+        path: `/v1/sessions/${sessionId}/responses`,
+        appId: asApp,
+        pathParameters: { sessionId },
+        body: { servedToken, response: { key }, latencyMs: 1200 },
+      }),
+    );
+    return { statusCode: response.statusCode, ...JSON.parse(response.body) };
+  }
+
+  /** Drive a whole session, answering every item correctly. */
+  async function runSession(sessionId: string): Promise<{
+    sheet: ScoreSheet;
+    served: { itemId: string; typeCode: string }[];
+  }> {
+    const served: { itemId: string; typeCode: string }[] = [];
+    let sheet: ScoreSheet | null = null;
+
+    for (let guard = 0; guard < 60; guard += 1) {
+      const question = await next(sessionId);
+      if (question.available === false) {
+        sheet = question.sheet as ScoreSheet;
+        break;
+      }
+      const item = question.item as { itemId: string };
+      served.push({ itemId: item.itemId, typeCode: question.typeCode as string });
+      const marked = await answer(
+        sessionId,
+        question.servedToken as string,
+        banks.keys.get(item.itemId) as string,
+      );
+      sheet = marked.sheet as ScoreSheet;
+      if (marked.stopped === true) break;
+    }
+
+    if (!sheet) throw new Error('session produced no sheet');
+    return { sheet, served };
+  }
+
+  // --- tests
+
+  describe('publishing', () => {
+    it('wrote the fixture catalog and one snapshot', async () => {
+      expect(snapshotId).toMatch(/^snap-\d{8}-\d{3}$/);
+      const snapshot = await d.store.getSnapshot(snapshotId);
+      expect(snapshot?.itemCount).toBe(banks.typeCodes.length * banks.itemsPerType);
+      expect(objects.size()).toBe(1);
+    });
+
+    it('is idempotent: republishing unchanged banks writes no new types', async () => {
+      const again = await publishCatalog(d, {
+        publishedBy: 'test',
+        bankDir: banks.dir,
+        putObject: objects.put,
+      });
+      expect(again.typesWritten).toBe(0);
+      expect(again.typesSkipped).toBe(banks.typeCodes.length);
+      expect(again.itemsRevised).toBe(0);
+    });
+
+    it('put every answer key in the separate table, and none in the registry', async () => {
+      const itemId = `${banks.typeCodes[0]}-i00`;
+      expect((await d.answerKeys.get(itemId, 1))?.correctKey).toBe(banks.keys.get(itemId));
+      const item = await d.store.getItem(banks.typeCodes[0] as string, itemId);
+      expect(JSON.stringify(item)).not.toContain('correctKey');
+    });
+  });
+
+  describe('a full session', () => {
+    it('runs to a stop and produces five populated estimates', async () => {
+      const sessionId = await startSession();
+      const { sheet, served } = await runSession(sessionId);
+
+      expect(sheet.stopped).toBe(true);
+      expect(sheet.stopReason).not.toBeNull();
+      expect(sheet.decision).not.toBeNull();
+      expect(served.length).toBeGreaterThanOrEqual(8);
+
+      expect(sheet.composite.itemsScored).toBe(served.length);
+      expect(sheet.derivedFromResponseCount).toBe(served.length);
+      for (const domain of DOMAIN_NAMES) {
+        expect(sheet.domains[domain]).toBeDefined();
+        expect(sheet.domains[domain].interval).toHaveLength(2);
+      }
+      // Coverage was required at one per domain, so every domain must have contributed.
+      for (const domain of DOMAIN_NAMES) {
+        expect(sheet.domains[domain].itemsScored).toBeGreaterThanOrEqual(1);
+      }
+    });
+
+    it('recommends a child who answered everything correctly', async () => {
+      const sessionId = await startSession();
+      const { sheet } = await runSession(sessionId);
+      expect(sheet.composite.pAboveThreshold).toBeGreaterThan(0.5);
+      expect(sheet.decision).toBe('recommend');
+      expect(sheet.stopReason).toBe('confident-above');
+    });
+
+    it('never repeats an item inside a session', async () => {
+      const sessionId = await startSession();
+      const { served } = await runSession(sessionId);
+      expect(new Set(served.map((s) => s.itemId)).size).toBe(served.length);
+    });
+
+    it('closes the session record when it stops', async () => {
+      const sessionId = await startSession();
+      await runSession(sessionId);
+      const session = await d.store.getSession(sessionId);
+      expect(session?.status).toBe('stopped');
+      expect(session?.endedAt).not.toBeNull();
+    });
+
+    it('gives two sessions different question sequences', async () => {
+      const a = await runSession(await startSession());
+      const b = await runSession(await startSession());
+      expect(a.served.map((s) => s.itemId).join()).not.toBe(b.served.map((s) => s.itemId).join());
+    });
+  });
+
+  describe('what crosses to the client', () => {
+    it('sends no answer key, no item parameters and no scoring mode', async () => {
+      const sessionId = await startSession();
+      const question = await next(sessionId);
+      const serialised = JSON.stringify(question.item);
+
+      for (const forbidden of ['correctKey', 'distractorRationales', 'scoringMode', 'params']) {
+        expect(serialised).not.toContain(forbidden);
+      }
+      expect(question.uiRequirement).toBeDefined();
+      expect(question.servedToken).toBeTypeOf('string');
+    });
+
+    it('exposes the selection reason, so a sequence can be explained afterwards', async () => {
+      const question = await next(await startSession());
+      const selection = question.selection as Record<string, unknown>;
+      expect(selection.layer).toBeTypeOf('string');
+      expect(selection.informationAtThreshold).toBeTypeOf('number');
+      expect(selection.candidatePoolSize).toBeGreaterThan(0);
+    });
+  });
+
+  describe('idempotency', () => {
+    it('re-issues the same question when next is called twice', async () => {
+      const sessionId = await startSession();
+      const first = await next(sessionId);
+      const second = await next(sessionId);
+      expect((second.item as { itemId: string }).itemId).toBe(
+        (first.item as { itemId: string }).itemId,
+      );
+      expect(second.ordinal).toBe(first.ordinal);
+    });
+
+    it('returns the stored sheet on a replayed answer without moving the posterior', async () => {
+      const sessionId = await startSession();
+      const question = await next(sessionId);
+      const itemId = (question.item as { itemId: string }).itemId;
+      const token = question.servedToken as string;
+
+      const first = await answer(sessionId, token, banks.keys.get(itemId) as string);
+      const replay = await answer(sessionId, token, banks.keys.get(itemId) as string);
+
+      expect(replay.replayed).toBe(true);
+      const firstSheet = first.sheet as ScoreSheet;
+      const replaySheet = replay.sheet as ScoreSheet;
+      expect(replaySheet.composite.itemsScored).toBe(firstSheet.composite.itemsScored);
+      expect(replaySheet.composite.mean).toBeCloseTo(firstSheet.composite.mean, 12);
+    });
+
+    it('does not let a replay flip a wrong answer into a right one', async () => {
+      const sessionId = await startSession();
+      const question = await next(sessionId);
+      const itemId = (question.item as { itemId: string }).itemId;
+      const correct = banks.keys.get(itemId) as string;
+      const wrong = correct === 'A' ? 'B' : 'A';
+      const token = question.servedToken as string;
+
+      await answer(sessionId, token, wrong);
+      await answer(sessionId, token, correct);
+
+      const trace = await d.store.listResponses(sessionId);
+      expect(trace.find((r) => r.itemId === itemId)?.correct).toBe(false);
+    });
+  });
+
+  describe('the served token is the trust boundary', () => {
+    it('refuses a token minted for another session', async () => {
+      const a = await startSession();
+      const b = await startSession();
+      const question = await next(a);
+      const response = await scoreHandler(
+        apiEvent({
+          method: 'POST',
+          path: `/v1/sessions/${b}/responses`,
+          appId,
+          pathParameters: { sessionId: b },
+          body: { servedToken: question.servedToken, response: { key: 'A' } },
+        }),
+      );
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('refuses an expired token', async () => {
+      const sessionId = await startSession();
+      const question = await next(sessionId);
+      const expired = signServedToken(
+        {
+          sessionId,
+          ordinal: question.ordinal as number,
+          itemId: (question.item as { itemId: string }).itemId,
+          itemRevision: 1,
+          expiresAt: Date.now() - 1000,
+        },
+        'test-secret-for-served-tokens',
+      );
+      const response = await scoreHandler(
+        apiEvent({
+          method: 'POST',
+          path: `/v1/sessions/${sessionId}/responses`,
+          appId,
+          pathParameters: { sessionId },
+          body: { servedToken: expired, response: { key: 'A' } },
+        }),
+      );
+      expect(response.statusCode).toBe(403);
+      expect(JSON.parse(response.body).error).toMatch(/expired/);
+    });
+
+    it('refuses a token signed with the wrong secret', async () => {
+      const sessionId = await startSession();
+      const question = await next(sessionId);
+      const forged = signServedToken(
+        {
+          sessionId,
+          ordinal: question.ordinal as number,
+          itemId: (question.item as { itemId: string }).itemId,
+          itemRevision: 1,
+          expiresAt: Date.now() + 60_000,
+        },
+        'not-the-secret',
+      );
+      const response = await scoreHandler(
+        apiEvent({
+          method: 'POST',
+          path: `/v1/sessions/${sessionId}/responses`,
+          appId,
+          pathParameters: { sessionId },
+          body: { servedToken: forged, response: { key: 'A' } },
+        }),
+      );
+      expect(response.statusCode).toBe(403);
+    });
+  });
+
+  describe('app isolation', () => {
+    it('refuses to advance a session belonging to another app', async () => {
+      const sessionId = await startSession();
+      const other = await adminHandler(
+        apiEvent({
+          method: 'POST',
+          path: '/v1/admin/apps',
+          body: { name: 'Other app', surfaceKind: 'web' },
+        }),
+      );
+      const otherAppId = JSON.parse(other.body).app.appId as string;
+
+      const response = await serveHandler(
+        apiEvent({
+          method: 'GET',
+          path: `/v1/sessions/${sessionId}/next`,
+          appId: otherAppId,
+          pathParameters: { sessionId },
+        }),
+      );
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('never serves a type the app has not approved', async () => {
+      const restricted = await adminHandler(
+        apiEvent({
+          method: 'POST',
+          path: '/v1/admin/apps',
+          body: { name: 'Quant only', surfaceKind: 'web', ageBands: ['3-5'], perDomainMinimum: 0 },
+        }),
+      );
+      const quantAppId = JSON.parse(restricted.body).app.appId as string;
+      const onlyType = banks.typeCodes[0] as string;
+      await adminHandler(
+        apiEvent({
+          method: 'PUT',
+          path: `/v1/admin/apps/${quantAppId}/types/${onlyType}`,
+          pathParameters: { appId: quantAppId, typeCode: onlyType },
+          body: { enabled: true },
+        }),
+      );
+
+      const created = await serveHandler(
+        apiEvent({ method: 'POST', path: '/v1/sessions', appId: quantAppId, body: { ageBand: '3-5' } }),
+      );
+      const sessionId = JSON.parse(created.body).sessionId as string;
+
+      for (let i = 0; i < 6; i += 1) {
+        const question = await next(sessionId, quantAppId);
+        if (question.available === false) break;
+        expect(question.typeCode).toBe(onlyType);
+        await answer(
+          sessionId,
+          question.servedToken as string,
+          banks.keys.get((question.item as { itemId: string }).itemId) as string,
+          quantAppId,
+        );
+      }
+    });
+
+    it('refuses to link a persona when the app is not permitted to', async () => {
+      const plain = await adminHandler(
+        apiEvent({
+          method: 'POST',
+          path: '/v1/admin/apps',
+          body: { name: 'No PII', surfaceKind: 'web', piiPolicy: 'none' },
+        }),
+      );
+      const plainAppId = JSON.parse(plain.body).app.appId as string;
+      const response = await serveHandler(
+        apiEvent({
+          method: 'POST',
+          path: '/v1/sessions',
+          appId: plainAppId,
+          body: { personaId: 'persona-1' },
+        }),
+      );
+      expect(response.statusCode).toBe(403);
+    });
+  });
+
+  describe('the catalog surface', () => {
+    it('marks which types this app may serve', async () => {
+      const response = await catalogHandler(
+        apiEvent({ method: 'GET', path: '/v1/catalog/types', appId }),
+      );
+      const body = JSON.parse(response.body);
+      expect(body.count).toBe(banks.typeCodes.length);
+      expect(body.types.every((t: { approvedForThisApp: boolean }) => t.approvedForThisApp)).toBe(
+        true,
+      );
+      expect(body.types[0].status).toBe('active');
+    });
+
+    it('reports a type without enumerating its bank', async () => {
+      const typeCode = banks.typeCodes[0] as string;
+      const response = await catalogHandler(
+        apiEvent({
+          method: 'GET',
+          path: `/v1/catalog/types/${typeCode}`,
+          appId,
+          pathParameters: { typeCode },
+        }),
+      );
+      const body = JSON.parse(response.body);
+      expect(body.typeCode).toBe(typeCode);
+      expect(body.difficulties).toHaveLength(banks.itemsPerType);
+      expect(response.body).not.toContain('correctKey');
+      expect(response.body).not.toContain('stem');
+    });
+
+    it('reports the app its own configuration and pinned snapshot', async () => {
+      const response = await catalogHandler(
+        apiEvent({ method: 'GET', path: '/v1/catalog/app', appId }),
+      );
+      const body = JSON.parse(response.body);
+      expect(body.app.appId).toBe(appId);
+      expect(body.approvedTypes).toHaveLength(banks.typeCodes.length);
+      expect(body.snapshotId).toBeTypeOf('string');
+    });
+  });
+
+  describe('abandonment', () => {
+    it('closes a session and keeps the trace it had', async () => {
+      const sessionId = await startSession();
+      const question = await next(sessionId);
+      await answer(
+        sessionId,
+        question.servedToken as string,
+        banks.keys.get((question.item as { itemId: string }).itemId) as string,
+      );
+
+      const response = await scoreHandler(
+        apiEvent({
+          method: 'POST',
+          path: `/v1/sessions/${sessionId}/abandon`,
+          appId,
+          pathParameters: { sessionId },
+        }),
+      );
+      const sheet = JSON.parse(response.body).sheet as ScoreSheet;
+      expect(sheet.stopReason).toBe('abandoned');
+      expect(sheet.composite.itemsScored).toBe(1);
+      expect((await d.store.getSession(sessionId))?.status).toBe('abandoned');
+    });
+
+    it('reports no further questions once closed', async () => {
+      const sessionId = await startSession();
+      await scoreHandler(
+        apiEvent({
+          method: 'POST',
+          path: `/v1/sessions/${sessionId}/abandon`,
+          appId,
+          pathParameters: { sessionId },
+        }),
+      );
+      expect((await next(sessionId)).available).toBe(false);
+    });
+  });
+
+  describe('reading a sheet back', () => {
+    it('returns the stored sheet and reconciles it against the trace', async () => {
+      const sessionId = await startSession();
+      await runSession(sessionId);
+      const response = await scoreHandler(
+        apiEvent({
+          method: 'GET',
+          path: `/v1/sessions/${sessionId}/sheet`,
+          appId,
+          pathParameters: { sessionId },
+        }),
+      );
+      const body = JSON.parse(response.body);
+      expect(body.staleAgainstTrace).toBe(false);
+      expect(body.sheet.sessionId).toBe(sessionId);
+    });
+  });
+
+  describe('correcting an item and rescoring what saw it', () => {
+    it('finds exactly the sessions that served the item', async () => {
+      const first = await runSession(await startSession());
+      const target = first.served[0] as { itemId: string; typeCode: string };
+
+      const response = await adminHandler(
+        apiEvent({
+          method: 'POST',
+          path: `/v1/admin/items/${target.itemId}/revise`,
+          pathParameters: { itemId: target.itemId },
+          body: { typeCode: target.typeCode, difficulty: 19, reason: 'harder than authored' },
+        }),
+      );
+      const body = JSON.parse(response.body);
+
+      const expected = await d.store.sessionsForItem(target.itemId);
+      expect(body.affectedSessions).toBe(new Set(expected.map((e) => e.sessionId)).size);
+      expect(body.affectedSessions).toBeGreaterThan(0);
+      expect(body.item.revision).toBe(2);
+      // No queue configured in the test environment, so it identifies without enqueueing.
+      expect(body.enqueued).toBe(0);
+    });
+
+    it('rescoring reads the corrected parameters and can change the estimate', async () => {
+      const sessionId = await startSession();
+      const { served, sheet: before } = await runSession(sessionId);
+      const target = served[0] as { itemId: string; typeCode: string };
+
+      await adminHandler(
+        apiEvent({
+          method: 'POST',
+          path: `/v1/admin/items/${target.itemId}/revise`,
+          pathParameters: { itemId: target.itemId },
+          body: { typeCode: target.typeCode, difficulty: 20, reason: 'much harder than authored' },
+        }),
+      );
+
+      const outcome = await rescoreSession(d, sessionId);
+      expect(outcome.parametersChanged).toBeGreaterThanOrEqual(1);
+
+      const after = await d.store.getCurrentSheet(sessionId);
+      // A correct answer on a harder item is stronger evidence, so the estimate should not fall.
+      expect(after?.composite.mean).toBeGreaterThanOrEqual(before.composite.mean - 1e-9);
+      expect(after?.engineVersion).toBe(before.engineVersion);
+    });
+
+    it('refuses a revision with no reason, because it rewrites a difficulty', async () => {
+      const response = await adminHandler(
+        apiEvent({
+          method: 'POST',
+          path: '/v1/admin/items/whatever/revise',
+          pathParameters: { itemId: 'whatever' },
+          body: { typeCode: banks.typeCodes[0] },
+        }),
+      );
+      expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe('qualification events', () => {
+    it('writes one outbox event for a session that crosses the bar, and not two', async () => {
+      const sessionId = await startSession();
+      const { sheet } = await runSession(sessionId);
+      if (!sheet.meetsCriteria) {
+        expect(sheet.composite.itemsScored).toBeGreaterThan(0);
+        return;
+      }
+
+      const qualified = await d.store.qualifiedSessions(sheet.criteriaVersion);
+      expect(qualified).toContain(sessionId);
+
+      // A rescore that re-qualifies the same session must not emit a second event.
+      await rescoreSession(d, sessionId);
+      await rescoreSession(d, sessionId);
+      const stillOnce = await d.store.qualifiedSessions(sheet.criteriaVersion);
+      expect(stillOnce.filter((s) => s === sessionId)).toHaveLength(1);
+    });
+  });
+});

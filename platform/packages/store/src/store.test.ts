@@ -68,7 +68,7 @@ import {
  * alongside the handler suite — cannot see each other's rows.
  */
 
-const DDB_PORT = Number(process.env.GT_DDB_PORT ?? 8010);
+const DDB_PORT = Number(process.env.GT_DDB_PORT ?? 8456);
 const REGION = 'us-east-1';
 
 /**

@@ -3,7 +3,9 @@
  * snapshot cache. Nothing here knows about the domain.
  */
 
+export * from './deps.js';
 export * from './env.js';
 export * from './http.js';
+export * from './session-service.js';
 export * from './snapshot-cache.js';
 export * from './token.js';
