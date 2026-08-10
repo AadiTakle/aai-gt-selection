@@ -260,3 +260,18 @@ export function themeCoverage(
   }
   return { applied, unused };
 }
+
+// ---------------------------------------------------------------------------
+// The wire contract for the adaptive engine, and its client
+// ---------------------------------------------------------------------------
+
+/**
+ * Exported from the browser-safe entry deliberately.
+ *
+ * `wire.ts` and `client.ts` reach the engine's types through `import type` only, so nothing here pulls the
+ * bank loader or `node:fs` into a web bundle — the boundary this file's header warns about. Every app should
+ * import its request and response types from here rather than re-declaring them; four of them used to, and all
+ * four had already drifted behind the engine.
+ */
+export * from './wire.js';
+export * from './client.js';

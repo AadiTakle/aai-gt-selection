@@ -1,66 +1,31 @@
 /**
  * The shapes this lab talks to the API in, plus the contract a rendered item honours.
  *
- * These are deliberately local rather than imported from @gt/qbank. The HTTP shapes are not the
- * same as the internal `QbankSessionConfig` (precision is an index here and resolved on the
- * server), and an app should not have to read the engine's types to call its endpoints.
- */
-
-export type AgeBand = 'K-1' | '2-3' | '4-5' | '6-8';
-
-/** The four the engine blueprints against. Note the engine says `fluid`, the bank says `fluid_reasoning`. */
-export type Domain = 'quantitative' | 'verbal' | 'spatial' | 'fluid';
-
-export interface PrecisionStep {
-  label: string;
-  confidenceAbove: number;
-  confidenceBelow: number;
-  minItems: number;
-  maxItems: number;
-  note: string;
-}
-
-export interface BankSummary {
-  typeCount: number;
-  scorable: number;
-  total: number;
-  precisionSteps: PrecisionStep[];
-}
-
-/**
- * An item as it reaches the browser. `content` is the headless payload: what the item asks, what
- * the choices are, how it is answered. It says nothing about how any of that looks, which is the
- * whole reason this lab can draw it as anything.
+ * These used to be declared here on purpose, and the reason given was sound: the HTTP shapes are not the same
+ * as the engine's internal `QbankSessionConfig` — precision is an index here and resolved on the server — and
+ * an app should not have to read the engine's types to call its endpoints.
  *
- * The answer key is NOT here and never is. Marking is a round trip.
+ * Task 3.4 answered that objection rather than overruling it. `@gt/qbank` now publishes the *wire* contract as
+ * its own thing: `CreateSessionRequest` carries `precisionIndex`, and `ResolvedSessionConfig` is what comes
+ * back. So an app imports HTTP shapes and still never reads the engine. Keeping these local had also let them
+ * drift — `SessionState` here knows nothing of the per-domain bands or the pass route, both of which the
+ * server has been returning since 8 Aug.
  */
-export interface ServedItem {
-  itemId: string;
-  typeCode: string;
-  difficulty: number;
-  content: Record<string, unknown>;
-}
 
-export interface Serve {
-  served: ServedItem;
-  typeCode: string;
-  domain: Domain;
-  difficulty: number;
-  informationAtThreshold: number;
-  selectionReason: string;
-}
+// Imported as well, because the declarations kept below refer to them.
+import type { AgeBand } from '@gt/qbank';
 
-export interface SessionState {
-  stopped: boolean;
-  stopReason: string | null;
-  pAbove: number;
-  decision: string | null;
-  itemsServed: number;
-  unscorable: number;
-  estimate: number;
-  interval: [number, number];
-  perDomain: Record<string, number>;
-}
+export type {
+  AgeBand,
+  Domain,
+  ServedItem,
+  PrecisionSetting as PrecisionStep,
+  BankCatalogueResponse as BankSummary,
+  QbankServe as Serve,
+  QbankState as SessionState,
+  DomainBand,
+  PassRoute,
+} from '@gt/qbank';
 
 export interface SessionConfig {
   precisionIndex?: number;

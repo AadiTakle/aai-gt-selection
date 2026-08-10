@@ -66,7 +66,10 @@ async function playBand(band: string, precisionIndex: number): Promise<{ ok: boo
     // reaches its own stopping point, not whether the ability estimate is any good.
     const out = await api<{ state: { stopped: boolean } }>(`/bank/sessions/${start.sessionId}/answer`, {
       response: { choiceKey: 'A' },
-      latencyMs: 1200,
+      // 3000 rather than 1200: seven types now have a rapid-guess floor above 1200ms (1b.3), and a
+      // simulated child answering a word problem in 1.2s was never plausible anyway. Below the floor the
+      // response comes back unscorable and this script would report a fault that is its own.
+      latencyMs: 3000,
     });
     if (out.state.stopped) {
       stopped = true;

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
+import type { QbankState } from '@gt/qbank';
 import type { AgeBand, RenderedItem, SurfaceConfig } from '@gt/contracts';
 import { ContentView } from './ItemView.js';
 import { Practice } from './Practice.js';
@@ -63,14 +65,15 @@ export default function App() {
 // Screener
 // ---------------------------------------------------------------------------
 
-interface SessionState {
-  stopped: boolean;
-  stopReason: string | null;
-  pAbove: number;
-  decision: string | null;
-  itemsServed: number;
-  interval: [number, number];
-}
+/**
+ * The fields the tray shows, whichever source is running.
+ *
+ * A projection of the contract rather than a restatement of it: `Pick` cannot fall behind a field being
+ * renamed, which a hand-copied interface can and three others in this repo did. Narrow on purpose — the bank
+ * source returns more (per-domain bands, a pass route) and the generator source returns less, so this is the
+ * shape they genuinely share.
+ */
+type SessionState = Pick<QbankState, 'stopped' | 'stopReason' | 'pAbove' | 'decision' | 'itemsServed' | 'interval'>;
 
 /**
  * The screener tab. Chooses between the two item sources and hands the tray whatever the active
