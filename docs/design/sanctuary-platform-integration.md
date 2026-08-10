@@ -134,13 +134,17 @@ half scrupulously — `world/types.ts` says "NOTHING IN HERE IS A SCORE" and the
 participation. But it currently delivers neither half, because an estimator that never stops on confidence
 has no decision to report.
 
-**Recommendation: adopt the platform's fixed threshold**, so Bramblebrook produces the decision the
-product asks for. The child's experience does not change — they still see only "N of about 4" and their
-slimes — but a session can now conclude something. Estimation mode stays available as app config for the
-harness, which legitimately wants to measure rather than to decide.
+**Resolved, 2026-08-10: fixed threshold plus the disjunctive pass.** Bramblebrook produces a decision for
+the first time, and Felipe's `passRouteFor` adds the option neither of my two original choices had — a
+child who spikes on one battery passes on that battery when the composite rejects them. That is much
+closer to what a three-station game actually produces than a single composite bar, since a keeper who
+loves the tide ledge and ignores the log has a real profile rather than a mediocre average.
 
-**This is a decision for the owner, not for me.** It changes what the game means, not just how it is
-wired.
+The child's experience does not change: they still see "N of about 4" and their slimes. What changes is
+that a session can now conclude something, and that the sheet records **which route concluded it**.
+
+Threshold steering is retired with `server-plugin.ts`'s θ bookkeeping. The harness keeps a way to pin a
+threshold, because it legitimately measures rather than decides.
 
 ---
 
@@ -212,17 +216,28 @@ The user's constraint is that this must not touch other branches. Concretely:
 
 ---
 
-## 9. Open questions for review
+## 9. Questions, and where they stand
 
-1. **§5, the fork.** Fixed threshold and a real decision, or keep steering the threshold and stay an
-   estimator? This is the one that changes meaning.
-2. **One session per keeper, or one per keeper per battery?** §4 assumes one, which is what makes the
-   composite meaningful. Per-battery sessions would keep today's shape but keep today's flaw.
-3. **`QUANT-GLYPHNUM-01`'s 391 placement-ratio items.** They are excluded as `non-index-numeric-key`.
-   Bramblebrook does not use the type, so this is not blocking — but it is 391 items and a scoring rule
-   nobody has written. Leave excluded?
-4. **Does Bramblebrook ever collect a guardian email?** If it stays `piiPolicy: 'none'`, the persona is
-   pseudonymous and nothing needs a consent design. If a "tell my parents" moment is planned, that changes.
-5. **The retired types.** `curate-banks.ts` still symlinks `FLU-OPCHAIN-01`, `SPA-XFORM-01` and
+**Answered 2026-08-10:**
+
+1. **§5, the fork** — fixed threshold plus the disjunctive pass. See §5.
+2. **Session scope** — one session per keeper, across every visit and battery, as §4 assumes.
+3. **`QUANT-GLYPHNUM-01`'s 391 placement-ratio items** — left excluded. Folded into the wider
+   `computed_solver` question, which is now a separate effort: 1,634 items across 14 types, each needing
+   its own comparison rule and its own validity check.
+
+**Still open, and neither blocks implementation:**
+
+4. **Does Bramblebrook ever collect a guardian email?** It stays `piiPolicy: 'none'` until someone says
+   otherwise, which keeps the persona pseudonymous and needs no consent design. If a "tell my parents"
+   moment is planned, this changes and a COPPA design becomes a prerequisite.
+5. **The retired types in `curate-banks.ts`.** It still symlinks `FLU-OPCHAIN-01`, `SPA-XFORM-01` and
    `VER-SEQUENCE-01` to keep pool composition stable across milestones. Under the platform, approval is
-   explicit and stability is automatic. Drop them from the app's approved list?
+   explicit and stability is automatic, so the default is to drop them from the app's approved list —
+   they are not among the seven verbs either way. Note this is unrelated to Felipe's three *retirements*
+   (`CX-achieve-02`, `FLU-DEDUCE-01`, `FLU-ODDPAIR-01`), none of which Bramblebrook uses.
+
+**A new number to choose.** With one session per keeper, `maxItems` stops being the burst length and
+becomes the whole screening budget. Bramblebrook's "about 4" stays a presentational choice. Felipe's
+`PRECISION_STEPS` top out at 40 items at Thorough, which is a plausible ceiling for a game played across
+many visits, but nobody has picked it. Recorded here rather than assumed.

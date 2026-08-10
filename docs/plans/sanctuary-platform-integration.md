@@ -252,36 +252,41 @@ export function toSortieState(sheet: PlatformSheet): SortieState;
 
 ---
 
-## Task 5: Repoint `useSortie` at the platform
+## Task 5 (REDUCED): Point `useSortie` at the platform
+
+Reduced from a rewrite to a deletion by the wire-contract decision. The platform now serves Felipe's
+`/api/bank/*`, which `useSortie`'s unsteered path **already speaks** — it posts to `/api/bank/sessions` and
+reads `/next` and `/answer` today. Tasks 4's mapping layer largely disappears with it: his `NextResponse`
+and `AnswerResponse` are already the shapes this app reads.
 
 **Files:**
-- Modify: `screener/apps/sanctuary/shared/useSortie.ts`
+- Modify: `screener/apps/sanctuary/shared/useSortie.ts` — delete the steered `/sanctuary/chunk` path
 - Create: `screener/apps/sanctuary/shared/useSortie.test.ts`
 
-**The exported `Sortie` interface does not change.** Internally: hold `servedToken` alongside
-`sessionId`; `open()` posts `/v1/sessions`; `next` reads `/v1/sessions/{id}/next` and passes the body
-through `toServe`; `answer()` posts `/v1/sessions/{id}/responses` with
-`{ servedToken, response: { key, selectedKey, selectedIndex }, latencyMs }`.
+**The exported `Sortie` interface does not change.** What changes: `open()` always posts
+`/api/bank/sessions` (no chunk route), the base URL points at the platform, and the `threshold` option goes
+away with threshold steering. There is no `servedToken` to hold — the server knows which item is pending.
 
-`delete raw.correct` can go — the platform never sends it. Replace it with a test that proves the
-response body contains no `correct` field, so the guarantee moves from a deletion to an assertion.
+`delete raw.correct` can go, since the platform never sends it. Replace it with a test asserting the
+response body contains no `correct` field, so the guarantee becomes an assertion rather than a deletion.
 
-- [ ] **Step 1: Write the failing test** against a stubbed `fetch`: `open` then `answer` drives the
-  platform routes in order; the answer body carries `servedToken` and all three response addressings; a
-  403 from an expired token surfaces as `phase: 'error'` with a message; the hook never reads a field the
-  platform does not send.
+- [ ] **Step 1: Write the failing test** against a stubbed `fetch`: `open` then `answer` drives the five
+  `bankRoutes` in order; the answer body carries all three response addressings; the hook never reads a
+  field the contract does not define; and no request carries a threshold.
 - [ ] **Step 2: Run it.** Expected: fail.
-- [ ] **Step 3: Implement.** Keep `steered` as a flag selecting the app's precision profile rather than a
-  different endpoint — the platform needs no separate chunk route.
-- [ ] **Step 4: Run it, then run sanctuary's 14 tests.** Expected: all pass, and `Game.tsx`,
-  `Stations.tsx`, `Board.tsx` are untouched — verify with `git diff --name-only`.
+- [ ] **Step 3: Implement**, using `bankRoutes` from `@gt/qbank` for the paths rather than string literals,
+  so a contract change breaks the build instead of the game.
+- [ ] **Step 4: Run it, then run sanctuary's tests.** Expected: all pass, and `Game.tsx`, `Stations.tsx`,
+  `Board.tsx` are untouched — verify with `git diff --name-only`.
 - [ ] **Step 5: Commit.**
 
 ---
 
 ## Task 6: One session per keeper
 
-**Blocked on spec §5 and §9.2.** Do not start until the owner has answered.
+**Unblocked 2026-08-10.** Spec §5 resolved to a fixed threshold plus the disjunctive pass, and §9.2 to one
+session per keeper across every visit and battery. One number is still unchosen — the screening budget that
+`maxItems` now represents; see spec §9.
 
 **Files:**
 - Modify: `screener/apps/sanctuary/server-plugin.ts` — reduce to persona mapping and the operator route

@@ -169,6 +169,42 @@ None of this exists in `@gt/qbank`, and all of it was in the original ask.
 
 ---
 
+## 5.1 Decisions taken, 2026-08-10
+
+| # | Decision | Consequence |
+|---|---|---|
+| 1 | **The platform serves Felipe's `/api/bank/*`** for the session loop, and adds `/v1/admin/*` and `/v1/catalog/*` for apps, approvals and personas — things his contract has no notion of | One documented contract for the thing every caller does. See §5.2, which is mostly good news |
+| 2 | **`computed_solver` recovery is a separate effort.** 1,634 items across 14 types, each needing its own comparison rule and its own validity check | Out of scope here. `FLU-ODDPAIR-01` is the argument: a wrong rule marks correct reasoning wrong, invisibly |
+| 3 | **Fixed threshold plus the disjunctive pass** | Bramblebrook produces a decision for the first time, and a child who spikes on one battery passes on it when the composite rejects. Unblocks sanctuary Task 6 |
+| 4 | **One session per keeper**, across every visit and battery | The trace accumulates, intervals narrow, and the composite becomes meaningful. A burst becomes presentational |
+| 5 | **Variety layers built in the platform now, proposed upstream to `@gt/qbank`** | Nothing blocks, and Felipe's other consumers can gain them without me editing his branch |
+
+## 5.2 What decision 1 removes
+
+Adopting Felipe's contract turns out to *delete* platform code rather than add adapters, in two places
+worth naming.
+
+**The `servedToken` becomes unnecessary.** I introduced it because the client told the server which item it
+was answering, and that claim could not be trusted. But decision §2 keeps the trace server-side, so the
+server already knows which response row is `served` for a session — the pending row *is* the binding. The
+HMAC, the 30-minute expiry, the `TokenError` path and the "token from another session" test all collapse
+into a conditional update the store already performs. His contract has no `servedToken` field, and it turns
+out it does not need one.
+
+**Sanctuary's client barely changes.** Task 5 of the sanctuary plan was "rewrite `useSortie` against the
+platform contract." But `useSortie`'s unsteered path already posts to `/api/bank/sessions` and reads
+`/next` and `/answer` — it already speaks this contract. What is left is deleting the steered
+`/sanctuary/chunk` path and pointing a base URL at the platform. That task shrinks from a rewrite to a
+deletion.
+
+**One thing decision 1 obliges us to handle.** His `NextResponse` and `AnswerResponse` both carry
+`QbankState`, which contains `estimate`, `interval`, `pAbove` and `decision`. That is measurement detail
+crossing to the calling app on every question. It is not a leak to the *child* — Bramblebrook receives it
+today and displays only participation — but it does mean the contract trusts the app. The boundary is
+"the app is trusted, the child is not," and that should be stated in the contract rather than assumed.
+`GET /api/bank/sessions/:id/debug` goes further and exposes the posterior mean; the platform should put it
+behind the admin authorizer rather than the app key, or not serve it at all.
+
 ## 6. Revised task list
 
 Replaces Task 1 of `docs/plans/sanctuary-platform-integration.md` and inserts before it.
@@ -188,21 +224,36 @@ Replaces Task 1 of `docs/plans/sanctuary-platform-integration.md` and inserts be
       `QbankState`, which is a stronger statement than the one it replaces.
 
 - [ ] **Task 3 — keep session state server-side, and grade with `grade()`.** Settled by §2, so this is now
-      mechanical rather than a decision: `serve` appends the response row and returns a `servedToken`;
-      `score` verifies that token, calls `grade()` for the mark and the posterior update, and completes the
-      row. No transcript crosses to the client.
+      mechanical: `serve` appends the response row in `served` state; `score` finds that row, calls
+      `grade()` for the mark and the posterior update, and completes it conditionally. No transcript
+      crosses to the client. **Delete `functions/shared/src/token.ts` and its tests** — §5.2 explains why
+      the pending row replaces it.
 
-- [ ] **Task 4 — keep variety, over his pool.** Compose the eight layers on top of `buildPool` and
-      `selectNext`'s objective rather than re-deriving information. Then open the question of contributing
-      it to `@gt/qbank` so Bramblebrook and the family portal both benefit.
+- [ ] **Task 4 — move the platform onto `/api/bank/*`.** Replace the `/v1/sessions*` routes with the five
+      in `wire.ts`, importing his request and response types rather than declaring parallel ones.
+      `responses` becomes `answer`. Keep `/v1/admin/*` and add `/v1/catalog/*`, since his contract covers
+      neither. Put `/debug` behind the admin authorizer. Extend `openapi.ts` — or a sibling document — to
+      cover the admin and catalog routes, so there is still exactly one description of the API.
 
-- [ ] **Task 5 — adopt the disjunctive pass in `GiftedCriteria`.** A composite-only bar cannot express
-      "passed on quantitative alone," which is exactly the shape Bramblebrook's batteries produce.
+- [ ] **Task 5 — keep variety, over his pool.** Compose the eight layers on top of `buildPool` and
+      `selectNext`'s objective rather than re-deriving information.
 
-- [ ] **Task 6 — adopt rapid-guess flags.** Carry `flags` onto the platform's response record, and count a
-      rapid guess as unscorable rather than wrong.
+- [ ] **Task 6 — adopt the disjunctive pass.** `GiftedCriteria` gains a domain bar and a domain
+      probability, and the stored sheet records **which route passed**. "Recommended because quantitative
+      alone" is a materially different statement to a family than "recommended on the composite," and a
+      sheet that cannot say which one happened cannot be defended later.
 
-- [ ] **Task 7 onwards — the sanctuary plan as written**, with its Task 1 struck and its numbers updated.
+- [ ] **Task 7 — adopt rapid-guess flags.** Carry `flags` onto the platform's response record, and count a
+      rapid guess as unscorable rather than wrong. This matters more in a game than on a web page, because
+      tapping is cheap.
+
+- [ ] **Task 8 — write the variety proposal for Felipe.** A short document with the measured figures from
+      `aws-question-platform.md` §9.2.1 — one distinct opening, 16 items across a 1,000-child cohort, one
+      type filling 60% of a session — and the eight layers as a diff against `selectNext`. Decision 5 is to
+      propose, not to merge, so this is a document rather than a branch.
+
+- [ ] **Task 9 onwards — the sanctuary plan**, with its Task 1 struck, its numbers updated, and its Task 5
+      reduced to a deletion per §5.2.
 
 ---
 
