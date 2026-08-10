@@ -64,8 +64,11 @@ Grounding, so the plan does not rebuild working code.
 Two facts that shape the design:
 
 - **2,785 of 7,319 items cannot be scored.** 1,774 need a computed solver, 891 have no answer key,
-  120 are deferred to model judgment. Twenty of the fifty-three types have zero scorable items. The
-  registry records scoring mode per item and the serving engine will not offer what it cannot mark.
+  120 are deferred to model judgment. **Twenty-one of the fifty-three types have zero scorable
+  items** — every `WM-*`, every `GB-*`, and `QUANT-GLYPHNUM-01` among them, the last because all 391
+  of its items need a solver. The registry records scoring mode per item and the serving engine will
+  not offer what it cannot mark. All of these counts are asserted against the real banks by the
+  catalog compiler's test.
 - **`b = (difficulty − 10.5) / 3` is a rescale, not a calibration.** Discrimination is fixed at 1.5
   and the guessing floor is pinned to 1/options. Fisher-information optimality is therefore optimal
   with respect to an assumption. §11 makes that assumption replaceable.
@@ -124,9 +127,10 @@ same process that holds it.
 The registry in DynamoDB is the mutable authoring surface. **Publishing compiles an immutable
 snapshot**: a compact selection index written to `s3://gt-catalog-snapshots/<snapshotId>.json.gz`
 containing only what selection needs — item ID, item revision, type code, domain, `b`, `a`, `c`,
-option count, age bands, scoring mode. About 550 KB uncompressed for 4,534 scorable items, so
-`serve` loads it once per execution environment and caches it in module scope. Selection then runs
-in memory with zero database reads, and only the chosen item's content is fetched.
+option count, age bands, reading band, scoring mode. Measured against the real banks: **1.29 MB of
+JSON, 134 KB gzipped, for 4,534 items.** So `serve` loads it once per execution environment and
+caches it in module scope. Selection then runs in memory with zero database reads, and only the
+chosen item's content is fetched.
 
 Every session pins a `snapshotId`, so publishing cannot alter a session in flight. This is the
 principle `docs/design/screener-library-design.md` already states — "authoring is mutable, serving
