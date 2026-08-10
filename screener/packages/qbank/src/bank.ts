@@ -14,6 +14,8 @@ import { fileURLToPath } from 'node:url';
  * lives, `toServed` removes it before anything crosses to the frame, and scoring happens here.
  */
 
+import { RETIRED_TYPES, isRetired } from './retired.js';
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const BANK_DIR =
   process.env.GT_QBANK_BANKS ?? join(HERE, '..', '..', '..', '..', 'qbank-library', 'banks');
@@ -98,6 +100,23 @@ export function loadBanks(dir: string = BANK_DIR): Map<string, LoadedBank> {
 
   for (const file of readdirSync(dir).filter((f) => f.endsWith('.jsonl'))) {
     const typeCode = file.replace(/\.jsonl$/, '');
+    /**
+     * A retired type is loaded and counted but never servable, so the catalogue still shows it with an honest
+     * reason instead of the type quietly vanishing. See `retired.ts` — the data file is untouched.
+     */
+    if (isRetired(typeCode)) {
+      const total = readFileSync(join(dir, file), 'utf8').split('\n').filter((l) => l.trim()).length;
+      out.set(typeCode, {
+        typeCode,
+        domain: 'unknown',
+        scorable: [],
+        total,
+        excluded: { [`retired:${RETIRED_TYPES[typeCode]!.cause}`]: total },
+        difficultyRange: [NaN, NaN],
+        ageBands: [],
+      });
+      continue;
+    }
     const scorable: BankRecord[] = [];
     const excluded: Record<string, number> = {};
     const ageBands = new Set<string>();
