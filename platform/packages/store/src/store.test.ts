@@ -958,6 +958,7 @@ suite('PlatformStore against DynamoDB Local', () => {
     it('round-trips a key at a revision and returns null for an absent one', async () => {
       await keys.put({
         itemId: 'item-1',
+        typeCode: 'FLU-MATRIX-01',
         revision: 1,
         correctKey: 'B',
         scoringMode: 'deterministic_key',
@@ -965,6 +966,7 @@ suite('PlatformStore against DynamoDB Local', () => {
       });
       await keys.put({
         itemId: 'item-1',
+        typeCode: 'FLU-MATRIX-01',
         revision: 2,
         correctKey: 'C',
         scoringMode: 'deterministic_key',

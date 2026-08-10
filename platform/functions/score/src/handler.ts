@@ -102,7 +102,7 @@ async function submit(request: ApiRequest): Promise<ApiResponse> {
    * than folding the same evidence into the posterior a second time.
    */
   const key = await d.answerKeys.get(served.itemId, served.itemRevision);
-  const correct = key ? markAgainstKey(key.correctKey, body.response) : null;
+  const correct = key ? markAgainstKey(key, body.response) : null;
 
   const outcome = await d.store.completeResponse(sessionId, claims.ordinal, {
     rawResponse: body.response ?? null,

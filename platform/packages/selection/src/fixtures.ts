@@ -53,6 +53,7 @@ export function makeCandidates(options: FixtureOptions = {}): SelectionCandidate
           optionCount: 4,
           ageBands: ['3-5'],
           scoringMode: 'deterministic_key',
+          markable: true,
           readingBand: options.readingBand ?? null,
           syntheticOnly: options.syntheticOnly ?? false,
         });

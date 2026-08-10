@@ -151,11 +151,19 @@ function optionCountOf(record: BankRecord): number {
  */
 function scoringModesIn(bank: LoadedBank): readonly ScoringMode[] {
   const present = new Set<ScoringMode>();
-  if (bank.scorable.length > 0) present.add('deterministic_key');
+  // Read the records rather than assume the mode, now that `scorable` can hold more than one.
+  for (const record of bank.scorable) present.add(record.scoring.mode);
   for (const [reason, count] of Object.entries(bank.excluded)) {
     if (count <= 0) continue;
-    if (reason === 'no-key' || reason === 'no-difficulty') present.add('deterministic_key');
+    // These three all declared `deterministic_key` and were set aside for missing something else, so
+    // they still prove the mode is present. `non-index-numeric-key` joined them when a numeric key
+    // became legitimate: QUANT-GLYPHNUM-01's 391 records declare the mode and store a placement ratio.
+    if (reason === 'no-key' || reason === 'no-difficulty' || reason === 'non-index-numeric-key') {
+      present.add('deterministic_key');
+    }
     if (reason === 'computed_solver' || reason === 'model_judge_deferred') present.add(reason);
+    // `unusable-cell-set-key` is a computed_solver record whose stored set would not parse.
+    if (reason === 'unusable-cell-set-key') present.add('computed_solver');
   }
   return SCORING_MODE_ORDER.filter((mode) => present.has(mode));
 }
@@ -233,8 +241,15 @@ export function compileCatalog(opts: CompileOptions): CompiledCatalog {
         params,
         optionCount,
         ageBands,
-        // The loader only admits a record to `scorable` if it declared this mode and carries a key.
-        scoringMode: 'deterministic_key',
+        /**
+         * The mode the record actually declares, not the one it was assumed to declare.
+         *
+         * This was hardcoded to `deterministic_key` on the grounds that the loader admits nothing else.
+         * That stopped being true when `SPA-PUNCH-01` became servable: it declares `computed_solver` and
+         * is marked as a cell set. Hardcoding meant the registry misreported 140 items, and — worse —
+         * the misreport was what let them past a serving filter that tested this field.
+         */
+        scoringMode: record.scoring.mode,
         // A second net behind the answer table, not the primary control. It removes nothing from
         // the current 53 banks; it is here so that one type putting a key inside `content` cannot
         // leak silently.
@@ -247,9 +262,11 @@ export function compileCatalog(opts: CompileOptions): CompiledCatalog {
       const { correctKey, ...extra } = record.answer;
       answerKeys.push({
         itemId: record.itemId,
+        // Marking dispatches on this; see `markAgainstKey`.
+        typeCode,
         revision: INITIAL_REVISION,
         correctKey,
-        scoringMode: 'deterministic_key',
+        scoringMode: record.scoring.mode,
         extra,
       });
 
@@ -262,7 +279,10 @@ export function compileCatalog(opts: CompileOptions): CompiledCatalog {
         difficulty: record.difficulty,
         optionCount,
         ageBands,
-        scoringMode: 'deterministic_key',
+        scoringMode: record.scoring.mode,
+        // True by construction: only records the loader admitted to `scorable` reach this point, and
+        // that is the decision about markability rather than anything derivable from the mode.
+        markable: true,
         // Reading load is a property of the type, not of the item: the contract derives one band
         // per bank, so every item of a type shares it.
         readingBand: uiRequirement.readingBand,

@@ -18,12 +18,30 @@ describe('eligibility filters', () => {
   });
 
   it('excludes everything the platform cannot mark', () => {
-    const unmarkable = makeIndex();
+    const index = makeIndex();
     const mutated = {
-      ...unmarkable,
-      items: unmarkable.items.map((c) => ({ ...c, scoringMode: 'computed_solver' as const })),
+      ...index,
+      items: index.items.map((c) => ({ ...c, markable: false })),
     };
     expect(eligible(makeRequest(mutated)).length).toBe(0);
+  });
+
+  it('keeps a markable item whose mode is not deterministic_key', () => {
+    /**
+     * SPA-PUNCH-01 declares `computed_solver` and marks perfectly well, because its key is a stored cell
+     * set compared as a set. Eligibility used to test the mode, which excluded all 140 of its items the
+     * moment the registry started reporting that mode truthfully. Markability is the loader's decision.
+     */
+    const index = makeIndex();
+    const cellSet = {
+      ...index,
+      items: index.items.map((c) => ({
+        ...c,
+        scoringMode: 'computed_solver' as const,
+        markable: true,
+      })),
+    };
+    expect(eligible(makeRequest(cellSet)).length).toBe(index.items.length);
   });
 
   it('excludes an item whose bands do not include the requested band', () => {

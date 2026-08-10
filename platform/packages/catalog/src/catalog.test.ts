@@ -32,7 +32,7 @@ const FIXED_CREATED_AT = '2026-08-10T00:00:00.000Z';
 
 const EXPECTED_TYPES = 53;
 const EXPECTED_ITEMS = 7319;
-const EXPECTED_SCORABLE = 4534;
+const EXPECTED_SCORABLE = 4934;
 
 /**
  * Property names that must not survive into anything the serving path can read.
@@ -88,10 +88,18 @@ describe('compileCatalog against the real banks', () => {
     );
   });
 
-  it('reports why the other 2,785 records were set aside', () => {
-    expect(compiled.stats.excludedByMode['computed_solver']).toBe(1774);
-    expect(compiled.stats.excludedByMode['no-key']).toBe(891);
-    expect(compiled.stats.excludedByMode['model_judge_deferred']).toBe(120);
+  it('reports why the other 2,385 records were set aside', () => {
+    // computed_solver fell from 1,774 when SPA-PUNCH-01's 140 cell-set items became servable.
+    expect(compiled.stats.excludedByMode['computed_solver']).toBe(1634);
+    // The 891 keyless records resolved into 500 newly scorable verbal items and QUANT-GLYPHNUM-01's
+    // 391, whose numeric key is a placement ratio rather than an option index.
+    expect(compiled.stats.excludedByMode['non-index-numeric-key']).toBe(391);
+    // Three types retired in PR #68. FLU-ODDPAIR-01 because its stored key was arbitrary on the 49
+    // items with no matched pair, so the bank had been marking correct reasoning wrong.
+    expect(compiled.stats.excludedByMode['retired:reviewer-kill']).toBe(240);
+    expect(compiled.stats.excludedByMode['retired:validity-defect']).toBe(120);
+    // Its only type, CX-achieve-02, is now retired.
+    expect(compiled.stats.excludedByMode['model_judge_deferred']).toBeUndefined();
     const setAside = Object.values(compiled.stats.excludedByMode).reduce((a, b) => a + b, 0);
     expect(setAside).toBe(EXPECTED_ITEMS - EXPECTED_SCORABLE);
   });
@@ -154,12 +162,13 @@ describe('type records', () => {
       expect(Number.isFinite(range[1])).toBe(true);
       expect(range[0]).toBeLessThanOrEqual(range[1]);
     }
-    expect(nulled).toBe(21);
+    expect(nulled).toBe(17);
   });
 
   it('names deterministic_key on every type that has a key anywhere, scorable or not', () => {
     const byCode = new Map(compiled.types.map((type) => [type.typeCode, type]));
-    // 391 records, every one of them a deterministic_key record with no key on it.
+    // 391 records, every one declaring deterministic_key and storing a placement ratio where an
+    // option index belongs, so the loader sets them aside as non-index-numeric-key.
     const glyphnum = byCode.get('QUANT-GLYPHNUM-01');
     expect(glyphnum?.scorableCount).toBe(0);
     expect(glyphnum?.scoringModes).toContain('deterministic_key');
@@ -255,13 +264,21 @@ describe('answer keys', () => {
     expect(ids.size).toBe(compiled.stats.scorableCount);
   });
 
-  it('carries a non-empty key and keeps the rest of the answer block as extra', () => {
+  it('carries a usable key, its type code, and the rest of the answer block as extra', () => {
     for (const key of compiled.answerKeys) {
-      expect(typeof key.correctKey).toBe('string');
-      expect(key.correctKey.length).toBeGreaterThan(0);
-      expect(key.scoringMode).toBe('deterministic_key');
+      // Letters and cell sets are strings; the five positional verbal types store an option index.
+      expect(['string', 'number']).toContain(typeof key.correctKey);
+      if (typeof key.correctKey === 'string') expect(key.correctKey.length).toBeGreaterThan(0);
+      // Marking dispatches on the type code, so a key without one is unmarkable for cell-set types.
+      expect(key.typeCode.length).toBeGreaterThan(0);
+      expect(key.scoringMode).toBe(
+        compiled.items.find((item) => item.itemId === key.itemId)?.scoringMode,
+      );
       expect('correctKey' in key.extra).toBe(false);
     }
+    // Not vacuous: both key shapes and both modes are actually present in the real banks.
+    expect(compiled.answerKeys.some((key) => typeof key.correctKey === 'number')).toBe(true);
+    expect(compiled.answerKeys.some((key) => key.scoringMode === 'computed_solver')).toBe(true);
     // The rationales are the reason `extra` exists: a marker may need them, a renderer never does.
     expect(compiled.answerKeys.some((key) => 'distractorRationales' in key.extra)).toBe(true);
   });
@@ -292,7 +309,7 @@ describe('the answer never reaches the serving path', () => {
   it('withholds a specific known key from the item that key belongs to', () => {
     const [key] = compiled.answerKeys;
     expect(key).toBeDefined();
-    expect(key?.correctKey.length).toBeGreaterThan(0);
+    expect(String(key?.correctKey ?? '').length).toBeGreaterThan(0);
 
     const item = compiled.items.find((candidate) => candidate.itemId === key?.itemId);
     expect(item).toBeDefined();
@@ -310,6 +327,7 @@ describe('the answer never reaches the serving path', () => {
       'domain',
       'itemId',
       'itemRevision',
+      'markable',
       'optionCount',
       'params',
       'readingBand',
@@ -320,10 +338,13 @@ describe('the answer never reaches the serving path', () => {
   });
 
   it('offers selection only items this platform can mark', () => {
-    expect(
-      compiled.selectionIndex.every((candidate) => candidate.scoringMode === 'deterministic_key'),
-    ).toBe(true);
+    // Markability is the loader's decision, not an inference from the mode: SPA-PUNCH-01 declares
+    // computed_solver and marks perfectly well as a cell set, while fourteen other computed_solver
+    // types do not because nobody has written their comparison rule.
+    expect(compiled.selectionIndex.every((candidate) => candidate.markable)).toBe(true);
     expect(compiled.selectionIndex).toHaveLength(EXPECTED_SCORABLE);
+    const modes = new Set(compiled.selectionIndex.map((candidate) => candidate.scoringMode));
+    expect([...modes].sort()).toEqual(['computed_solver', 'deterministic_key']);
   });
 
   it('gives each candidate the reading band of its own type', () => {
