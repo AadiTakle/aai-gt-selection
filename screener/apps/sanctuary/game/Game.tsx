@@ -386,7 +386,17 @@ function Beat({
 
   return (
     <div className={inWorld ? 'bh-beat bh-beat-slim' : 'bh-beat'}>
-      <p className="bh-beat-title">{verb?.title ?? verbFor(s.serve.typeCode)?.title ?? 'Something to do'}</p>
+      {/*
+        * Named for the STYLE that turned up, not for the station.
+        *
+        * `verb` is the station's tier-1 verb, so the tide ledge captioned a weighing-bough question "The
+        * tide-line" and the coat wall captioned a woven mat "Coaxing a coat" — a station serves its whole
+        * battery now, so the station's own name is the wrong name three times out of four.
+        *
+        * Every title here is an in-world job and none of them says test, quiz, score or battery, which is
+        * the whole point: a child is doing a thing the ranch needs, not sitting a section.
+        */}
+      <p className="bh-beat-title">{verbFor(s.serve.typeCode)?.title ?? verb?.title ?? 'Something to do'}</p>
       {inWorld ? null : (
         <div className="bh-beat-options">
           {options.map((o, i) => {
