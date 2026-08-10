@@ -142,6 +142,19 @@ const Q = new THREE.Quaternion();
 const K = new THREE.Vector3();
 
 export interface SlimeProps {
+  /**
+   * THE WORLD'S IDENTITY FOR THIS SLIME, published into `herd.ts` so a capture can name it.
+   *
+   * `Game.tsx` already spreads a `uid` onto this component (`<Slime key={sl.uid} {...sl} />`) and it was
+   * being silently dropped, because JSX spread is not excess-property-checked. That dropped property is
+   * the whole of the duplication bug: with no identity in the registry the vacpack could only tell the
+   * integrator "a crested rose slime, last seen about here", and the integrator then removed whichever
+   * crested rose slime's RECORDED spawn point was nearest — routinely not the one the child had just
+   * sucked up. The sucked one stayed standing; a different one, elsewhere, blinked out.
+   *
+   * Optional, because the preview pages have no world to be identified in.
+   */
+  uid?: number;
   family: Family;
   stage?: Stage;
   /** Where it starts. y is the ground height under it; x and z are only the first frame's x and z. */
@@ -173,6 +186,7 @@ export interface SlimeProps {
 }
 
 export function Slime({
+  uid,
   family,
   stage = 'crested',
   position,
@@ -397,6 +411,7 @@ export function Slime({
   const collider = useRef<SlimeCollider | null>(null);
   useEffect(() => {
     const entry = joinHerd({
+      uid,
       family,
       stage,
       x: state.current.x,
@@ -409,7 +424,7 @@ export function Slime({
       leaveHerd(entry);
       collider.current = null;
     };
-  }, [family, stage, bake.height, scale, radius]);
+  }, [uid, family, stage, bake.height, scale, radius]);
 
   useFrame(({ camera }, dt) => {
     const s = state.current;

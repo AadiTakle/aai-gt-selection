@@ -49,6 +49,16 @@ declare global {
     __earn?: (n: number) => void;
     __moveTo?: (x: number, y: number, z: number) => void;
     __lookAt?: (x: number, y: number, z: number) => void;
+    /**
+     * The posed scene, for MEASURING RATHER THAN LOOKING.
+     *
+     * The top-row occlusion bug was found by eye and could only be diagnosed by arithmetic: which mesh's
+     * lower edge is in front of which crest's upper edge, in the stall's own local frame. A screenshot
+     * cannot answer that and neither can the source, because the answer depends on the posed world
+     * matrices. So the probe publishes the scene graph and a driving script walks it. Preview only,
+     * exactly like `__gl` beside it; nothing in the game reads this.
+     */
+    __scene?: object;
     __gl?: {
       ready: boolean;
       calls: number;
@@ -152,6 +162,7 @@ function Probe(): null {
   const scene = useThree((s) => s.scene);
   const camera = useThree((s) => s.camera);
   useFrame(() => {
+    window.__scene = scene;
     const p = new THREE.Vector3();
     const s = new THREE.Vector3();
     let eyeR = 0;

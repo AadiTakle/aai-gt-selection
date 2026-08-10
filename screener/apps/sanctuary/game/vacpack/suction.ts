@@ -74,8 +74,35 @@ export const PLOP = {
    *
    * Five, not four: a warden is nearly two metres across, and at four metres it is still filling a third of the
    * view when it lands. Far enough that a child can see the whole creature they just put down.
+   *
+   * IT IS A CEILING, NOT A DISTANCE. `plopTarget` shortens it to whatever is actually clear ahead; see
+   * `clearReach` below for why an unshortened five metres was the whole of the barn bug.
    */
   reach: 5,
+  /**
+   * THERE IS NO MINIMUM THROW, and that absence is load-bearing enough to be written down.
+   *
+   * A comfortable floor is the obvious thing to add and it is a hole straight through the guarantee. Two
+   * were tried. At 1.45m — a keeper's radius plus the widest slime, so the slime never lands inside the
+   * child — a child standing fifteen centimetres off a fence post and aiming at it had the throw cut to
+   * 0.06m by the cast and then EXTENDED back to 1.45m, through the post and out the far side: 134 of 2,214
+   * plops across the ranch, every one of them at exactly the floor. At 0.15m the same thing happened once
+   * in 2,214, against the barn's closed gable.
+   *
+   * A floor is not a small correction to a throw. It is permission to ignore the cast, and the cast is the
+   * entire promise. So a blocked throw is allowed to collapse to nothing: the slime lands at the child's
+   * feet, `settleLanding` pushes it clear of whatever it started inside, and `pushOutOfSlimes` — which the
+   * keeper controller already calls every frame — has them shoulder each other apart on the next one.
+   * Being nudged aside by the slime you just put down is a correct thing to happen. A slime behind a wall
+   * is not.
+   */
+  /**
+   * How far short of an obstruction the throw stops.
+   *
+   * `clearReach` returns the distance at which the slime's own disc first TOUCHES something, so the point
+   * is already legal; this is only so it does not arrive wedged against a wall with nowhere to wander.
+   */
+  standOff: 0.12,
   /** Seconds in the air. */
   flight: 0.62,
   /** Peak of the arc above the straight line, metres. Gentle: this is a lob, not a shot. */
@@ -353,19 +380,142 @@ export function overlaps(p: { x: number; z: number }, radius: number, g: Ground)
 }
 
 /**
- * Where the child is asking for the slime to go: straight out along the aim, flattened to the ground.
+ * HOW FAR THE THROW CAN ACTUALLY GO — the distance at which the slime's own disc first touches something
+ * solid, or the world's rim, whichever comes first, capped at `reach`.
+ *
+ * ── THIS IS THE BARN BUG, AND IT IS NOT SUBTLE ─────────────────────────────────────────────────────────
+ *
+ * The owner, twice, months apart: "i still can't put slimes in the stables in the barn. they disappear into
+ * oblivion and die and i don't know where they go."
+ *
+ * `PLOP.reach` is five metres and was taken literally. The barn's walkable aisle is 2.5m wide and a stall is
+ * 2.7m deep, so a child standing in the aisle looking at a stall was asking for the slime to be put down at a
+ * point five metres away — through the stall, through the far wall, and out into the field behind the barn.
+ * `settleLanding` then found nothing wrong with it, because a point out in an empty field overlaps nothing
+ * and is inside the world; and `placeSlime` found nothing wrong with it either, because open field is
+ * perfectly reachable ground. Every guarantee in the game held, and the slime still ended up somewhere the
+ * child — who was standing INSIDE the barn, looking at a wall — could not possibly see it go.
+ *
+ * Driven through the real collider set from fifteen standing spots in the barn on four bearings each, TWELVE
+ * OF FORTY-FOUR PLOPS PUT THE SLIME OUTSIDE THE BARN, five metres away, behind a wall. Not one of the
+ * forty-four landed in a stall. `suction.test.ts` holds that measurement.
+ *
+ * Note what the previous attempt at this bug did and why it did not touch it: it made `placeSlime` prove a
+ * spot was REACHABLE, and it verified the barn by asking `placeSlime` about hand-picked coordinates inside a
+ * stall. Both were right and neither was the bug, because the bug was upstream of both — the coordinate
+ * being asked about was never in the stall in the first place.
+ *
+ * ── WHAT IT DOES INSTEAD ───────────────────────────────────────────────────────────────────────────────
+ *
+ * A swept-disc cast along the flattened aim. The slime lands as far along the aim as it can get without
+ * passing through anything, so aiming at a stall from the aisle puts it at the stall front where the child is
+ * looking, aiming at a barn wall puts it against the barn wall, and aiming across open grass still throws
+ * the full five metres. A slime now always lands on the same side of every wall as the child who threw it.
+ *
+ * A solid the ray STARTS inside is skipped rather than clamping the throw to zero: the aisle is narrow
+ * enough that a child often stands within a stall-front circle's keeper reserve, and a throw that collapsed
+ * to nothing there would drop the slime on their own feet every time. `settleLanding` resolves that case.
+ */
+export function clearReach(
+  from: { x: number; z: number },
+  /** Unit forward, already flattened to the ground plane. */
+  fx: number,
+  fz: number,
+  reach: number,
+  radius: number,
+  g: Ground,
+  /**
+   * "IS THIS THE SAME PIECE OF GROUND I AM STANDING ON" — `slimes/ground.ts`'s `isFindable`, when the
+   * caller has it.
+   *
+   * The solid cast above is necessary and not sufficient, and the gap between them is small but real: a ray
+   * can run clear of every collider and still end in a pocket of open ground the child cannot walk to.
+   * Measured over 2,214 plops across the ranch, exactly one did — into the sliver behind the pen rail at
+   * (-6.8, 18.4) — and `placeSlime` then snapped it to the nearest reachable cell, which was on the far
+   * side of a fence post from the child. One in two thousand is still a lost creature.
+   *
+   * So the throw additionally stops where the straight walk in front of the child stops. Passed in rather
+   * than imported so this file keeps no dependency on the ranch registry and stays drivable from a harness
+   * with nothing registered at all.
+   */
+  findable?: (x: number, z: number, r: number) => boolean,
+): number {
+  let limit = reach;
+
+  for (const s of g.solids) {
+    const dx = from.x - s.x;
+    const dz = from.z - s.z;
+    const want = s.r + radius;
+    const c = dx * dx + dz * dz - want * want;
+    // Already overlapping this one. Not the thrower's problem; `settleLanding` pushes out of it.
+    if (c <= 0) continue;
+    const b = dx * fx + dz * fz;
+    const disc = b * b - c;
+    if (disc < 0) continue;
+    // Near root. `c > 0` and a real root mean both roots share a sign, so a negative near root is behind us.
+    const t = -b - Math.sqrt(disc);
+    if (t < 0 || t >= limit) continue;
+    limit = t;
+  }
+
+  // The rim, solved the same way but from the inside, so the exit root is the far one.
+  const rim = Math.max(1, g.worldRadius - radius - 0.6);
+  const c = from.x * from.x + from.z * from.z - rim * rim;
+  if (c < 0) {
+    const b = from.x * fx + from.z * fz;
+    const t = -b + Math.sqrt(Math.max(0, b * b - c));
+    if (t >= 0 && t < limit) limit = t;
+  }
+
+  if (limit < reach) limit -= PLOP.standOff;
+  limit = Math.min(reach, Math.max(0, limit));
+
+  /* And no further than the child could walk in a straight line. Anchored on where they are STANDING: if
+     even that is not findable for a slime this size — a warden where a 0.45m keeper fits — there is no
+     component to reason from, so the solid cast is left to stand on its own and `placeSlime` finishes. */
+  if (findable && limit > 0 && findable(from.x, from.z, radius)) {
+    const step = 0.2;
+    let good = 0;
+    for (let t = step; t <= limit + 1e-9; t += step) {
+      if (!findable(from.x + fx * t, from.z + fz * t, radius)) break;
+      good = t;
+    }
+    // The end point itself, in case the loop stopped a fraction short of a legal `limit`.
+    if (good < limit && findable(from.x + fx * limit, from.z + fz * limit, radius)) good = limit;
+    limit = good;
+  }
+
+  // Never longer than the cast, and never negative. See the note on the absent minimum in `PLOP`.
+  return Math.min(reach, Math.max(0, limit));
+}
+
+/**
+ * Where the child is asking for the slime to go: straight out along the aim, flattened to the ground, and
+ * never further than the first thing in the way.
  *
  * Flattened on purpose. Using the full 3D aim means looking up lobs the slime over the fence and looking down
  * drops it on your own feet, and a child holding a mouse looks up and down constantly without meaning
  * anything by it. Pitch is allowed to lengthen or shorten the throw a little, and that is all it does.
+ *
+ * `clamp` is optional only so the harnesses and the older tests can still ask the unclamped question. Every
+ * caller in the game passes it, and `Vacpack` is the only caller in the game.
  */
-export function plopTarget(aim: Aim, out: { x: number; z: number }): { x: number; z: number } {
+export function plopTarget(
+  aim: Aim,
+  out: { x: number; z: number },
+  clamp?: {
+    radius: number;
+    ground: Ground;
+    findable?: (x: number, z: number, r: number) => boolean;
+  },
+): { x: number; z: number } {
   const flat = Math.hypot(aim.dir.x, aim.dir.z);
   const fx = flat > 1e-4 ? aim.dir.x / flat : 0;
   const fz = flat > 1e-4 ? aim.dir.z / flat : -1;
   // Looking up throws a little further, looking down a little nearer. 0.7x to 1.3x, and nothing more.
   const lift = 1 + Math.max(-0.3, Math.min(0.3, aim.dir.y));
-  const reach = PLOP.reach * lift;
+  let reach = PLOP.reach * lift;
+  if (clamp) reach = clearReach(aim.from, fx, fz, reach, clamp.radius, clamp.ground, clamp.findable);
   out.x = aim.from.x + fx * reach;
   out.z = aim.from.z + fz * reach;
   return out;

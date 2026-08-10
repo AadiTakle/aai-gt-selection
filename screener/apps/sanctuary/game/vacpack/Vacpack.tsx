@@ -45,7 +45,7 @@ import * as THREE from 'three';
 import { FAMILIES, type Family, type Stage } from '../contract';
 import { featureGeometry } from '../slimes/crests';
 import { glazeMaterial, trimMaterial, worldScale } from '../slimes/gumdrop';
-import { placeSlime, seedRanchSolids } from '../slimes/ground';
+import { isFindable, placeSlime, ranchSolids, seedRanchSolids } from '../slimes/ground';
 import { pushOutOfSlimes, slimeColliders } from '../slimes/herd';
 import { SOLIDS } from '../world/Buildings';
 import { LeanRig, MOTE_COUNT, Motes } from './airflow';
@@ -594,8 +594,27 @@ export function Vacpack({
       const clear = t?.r ?? FALLBACK_R;
       const r = clear * SKIRT_TRIM;
       const top = t?.top ?? FALLBACK_TOP;
-      // Where it is going, decided NOW and proved legal now, so the arc cannot end anywhere illegal.
-      const want = plopTarget(A, wantSpot);
+      /**
+       * Where it is going, decided NOW and proved legal now, so the arc cannot end anywhere illegal.
+       *
+       * AND NEVER THROUGH A WALL. `PLOP.reach` is a ceiling; `clearReach` inside `plopTarget` shortens it to
+       * whatever is actually clear ahead. Without that, a child standing in the 2.5m barn aisle looking at a
+       * 2.7m-deep stall was asking for a spot five metres away — out through the far wall and into the field
+       * behind the barn, which is legal ground and utterly invisible from inside the building. That is the
+       * owner's "they disappear into oblivion and die and i don't know where they go", and it survived the
+       * previous fix because the previous fix was about whether the DESTINATION was reachable rather than
+       * about whether the throw could get there.
+       *
+       * Against the FULL registered collider set rather than `ground`'s buildings-only one: the shop stall,
+       * the stations and the intro paddock are things a slime must not be thrown through either, and
+       * `ranchSolids()` is the one definition of what is solid. `ground` keeps the narrower set because
+       * `settleLanding`'s push-out is a per-frame-shaped cost and its own tests are written against it.
+       */
+      const want = plopTarget(A, wantSpot, {
+        radius: clear,
+        ground: { worldRadius, y: groundY, solids: ranchSolids() },
+        findable: isFindable,
+      });
       const p = spot.current;
       p.x = want.x;
       p.z = want.z;

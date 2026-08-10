@@ -33,6 +33,19 @@ import type { Family, Stage } from '../contract';
 export interface SlimeCollider {
   /** Stable identity for the lifetime of the mounted slime. */
   readonly id: number;
+  /**
+   * THE WORLD'S OWN IDENTITY FOR THIS SLIME, carried and never read here.
+   *
+   * `id` above is a mount-order ordinal handed out by `joinHerd`, so it renumbers on every remount and
+   * cannot address anything outside this registry — which is why `vacpack/identity.ts` used to have to
+   * resolve a capture by family, stage and nearest position, and why that resolution picked the wrong
+   * slime often enough for the owner to end up with four apparent copies of one. `slimes/keep.ts` owns
+   * the real identity; a slime passes it in on mount and the vacpack reads it back out at the grab.
+   *
+   * Optional, so the preview pages that stand three slimes next to three posts do not have to invent one.
+   * The registry never looks at it.
+   */
+  readonly uid?: number;
   family: Family;
   stage: Stage;
   /** Live world centre on the ground plane. Written every frame by the slime itself. */

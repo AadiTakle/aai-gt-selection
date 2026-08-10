@@ -58,14 +58,9 @@ export const AT: readonly [number, number, number] = [-2.5, 2.2, -13.5];
 export const YAW = 0.3;
 
 /**
- * How far out along +Z the keeper is docked while the shop is open.
- *
- * 4.4 rather than the stations' 4.6, and for the opposite reason to theirs. A station has to fit a shelf
- * of up to six choices across the screen; this shelf is at most 6.2m wide, which at 4.4m still lands
- * comfortably inside a 4:3 window, and the extra 20cm is spent on the slimes being that much larger. Any
- * closer and the top row of a three-row shelf leaves the top of the frame.
+ * How far out along +Z the keeper is docked while the shop is open. DERIVED — see `DOCK` below the shelf,
+ * because it is the shelf that decides it and the two used to disagree.
  */
-export const DOCK = 4.4;
 
 /** How close before the stall lights up and shows its prompt. The stations' own `REACH`, unchanged. */
 export const REACH = 6.8;
@@ -97,17 +92,15 @@ export function localToWorld(lx: number, lz: number): [number, number] {
 }
 
 /**
- * Where the keeper is held while the shop is open, at a child's eye height.
+ * A CHILD'S EYE HEIGHT, world metres, and the vertical field of view they see the stall through.
  *
- * 1.5 because `Game.tsx`'s `KEEPER_HEIGHT` is 1.5 and it returns the camera there the moment walking
- * resumes; docking to any other height would produce a hop on leaving. This point lands at (-1.20, -9.30),
- * which is 1.4m from where the spine path stops — so a child who simply walked to the end of the track is
- * already standing on the mark.
+ * Both are quoted from elsewhere rather than chosen here: 1.5 is `Game.tsx`'s `KEEPER_HEIGHT`, and 62 is
+ * the `fov` on `Game.tsx`'s `<Canvas>` and on all three previews. They are named because `DOCK` is now
+ * solved from them instead of being a number somebody liked, and a framing rule written against a field of
+ * view has to say which field of view.
  */
-export function dockPoint(): [number, number, number] {
-  const f = facing();
-  return [AT[0] + f[0] * DOCK, 1.5, AT[2] + f[1] * DOCK];
-}
+export const EYE_HEIGHT = 1.5;
+export const FOV_Y = 62;
 
 /* ------------------------------------------------------------------ *\
    The shelf
@@ -129,10 +122,27 @@ export interface Shelf {
 
 /** The widest the shelf may be, so it always stays inside the stall's posts. */
 const SHELF_W = 6.2;
-/** The tallest, measured from just above the counter to just under the head beam. */
+/**
+ * The tallest the band of CUBBIES may be, measured from just above the counter to the head beam.
+ *
+ * READ THE NEXT PARAGRAPH BEFORE CHANGING ANYTHING NEAR THIS NUMBER. This is the band the cubbies are cut
+ * from, and a cubby is NOT as tall as the slime standing in it: a crest — ears, a branch, wings, rime —
+ * rises above the body, and `cubbyBody` only budgets the body. `CREST_SKY` and `CEILING` below are what
+ * account for the rest, and they are why the stall's head beam is no longer sitting on this number.
+ */
 const SHELF_H = 3.0;
 /** The middle of that band, in the local frame. Counter top is at local -1.18. */
 const SHELF_Y = 0.42;
+/**
+ * The shelf lip a slime stands on, thickness. `Shop.tsx` draws it; it is quoted here because `CREST_SKY`
+ * measures up to the underside of the NEXT row's lip and two opinions about one board would drift.
+ */
+export const PLINTH_T = 0.055;
+/**
+ * How far forward of a cubby's centre plane a portrait stands. `Shop.tsx` places the `Effigy` here; it
+ * lives here because the framing arithmetic has to know which plane it is measuring to.
+ */
+export const CUBBY_Z = 0.06;
 
 /**
  * How many rows and columns, for however many families the world has.

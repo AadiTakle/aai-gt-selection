@@ -16,7 +16,8 @@ import { BalanceBough } from './screener/BalanceBough';
 import { IN_WORLD as IN_WORLD_MAP } from './screener/inWorld';
 import { Buildings, SOLIDS } from './world/Buildings';
 import { Lighting } from './world/Lighting';
-import { Slime, pushOutOfSlimes, setRanchSolids, ROAM } from './slimes/Slime';
+import { Slime, pushOutOfSlimes, setRanchSolids } from './slimes/Slime';
+import { grantSlime, putSlime, seedHerd, takeSlime, useHerd } from './slimes/keep';
 import {
   EYE as KEEPER_HEIGHT,
   LOFT_SOLIDS,
@@ -77,32 +78,12 @@ setRanchSolids([...SOLIDS, ...STATION_SOLIDS, ...SHOP_SOLIDS, ...INTRO_SOLIDS], 
   from: [0, 8],
 });
 /** Pen centres, from the buildings track. */
-interface Slimelet {
-  /**
-   * Stable identity, because the array index is not one.
-   *
-   * Slimes were keyed `key={i}`, so catching the seventh renumbered every slime after it: React handed
-   * the component that had been drawing slime 7 the family, stage, seed and bounds of slime 8 while it
-   * kept slime 7's position, and the LAST slime in the list unmounted instead. A child watching sees a
-   * creature change costume and a different one blink out.
-   */
-  uid: number;
-  family: Fam;
-  stage: 'pip' | 'tuffet' | 'crested' | 'warden';
-  position: [number, number, number];
-  seed: number;
-  bounds: { center: [number, number]; radius: number };
-}
-
-/** Never reused, never derived from position in the list. */
-let nextUid = 1;
-
 /**
- * Where the keeper is standing and which way they face, for the things that need to happen IN FRONT OF
- * THEM rather than at a place on the map. Written once a frame by `Keeper`, read by `onBuy`.
+ * Where the keeper is standing and which way they face, for the things that must happen IN FRONT OF THEM
+ * rather than at a place on the map — a bought slime, a hatched reward. Written once a frame by `Keeper`.
  *
- * A module-level object rather than state on purpose: it changes every frame and nothing should
- * re-render because the child turned their head.
+ * A module-level object rather than state on purpose: it changes every frame and nothing should re-render
+ * because a child turned their head.
  */
 const pose = { x: 0, z: 8, yaw: 0 };
 
@@ -112,6 +93,12 @@ const PENS: [number, number][] = [
   [11.4, 4.2],
   [-15.5, -16.5],
 ];
+
+/**
+ * The fifteen the ranch starts with. Idempotent, so `StrictMode`'s double mount cannot double the herd —
+ * a hazard the old `useState` initialiser hid rather than avoided.
+ */
+seedHerd(PENS, PEN_RADIUS, FAMILIES);
 
 /** First person: WASD, mouse look on pointer lock, space to jump. Tuned gentle for a child. */
 function Keeper({ locked }: { locked: boolean }) {
@@ -479,137 +466,30 @@ export function Game() {
   const [live, setLive] = useState<LiveItem | null>(null);
   const [cares, setCares] = useState(0);
 
-  const [slimes, setSlimes] = useState<Slimelet[]>(() =>
-    // Inside the three pens the buildings track actually placed, five to a pen. Each is bounded to
-    // its own pen so wandering never leaks across the ranch.
-    PENS.flatMap((pen, p) =>
-        Array.from({ length: 5 }, (_, k) => {
-          const a = (k / 5) * Math.PI * 2 + p * 1.1;
-          const r = 1.1 + (k % 3) * 0.85;
-          return {
-            uid: nextUid++,
-            family: FAMILIES[(p * 5 + k) % FAMILIES.length]!,
-            stage: (['pip', 'tuffet', 'crested', 'warden'] as const)[k % 4]!,
-            position: [pen[0] + Math.cos(a) * r, 0, pen[1] + Math.sin(a) * r] as [number, number, number],
-            seed: p * 977 + k * 131 + 7,
-            bounds: { center: pen, radius: PEN_RADIUS },
-          };
-        }),
-      ),
-  );
-
   /**
-   * A round finished, so a slime joins the ranch. Called by the station once its egg has hatched and
-   * the hatchling is already bounding, so the permanent one appears while the eye is on movement.
-   *
-   * Granted for having taken part, never for having been right: correctness is deleted before it
-   * reaches this layer, so there is nothing here to branch on even if we wanted to.
+   * WHO IS IN THE WORLD. `slimes/keep.ts` owns it, so "one capture removes exactly one" is a property a
+   * test can drive rather than a claim about a component inside a <Canvas>. Re-renders only when a slime
+   * is added or removed; wandering never touches this.
    */
-  /**
-   * A slime went into the tank, so it leaves the world.
-   *
-   * The herd's collider id is a mount-order counter that renumbers on remount, so it cannot address
-   * anything here. `capturedTrace` gives back what was caught, and a slime is located by the mark it
-   * was put down on rather than by where it currently is: it never leaves its own pen, so family plus
-   * stage plus nearest spawn is unambiguous.
-   */
-  /**
-   * Slimes currently in the tank, keyed by family, oldest first.
-   *
-   * The vacpack's `onRelease` only reports a family and a landing spot, so without this the released
-   * slime had to be invented from scratch. That is what made a plopped slime shrink: it came back as a
-   * hardcoded `tuffet`, so a warden returned two stages smaller, and with a fresh seed, so it was a
-   * different creature wearing the same colour. Holding the record means what comes out is what went
-   * in.
-   */
-  const inTank = useRef<Map<string, Slimelet[]>>(new Map());
+  const slimes = useHerd();
 
-  const takeSlime = useCallback((capturedId: string) => {
-    const t = capturedTrace(capturedId);
-    if (!t) return;
-    setSlimes((prev) => {
-      let best = -1;
-      let bestD = Infinity;
-      prev.forEach((sl, i) => {
-        if (sl.family !== t.family || sl.stage !== t.stage) return;
-        const d = Math.hypot(sl.position[0] - t.x, sl.position[2] - t.z);
-        if (d < bestD) { bestD = d; best = i; }
-      });
-      if (best < 0) return prev;
-      const taken = prev[best]!;
-      const queue = inTank.current.get(taken.family) ?? [];
-      queue.push(taken);
-      inTank.current.set(taken.family, queue);
-      return prev.filter((_, i) => i !== best);
-    });
-  }, []);
-
-  /** And back out again. Nothing is ever destroyed, so a release always restores one. */
-  const putSlime = useCallback((family: Fam, position: [number, number, number]) => {
-    const queue = inTank.current.get(family) ?? [];
-    const held = queue.shift();
-    inTank.current.set(family, queue);
-    /**
-     * BOUNDED TO WHERE IT WAS PUT DOWN, and this is the fix for the slime that vanished in the barn.
-     *
-     * It used to be bounded to the NEAREST PEN, with the radius stretched to reach that pen:
-     * `max(PEN_RADIUS, distanceToPen + 1.5)`. The barn is about 15m from the nearest pen, so a slime set
-     * down in a stall was handed a 16.4m roaming circle centred on a pen it had never been in — and with
-     * no collision it walked out through the barn wall. Simulated over five minutes from each stall it
-     * ended up as far as 29.8m from where the child left it, and spent up to a fifth of its time PAST THE
-     * BOUNDARY FENCE, where the keeper's own 34m clamp means the child can never follow.
-     *
-     * It had not disappeared. It had left, and one slime among nineteen at the far end of the ranch,
-     * wearing a body a child cannot tell from the others, is a lost slime.
-     */
-    const bounds = { center: [position[0], position[2]] as [number, number], radius: ROAM };
-    setSlimes((prev) => [
-      ...prev,
-      held
-        ? { ...held, position, bounds }
-        : {
-            // Only reachable if a release arrives with nothing recorded, e.g. the tank flushing on
-            // unmount after a reload. Keep it whole rather than dropping the slime.
-            family,
-            uid: nextUid++,
-            stage: 'tuffet' as const,
-            position,
-            seed: 9001 + prev.length * 211,
-            bounds,
-          },
-    ]);
-  }, []);
-
-  /**
-   * A round finished, so a slime joins the ranch.
-   *
-   * The station proposes a family, but it chooses from a literal pair per site, so on its own it can
-   * only ever grant the original six. The roster is nineteen now, so the family is re-drawn here from
-   * every family mapped to that station's battery. Without this the thirteen new ones are unreachable
-   * in play and only ever appear in a shop.
-   *
-   * Granted for having taken part, never for having been right: correctness is deleted before it
-   * reaches this layer, so there is nothing here to branch on even if we wanted to.
-   */
   const grant = useCallback((proposed: Fam) => {
     const battery = FAMILY_BATTERY[proposed];
     const pool = (Object.keys(FAMILY_BATTERY) as Fam[]).filter((f) => FAMILY_BATTERY[f] === battery);
     const family = pool.length ? pool[Math.floor(Math.random() * pool.length)]! : proposed;
-    setSlimes((prev) => {
-      const pen = PENS[prev.length % PENS.length]!;
-      const a = prev.length * 1.7;
-      const r = 1.0 + (prev.length % 3) * 0.8;
-      return [
-        ...prev,
-        {
-          family,
-          uid: nextUid++,
-          stage: 'pip' as const,
-          position: [pen[0] + Math.cos(a) * r, 0, pen[1] + Math.sin(a) * r] as [number, number, number],
-          seed: 4001 + prev.length * 173,
-          bounds: { center: pen, radius: PEN_RADIUS },
-        },
-      ];
+    /**
+     * IN FRONT OF THE CHILD, not in a pen chosen by array length.
+     *
+     * The cradle's hatchling is theatre — `stations/Cradle.tsx` says so in as many words — and it unmounts
+     * when the animation ends. Putting the real slime in `PENS[prev.length % PENS.length]` meant a child
+     * watched a creature come out of an egg and stop existing, while their reward stood as much as 14m
+     * from the station, worst at the tide-line. Same defect the shop had, same fix. `grantSlime` runs
+     * `placeSlime`, so it is always somewhere they can walk to.
+     */
+    const ahead = 1.8;
+    grantSlime(family, {
+      x: pose.x - Math.sin(pose.yaw) * ahead,
+      z: pose.z - Math.cos(pose.yaw) * ahead,
     });
     setCares((n) => n + 1);
   }, []);
@@ -671,11 +551,14 @@ export function Game() {
              */
             if (!spend(PRICES[family] ?? 5)) return;
             const ahead = 1.8;
-            putSlime(family, [
-              pose.x - Math.sin(pose.yaw) * ahead,
-              0,
-              pose.z - Math.cos(pose.yaw) * ahead,
-            ]);
+            /* `grantSlime`, not `putSlime`: a purchase has no held record behind it, and `putSlime` shifts
+               the tank's FIFO — so buying a family you were already carrying handed you your OWN slime and
+               left the tank still claiming to hold it, turning your next plop into an invented tuffet two
+               stages smaller. */
+            grantSlime(family, {
+              x: pose.x - Math.sin(pose.yaw) * ahead,
+              z: pose.z - Math.cos(pose.yaw) * ahead,
+            });
             audio.plop?.();
           }}
         />
@@ -683,7 +566,11 @@ export function Game() {
           enabled={locked && !engaged && !shopOpen && !boardEngaged}
           onCapture={(id) => {
             audio.squish();
-            takeSlime(id);
+            /* BY IDENTITY. The trace carries the slime's own uid now, so a capture cannot take the wrong
+               one — which is what made one slime look like four, and silently destroyed an innocent slime
+               elsewhere to pay for each copy. See `slimes/keep.ts`. */
+            const t = capturedTrace(id);
+            if (t) takeSlime(t);
           }}
           // Fires at the end of the bounce, so this is the landing rather than the launch.
           onRelease={(family, position) => {
