@@ -160,10 +160,25 @@ Measured values to use — do not re-derive them by hand:
 | `variety` | platform defaults |
 | `abilityThreshold` / `recommendProbability` | see spec §5 — depends on the owner's answer |
 
+**A trap to avoid, and it is silent.** `@gt/ui-contract`'s `requirementFor` reads the bank from its own
+`BANKS_DIR` — the repo default or `GT_QBANK_BANKS` — **never the `bankDir` the compiler was handed.** For a
+type code absent from *that* directory it throws, and `uiRequirementFor` falls back to
+`EMPTY_REQUIREMENT`. An empty requirement is satisfied by every app, so the capability check passes
+vacuously and cannot refuse anything. Two consequences for this task:
+
+- **Do not pass a custom `bankDir` to the seed script** unless `GT_QBANK_BANKS` points at the same
+  directory. Publishing the real catalog with the default on both sides is the safe configuration.
+- Note that Bramblebrook today sets `GT_QBANK_BANKS` to the 10-type curated symlink directory. Seeding
+  while that is exported would give the other 43 types empty requirements. Task 7 deletes the curation,
+  which removes the hazard; until then, seed in a shell where it is unset.
+
 - [ ] **Step 1: Write the failing test.** Seeding twice is idempotent; all seven types come back from
   `listApprovedTypes`; approving an eighth type the capabilities cannot render is refused with 422;
   `maxReadingBand: 'none'` still leaves all seven eligible (this is the test that proves the reading
-  claim rather than asserting it).
+  claim rather than asserting it). **Assert first that all seven have a non-empty
+  `uiRequirement.elements`** — without that the 422 test can pass for the wrong reason, and the
+  end-to-end test written for the platform did exactly that, because its fixture types were absent from
+  the directory `requirementFor` reads.
 - [ ] **Step 2: Run it.** Expected: fail.
 - [ ] **Step 3: Implement**, reusing `publishCatalog` from `functions/admin/src/publish.ts` with a local
   object store rather than S3.
