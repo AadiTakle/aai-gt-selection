@@ -6,6 +6,7 @@
  */
 
 export * from './app.js';
+export * from './candidate.js';
 export * from './criteria.js';
 export * from './domains.js';
 export * from './ids.js';

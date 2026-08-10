@@ -47,8 +47,13 @@ AWS CDK v2, DynamoDB Local in Docker, esbuild via `NodejsFunction`.
 | `platform/scripts/dynamodb-local.sh` | start/stop the test container on 8010 |
 
 `domain` depends on nothing. `scoring` and `selection` depend on `domain` plus `@gt/engine`.
-`catalog` depends on `domain`, `selection`, `@gt/qbank`, `@gt/ui-contract`. `store` depends on
-`domain`. Handlers depend on everything. Nothing depends on handlers.
+`catalog` depends on `domain`, `@gt/qbank`, `@gt/ui-contract`. `store` depends on `domain`.
+Handlers depend on everything. Nothing depends on handlers.
+
+`SelectionCandidate`, `AnswerKeyRecord`, `SnapshotRecord`, and `OutboxEvent` live in
+`@platform/domain` (`candidate.ts`), not in `selection` or `catalog`, so that the compiler which
+produces snapshots and the store which persists them need no dependency on the selection algorithm.
+Tasks 3 through 6 are therefore mutually independent and may be built in parallel.
 
 ---
 
