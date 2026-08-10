@@ -87,17 +87,76 @@ attribute visible — which is the discriminability failure in §2 rather than a
 needs the rendered item, not the bank.** Worth resolving before anyone edits the generator, because the two
 diagnoses have opposite fixes.
 
+## 4a. Validity audit — results
+
+`screener/scripts/audit-item-validity.py`, run 10 Aug. Checks the bank data for items admitting more than one
+defensible answer. **Two of six types are defective, and both match the reviewer's words precisely.**
+
+| Type | Result | Items |
+|---|---|---|
+| `FLU-ODDPAIR-01` | **CONFIRMED** | **89 of 120** |
+| `FLU-ANALOGY-01` | **CONFIRMED** | **25 of 120** |
+| `FLU-VENN-01` | not reproducible | 0 of 120 |
+| `FLU-GRIDCOPY-01` | not reproducible | 0 of 120 |
+| `SPA-FOLDNET-01` | not reproducible | 0 of 100 |
+| `QUANT-WORD-01` | measured, not a defect | — |
+
+**`FLU-ODDPAIR-01` is worse than "multiple odd ones out".** The rows are pairs; the odd row is the one whose
+value transition no other row shares. Counting unmatched rows per item:
+
+| Unmatched rows | Items | Meaning |
+|---|---|---|
+| 1 | **31** | well-posed |
+| 2 | 21 | two rows equally defensible |
+| 3 | 19 | three equally defensible |
+| 4 | 36 | **no matched pair exists at all** |
+| 5–6 | 13 | no matched pair exists at all |
+
+**Only 31 of 120 items are well-posed, and in 49 of them no pair exists**, so there is no odd one out in any
+defensible sense and the stored key is arbitrary. This is not a difficulty problem or a rendering problem. A
+child reasoning correctly is marked wrong on most of this bank, and because the engine excludes nothing here,
+every one of those marks moves the estimate against them.
+
+**`FLU-ANALOGY-01`: 25 items where two options are visually identical** — differing only by a rotation the
+shape's symmetry hides. `pentagon` 14 items, `star` 11, both 5-fold symmetric. The reviewer named pentagons and
+added "take into consideration for all rotation ones"; `star` is the other one, exactly as anticipated.
+
+### Three of my first four "confirmations" were my own modelling errors
+
+Worth recording, because they would have raised a false alarm over roughly 360 items, and because the fixes
+taught me what the tasks actually are:
+
+- **`FLU-ODDPAIR-01`** first grouped rows by *which attribute* changed. Every row changes colour, so all four
+  landed in one group and the audit reported 120 of 120 broken. The task turns on the *transition*, not the
+  attribute.
+- **`FLU-VENN-01`** first looked for an attribute where each side shared a different single value. That is not
+  the task: left is "all pentagons", right is "all coral", and the answer is the figure in the **overlap**.
+  Corrected, the overlap is unique and equals the key in all 120 items — so the reviewer's complaint is a
+  **rendering** problem, which is what §4 suspected.
+- **`FLU-GRIDCOPY-01`** first modelled shifts as wrapping. They drop cells off the edge; ten false positives.
+
+A 120-of-120 result is a signal to distrust the checker, not the bank.
+
 ## 5. Recommended disposition
 
 1. **Retire `CX-achieve-02`.** Costs no servable items and removes `model_judge_deferred` from `1b.6` entirely.
 2. **Decide `FLU-DEDUCE-01`** — 120 servable items, no CogAT coverage. The reviewer's objection ("clues aren't
    clear because you don't know which attributes are being measured") is a validity objection, so this is a
    measurement call rather than a taste one.
-3. **Treat the 14 validity and discriminability types as a defect queue, ahead of polish.** A per-item audit
-   for multiple-valid-answers on the six validity types is the highest-value item in this document.
-4. **Do not recalibrate difficulty from these comments.** They are the right signal that the numbers are
+3. **`FLU-ODDPAIR-01` should be held back from the pool now.** 89 of 120 items are unanswerable as posed and
+   the engine currently serves all of them, marking correct reasoning wrong. Holding the type back costs 120
+   servable items and removes a `loose` figure-classification mapping; leaving it in costs measurement
+   validity on every session that draws it. This is the one recommendation here I would act on before the
+   generator is touched.
+4. **Regenerate or filter the 25 `FLU-ANALOGY-01` items** whose options are visually identical. The fix is a
+   generator constraint — never rotate a shape whose symmetry order divides the rotation — not an item edit.
+5. **The remaining discriminability types need rendering, not data.** The audit cleared `FLU-VENN-01`,
+   `FLU-GRIDCOPY-01` and `SPA-FOLDNET-01` at the data level, which means those three complaints are about what
+   the child can see. They cannot be closed from the bank.
+6. **Do not recalibrate difficulty from these comments.** They are the right signal that the numbers are
    unearned, but the fix is real response data, not renumbering by impression.
-5. **Resolve the `FLU-VENN-01` ambiguity** by rendering the items the reviewer saw.
+7. **Resolve the `FLU-VENN-01` ambiguity** by rendering the items the reviewer saw — the data is clean, so it
+   is the rendering or a misread.
 
 ## 6. Every comment, as received
 
