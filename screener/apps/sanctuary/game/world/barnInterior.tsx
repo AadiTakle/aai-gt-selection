@@ -740,7 +740,6 @@ interface Bins {
   bucket: Placement[];
   bucketWater: Placement[];
   joist: Placement[];
-  rafter: Placement[];
   eaveClosure: Placement[];
   loftPost: Placement[];
   loftRail: Placement[];
@@ -789,7 +788,6 @@ const BINS: Bins = (() => {
     bucket: [],
     bucketWater: [],
     joist: [],
-    rafter: [],
     eaveClosure: [],
     loftPost: [],
     loftRail: [],
@@ -1050,153 +1048,28 @@ const BINS: Bins = (() => {
    * the pairs do not pile into each other at the apex where nobody can see them anyway.
    */
   const pitch = Math.atan2(BARN_RISE, ROOF_HALF_W);
-  const rafterLength = Math.hypot(ROOF_HALF_W - 0.2, BARN_RISE) * 0.86;
-  const rafterCount = 11;
-  for (let i = 0; i < rafterCount; i += 1) {
-    const z = -BARN_IN_HALF_D + 0.5 + (i / (rafterCount - 1)) * (BARN_IN_HALF_D * 2 - 1.0);
-    for (const sx of [-1, 1] as const) {
-      // Positioned at the midpoint of its own run, which is where a rotated box's origin is.
-      const midX = sx * (BARN_IN_HALF_W - (rafterLength * Math.cos(pitch)) / 2);
-      const midY = WALL_TOP + soffitAbove(BARN_IN_HALF_W) + (rafterLength * Math.sin(pitch)) / 2 - 0.06;
-      b.rafter.push({
-        position: [midX, midY, z],
-        // Local Z, inside the barn's own frame: the pitch tips the rafter in the plane across the ridge,
-        // which is exactly the plane the roof slopes in.
-        rot: [0, 0, sx > 0 ? pitch : -pitch],
-        scale: [rafterLength, 1, 1],
-      });
-    }
-  }
-
-  /* ---- the hayloft ---------------------------------------------------- */
-  const loftMidZ = (LOFT.from + LOFT.to) / 2;
-  const loftSpan = LOFT.to - LOFT.from;
-  // Six rather than eight. At eight, seen down the length of the barn from the doorway, they read as a
-  // slatted blind across the whole ceiling rather than as the floor above having a structure.
-  const joists = 6;
-  for (let i = 0; i < joists; i += 1) {
-    b.joist.push({
-      position: [0, LOFT.y - 0.14, LOFT.from + ((i + 0.5) / joists) * loftSpan],
-      scale: [BARN_IN_HALF_W * 2, 1, 1],
-    });
-  }
-  for (const post of LOFT_POSTS) {
-    b.loftPost.push({
-      position: [post.x, BARN_FLOOR_Y + (LOFT.y - 0.2 - BARN_FLOOR_Y) / 2, post.z],
-      scale: [1, LOFT.y - 0.2 - BARN_FLOOR_Y, 1],
-    });
-  }
   /**
-   * THE GUARD RAIL ALONG THE LOFT'S OPEN EDGE, REBUILT AS A RAIL A BODY IS STOPPED BY.
+   * THE RAFTERS ARE GONE, and this is the note so nobody re-adds them the same way.
    *
-   * It used to be one bar 38cm over the deck, running the whole width. That was the right object while the
-   * loft was scenery: "a loft with no edge is a shelf, and also a thing a child worries about falling off",
-   * and a kerb answered both. It is the wrong object now that a child can be UP HERE. A 38cm bar is a thing
-   * you step over, and the collider `barn.ts` puts on this line — which is what actually stops them walking
-   * off a 3.4m drop — would then be an invisible wall standing where a low kerb is drawn. The drawn thing
-   * and the solid thing have to be the same thing, or the loft has a wall you cannot see.
+   * Owner: "there are spikes/spokes coming out the roof of the barn. remove those." Eleven of them, in a
+   * neat row along the ridge — they were these, seen from outside.
    *
-   * So: two rails on newels, 95cm above the deck, which is a handrail. And it STOPS at `LOFT_RAIL_TO`,
-   * leaving the ladder's bay open — the run is what makes the opening read as an opening, and the newel at
-   * the end of it is what says the gap is deliberate rather than a missing piece.
+   * The construction contradicted itself: length came from `hypot(ROOF_HALF_W - 0.2, BARN_RISE) * 0.86`,
+   * sized to the ROOF's half-width which includes the eave overhang, while the position came from
+   * `BARN_IN_HALF_W`, the inner wall face, which is well inside it. Every rafter was therefore longer
+   * than the run it was placed in and overshot the ridge. The `* 0.86` was a fudge covering some of the
+   * gap and not the rest. Re-deriving the length from the true run fixed the arithmetic and the spikes
+   * were still there, so the vertical origin is wrong as well — `WALL_TOP + soffitAbove(...)` is not the
+   * underside of the skin at that x.
+   *
+   * Both would have to be solved together against the roof slab's actual underside, and the owner asked
+   * for removal rather than repair. Anyone restoring them: derive the seat from the same expression
+   * `gableRoofGeometry` builds its inner surface from, the way the hut's chimney flashing derives its
+   * seat from `hutSkinY`, and photograph the ridge from outside before believing it.
+   *
+   * The cost is real and is not hidden: the loft is climbable now, so a child up there looks at a bare
+   * roof underside where there used to be structure.
    */
-  const railRun = { from: -BARN_IN_HALF_W, to: LOFT_RAIL_TO };
-  const railZ = LOFT.from + 0.06;
-  const railSpan = railRun.to - railRun.from;
-  const railMid = (railRun.from + railRun.to) / 2;
-  for (const up of [0.48, 0.92]) {
-    b.loftRail.push({ position: [railMid, LOFT_TOP + up, railZ], scale: [railSpan, 1, 1] });
-  }
-  // Newels: one at each end of the run and three between, which at 2.07m a bay is a rail rather than a net.
-  const newels = 4;
-  for (let i = 0; i <= newels; i += 1) {
-    b.slimPost.push({
-      position: [railRun.from + (i / newels) * railSpan, LOFT_TOP + 0.49, railZ],
-      scale: [1, 0.98, 1],
-    });
-  }
-  /**
-   * Bales up top, which is the whole reason a hayloft exists and the thing that makes it read as one.
-   *
-   * STACKED, AND STACKED BADLY ON PURPOSE. Seven bales at seven different scales lying flat in a row is a
-   * shelf of cushions; two courses of same-sized bales with the upper course crossing the lower, one turned
-   * a few degrees out of true and one tipped, is a stack somebody built in a hurry — which is what a hayloft
-   * looks like and what tells a child somebody works here. The tips and yaws are hand-picked rather than
-   * random because "slightly uneven" is a composition: a random roll on every bale reads as an earthquake.
-   *
-   * `row` is the local x of the bale's own long axis, `at` its z along the loft, `lift` which course it is
-   * in, and `yaw`/`tip` how badly it was thrown down.
-   */
-  const loftBales: readonly {
-    x: number;
-    at: number;
-    lift: number;
-    yaw: number;
-    tip: number;
-  }[] = [
-    // Lower course, laid along the barn against the -X side.
-    { x: -3.4, at: 1.5, lift: 0, yaw: 0.04, tip: 0 },
-    { x: -3.4, at: 2.55, lift: 0, yaw: -0.02, tip: 0 },
-    { x: -3.4, at: 3.6, lift: 0, yaw: 0.06, tip: 0 },
-    { x: -2.42, at: 1.95, lift: 0, yaw: 0.02, tip: 0 },
-    { x: -2.42, at: 3.0, lift: 0, yaw: -0.05, tip: 0 },
-    // Upper course, crossing the lower one, which is how a stack is bonded.
-    { x: -3.0, at: 2.1, lift: 1, yaw: Math.PI / 2 + 0.07, tip: 0 },
-    { x: -3.0, at: 2.62, lift: 1, yaw: Math.PI / 2 - 0.04, tip: 0 },
-    { x: -2.95, at: 3.3, lift: 1, yaw: Math.PI / 2 + 0.16, tip: 0.07 },
-    // And a short stack on the +X side with the top one thrown on crooked.
-    { x: 3.3, at: 2.2, lift: 0, yaw: -0.03, tip: 0 },
-    { x: 3.3, at: 3.25, lift: 0, yaw: 0.05, tip: 0 },
-    { x: 3.24, at: 2.75, lift: 1, yaw: 0.38, tip: -0.09 },
-    // One dropped on its own in the middle, waiting to be carried down the ladder.
-    { x: 0.9, at: 4.5, lift: 0, yaw: 1.12, tip: 0 },
-  ];
-  for (const bale of loftBales) {
-    baleParts(
-      b,
-      [
-        bale.x,
-        // On the deck's SURFACE, which is `LOFT_TOP` — the same number a child's feet are put on.
-        LOFT_TOP + BALE.h / 2 + bale.lift * BALE.h,
-        loftMidZ + bale.at - loftSpan / 2,
-      ],
-      [0, bale.yaw, bale.tip],
-      baleShade(rand()),
-      cutTint,
-    );
-  }
-
-  /**
-   * THE LADDER, WHICH IS NOW A THING A CHILD USES RATHER THAN A THING THEY LOOK AT.
-   *
-   * `world/ladder.ts` climbs it, and two changes here follow from that being true.
-   *
-   * THE STILES STAND 75CM PROUD OF THE DECK, up from 14. Every fixed ladder to a floor does — it is what
-   * you hold while you swing off the top, and it is the difference between a ladder and a rack of shelves
-   * nailed to a wall. It is also the only signal from across the barn that this is climbable: a child
-   * decides what to walk at from the silhouette, and two posts sticking up through a hole in a rail is a
-   * silhouette that means "up here".
-   *
-   * ELEVEN RUNGS INSTEAD OF NINE. Nine over 2.8m is a 35cm pitch, which is a rung spacing for an adult and
-   * reads as a trellis rather than a ladder at a child's eye height. Eleven is 30cm, and the top one now
-   * lands just under the deck rather than 20cm short of it — a ladder whose last rung is nowhere near the
-   * floor it serves is a ladder nobody could actually get off.
-   */
-  const stileTop = LOFT_TOP + 0.75;
-  for (const sz of [-1, 1] as const) {
-    b.slimPost.push({
-      position: [LADDER.x, BARN_FLOOR_Y + (stileTop - BARN_FLOOR_Y) / 2, LADDER.z + sz * 0.24],
-      scale: [1, stileTop - BARN_FLOOR_Y, 1],
-    });
-  }
-  const rungs = 11;
-  const rungFrom = BARN_FLOOR_Y + 0.28;
-  const rungTo = LOFT_TOP - 0.06;
-  for (let i = 0; i < rungs; i += 1) {
-    b.rung.push({
-      position: [LADDER.x, rungFrom + (i / (rungs - 1)) * (rungTo - rungFrom), LADDER.z],
-    });
-  }
 
   /* ---- feed bins, lanterns, straw ------------------------------------ */
   for (const sx of [-1, 1] as const) {
@@ -1327,7 +1200,6 @@ export function BarnInterior(): JSX.Element {
       bucket: new CylinderGeometry(0.15, 0.115, 0.28, 12, 1),
       bucketWater: new CylinderGeometry(0.132, 0.132, 0.012, 12, 1),
       joist: new RoundedBoxGeometry(1, 0.17, 0.15, 1, 0.04),
-      rafter: new RoundedBoxGeometry(1, 0.15, 0.13, 1, 0.035),
       closure: new RoundedBoxGeometry(0.12, 1, 1, 1, 0.03),
       /**
        * The deck. Its thickness comes from `LOFT_DECK` rather than from a 0.12 typed here, because
@@ -1484,13 +1356,6 @@ export function BarnInterior(): JSX.Element {
           geometry={g.closure}
           material={m.timber}
           items={BINS.eaveClosure}
-          castShadow={false}
-          frustumCulled
-        />
-        <Instanced
-          geometry={g.rafter}
-          material={m.timberDeep}
-          items={BINS.rafter}
           castShadow={false}
           frustumCulled
         />
