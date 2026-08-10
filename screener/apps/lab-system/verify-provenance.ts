@@ -141,7 +141,7 @@ for (const [band, precisionIndex] of [
 
     const out = await api<{ correct: boolean | null; state: { stopped: boolean } }>(
       `/bank/sessions/${start.sessionId}/answer`,
-      { response: { selectedKey: submit }, latencyMs: 1000 },
+      { response: { selectedKey: submit }, latencyMs: 3000 }  // Above every rapid-guess floor (1b.3); 1000ms was implausible for a text item.,
     );
 
     if (submit === trueKey) {

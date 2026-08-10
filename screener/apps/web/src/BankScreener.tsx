@@ -15,43 +15,19 @@ import { QBANK_HOST, QBANK_THEMES, applyThemeToFrame, isQbankMessage, themeById 
  * The key never reaches the browser, which is why scoring is a round trip rather than local.
  */
 
-interface PrecisionStep {
-  label: string;
-  confidenceAbove: number;
-  confidenceBelow: number;
-  minItems: number;
-  maxItems: number;
-  note: string;
-}
-
-interface BankSummary {
-  typeCount: number;
-  scorable: number;
-  total: number;
-  precisionSteps: PrecisionStep[];
-  difficultyMapping: { midpoint: number; divisor: number; note: string };
-}
-
-interface Serve {
-  served: { itemId: string; typeCode: string; difficulty: number; content: Record<string, unknown> };
-  typeCode: string;
-  domain: string;
-  difficulty: number;
-  informationAtThreshold: number;
-  selectionReason: string;
-}
-
-interface State {
-  stopped: boolean;
-  stopReason: string | null;
-  pAbove: number;
-  decision: string | null;
-  itemsServed: number;
-  unscorable: number;
-  estimate: number;
-  interval: [number, number];
-  perDomain: Record<string, number>;
-}
+/**
+ * The wire shapes come from `@gt/qbank` rather than being restated here.
+ *
+ * The four copies of these that used to exist across the apps had all fallen behind the server: none carried
+ * the per-domain bands or the pass route. Aliased to the names this file already used so the JSX below is
+ * untouched.
+ */
+import type {
+  BankCatalogueResponse as BankSummary,
+  PrecisionSetting as PrecisionStep,
+  QbankServe as Serve,
+  QbankState as State,
+} from '@gt/qbank';
 
 async function api<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api${path}`, {

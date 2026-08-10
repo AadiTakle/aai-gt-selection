@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { NextResponse, QbankState } from '@gt/qbank';
+
 import type { AgeBand, BankSummary, SessionState } from '../types';
 import { adapt, declineResponse, responseFor, type Choice, type Question } from './adapt';
 
@@ -24,18 +26,24 @@ import { adapt, declineResponse, responseFor, type Choice, type Question } from 
 
 export type Phase = 'idle' | 'starting' | 'asking' | 'finished' | 'error';
 
-export interface SessionResult {
-  readonly decision: string | null;
-  readonly itemsServed: number;
-  readonly unscorable: number;
-  readonly estimate: number;
-  readonly interval: readonly [number, number];
-  readonly perDomain: Record<string, number>;
-  readonly stopReason: string | null;
+/**
+ * What a finished session reports to its host.
+ *
+ * The session fields are projected from the contract with `Pick` rather than restated, so a renamed field
+ * breaks the build instead of arriving as undefined — which is exactly how the four hand-copied versions of
+ * this shape came to be missing the per-domain bands. The two counters after it are this hook's own.
+ *
+ * Deliberately omits `domains` and `passRoute`: a host that wants a per-domain band should read it off the
+ * state, where the interval and the item counts travel beside the mean and cannot be dropped on the way.
+ */
+export type SessionResult = Pick<
+  QbankState,
+  'decision' | 'itemsServed' | 'unscorable' | 'estimate' | 'interval' | 'perDomain' | 'stopReason'
+> & {
   /** How many the child got right, which is the app's progress currency. */
   readonly correct: number;
   readonly asked: number;
-}
+};
 
 export interface UseQuestionSessionOptions {
   readonly ageBand?: AgeBand;
@@ -62,16 +70,14 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   return data as T;
 }
 
-interface NextPayload {
-  done: boolean;
-  state: SessionState;
-  served?: { itemId: string; typeCode: string; difficulty: number; content: Record<string, unknown> };
-  typeCode?: string;
-  domain?: string;
-  difficulty?: number;
-  informationAtThreshold?: number;
-  selectionReason?: string;
-}
+/**
+ * `NextPayload` is gone — the contract's `NextResponse` replaces it.
+ *
+ * It declared every served field optional and then patched the gaps at the call site (`?? ''`, `?? 0`), which
+ * meant a malformed response produced a question with an empty domain and zero information rather than an
+ * error. `NextResponse` is discriminated on `done`, so narrowing establishes the fields are there and there is
+ * nothing left to default.
+ */
 
 export function useQuestionSession(options: UseQuestionSessionOptions = {}) {
   const { ageBand, precisionIndex = 1, seed, types, onAnswered, onFinished } = options;
@@ -134,20 +140,14 @@ export function useQuestionSession(options: UseQuestionSessionOptions = {}) {
   const advance = useCallback(
     async (id: string) => {
       for (let guard = 0; guard < 40; guard++) {
-        const next = await api<NextPayload>(`/bank/sessions/${id}/next`);
+        const next = await api<NextResponse>(`/bank/sessions/${id}/next`);
         setState(next.state);
-        if (next.done || !next.served) {
+        if (next.done) {
           finish(next.state);
           return;
         }
-        const asQuestion = adapt({
-          served: next.served,
-          typeCode: next.typeCode ?? next.served.typeCode,
-          domain: next.domain ?? '',
-          difficulty: next.difficulty ?? next.served.difficulty,
-          informationAtThreshold: next.informationAtThreshold ?? 0,
-          selectionReason: next.selectionReason ?? '',
-        });
+        // `done: false` narrows the union, so every served field is present and none needs a fallback.
+        const asQuestion = adapt(next);
         if (asQuestion) {
           setQuestion(asQuestion);
           shownAt.current = Date.now();

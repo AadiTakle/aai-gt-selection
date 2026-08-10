@@ -89,4 +89,48 @@ export class Posterior {
   snapshot(): readonly number[] {
     return [...this.density];
   }
+
+  /**
+   * Rebuild a posterior from a snapshot.
+   *
+   * The missing half of `snapshot`. Without it a posterior can be read but never restored, so a session's
+   * belief cannot leave the process that computed it — which is the whole obstacle to running selection and
+   * grading as stateless functions (task 3.1) and to letting the caller hold its own state (task 3.2).
+   *
+   * The grid is a compile-time constant, so a snapshot is just its density and needs no grid alongside it.
+   * A snapshot of the wrong length is a caller error rather than something to paper over: silently padding
+   * or truncating would shift every probability without saying so.
+   */
+  static fromSnapshot(density: readonly number[]): Posterior {
+    const restored = new Posterior();
+    if (density.length !== restored.grid.length) {
+      throw new Error(`posterior snapshot has ${density.length} points, expected ${restored.grid.length}`);
+    }
+    if (!density.every((d) => Number.isFinite(d) && d >= 0)) {
+      throw new Error('posterior snapshot must be finite and non-negative');
+    }
+    restored.density = [...density];
+    // Renormalise rather than trust the caller. A snapshot that crossed a wire may have lost precision.
+    restored.normalise();
+    return restored;
+  }
+
+  /**
+   * An independent copy, bit for bit.
+   *
+   * `update` mutates, which is right for a long-lived session object and wrong for a pure function. Cloning
+   * before updating is what lets `selectNext` and `grade` take a belief in and hand a new one back without
+   * the caller's copy changing under them.
+   *
+   * Deliberately **not** `fromSnapshot(this.density)`. That renormalises, which is correct for a density that
+   * crossed a wire and wrong here: this one is already normalised, so dividing through again only adds
+   * rounding. At 1e-16 a step that is harmless on its own, but it made a belief updated one response at a
+   * time drift from the same belief replayed from its transcript, and it perturbed the three domains an item
+   * did not even touch. A copy that is not exact is not a copy.
+   */
+  clone(): Posterior {
+    const copy = new Posterior();
+    copy.density = [...this.density];
+    return copy;
+  }
 }

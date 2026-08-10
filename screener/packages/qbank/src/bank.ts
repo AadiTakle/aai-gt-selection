@@ -119,6 +119,20 @@ export function loadBanks(dir: string = BANK_DIR): Map<string, LoadedBank> {
       for (const b of record.ageBands ?? []) ageBands.add(b);
 
       const mode = record.scoring?.mode;
+      if (mode === 'computed_solver' && CELL_SET_TYPES.has(typeCode)) {
+        // Servable since 1b.6: the answer is a stored cell set, so marking is a set comparison. The key is
+        // verified rather than trusted — see validCellSetKey.
+        if (!validCellSetKey(record)) {
+          excluded['unusable-cell-set-key'] = (excluded['unusable-cell-set-key'] ?? 0) + 1;
+          continue;
+        }
+        if (typeof record.difficulty !== 'number') {
+          excluded['no-difficulty'] = (excluded['no-difficulty'] ?? 0) + 1;
+          continue;
+        }
+        scorable.push(record);
+        continue;
+      }
       if (mode !== 'deterministic_key') {
         excluded[mode ?? 'unknown'] = (excluded[mode ?? 'unknown'] ?? 0) + 1;
         continue;
@@ -173,6 +187,24 @@ export function loadBanks(dir: string = BANK_DIR): Map<string, LoadedBank> {
  * agree on where they put it.
  */
 export function scoreResponse(record: BankRecord, response: unknown): boolean | null {
+  /**
+   * A cell-set answer is compared as a set, before anything else looks at it.
+   *
+   * All of it and only it: marking a subset correct would reward a child who found one hole out of eight, and
+   * marking a superset correct would reward tapping every square. Both are the wrong answer to "tap every
+   * square that will have a hole".
+   */
+  if (CELL_SET_TYPES.has(record.typeCode)) {
+    const expectedCells = parseCellSet(record.answer?.correctKey);
+    if (!expectedCells) return null;
+    const body = typeof response === 'object' && response !== null ? (response as Record<string, unknown>) : undefined;
+    const marked = parseCellSet(body?.cells ?? body?.markedCells ?? body?.value ?? response);
+    if (!marked) return null;
+    if (marked.size !== expectedCells.size) return false;
+    for (const cell of marked) if (!expectedCells.has(cell)) return false;
+    return true;
+  }
+
   const expected = record.answer?.correctKey;
   const body = typeof response === 'object' && response !== null ? (response as Record<string, unknown>) : undefined;
 
@@ -203,6 +235,182 @@ export function scoreResponse(record: BankRecord, response: unknown): boolean | 
   return candidate.trim().toUpperCase() === expected.trim().toUpperCase();
 }
 
+/**
+ * Types whose answer is a set of grid cells, marked rather than chosen.
+ *
+ * `scoring.mode` says `computed_solver` for these, which reads as "a solver has to work the answer out". It is
+ * not true, and this is the second time that field has misled: **all 1,774 `computed_solver` items across 15
+ * types carry a fully-formed `correctKey`.** The solving happened when the bank was authored. What the mode
+ * actually means is "the key is not a single option letter or index", and each such format needs a comparison
+ * rule rather than a solver.
+ *
+ * `SPA-PUNCH-01` is first because it is the one true Paper Folding type, Paper Folding is a CogAT subtest this
+ * project claims to cover, and enforcing that claim (2.3) showed a `direct` session could not serve one spatial
+ * item without it.
+ *
+ * The archive holds a real solver for this type (`archive/apps/web/src/lib/exam/verifiers/spatial.ts`) that
+ * re-derives the hole set from the folds and punches instead of trusting the key. That is strictly stronger and
+ * worth porting, because a stored key that lies is exactly how `QUANT-GLYPHNUM-01` marked every item wrong while
+ * looking healthy. Until it is ported, `validCellSetKey` below refuses a key that is malformed or disagrees
+ * with its own item, so the failure mode is an excluded item rather than a confidently wrong one.
+ */
+const CELL_SET_TYPES = new Set(['SPA-PUNCH-01']);
+
+/** `'0,0|0,3'` to a canonical set. Order carries no meaning, so it must not carry any here either. */
+function parseCellSet(value: unknown): Set<string> | null {
+  const cells: string[] = [];
+  if (typeof value === 'string') {
+    if (value.trim() === '') return null;
+    cells.push(...value.split('|'));
+  } else if (Array.isArray(value)) {
+    for (const cell of value) {
+      if (typeof cell === 'string') cells.push(cell);
+      else if (typeof cell === 'object' && cell !== null) {
+        const { x, y } = cell as { x?: unknown; y?: unknown };
+        if (typeof x !== 'number' || typeof y !== 'number') return null;
+        cells.push(`${x},${y}`);
+      } else return null;
+    }
+  } else return null;
+
+  const out = new Set<string>();
+  for (const raw of cells) {
+    const [x, y, ...rest] = raw.trim().split(',');
+    if (rest.length > 0) return null;
+    if (!/^\d+$/.test(x ?? '') || !/^\d+$/.test(y ?? '')) return null;
+    out.add(`${Number(x)},${Number(y)}`);
+  }
+  return out.size > 0 ? out : null;
+}
+
+/**
+ * Whether a stored cell-set key can be trusted enough to mark against.
+ *
+ * Checked rather than assumed, because the last time a `scoring.mode` was taken at face value it cost 391 items
+ * marked confidently and wrongly. Every cell must sit inside the item's own grid, and the key must agree with
+ * the `trueCells` the author recorded beside it. A key that fails either is excluded at load.
+ */
+function validCellSetKey(record: BankRecord): boolean {
+  const key = parseCellSet(record.answer?.correctKey);
+  if (!key) return false;
+
+  const n = (record.content?.grid as { n?: unknown } | undefined)?.n;
+  if (typeof n !== 'number' || n < 2) return false;
+  for (const cell of key) {
+    const [x, y] = cell.split(',').map(Number);
+    if (x === undefined || y === undefined || x >= n || y >= n) return false;
+  }
+
+  // The author stored the same answer twice. If the two disagree, neither is trustworthy.
+  const trueCells = parseCellSet(record.answer?.trueCells);
+  if (trueCells) {
+    if (trueCells.size !== key.size) return false;
+    for (const cell of trueCells) if (!key.has(cell)) return false;
+  }
+  return true;
+}
+
+/**
+ * How many options the candidate was choosing between, or null when the content does not enumerate any.
+ *
+ * This feeds the guessing floor, which `paramsFor` pins to 1/optionCount. Both call sites in
+ * `session.ts` used to pass a literal 4 for every item in the bank, and measured across the 5,034
+ * servable records only 2,373 actually have four options: counts run from 2 to 8, and QUANT-DOTS-01 is
+ * 120 two-option items that were modelled as a 25% guess when the truth is a coin flip.
+ *
+ * Null is a real answer and not a failure. Four types answer with something that is not a choice from
+ * a list — an assignment of tokens to bins, a path, a set of pipe rotations, a placement — so there is
+ * no n for 1/n to be computed from. Returning null puts that decision at the call site instead of
+ * inventing a number here.
+ */
+export function optionCountOf(record: BankRecord): number | null {
+  const content = record.content ?? {};
+
+  /**
+   * The 53 types were written independently and three of them named their option list after the thing
+   * being chosen rather than calling it `options`. They are ordinary keyed lists — `FLU-DEDUCE-01`
+   * offers 4 to 8 candidates, `FLU-ODDPAIR-01` 4 to 6 rows, `GB-FLAWFINDER-01` 3 or 4 claims — so
+   * missing them would put 360 perfectly guessable items on the unguessable floor.
+   */
+  for (const field of ['options', 'candidates', 'rows', 'claims']) {
+    const list = content[field];
+    if (Array.isArray(list) && list.length > 0) return list.length;
+  }
+
+  /**
+   * `FLU-CONCEPT-01` asks three independent yes/no probes and keys all three as one string (`'YNN'`).
+   * Marking is all-or-nothing, so the space a blind answer is drawn from is 2^probes, and reporting 3
+   * here would say a child guesses right a third of the time when it is an eighth.
+   */
+  const probes = content.probes;
+  if (Array.isArray(probes) && probes.length > 0) return 2 ** probes.length;
+
+  /**
+   * A declared stepper. `SPA-HIDDENCUBE-01` asks for a number between 0 and 60, so a blind answer is
+   * right one time in 61 rather than never.
+   */
+  const response = content.response as { mode?: string; min?: number; max?: number; step?: number } | undefined;
+  if (
+    response?.mode === 'stepper' &&
+    typeof response.min === 'number' &&
+    typeof response.max === 'number' &&
+    typeof response.step === 'number' &&
+    response.step > 0
+  ) {
+    return Math.floor((response.max - response.min) / response.step) + 1;
+  }
+
+  /**
+   * A count over a grid. `SPA-MAZE-01` answers with a path length, `SPA-PIPES-01` with a number of
+   * pipes, `SPA-TANGRAM-01` with a filled-cell count. Every key in all three banks is within
+   * `R * C * (L || 1)`, so the grid bounds the answer and the space is that many values plus zero.
+   *
+   * Deriving it per item rather than per type is the point: a 4x4 maze is one guess in 17 and a 12x12
+   * one is one in 145, so the floor falls as the item gets harder, which is the behaviour wanted. A
+   * per-type constant taken from the spread of keys in the bank would also be circular — it would set
+   * the guessing floor from the answers, and move whenever a bank grew.
+   */
+  const grid = content.grid as { R?: number; C?: number; L?: number } | undefined;
+  if (typeof grid?.R === 'number' && typeof grid.C === 'number') {
+    const cells = grid.R * grid.C * (typeof grid.L === 'number' ? grid.L : 1);
+    if (cells > 0) return cells + 1;
+  }
+
+  /**
+   * An assignment of every token to a bin. `CX-check-01` has 6 to 14 tokens over 2 to 4 bins, so the
+   * space runs from 64 to several million — effectively unguessable, but derived rather than asserted.
+   */
+  const { binCount, tokenCount } = content as { binCount?: number; tokenCount?: number };
+  if (typeof binCount === 'number' && typeof tokenCount === 'number' && binCount > 1 && tokenCount > 0) {
+    return binCount ** tokenCount;
+  }
+
+  return null;
+}
+
+/**
+ * How the candidate produces an answer, which is a different question from how large the space is.
+ *
+ * Multiple choice means one pick from a list the item puts in front of them. Everything else — a number
+ * on a stepper, a count over a grid, an assignment of tokens to bins, a run of yes/no probes — is
+ * constructed: the candidate builds the answer rather than choosing it.
+ *
+ * The distinction exists because constructed items are genuinely more informative per item and much
+ * slower to answer. Selection maximises information per item, so left alone it fills a session with
+ * them. `session.ts` uses this to hold a share of each session for multiple choice.
+ */
+export type ResponseFormat = 'multiple-choice' | 'constructed';
+
+/** Takes anything carrying content, so a host can classify a `ServedItem` without the answer. */
+export function responseFormatOf(record: { readonly content: Record<string, unknown> }): ResponseFormat {
+  const content = record.content ?? {};
+  for (const field of ['options', 'candidates', 'rows', 'claims']) {
+    const list = content[field];
+    if (Array.isArray(list) && list.length > 0) return 'multiple-choice';
+  }
+  return 'constructed';
+}
+
 /** Domain labels the banks use, mapped to the four the engine blueprints against. */
 export function domainOf(record: BankRecord | LoadedBank): 'quantitative' | 'verbal' | 'spatial' | 'fluid' {
   const code = ('typeCode' in record ? record.typeCode : '').toUpperCase();
@@ -212,4 +420,47 @@ export function domainOf(record: BankRecord | LoadedBank): 'quantitative' | 'ver
   // FLU, GB, WM and CX all exercise rule-finding or capacity rather than a taught subject, so they
   // land in fluid. Crude, and better than inventing two more blueprint slots for one item each.
   return 'fluid';
+}
+
+/**
+ * What the loader admitted and what it held back, across every bank.
+ *
+ * The per-bank `excluded` counts always existed and nothing added them up, so "1,894 items are dropped" was a
+ * number someone had to compute by hand and then got wrong twice. Stating it here means the figure in a
+ * document can be checked against the loader rather than against a memory.
+ */
+export interface LoaderSummary {
+  readonly types: number;
+  readonly records: number;
+  readonly scorable: number;
+  readonly excluded: number;
+  /** Held back, by reason. Sums to `excluded`. */
+  readonly excludedByReason: Readonly<Record<string, number>>;
+  /** Types with nothing servable at all, which is the list worth reading. */
+  readonly emptyTypes: readonly string[];
+}
+
+export function loaderSummary(banks: ReadonlyMap<string, LoadedBank> = loadBanks()): LoaderSummary {
+  const excludedByReason: Record<string, number> = {};
+  let records = 0;
+  let scorable = 0;
+  const emptyTypes: string[] = [];
+
+  for (const bank of banks.values()) {
+    records += bank.total;
+    scorable += bank.scorable.length;
+    if (bank.scorable.length === 0) emptyTypes.push(bank.typeCode);
+    for (const [reason, n] of Object.entries(bank.excluded)) {
+      excludedByReason[reason] = (excludedByReason[reason] ?? 0) + n;
+    }
+  }
+
+  return {
+    types: banks.size,
+    records,
+    scorable,
+    excluded: records - scorable,
+    excludedByReason,
+    emptyTypes: emptyTypes.sort(),
+  };
 }
