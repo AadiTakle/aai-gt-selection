@@ -137,6 +137,39 @@ taught me what the tasks actually are:
 
 A 120-of-120 result is a signal to distrust the checker, not the bank.
 
+## 4b. Acted on
+
+**`packages/qbank/src/retired.ts`** — one list, two consumers: the loader refuses to serve anything on it, and
+the review harness should hide it. Kept as data rather than deletions; **no `.jsonl` was removed**, because
+retiring a type is a judgement that may be revisited and 240 authored items with a reason attached is
+recoverable where a `git rm` is archaeology.
+
+| Type | Cause | Cost |
+|---|---|---|
+| `CX-achieve-02` | `reviewer-kill` | nothing servable — already excluded, and it was the only `model_judge_deferred` type |
+| `FLU-DEDUCE-01` | `reviewer-kill` | 120 servable items |
+| `FLU-ODDPAIR-01` | `validity-defect` | 120 servable items |
+
+Servable items go **5,174 → 4,934**. A retired type stays in the catalogue with `total: 120`, `scorable: 0` and
+`excluded: {"retired:<cause>": 120}`, so it reads as a decision rather than a loader bug.
+
+**Retiring all three costs the CogAT-aligned instrument nothing.** All three map to `none`, so the `direct` pool
+is unchanged at 1,132 items across 10 types with all four domains. The one instrument whose coverage is a stated
+requirement is unaffected, which makes this retirement cheap in the way that matters.
+
+### The review-UI half could not be done here
+
+"Don't show killed types in the review UI" needs `screener/apps/type-review/`, which exists **only on Aadi's
+unmerged branch `feat/apps-system-led`** (4 commits, 3 days old) and not on `dev`. `store.ts` there is what
+exported the feedback this document triages.
+
+So the data is landed in the shape that app needs — `RETIRED_TYPE_CODES` is exported from `@gt/qbank/server` and
+filtering the harness is one line — but the line has to be written on that branch or after it merges. Flagged
+rather than worked around: editing an app that does not exist on this branch would mean recreating it.
+
+**Also on that branch:** `fix(SPA-ROLL-01): stop handing the answer over when the cube stops`, which is an answer
+leak on a type this review also comments on. Worth merging ahead of more review passes.
+
 ## 5. Recommended disposition
 
 1. **Retire `CX-achieve-02`.** Costs no servable items and removes `model_judge_deferred` from `1b.6` entirely.
