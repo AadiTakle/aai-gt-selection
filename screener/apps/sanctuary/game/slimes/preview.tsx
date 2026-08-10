@@ -30,6 +30,15 @@ const mode = ((q.get('mode') as Mode) ?? 'lineup') || 'lineup';
 const BURN = Math.max(0, Number(q.get('burn') ?? 0) | 0);
 /** Child's-eye camera rather than the diagram view. */
 const LOW = q.get('eye') === 'low';
+/**
+ * `?face=RADIANS` — which way the posed slimes in `lineup` and `grow` are turned.
+ *
+ * Those two modes exist to judge a crest rather than a heading, so they pin `facing` instead of letting the
+ * wander pick one. Pinning it at zero, though, only ever answers the FRONT question, and several crests are
+ * mirrored pairs whose whole failure mode — two parts leaning the same way, or across each other — is
+ * invisible head-on and obvious from the side. So the pin is a dial: 0 front, ~1.57 side, ~3.14 back.
+ */
+const FACE = Number(q.get('face') ?? 0) || 0;
 
 /**
  * Frame cost, written straight to the DOM so a screenshot carries the measurement.
@@ -140,7 +149,7 @@ function Scene() {
               bounds={bounds}
               // Posed to camera so this view judges silhouette and face, not heading. `pen` is where
               // heading variety and movement are checked.
-              facing={0}
+              facing={FACE}
               wander={false}
             />
           )),
@@ -223,7 +232,7 @@ function Scene() {
               position={[(si - 1.5) * 1.95, 0, ((fams.length - 1) / 2 - fi) * depth]}
               seed={fi * 17 + si * 3 + 5}
               bounds={bounds}
-              facing={0}
+              facing={FACE}
               wander={false}
             />
           )),

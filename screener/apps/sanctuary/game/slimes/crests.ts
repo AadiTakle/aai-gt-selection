@@ -1391,9 +1391,13 @@ function buildFrost(b: Build) {
  *   LENGTH AGAINST WIDTH, about five to one. Under about three to one an "ear" is a leaf, and there is
  *   already a family with leaves. At 1.05 body units on a body 1.44 tall the pair is roughly three
  *   quarters the height of the creature, which is the proportion a child draws.
- *   THE PAIR IS ASYMMETRIC. This is the important one. A matched pair of uprights is a PLANT — that is
- *   exactly how fairy's first wings failed, and how frost's spires nearly did. So one ear stands and the
- *   other leans over at 0.62 radians and is a little shorter, and the outline becomes an animal.
+ *   THE PAIR IS ASYMMETRIC, AND IT LEANS APART. Both halves of that matter and they are different
+ *   claims. A matched pair of uprights is a PLANT — that is exactly how fairy's first wings failed, and
+ *   how frost's spires nearly did — so one ear stands nearly straight and the other leans over at 0.4
+ *   radians and is a little shorter, and the outline becomes an animal. But the lean has to run OUTWARD
+ *   from the centre line: mirrored the other way the pair leans together, the tips cross above the
+ *   crown, and an animal with two ears becomes an X with none. See the note on `splay` below, which is
+ *   the sign that was wrong.
  *   THEY ARE CUPPED, from `earLongShape`, so each catches a different amount of light and the two never
  *   merge into one flat shape when the slime turns.
  */
@@ -1434,7 +1438,24 @@ function buildBunny(b: Build) {
      * pair FORWARD by the same small angle turns both broad faces up toward the sky and the camera, and the
      * ears are cream. Nothing else changed.
      */
-    const root = pose([T(ear.side * r * 0.46, b.height * t, r * 0.06), RY(ear.side * 0.24), RX(0.14), RZ(ear.side * ear.lean)]);
+    /**
+     * THE LEAN IS MIRRORED OUTWARD, AND GETTING THIS SIGN WRONG IS WHAT CROSSED THE EARS.
+     *
+     * `RZ(θ)` carries the part's own +y — an ear points up its own +y — round toward -x, so a POSITIVE
+     * RZ tips an ear toward the body's left and a negative one toward its right. The pair therefore
+     * leans apart at `-side · lean` and together at `+side · lean`, and the first pass wrote the second
+     * one. Both ears leaned across the centre line: the left one crept over it and the flopped right one
+     * swept a long way past it, so from the front the pair read as a single narrow X above the crown, in
+     * the small views as one thread, and from the side as one ear. Two of the three places this family is
+     * drawn had lost the signature entirely.
+     *
+     * Written `-ear.side` rather than by putting minus signs in the table because the table's `lean` is
+     * "how far this ear leans OUT", which is the quantity the note above is about; a signed column would
+     * be two numbers whose signs have to agree with a rotation convention nobody wants to re-derive.
+     * `buildFairy` splays its wings with the same `side · -angle` for the same reason.
+     */
+    const splay = -ear.side * ear.lean;
+    const root = pose([T(ear.side * r * 0.46, b.height * t, r * 0.06), RY(ear.side * 0.24), RX(0.14), RZ(splay)]);
     // Cream, running paler toward the tip. The gradient is what gives a long flat part some form — and the
     // pale end is a WARM cream rather than a near-white, for the reason set out in bunny's `look.ts` entry.
     push(b, 'trim', earLongShape(), pose([root.clone(), S(wide, len, wide)]), look.crest, '#fff0d8', 1);
@@ -1499,7 +1520,19 @@ function buildCat(b: Build) {
   for (const side of [-1, 1] as const) {
     const len = 0.42 * (0.7 + 0.3 * b.k) * b.k;
     const wide = 0.62 * (0.8 + 0.2 * b.k);
-    const root = pose([T(side * r * 0.52, b.height * t, r * 0.04), RY(side * 0.3), RX(-0.06), RZ(side * 0.28)]);
+    /**
+     * OUTWARD, for exactly the reason set out at length in `buildBunny` above.
+     *
+     * This carried `RZ(side * 0.28)` — the same inverted sign, in the same file, on the neighbouring
+     * family. A positive `RZ` tips an ear toward the body's left, so `+side` leaned BOTH ears inward and
+     * the tips converged and touched over the crown. Less obvious than bunny's only because a cat's ears
+     * are short, so it read as a pinch rather than a cross; the error is identical.
+     *
+     * Found twice now in this file, which makes it a convention worth stating rather than a typo: a
+     * mirrored pair splays with `-side · angle`. `buildFairy`'s wings already did it correctly.
+     */
+    const splay = -side * 0.28;
+    const root = pose([T(side * r * 0.52, b.height * t, r * 0.04), RY(side * 0.3), RX(-0.06), RZ(splay)]);
     push(b, 'trim', earTriShape(), pose([root.clone(), S(wide, len, wide)]), look.crest, look.inner, 1);
     // The pink inner ear, inset as bunny's is and for the same reason.
     push(
