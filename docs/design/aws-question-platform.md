@@ -406,16 +406,46 @@ looks alike.
 5. **Domain interleaving.** Avoid a consecutive same-domain item when an alternative sits within
    10% information.
 6. **Exposure control.** Per-item served counters, damping items whose exposure rate exceeds a
-   target. Exposure rate is defined as `item.servedCount / app.sessionCount` for the app in
-   question, both maintained as atomic counters; the default target is 0.20, meaning no item should
-   appear in more than a fifth of an app's sessions. Damping multiplies information by
-   `min(1, target / observedRate)`. This spreads bank usage — which matters for item security, and
-   means items accumulate enough responses to eventually be calibrated. An item served three times
-   never will be.
+   target. Exposure rate is `item.servedCount / app.sessionCount` for the app in question, both
+   maintained as atomic counters; the default target is 0.20, meaning no item should appear in more
+   than a fifth of an app's sessions. Damping multiplies information by
+   `min(1, (target / observedRate) ^ exposureDampingExponent)`.
+
+   The exponent is not decoration. Proportional damping — exponent 1, which is what an earlier draft
+   of this design specified — halves the score of an item running at twice its target, and
+   measurement over 1,000 simulated sessions showed that is far too weak: because information peaks
+   sharply around the threshold, a handful of items remain the best available choice even at half
+   weight, and observed maximum exposure settled at **0.425 against a 0.20 target**. Raising the
+   ratio to a power converts a soft preference into an effective ceiling. Measured on a 120-item
+   fixture: exponent 1 gives 0.425, exponent 2 gives 0.327, **exponent 3 gives 0.304** (the default),
+   exponent 4 gives 0.278, exponent 6 gives 0.249.
+
+   This spreads bank usage, which matters for item security, and means items accumulate enough
+   responses to eventually be calibrated. An item served three times never will be.
 7. **Randomized opening.** The first item is drawn from a difficulty band around the prior
    (`threshold ± 0.5` logits), weighted by inverse exposure, with a seeded domain rotation — rather
    than the single global argmax that currently makes every session start on the same question.
+   Setting `openingJitterLogits` to zero disables this layer and falls through to ordinary
+   selection, so that turning every setting off really does yield a deterministic engine. Coverage
+   outranks this layer: a blueprint minimum the stop rule depends on is not negotiable for the sake
+   of a livelier first question.
 8. **No repeats** within a session, and none across a persona's recent sessions (§9.1).
+
+### 9.2.1 What the layers are worth, measured
+
+Over 1,000 simulated 16-item sessions on a 120-item fixture, comparing the deterministic argmax the
+prototype uses today against the defaults above:
+
+| Property | Deterministic argmax | With variety |
+|---|---|---|
+| Distinct opening items | **1** | 24 |
+| Most common opening, as a share of sessions | **100%** | 5.8% |
+| Highest exposure rate of any item | **1.000** | 0.304 |
+| Adjacent pairs repeating a domain | **66.7%** | 1.2% |
+| Largest share of a session taken by one type | 12.5% | 12.5% |
+
+The first column is the honest statement of the problem: today every child gets the same opening
+question, and the engine's favourite item appears in every single session.
 
 ### 9.3 The cost of variety, and how it gets set
 
@@ -426,16 +456,24 @@ the deterministic baseline — not by guessing.
 
 ```ts
 interface VarietyConfig {
-  readonly randomesqueK: number;            // base K
-  readonly earlyKFraction: number;          // 0.10
-  readonly earlyItemCount: number;          // 3
-  readonly sameTypeDamping: boolean;
+  readonly randomesqueK: number;              // 3
+  readonly earlyKFraction: number;            // 0.10
+  readonly earlyItemCount: number;            // 3
+  readonly sameTypeDamping: boolean;          // true
   readonly domainInterleaveTolerance: number; // 0.10
-  readonly targetExposureRate: number;      // 0.20
-  readonly openingJitterLogits: number;     // 0.5
-  readonly personaLookbackSessions: number; // 2
+  readonly targetExposureRate: number;        // 0.20, zero disables
+  readonly exposureDampingExponent: number;   // 3, measured (§9.2 layer 6)
+  readonly openingJitterLogits: number;       // 0.5, zero disables
+  readonly personaLookbackSessions: number;   // 2
 }
 ```
+
+The figures in §9.2.1 come from a 120-item fixture, which is the hard case: 16 items per session out
+of 120 gives a mean achievable exposure rate of 0.133, so exposure control has little headroom. The
+real compiled catalog holds 4,534 scorable items, roughly thirty-eight times larger, where every one
+of these numbers gets easier. The fixture figures are therefore floors on the behaviour rather than
+predictions of production, and Task 9 of the implementation plan re-measures against the real
+catalog before the defaults are finalised.
 
 ---
 

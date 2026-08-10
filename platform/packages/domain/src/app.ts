@@ -33,9 +33,17 @@ export interface VarietyConfig {
   readonly sameTypeDamping: boolean;
   /** Prefer a different domain when an alternative is within this relative information loss. */
   readonly domainInterleaveTolerance: number;
-  /** No item should appear in more than this fraction of an app's sessions. */
+  /** No item should appear in more than this fraction of an app's sessions. Zero disables. */
   readonly targetExposureRate: number;
-  /** Draw the opening item from within this many logits of the threshold. */
+  /**
+   * How sharply an over-exposed item is punished. One is proportional damping, which measurement
+   * showed is too weak to hold a ceiling; higher values turn the preference into an effective cap.
+   */
+  readonly exposureDampingExponent: number;
+  /**
+   * Draw the opening item from within this many logits of the threshold, in a seeded domain.
+   * Zero disables the randomised opening entirely and falls through to ordinary selection.
+   */
   readonly openingJitterLogits: number;
   /** Avoid items this persona saw in their last N sessions. */
   readonly personaLookbackSessions: number;
@@ -48,6 +56,7 @@ export const DEFAULT_VARIETY_CONFIG: VarietyConfig = {
   sameTypeDamping: true,
   domainInterleaveTolerance: 0.1,
   targetExposureRate: 0.2,
+  exposureDampingExponent: 3,
   openingJitterLogits: 0.5,
   personaLookbackSessions: 2,
 };
