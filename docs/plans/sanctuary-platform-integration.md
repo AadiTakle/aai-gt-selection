@@ -11,6 +11,11 @@ game's world, art and interaction untouched.
 **Spec:** `docs/design/sanctuary-platform-integration.md`. Read §5 first — it contains a decision only the
 owner can make, and Task 6 changes depending on the answer.
 
+> **Superseded in part.** PR #68 landed ~2,900 lines of adaptive engine in `@gt/qbank` after this plan was
+> written. **Read `docs/design/platform-qbank-reconciliation.md` first.** Task 1 below is replaced by that
+> document's Tasks 0–6, and its own §2 numbers are stale — the current figures are 4,934 scorable across 36
+> types. The rest of this plan, from Task 2 onward, stands.
+
 **Workspace:** worktree `/Users/atakle/gt-sanctuary-platform`, branch `feat/sanctuary-platform`, upstream
 tracking removed.
 
@@ -33,12 +38,23 @@ Run in the worktree before starting, and record it:
 
 | Suite | Command | Expected now |
 |---|---|---|
-| Platform | `cd platform && npx vitest run` | **8 failed, 261 passed** — all 8 in `@platform/catalog`, all from numeric keys |
+| Platform | `cd platform && npx vitest run` | **8 failed, 261 passed** — all 8 in `@platform/catalog`; numeric keys plus the moved counts |
+| Platform typecheck | `cd platform && npx tsc --noEmit` | **1 error** at `packages/catalog/src/compile.ts:251`, `string \| number` not assignable to `string` |
 | Screener + sanctuary | `cd screener && npx vitest run` | passing |
+
+Measured on `09a01d7` after merging current dev into this branch. That the 8 failures are still confined to
+the catalog package — with the store, handlers, scoring, selection and infra all passing against Felipe's
+rewritten engine — is the useful part of that number.
 
 ---
 
-## Task 1: Teach the platform numeric answer keys
+## Task 1 (SUPERSEDED): Teach the platform numeric answer keys
+
+> Replaced by Tasks 0–6 of `docs/design/platform-qbank-reconciliation.md`, which cover this and more:
+> the golden numbers moved from 4,534 to **4,934**, types-with-items from 32 to **36**, zero-scorable from
+> 21 to **17**, and the exclusion reasons now include two retirement causes. `model_judge_deferred` is
+> gone. Kept below because its analysis of *why* numeric keys matter to Bramblebrook is still the reason
+> the work has to happen.
 
 **This unblocks everything.** Two of Bramblebrook's seven verbs (`VER-SORTBOT-01`, `VER-RELPAIR-01`) carry
 numeric keys, so without this its verbal battery cannot be served at all.

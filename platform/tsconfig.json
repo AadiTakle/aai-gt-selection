@@ -32,6 +32,7 @@
       "@gt/qbank": ["../screener/packages/qbank/src/index.ts"],
       "@gt/qbank/server": ["../screener/packages/qbank/src/server.ts"],
       "@gt/ui-contract": ["../screener/packages/ui-contract/src/index.ts"],
+      "@gt/ui-contract/cogat": ["../screener/packages/ui-contract/src/cogat.ts"],
       "@gt/item-library": ["../screener/packages/item-library/src/index.ts"],
       "@gt/stats": ["../screener/packages/stats/src/index.ts"]
     }
