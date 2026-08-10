@@ -44,7 +44,9 @@ function catalogue() {
       elements: requirement.elements,
       counts: requirement.counts,
       readingBand: requirement.readingBand,
-      cogat: mapping ? { subtest: mapping.subtest, strength: mapping.strength } : null,
+      // `subtest: 'none'` now carries what an absent entry used to, so null still means "not CogAT"
+      // to every existing consumer of this payload.
+      cogat: mapping && mapping.subtest !== 'none' ? { subtest: mapping.subtest, strength: mapping.strength } : null,
       contextCost: context.cost,
       contextWhy: context.why,
       authorSupplies: context.authorSupplies ?? null,

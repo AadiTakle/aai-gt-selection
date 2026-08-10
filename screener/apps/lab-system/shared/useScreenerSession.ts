@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { QBANK_HOST, isQbankMessage } from '@gt/qbank';
 
+import type { QbankState } from '@gt/qbank';
+
 import type { AgeBand, BankSummary, Palette, Serve, SessionState } from './types';
 
 /**
@@ -29,15 +31,17 @@ import type { AgeBand, BankSummary, Palette, Serve, SessionState } from './types
 
 export type Phase = 'idle' | 'starting' | 'playing' | 'finished' | 'error';
 
-export interface SessionResult {
-  readonly decision: string | null;
-  readonly itemsServed: number;
-  readonly unscorable: number;
-  readonly estimate: number;
-  readonly interval: readonly [number, number];
-  readonly perDomain: Record<string, number>;
-  readonly stopReason: string | null;
-}
+/**
+ * What a finished session reports to its host.
+ *
+ * Projected from the contract with `Pick` rather than restated, so a renamed field breaks the build instead of
+ * silently arriving as undefined. Note it deliberately omits `domains` and `passRoute`: a host wanting the
+ * per-domain bands should read them off the state, where the interval and the counts travel with the mean.
+ */
+export type SessionResult = Pick<
+  QbankState,
+  'decision' | 'itemsServed' | 'unscorable' | 'estimate' | 'interval' | 'perDomain' | 'stopReason'
+>;
 
 export interface UseScreenerSessionOptions {
   readonly ageBand?: AgeBand;

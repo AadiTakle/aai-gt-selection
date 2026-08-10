@@ -7,7 +7,7 @@
  * completely healthy from the outside. These tests exist to hold that door shut.
  */
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -94,6 +94,75 @@ describe('the two key styles never cross', () => {
   });
 });
 
+describe('the whole library, not just the type that broke', () => {
+  /**
+   * 1b.7 asked whether QUANT-GLYPHNUM-01 was the only type declaring `deterministic_key` over a key
+   * that is not an option index. Answering it once in a terminal proves nothing about the next bank
+   * import, and the lesson of that bug is that `scoring.mode` is a claim and not a fact. So the sweep
+   * lives here.
+   *
+   * The invariant, not the count: a record whose numeric key is not a whole option index must never be
+   * servable, whatever its type and whatever its mode says. Asserting the count instead would go red on
+   * every legitimate bank change and teach everyone to update the number without reading why.
+   */
+  const banks = loadBanks();
+
+  function nonIndexNumericKeyed(record: BankRecord): boolean {
+    const key = record.answer?.correctKey;
+    return typeof key === 'number' && (!Number.isInteger(key) || key < 0);
+  }
+
+  it('serves no item whose numeric key is not a whole option index', () => {
+    const offenders: string[] = [];
+    for (const bank of banks.values()) {
+      for (const item of bank.scorable) {
+        if (nonIndexNumericKeyed(item)) {
+          offenders.push(`${bank.typeCode} ${item.itemId} key=${item.answer.correctKey}`);
+        }
+      }
+    }
+    expect(offenders, `these are in the pool and cannot be marked as an index`).toEqual([]);
+  });
+
+  it('cannot mark a non-index numeric key, whichever index is reported', () => {
+    // Read the raw files rather than the pool, since the pool is the thing that excluded them.
+    for (const file of readdirSync(BANK_DIR).filter((f) => f.endsWith('.jsonl'))) {
+      for (const line of readFileSync(join(BANK_DIR, file), 'utf8').split('\n')) {
+        if (!line.trim()) continue;
+        const record = JSON.parse(line) as BankRecord;
+        if (record.scoring?.mode !== 'deterministic_key' || !nonIndexNumericKeyed(record)) continue;
+        const where = `${record.typeCode} ${record.itemId}`;
+        const truncated = Math.trunc(record.answer.correctKey as number);
+        expect(scoreResponse(record, { selectedIndex: 0 }), where).toBeNull();
+        expect(scoreResponse(record, { selectedIndex: truncated }), where).toBeNull();
+      }
+    }
+  });
+
+  it('every servable item can actually be marked both ways', () => {
+    // The other half of the guard: holding back the unmarkable is only correct if what remains marks.
+    for (const bank of banks.values()) {
+      for (const item of bank.scorable) {
+        const key = item.answer.correctKey;
+        const where = `${bank.typeCode} ${item.itemId}`;
+        // Three key styles now, since 1b.6 made a cell-set type servable. Each is marked down its own path and
+        // they never meet, which is the same care the two original styles get.
+        if (typeof key === 'string' && key.includes(',')) {
+          const cells = key.split('|');
+          expect(scoreResponse(item, { cells }), where).toBe(true);
+          expect(scoreResponse(item, { cells: cells.slice(0, -1) }), where).toBe(false);
+        } else if (typeof key === 'number') {
+          expect(scoreResponse(item, { selectedIndex: key }), where).toBe(true);
+          expect(scoreResponse(item, { selectedIndex: key + 1 }), where).toBe(false);
+        } else {
+          expect(scoreResponse(item, { key }), where).toBe(true);
+          expect(scoreResponse(item, { key: key === 'A' ? 'B' : 'A' }), where).toBe(false);
+        }
+      }
+    }
+  });
+});
+
 describe('the five types are now in the pool', () => {
   const banks = loadBanks();
 
@@ -116,6 +185,64 @@ describe('the five types are now in the pool', () => {
         expect(scoreResponse(item, { selectedIndex: correct }), `${typeCode} ${item.itemId}`).toBe(true);
         expect(scoreResponse(item, { selectedIndex: correct + 1 }), `${typeCode} ${item.itemId}`).toBe(false);
       }
+    }
+  });
+});
+
+describe('a cell-set answer is marked as a set', () => {
+  /**
+   * 1b.6, starting with the one true Paper Folding type. `scoring.mode` says `computed_solver`, which reads as
+   * "a solver must work this out" — and is wrong for the second time in this file's history. All 1,774
+   * `computed_solver` items across 15 types carry a fully-formed `correctKey`; the solving happened when the
+   * bank was authored. The mode really means "the key is not a single option letter".
+   */
+  const punch = loadBanks().get('SPA-PUNCH-01')!;
+
+  it('serves all 140 items, excluding none', () => {
+    expect(punch.scorable).toHaveLength(140);
+    expect(punch.excluded).toEqual({});
+  });
+
+  it('ignores the order cells were tapped in', () => {
+    for (const item of punch.scorable.slice(0, 30)) {
+      const cells = (item.answer.correctKey as string).split('|');
+      expect(scoreResponse(item, { cells }), item.itemId).toBe(true);
+      expect(scoreResponse(item, { cells: [...cells].reverse() }), item.itemId).toBe(true);
+    }
+  });
+
+  it('refuses a subset and a superset, not just a wrong cell', () => {
+    /**
+     * The prompt is "tap every square that will have a hole", so all of it and only it. Accepting a subset would
+     * reward finding one hole out of eight; accepting a superset would reward tapping the whole grid. Both are
+     * the wrong answer, and a lenient comparison here would quietly inflate every estimate.
+     */
+    // A 4x4 grid can have all 16 cells punched, so the extra cell has to be one this answer actually lacks —
+    // appending a cell the key already contains is a no-op and would pass for the wrong reason.
+    const item = punch.scorable.find((i) => {
+      const n = (i.answer.correctKey as string).split('|').length;
+      return n >= 4 && n < 16;
+    })!;
+    const cells = (item.answer.correctKey as string).split('|');
+    const grid = (item.content.grid as { n: number }).n;
+    const extra = Array.from({ length: grid * grid }, (_, k) => `${k % grid},${Math.floor(k / grid)}`).find(
+      (c) => !cells.includes(c),
+    )!;
+    expect(scoreResponse(item, { cells: cells.slice(0, 2) })).toBe(false);
+    expect(scoreResponse(item, { cells: [...cells, extra] })).toBe(false);
+  });
+
+  it('returns unscorable, not wrong, for a response it cannot read', () => {
+    expect(scoreResponse(punch.scorable[0]!, { nothing: true })).toBeNull();
+    expect(scoreResponse(punch.scorable[0]!, { cells: ['bad'] })).toBeNull();
+  });
+
+  it('marks every servable item both right and wrong', () => {
+    // Over the whole bank rather than a sample, the same way the index-keyed types are covered above.
+    for (const item of punch.scorable) {
+      const cells = (item.answer.correctKey as string).split('|');
+      expect(scoreResponse(item, { cells }), item.itemId).toBe(true);
+      expect(scoreResponse(item, { cells: cells.slice(0, -1) }), item.itemId).toBe(false);
     }
   });
 });

@@ -1,50 +1,31 @@
-/** The HTTP shapes, mirrored from apps/api/src/server.ts. Kept here so no experience guesses them. */
+/**
+ * The HTTP shapes come from the contract now, not from a mirror of the handlers.
+ *
+ * These were hand-copied from `apps/api/src/server.ts` and had fallen behind it: `SessionState` knew nothing
+ * about the per-domain bands (1a.4) or the pass route (1a.7), so every experience built on this file was
+ * discarding fields the engine had been returning. Re-exported under the old names so no experience had to
+ * change, and aliased where the contract's name is better.
+ */
 
-export type AgeBand = 'K-1' | '2-3' | '4-5' | '6-8';
+// Imported as well as re-exported, because `ExperienceMeta` below refers to it.
+import type { AgeBand } from '@gt/qbank';
 
-export const AGE_BANDS: readonly AgeBand[] = ['K-1', '2-3', '4-5', '6-8'];
-
-export interface PrecisionStep {
-  readonly label: string;
-  readonly confidenceAbove: number;
-  readonly confidenceBelow: number;
-  readonly minItems: number;
-  readonly maxItems: number;
-  readonly note: string;
-}
-
-export interface BankSummary {
-  readonly typeCount: number;
-  readonly scorable: number;
-  readonly total: number;
-  readonly precisionSteps: readonly PrecisionStep[];
-}
-
-export interface Serve {
-  readonly served: {
-    readonly itemId: string;
-    readonly typeCode: string;
-    readonly difficulty: number;
-    readonly content: Record<string, unknown>;
-  };
-  readonly typeCode: string;
-  readonly domain: string;
-  readonly difficulty: number;
-  readonly informationAtThreshold: number;
-  readonly selectionReason: string;
-}
-
-export interface SessionState {
-  readonly stopped: boolean;
-  readonly stopReason: string | null;
-  readonly pAbove: number;
-  readonly decision: string | null;
-  readonly itemsServed: number;
-  readonly unscorable: number;
-  readonly estimate: number;
-  readonly interval: readonly [number, number];
-  readonly perDomain: Record<string, number>;
-}
+export {
+  AGE_BANDS,
+  bankRoutes,
+  BankClient,
+  BankApiError,
+  isErrorResponse,
+} from '@gt/qbank';
+export type {
+  AgeBand,
+  BankCatalogueResponse as BankSummary,
+  QbankServe as Serve,
+  QbankState as SessionState,
+  PrecisionSetting as PrecisionStep,
+  DomainBand,
+  PassRoute,
+} from '@gt/qbank';
 
 /** A palette applied to the item iframe so a served item matches the world around it. */
 export type Palette = Readonly<Record<string, string>>;
