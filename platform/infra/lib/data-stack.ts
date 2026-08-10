@@ -11,6 +11,7 @@ import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3'
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import type { Construct } from 'constructs';
+import { tagPlatform } from './tags.js';
 import { MAIN_TABLE_INDEXES, TTL_ATTRIBUTE } from '@platform/store';
 
 /**
@@ -38,6 +39,7 @@ export class DataStack extends Stack {
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
+    tagPlatform(this);
 
     this.mainTable = new TableV2(this, 'PlatformTable', {
       partitionKey: { name: 'PK', type: AttributeType.STRING },

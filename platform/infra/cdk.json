@@ -13,6 +13,7 @@
     "@aws-cdk/aws-sqs:redriveAllowPolicy": true,
     "@aws-cdk/core:enablePartitionLiterals": true,
     "@aws-cdk/aws-apigateway:requestValidatorUniqueId": true,
-    "@aws-cdk/core:newStyleStackSynthesis": true
+    "@aws-cdk/core:newStyleStackSynthesis": true,
+    "@aws-cdk/core:defaultCrossStackReferences": "strong"
   }
 }

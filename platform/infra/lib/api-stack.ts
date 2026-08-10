@@ -1,4 +1,4 @@
-import { Duration, Stack, type StackProps } from 'aws-cdk-lib';
+import { Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
 import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import {
   HttpIamAuthorizer,
@@ -8,11 +8,12 @@ import {
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { join } from 'node:path';
 import type { Construct } from 'constructs';
 import type { DataStack } from './data-stack.js';
+import { tagPlatform } from './tags.js';
 
 export interface ApiStackProps extends StackProps {
   readonly data: DataStack;
@@ -40,6 +41,7 @@ export class ApiStack extends Stack {
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
+    tagPlatform(this);
     const { data } = props;
 
     const commonEnv = {
@@ -55,18 +57,24 @@ export class ApiStack extends Stack {
       new NodejsFunction(this, name, {
         entry: join(HERE, entry),
         handler: 'handler',
-        runtime: Runtime.NODEJS_20_X,
+        runtime: Runtime.NODEJS_24_X,
         memorySize: overrides.memorySize ?? 512,
         timeout: overrides.timeout ?? Duration.seconds(15),
         // Every function is capped. An unbounded concurrency on a public screener endpoint turns a
         // traffic spike into an unbounded bill.
         reservedConcurrentExecutions: overrides.reservedConcurrentExecutions ?? 20,
-        logRetention: RetentionDays.ONE_MONTH,
+        // An explicit log group rather than `logRetention`, which is deprecated and which provisions a
+        // custom resource to set retention after the fact. Retained on stack deletion because the logs
+        // are the only account of what a function did.
+        logGroup: new LogGroup(this, `${name}Logs`, {
+          retention: RetentionDays.ONE_MONTH,
+          removalPolicy: RemovalPolicy.RETAIN,
+        }),
         tracing: Tracing.ACTIVE,
         environment: { ...commonEnv, ...(overrides.environment ?? {}) },
         bundling: {
           format: OutputFormat.ESM,
-          target: 'node20',
+          target: 'node24',
           sourceMap: true,
           minify: false,
           // The workspace tsconfig carries the path aliases that resolve @platform/* and @gt/*, so
