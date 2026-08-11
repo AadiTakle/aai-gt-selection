@@ -8,7 +8,7 @@ import {
   type PrecisionConfig,
   type VarietyConfig,
 } from '@platform/domain';
-import { computeSheet, type ScoredResponse } from '@platform/scoring';
+import { computeSheet, toEngineConfig, type TraceEntry } from '@platform/scoring';
 import {
   buildIndex,
   rngFor,
@@ -44,6 +44,14 @@ const PRECISION: PrecisionConfig = {
 const THRESHOLD = CRITERIA_V1.abilityThreshold;
 const PER_DOMAIN_MINIMUM = 1;
 
+/** The engine's own config shape, built once so every simulated child is measured identically. */
+const ENGINE_CONFIG = toEngineConfig({
+  abilityThreshold: THRESHOLD,
+  recommendProbability: 0.35,
+  precision: PRECISION,
+  perDomainMinimum: PER_DOMAIN_MINIMUM,
+});
+
 interface SessionOutcome {
   readonly theta: number;
   readonly itemsServed: number;
@@ -72,7 +80,7 @@ function runSession(
   select: (req: SelectionRequest) => ReturnType<typeof selectNext>,
   exposure: ExposureSnapshot,
 ): SessionOutcome {
-  const answered: ScoredResponse[] = [];
+  const answered: TraceEntry[] = [];
   const itemIds: string[] = [];
   const typeCodes: string[] = [];
   const domains: DomainName[] = [];
@@ -86,16 +94,13 @@ function runSession(
     const sheet = computeSheet({
       sessionId: seed,
       snapshotId: index.snapshotId,
-      threshold: THRESHOLD,
+      config: ENGINE_CONFIG,
       criteria: CRITERIA_V1,
-      responses: answered,
-      precision: PRECISION,
-      perDomainMinimum: PER_DOMAIN_MINIMUM,
-      recommendProbability: 0.35,
+      trace: answered,
+      candidates: index.items,
       itemsServed: answered.length,
       poolExhausted: false,
       abandoned: false,
-      domainsAvailable: DOMAIN_NAMES,
     });
 
     if (sheet.stopped) {
@@ -133,7 +138,18 @@ function runSession(
 
     const { candidate } = chosen;
     const correct = answerRng.next() < pCorrect(theta, candidate.params);
-    answered.push({ domain: candidate.domain, params: candidate.params, correct });
+    answered.push({
+      ordinal,
+      itemId: candidate.itemId,
+      typeCode: candidate.typeCode,
+      domain: candidate.domain,
+      difficulty: candidate.difficulty,
+      params: candidate.params,
+      correct,
+      latencyMs: 4000,
+      rawResponse: null,
+      flags: [],
+    });
     itemIds.push(candidate.itemId);
     typeCodes.push(candidate.typeCode);
     domains.push(candidate.domain);
@@ -146,16 +162,13 @@ function runSession(
   const final = computeSheet({
     sessionId: seed,
     snapshotId: index.snapshotId,
-    threshold: THRESHOLD,
+    config: ENGINE_CONFIG,
     criteria: CRITERIA_V1,
-    responses: answered,
-    precision: PRECISION,
-    perDomainMinimum: PER_DOMAIN_MINIMUM,
-    recommendProbability: 0.35,
+    trace: answered,
+    candidates: index.items,
     itemsServed: answered.length,
     poolExhausted: true,
     abandoned: false,
-    domainsAvailable: DOMAIN_NAMES,
   });
 
   return {

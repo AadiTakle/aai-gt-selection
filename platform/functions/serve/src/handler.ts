@@ -239,6 +239,8 @@ async function nextItem(request: ApiRequest): Promise<ApiResponse> {
     correct: null,
     latencyMs: null,
     metrics: null,
+    // Grading attaches these; nothing is known at serve time.
+    flags: [],
     selection: trace,
     idempotencyKey: null,
     servedAt: new Date().toISOString(),

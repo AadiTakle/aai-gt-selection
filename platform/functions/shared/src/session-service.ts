@@ -6,7 +6,7 @@ import {
   type ScoreSheet,
   type SessionRecord,
 } from '@platform/domain';
-import { computeSheet, type ScoredResponse } from '@platform/scoring';
+import { computeSheet, toEngineConfig, type TraceEntry } from '@platform/scoring';
 import { eligible, type SelectionIndex, type SelectionRequest } from '@platform/selection';
 import type { Deps } from './deps.js';
 import { forbidden, notFound } from './http.js';
@@ -71,13 +71,34 @@ export async function loadSession(
   };
 }
 
-export function toScoredResponses(answered: readonly ResponseRecord[]): ScoredResponse[] {
-  // The parameters come off the trace, not off the registry. That is what makes a recompute against
-  // corrected difficulties a deliberate act rather than an accident of read ordering.
-  return answered.map((r) => ({ domain: r.domain, params: r.params, correct: r.correct }));
+/**
+ * The trace as the engine adapter reads it.
+ *
+ * The parameters come off the response record, not the registry, so a recompute against corrected
+ * difficulties is a deliberate act rather than an accident of read ordering — and so an item that has
+ * since left the pool still contributes its evidence.
+ */
+export function toTrace(answered: readonly ResponseRecord[]): TraceEntry[] {
+  return answered.map((r) => ({
+    ordinal: r.ordinal,
+    itemId: r.itemId,
+    typeCode: r.typeCode,
+    domain: r.domain,
+    difficulty: r.difficulty,
+    params: r.params,
+    correct: r.correct,
+    latencyMs: r.latencyMs,
+    rawResponse: r.rawResponse,
+    flags: r.flags ?? [],
+  }));
 }
 
-/** Domains the session's eligible pool can actually serve, for the coverage half of the stop rule. */
+/**
+ * Domains the session's eligible pool can actually serve.
+ *
+ * No longer consulted by `sheetFor`: the engine reads coverage off the pool it is handed, so passing a
+ * separate list would be a second answer to one question. Kept because serving still reports it.
+ */
 export function domainsAvailable(loaded: LoadedSession): readonly DomainName[] {
   const request = selectionRequestFor(loaded, 1);
   const pool = eligible({ ...request, usedItemIds: new Set(), personaRecentItemIds: new Set() });
@@ -88,22 +109,20 @@ export function sheetFor(
   loaded: LoadedSession,
   options: { readonly poolExhausted?: boolean; readonly abandoned?: boolean } = {},
 ): ScoreSheet {
-  const { session, answered, responses } = loaded;
-  const config = session.resolvedConfig;
+  const { session, answered, responses, index } = loaded;
 
   return computeSheet({
     sessionId: session.sessionId,
     snapshotId: session.snapshotId,
-    threshold: config.abilityThreshold,
+    config: toEngineConfig(session.resolvedConfig, session.ageBand),
     criteria: CRITERIA_V1,
-    responses: toScoredResponses(answered),
-    precision: config.precision,
-    perDomainMinimum: config.perDomainMinimum,
-    recommendProbability: config.recommendProbability,
+    trace: toTrace(answered),
+    // The whole snapshot, not the eligible subset: coverage is a question about what the pool *contains*,
+    // and `eligible` deliberately removes items this session has already served.
+    candidates: index.items,
     itemsServed: responses.length,
     poolExhausted: options.poolExhausted ?? false,
     abandoned: options.abandoned ?? session.status === 'abandoned',
-    domainsAvailable: domainsAvailable(loaded),
   });
 }
 

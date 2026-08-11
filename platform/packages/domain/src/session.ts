@@ -63,6 +63,15 @@ export interface ResponseRecord {
   readonly latencyMs: number | null;
   /** Optional telemetry the catalogue renderers already emit: revisions, focus losses. */
   readonly metrics: Record<string, unknown> | null;
+  /**
+   * Markers the engine attached while grading, `rapid-guess` being the one that exists today.
+   *
+   * A response too fast to be an attempt is unscorable rather than wrong, which matters far more in a game
+   * than on a web page because tapping is cheap. Stored because the distinction is invisible afterwards:
+   * a null `correct` alone cannot say whether the platform could not read the response or decided not to
+   * believe it.
+   */
+  readonly flags: readonly string[];
   readonly selection: SelectionTrace;
   readonly idempotencyKey: string | null;
   readonly servedAt: string;

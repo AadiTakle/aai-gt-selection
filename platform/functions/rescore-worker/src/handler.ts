@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto';
-import { CRITERIA_V1, DOMAIN_NAMES, type OutboxEvent, type ScoreSheet } from '@platform/domain';
-import { computeSheet, type ScoredResponse } from '@platform/scoring';
+import {
+  CRITERIA_V1,
+  type OutboxEvent,
+  type ScoreSheet,
+  type SelectionCandidate,
+} from '@platform/domain';
+import { computeSheet, toEngineConfig, type TraceEntry } from '@platform/scoring';
 import { deps, log, type Deps } from '@platform/shared';
 
 /**
@@ -79,34 +84,61 @@ export async function rescoreSession(d: Deps, sessionId: string): Promise<Rescor
   const answered = responses.filter((r) => r.state === 'answered');
 
   let parametersChanged = 0;
-  const scored: ScoredResponse[] = [];
+  const trace: TraceEntry[] = [];
   for (const response of answered) {
     const current = await d.store.getItem(response.typeCode, response.itemId);
-    // An item missing from the registry cannot happen through any supported path, since nothing
-    // deletes. If it ever does, the trace's own parameters are the honest fallback.
+    // The whole purpose of a rescore: read the parameters believed *now*, not the ones the trace
+    // recorded. An item missing from the registry cannot happen through any supported path, since
+    // nothing deletes; if it ever does, the trace's own parameters are the honest fallback.
     const params = current?.params ?? response.params;
     if (params.b !== response.params.b || params.a !== response.params.a) parametersChanged += 1;
-    scored.push({ domain: response.domain, params, correct: response.correct });
+    trace.push({
+      ordinal: response.ordinal,
+      itemId: response.itemId,
+      typeCode: response.typeCode,
+      domain: response.domain,
+      difficulty: current?.difficulty ?? response.difficulty,
+      params,
+      correct: response.correct,
+      latencyMs: response.latencyMs,
+      rawResponse: response.rawResponse,
+      flags: response.flags ?? [],
+    });
   }
 
   const previous = await d.store.getCurrentSheet(sessionId);
-  const config = session.resolvedConfig;
+
+  /**
+   * The pool a rescore reasons about is the trace's own items at their current parameters.
+   *
+   * Not the snapshot: a finished session's stop reason is already recorded, and handing the engine a
+   * catalog that has moved since would let a publish rewrite why a past session ended.
+   */
+  const candidates: SelectionCandidate[] = trace.map((entry) => ({
+    itemId: entry.itemId,
+    itemRevision: 1,
+    typeCode: entry.typeCode,
+    domain: entry.domain,
+    params: entry.params,
+    difficulty: entry.difficulty,
+    optionCount: 4,
+    ageBands: [],
+    scoringMode: 'deterministic_key',
+    markable: true,
+    readingBand: null,
+    syntheticOnly: false,
+  }));
 
   const sheet = computeSheet({
     sessionId,
     snapshotId: session.snapshotId,
-    threshold: config.abilityThreshold,
+    config: toEngineConfig(session.resolvedConfig, session.ageBand),
     criteria: CRITERIA_V1,
-    responses: scored,
-    precision: config.precision,
-    perDomainMinimum: config.perDomainMinimum,
-    recommendProbability: config.recommendProbability,
+    trace,
+    candidates,
     itemsServed: responses.length,
-    // A finished session's pool state is not re-derived. Its stop reason is already recorded, and
-    // re-asking the pool would let a catalog change rewrite why a past session ended.
     poolExhausted: session.stopReason === 'bank-exhausted',
     abandoned: session.stopReason === 'abandoned',
-    domainsAvailable: DOMAIN_NAMES,
   });
 
   await d.store.putSheet(sheet, qualificationEvents(sheet, previous));

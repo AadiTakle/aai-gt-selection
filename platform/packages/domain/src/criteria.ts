@@ -25,6 +25,15 @@ export interface GiftedCriteria {
   /** Composite P(theta > threshold) required. */
   readonly requiredProbability: number;
   readonly minItemsScored: number;
+  /**
+   * The disjunctive route: the ability line a single domain must clear on its own when the composite has
+   * not. Set higher than `abilityThreshold`, because passing on one domain alone is a stronger claim about
+   * that domain than the composite makes about the whole. Undefined falls back to the engine's default.
+   */
+  readonly domainBar?: number;
+  /** Confidence required on a single domain for that route. Undefined falls back to the engine's default. */
+  readonly domainRequiredProbability?: number;
+  /** Floors that must be met before the platform will act, whichever route cleared. */
   readonly perDomainRequirements: Readonly<Partial<Record<DomainName, DomainRequirement>>>;
   readonly description: string;
 }

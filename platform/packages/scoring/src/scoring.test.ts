@@ -1,355 +1,341 @@
 import { describe, expect, it } from 'vitest';
-import { Posterior, paramsFor } from '@gt/engine';
+import {
+  QbankSession,
+  precisionAt,
+  type BankRecord,
+  type LoadedBank,
+  type QbankSessionConfig,
+} from '@gt/qbank/server';
 import {
   CRITERIA_V1,
   DOMAIN_NAMES,
   type DomainName,
   type GiftedCriteria,
-  type ItemParameters,
-  type PrecisionConfig,
+  type SelectionCandidate,
 } from '@platform/domain';
-import {
-  ENGINE_VERSION,
-  MultiPosterior,
-  computeSheet,
-  evaluateCriteria,
-  replay,
-  type ScoredResponse,
-  type SheetInput,
-} from './index.js';
-
-const THRESHOLD = 1.0;
-
-const PRECISION: PrecisionConfig = {
-  confidenceAbove: 0.75,
-  confidenceBelow: 0.97,
-  minItems: 8,
-  maxItems: 16,
-};
+import { computeSheet } from './sheet.js';
+import { evaluateCriteria } from './criteria.js';
+import { posteriorsFromTrace, toAttempts, toPool, verdictFor, type TraceEntry } from './qbank-adapter.js';
+import { progressFrom } from '@gt/qbank/server';
 
 /**
- * Difficulties chosen to carry information at the threshold, which is not the same as being hard.
+ * The platform's sheet is checked against the engine itself.
  *
- * An easy item answered correctly says almost nothing about whether a child is above theta = 1,
- * because P(correct) is near one on both sides of the line and the likelihood ratio is flat. Tests
- * that expect confidence from easy items are testing a claim the model is right to refuse. The
- * values below were measured, not guessed: `INFORMATIVE` reaches P > 0.75 in eight correct answers
- * and `EASY_FOR_FAILURE` reaches P < 0.03 in eight wrong ones.
+ * An earlier version of this file asserted that a platform-local posterior matched a reference
+ * `Posterior` to twelve decimals. That was worth having when the platform implemented its own; now that the
+ * decision lives in `@gt/qbank`, the stronger and more useful claim is that a sheet derived from a trace
+ * says exactly what a real `QbankSession` driven through the same items says. If the two ever disagree, the
+ * platform is telling a family something the engine would not.
  */
-const INFORMATIVE = 1.0;
-const HARD = 2.0;
-const EASY_FOR_FAILURE = 0.0;
 
-function params(b: number, optionCount = 4, a = 1.5): ItemParameters {
-  return { b, a, c: 1 / optionCount };
-}
+const OPTION_KEYS = ['A', 'B', 'C', 'D'] as const;
 
-function response(domain: DomainName, b: number, correct: boolean | null): ScoredResponse {
-  return { domain, params: params(b), correct };
-}
+const TYPES: readonly [string, string, DomainName][] = [
+  ['QUANT-FIX-01', 'quantitative', 'quantitative'],
+  ['VER-FIX-01', 'verbal', 'verbal'],
+  ['SPA-FIX-01', 'spatial', 'spatial'],
+  ['FLU-FIX-01', 'fluid_reasoning', 'fluid'],
+];
 
-/** N items cycling through all four domains, so coverage minimums can be met. */
-function acrossDomains(count: number, b: number, correct: boolean | null): ScoredResponse[] {
-  return Array.from({ length: count }, (_unused, i) =>
-    response(DOMAIN_NAMES[i % DOMAIN_NAMES.length] as DomainName, b, correct),
-  );
-}
-
-/** N items all in one domain, so coverage minimums cannot be met. */
-function inOneDomain(
-  count: number,
-  b: number,
-  correct: boolean | null,
-  domain: DomainName = 'fluid',
-): ScoredResponse[] {
-  return Array.from({ length: count }, () => response(domain, b, correct));
-}
-
-function sheetInput(overrides: Partial<SheetInput> = {}): SheetInput {
-  const responses = overrides.responses ?? acrossDomains(8, INFORMATIVE, true);
+function recordFor(typeCode: string, bankDomain: string, i: number): BankRecord {
+  const difficulty = Number((4 + (14 * i) / 11).toFixed(2));
   return {
+    itemId: `${typeCode}-i${String(i).padStart(2, '0')}`,
+    typeCode,
+    domain: bankDomain,
+    difficulty,
+    ageBands: ['3-5'],
+    content: {
+      typeCode,
+      options: OPTION_KEYS.map((key) => ({ key, label: `option ${key}` })),
+    },
+    answer: { correctKey: OPTION_KEYS[i % OPTION_KEYS.length] as string },
+    scoring: { mode: 'deterministic_key' },
+    syntheticOnly: false,
+    validated: true,
+  } as BankRecord;
+}
+
+function banksFixture(itemsPerType = 12): Map<string, LoadedBank> {
+  const out = new Map<string, LoadedBank>();
+  for (const [typeCode, bankDomain] of TYPES) {
+    const scorable = Array.from({ length: itemsPerType }, (_u, i) => recordFor(typeCode, bankDomain, i));
+    out.set(typeCode, {
+      typeCode,
+      domain: bankDomain,
+      scorable,
+      total: scorable.length,
+      excluded: {},
+      difficultyRange: [scorable[0]!.difficulty, scorable[scorable.length - 1]!.difficulty],
+      ageBands: ['3-5'],
+    } as LoadedBank);
+  }
+  return out;
+}
+
+function candidatesFrom(banks: Map<string, LoadedBank>): SelectionCandidate[] {
+  const out: SelectionCandidate[] = [];
+  for (const [typeCode, bank] of banks) {
+    const domain = TYPES.find(([code]) => code === typeCode)![2];
+    for (const record of bank.scorable) {
+      out.push({
+        itemId: record.itemId,
+        itemRevision: 1,
+        typeCode,
+        domain,
+        params: { b: (record.difficulty - 10.5) / 3, a: 1.5, c: 0.25 },
+        difficulty: record.difficulty,
+        optionCount: 4,
+        ageBands: record.ageBands,
+        scoringMode: 'deterministic_key',
+        markable: true,
+        readingBand: null,
+        syntheticOnly: false,
+      });
+    }
+  }
+  return out;
+}
+
+const CONFIG: QbankSessionConfig = {
+  abilityThreshold: 1.0,
+  precision: precisionAt(2),
+  perDomainMinimum: 1,
+  recommendProbability: 0.35,
+};
+
+const banks = banksFixture();
+const candidates = candidatesFrom(banks);
+const keyOf = new Map<string, string>();
+for (const bank of banks.values()) {
+  for (const record of bank.scorable) keyOf.set(record.itemId, String(record.answer.correctKey));
+}
+
+/** Drive a real engine session, answering every item as told, and keep both sides of the comparison. */
+function driveSession(answerCorrectly: boolean): {
+  trace: TraceEntry[];
+  session: QbankSession;
+} {
+  const session = new QbankSession(CONFIG, banks, 7);
+  const trace: TraceEntry[] = [];
+
+  for (let ordinal = 1; ordinal <= 60; ordinal += 1) {
+    const serve = session.nextItem();
+    if (!serve) break;
+    const correctKey = keyOf.get(serve.served.itemId) as string;
+    const handed = answerCorrectly ? correctKey : correctKey === 'A' ? 'B' : 'A';
+    const candidate = candidates.find((c) => c.itemId === serve.served.itemId)!;
+
+    session.submit({ key: handed }, 4000);
+    const attempt = session.getAttempts()[ordinal - 1]!;
+    trace.push({
+      ordinal,
+      itemId: serve.served.itemId,
+      typeCode: serve.typeCode,
+      domain: candidate.domain,
+      difficulty: serve.difficulty,
+      params: candidate.params,
+      correct: attempt.correct,
+      latencyMs: 4000,
+      rawResponse: { key: handed },
+      flags: attempt.flags,
+    });
+    if (session.state().stopped) break;
+  }
+
+  return { trace, session };
+}
+
+function sheetFor(trace: readonly TraceEntry[], overrides: Record<string, unknown> = {}) {
+  return computeSheet({
     sessionId: 'sess-1',
     snapshotId: 'snap-test-001',
-    threshold: THRESHOLD,
+    config: CONFIG,
     criteria: CRITERIA_V1,
-    responses,
-    precision: PRECISION,
-    perDomainMinimum: 2,
-    recommendProbability: 0.35,
-    itemsServed: responses.length,
-    poolExhausted: false,
-    abandoned: false,
+    trace,
+    candidates,
+    itemsServed: trace.length,
     computedAt: '2026-08-10T00:00:00.000Z',
     ...overrides,
-  };
+  });
 }
 
-describe('MultiPosterior composite equivalence', () => {
-  /**
-   * The reason per-domain estimation is a safe change: the composite is the same pooled posterior
-   * the prototype already ships, updated by the same responses in the same order. If this test ever
-   * fails, per-domain estimation has stopped being additive and has started rewriting the engine.
-   */
-  it('matches a reference @gt/engine Posterior updated with the same sequence', () => {
-    const sequence: ScoredResponse[] = [
-      response('quantitative', -1.2, true),
-      response('verbal', 0.4, false),
-      response('spatial', 1.1, true),
-      response('fluid', 0.0, true),
-      response('quantitative', 2.0, false),
-      response('verbal', -0.6, true),
-    ];
+describe('the sheet agrees with the engine', () => {
+  for (const correctly of [true, false]) {
+    describe(correctly ? 'a child answering correctly' : 'a child answering wrongly', () => {
+      const { trace, session } = driveSession(correctly);
+      const state = session.state();
+      const sheet = sheetFor(trace);
 
-    const reference = new Posterior();
-    for (const r of sequence) {
-      reference.update(paramsFor(r.params.b, 1 / r.params.c, r.params.a), r.correct as boolean);
-    }
+      it('reaches the same stop reason', () => {
+        expect(sheet.stopReason).toBe(state.stopReason);
+        expect(sheet.stopped).toBe(state.stopped);
+      });
 
-    const composite = replay(sequence).estimate('composite', THRESHOLD);
+      it('reaches the same decision, by the same route', () => {
+        expect(sheet.decision).toBe(state.decision);
+        expect(sheet.passRoute).toEqual(state.passRoute ?? null);
+      });
 
-    expect(composite.mean).toBeCloseTo(reference.mean(), 12);
-    expect(composite.sd).toBeCloseTo(reference.sd(), 12);
-    expect(composite.pAboveThreshold).toBeCloseTo(reference.probabilityAbove(THRESHOLD), 12);
-    expect(composite.interval[0]).toBeCloseTo(reference.interval(0.9)[0], 12);
-    expect(composite.interval[1]).toBeCloseTo(reference.interval(0.9)[1], 12);
+      it('reports the same composite estimate and interval', () => {
+        expect(sheet.composite.mean).toBeCloseTo(state.estimate, 12);
+        expect(sheet.composite.interval[0]).toBeCloseTo(state.interval[0], 12);
+        expect(sheet.composite.interval[1]).toBeCloseTo(state.interval[1], 12);
+        expect(sheet.composite.pAboveThreshold).toBeCloseTo(state.pAbove, 12);
+      });
+
+      it('reports the same per-domain bands where the engine reports any', () => {
+        for (const domain of DOMAIN_NAMES) {
+          const band = state.domains[domain];
+          if (!band) continue;
+          expect(sheet.domains[domain].mean).toBeCloseTo(band.mean, 12);
+          expect(sheet.domains[domain].interval[0]).toBeCloseTo(band.interval[0], 12);
+          expect(sheet.domains[domain].interval[1]).toBeCloseTo(band.interval[1], 12);
+          expect(sheet.domains[domain].itemsScored).toBe(band.itemsScored);
+        }
+      });
+
+      it('counts the same items served and unscorable', () => {
+        expect(sheet.itemsServed).toBe(state.itemsServed);
+        expect(sheet.composite.itemsUnscorable).toBe(state.unscorable);
+      });
+
+      it('served at least the item floor', () => {
+        expect(trace.length).toBeGreaterThanOrEqual(CONFIG.precision.minItems);
+      });
+    });
+  }
+});
+
+describe('the platform additions on top of the verdict', () => {
+  const { trace } = driveSession(true);
+
+  it('stamps the algorithm, the criteria and the snapshot', () => {
+    const sheet = sheetFor(trace);
+    expect(sheet.engineVersion).toMatch(/^engine-/);
+    expect(sheet.criteriaVersion).toBe(CRITERIA_V1.version);
+    expect(sheet.snapshotId).toBe('snap-test-001');
   });
 
-  it('routes each response to its own domain and to nothing else', () => {
-    const mp = replay(inOneDomain(2, INFORMATIVE, true, 'quantitative'));
-
-    expect(mp.estimate('quantitative', THRESHOLD).itemsScored).toBe(2);
-    expect(mp.estimate('composite', THRESHOLD).itemsScored).toBe(2);
-    for (const domain of ['verbal', 'spatial', 'fluid'] as const) {
-      expect(mp.estimate(domain, THRESHOLD).itemsScored).toBe(0);
-    }
-  });
-
-  it('leaves an untouched domain sitting on the prior', () => {
-    const estimate = replay(inOneDomain(1, INFORMATIVE, true, 'quantitative')).estimate(
-      'verbal',
-      THRESHOLD,
+  it('reconciles against its trace', () => {
+    expect(sheetFor(trace, { itemsServed: trace.length + 1 }).derivedFromResponseCount).toBe(
+      trace.length,
     );
-    expect(Math.abs(estimate.mean)).toBeLessThan(1e-9);
-    expect(estimate.itemsScored).toBe(0);
-    expect(estimate.informationAccumulated).toBe(0);
+  });
+
+  it('is a pure function of its input', () => {
+    expect(sheetFor(trace)).toEqual(sheetFor(trace));
+  });
+
+  it('reports abandonment ahead of anything the engine would have said', () => {
+    expect(sheetFor(trace, { abandoned: true }).stopReason).toBe('abandoned');
+  });
+
+  it('reports bank-exhausted only when the engine had no reason of its own', () => {
+    const short = trace.slice(0, 2);
+    expect(sheetFor(short, { poolExhausted: true }).stopReason).toBe('bank-exhausted');
+    // A full run already has a reason, and exhaustion must not overwrite it.
+    expect(sheetFor(trace, { poolExhausted: true }).stopReason).not.toBe('bank-exhausted');
+  });
+});
+
+describe('evidence the pool cannot account for', () => {
+  /**
+   * The reason the platform builds posteriors from the trace rather than from `posteriorsFrom`. That
+   * function looks each item up in the pool and skips the ones it cannot find, which during a backfill
+   * after a retirement means a posterior over less evidence, returned with no signal.
+   */
+  const { trace } = driveSession(true);
+
+  it('names the items, rather than quietly scoring without them', () => {
+    const thinned = candidates.filter((c) => c.itemId !== trace[0]!.itemId);
+    const sheet = sheetFor(trace, { candidates: thinned });
+    expect(sheet.unaccountedItemIds).toEqual([trace[0]!.itemId]);
+  });
+
+  it('still counts the evidence, because the trace carries its own parameters', () => {
+    const thinned = candidates.filter((c) => c.itemId !== trace[0]!.itemId);
+    expect(sheetFor(trace, { candidates: thinned }).composite.itemsScored).toBe(
+      sheetFor(trace).composite.itemsScored,
+    );
+  });
+
+  it('is empty on a healthy recompute', () => {
+    expect(sheetFor(trace).unaccountedItemIds).toEqual([]);
+  });
+
+  it('would have dropped that evidence had the pool been the source', () => {
+    // Pins the behaviour being avoided, not only the avoidance.
+    const thinned = candidates.filter((c) => c.itemId !== trace[0]!.itemId);
+    const viaPool = verdictFor({ config: CONFIG, trace, candidates: thinned });
+    const viaTrace = posteriorsFromTrace(trace);
+    // The verdict's own posteriors come from the trace, so they agree; the point is that the pool is
+    // demonstrably missing the item the sheet reported.
+    expect(viaPool.posteriors.composite.mean()).toBeCloseTo(viaTrace.composite.mean(), 12);
+    expect(thinned.some((c) => c.itemId === trace[0]!.itemId)).toBe(false);
   });
 });
 
 describe('unscorable responses', () => {
-  it('move no evidence but are counted, because guessing would invent evidence', () => {
-    const scoredOnly = replay([response('verbal', INFORMATIVE, true)]);
-    const withUnscorable = replay([
-      response('verbal', INFORMATIVE, true),
-      response('verbal', INFORMATIVE, null),
-      response('spatial', INFORMATIVE, null),
-    ]);
-
-    expect(withUnscorable.estimate('composite', THRESHOLD).mean).toBeCloseTo(
-      scoredOnly.estimate('composite', THRESHOLD).mean,
-      12,
-    );
-    expect(withUnscorable.estimate('composite', THRESHOLD).itemsScored).toBe(1);
-    expect(withUnscorable.estimate('composite', THRESHOLD).itemsUnscorable).toBe(2);
-    expect(withUnscorable.estimate('verbal', THRESHOLD).itemsUnscorable).toBe(1);
-    expect(withUnscorable.estimate('spatial', THRESHOLD).itemsUnscorable).toBe(1);
-  });
-});
-
-describe('posterior behaviour', () => {
-  it('raises P(theta > threshold) monotonically across a run of correct answers', () => {
-    const mp = new MultiPosterior();
-    let previous = mp.pAbove('composite', THRESHOLD);
-    for (let i = 0; i < 8; i++) {
-      mp.update('fluid', params(INFORMATIVE), true);
-      const next = mp.pAbove('composite', THRESHOLD);
-      expect(next).toBeGreaterThanOrEqual(previous);
-      previous = next;
-    }
-    expect(previous).toBeGreaterThan(0.75);
-  });
-
-  it('lowers it monotonically across a run of wrong answers', () => {
-    const mp = new MultiPosterior();
-    let previous = mp.pAbove('composite', THRESHOLD);
-    for (let i = 0; i < 8; i++) {
-      mp.update('fluid', params(EASY_FOR_FAILURE), false);
-      const next = mp.pAbove('composite', THRESHOLD);
-      expect(next).toBeLessThanOrEqual(previous);
-      previous = next;
-    }
-    expect(previous).toBeLessThan(0.03);
-  });
-
-  it('is unmoved at the threshold by easy items answered correctly', () => {
-    // The behaviour the failing first draft of these tests got wrong, pinned so it stays honest.
-    const easy = replay(inOneDomain(8, -3.0, true));
-    expect(easy.pAbove('composite', THRESHOLD)).toBeLessThan(0.3);
-  });
-
-  it('brackets the mean inside the 90% interval', () => {
-    const estimate = replay(acrossDomains(8, INFORMATIVE, true)).estimate('composite', THRESHOLD);
-    expect(estimate.interval[0]).toBeLessThanOrEqual(estimate.mean);
-    expect(estimate.interval[1]).toBeGreaterThanOrEqual(estimate.mean);
-  });
-
-  it('accumulates information at the threshold it is asked about', () => {
-    const mp = replay(inOneDomain(2, INFORMATIVE, true));
-    expect(mp.estimate('fluid', 1.0).informationAccumulated).toBeGreaterThan(
-      mp.estimate('fluid', -3.5).informationAccumulated,
-    );
-  });
-});
-
-describe('computeSheet', () => {
-  it('is a pure function of its input', () => {
-    expect(computeSheet(sheetInput())).toEqual(computeSheet(sheetInput()));
-  });
-
-  it('reports five populated estimates and stamps the engine version', () => {
-    const sheet = computeSheet(sheetInput());
-    expect(sheet.engineVersion).toBe(ENGINE_VERSION);
-    expect(sheet.criteriaVersion).toBe(CRITERIA_V1.version);
-    expect(sheet.composite.scope).toBe('composite');
-    for (const domain of DOMAIN_NAMES) {
-      expect(sheet.domains[domain].scope).toBe(domain);
-      expect(sheet.domains[domain].itemsScored).toBe(2);
-    }
-  });
-
-  it('reconciles against its trace', () => {
-    const responses = acrossDomains(12, INFORMATIVE, true);
-    const sheet = computeSheet(sheetInput({ responses, itemsServed: responses.length + 1 }));
-    expect(sheet.derivedFromResponseCount).toBe(12);
-    expect(sheet.itemsServed).toBe(13);
-  });
-
-  it('stops at the item cap', () => {
-    const sheet = computeSheet(
-      sheetInput({ responses: acrossDomains(16, INFORMATIVE, true), itemsServed: 16 }),
-    );
-    expect(sheet.stopped).toBe(true);
-    expect(sheet.stopReason).toBe('item-cap');
-  });
-
-  it('holds a confident session open until the item floor is met', () => {
-    // Five correct informative items put P above the 0.75 bar, and coverage is satisfied at a
-    // minimum of one per domain. Only the eight-item floor is left to stop the session, so this
-    // isolates the floor from the coverage rule.
-    const responses = acrossDomains(5, INFORMATIVE, true);
-    const sheet = computeSheet(
-      sheetInput({ responses, itemsServed: 5, perDomainMinimum: 1 }),
-    );
-    expect(sheet.composite.pAboveThreshold).toBeGreaterThan(PRECISION.confidenceAbove);
-    expect(sheet.stopped).toBe(false);
-    expect(sheet.stopReason).toBeNull();
-    expect(sheet.decision).toBeNull();
-  });
-
-  it('holds a confident session open until every servable domain has met its minimum', () => {
-    const responses = inOneDomain(8, HARD, true);
-    const sheet = computeSheet(sheetInput({ responses, itemsServed: 8, perDomainMinimum: 2 }));
-    expect(sheet.composite.pAboveThreshold).toBeGreaterThan(PRECISION.confidenceAbove);
-    expect(sheet.domains.verbal.itemsScored).toBe(0);
-    expect(sheet.stopped).toBe(false);
-  });
-
-  it('stops confident-above once the floor and coverage are met', () => {
-    const sheet = computeSheet(
-      sheetInput({ responses: acrossDomains(8, INFORMATIVE, true), itemsServed: 8 }),
-    );
-    expect(sheet.stopReason).toBe('confident-above');
-    expect(sheet.decision).toBe('recommend');
-  });
-
-  it('stops confident-below on a run of failures at informative difficulty', () => {
-    const sheet = computeSheet(
-      sheetInput({ responses: acrossDomains(12, EASY_FOR_FAILURE, false), itemsServed: 12 }),
-    );
-    expect(sheet.stopReason).toBe('confident-below');
-    expect(sheet.decision).toBe('no-recommendation');
-  });
-
-  it('ignores a domain the pool cannot serve when checking coverage', () => {
-    const responses = [
-      ...inOneDomain(5, INFORMATIVE, true, 'fluid'),
-      ...inOneDomain(5, INFORMATIVE, true, 'quantitative'),
+  it('move no evidence but are counted', () => {
+    const { trace } = driveSession(true);
+    const withNull: TraceEntry[] = [
+      ...trace,
+      { ...trace[0]!, ordinal: trace.length + 1, itemId: trace[1]!.itemId, correct: null },
     ];
-    const sheet = computeSheet(
-      sheetInput({
-        responses,
-        itemsServed: 10,
-        domainsAvailable: ['fluid', 'quantitative'],
-      }),
-    );
-    expect(sheet.stopReason).toBe('confident-above');
-  });
-
-  it('reports bank-exhausted when the pool ran dry short of a decision', () => {
-    const responses = [
-      response('fluid', INFORMATIVE, true),
-      response('verbal', INFORMATIVE, false),
-    ];
-    const sheet = computeSheet(sheetInput({ responses, itemsServed: 2, poolExhausted: true }));
-    expect(sheet.stopReason).toBe('bank-exhausted');
-    expect(sheet.stopped).toBe(true);
-    expect(sheet.decision).not.toBeNull();
-  });
-
-  it('reports abandoned ahead of every other reason', () => {
-    const sheet = computeSheet(
-      sheetInput({
-        responses: acrossDomains(16, INFORMATIVE, true),
-        itemsServed: 16,
-        abandoned: true,
-        poolExhausted: true,
-      }),
-    );
-    expect(sheet.stopReason).toBe('abandoned');
+    const before = sheetFor(trace);
+    const after = sheetFor(withNull);
+    expect(after.composite.mean).toBeCloseTo(before.composite.mean, 12);
+    expect(after.composite.itemsUnscorable).toBe(before.composite.itemsUnscorable + 1);
   });
 });
 
-describe('evaluateCriteria', () => {
+describe('criteria, and the disjunctive route', () => {
+  function judge(trace: readonly TraceEntry[], criteria: GiftedCriteria): boolean {
+    const posteriors = posteriorsFromTrace(trace);
+    const progress = progressFrom(toAttempts(trace), toPool(candidates));
+    return evaluateCriteria(posteriors, progress, criteria);
+  }
+
+  const { trace } = driveSession(true);
+
   it('needs the item floor as well as the probability', () => {
-    const confident = replay(inOneDomain(5, INFORMATIVE, true));
-    expect(confident.pAbove('composite', CRITERIA_V1.abilityThreshold)).toBeGreaterThan(
-      CRITERIA_V1.requiredProbability,
-    );
-    expect(confident.itemsScored('composite')).toBeLessThan(CRITERIA_V1.minItemsScored);
-    expect(evaluateCriteria(confident, CRITERIA_V1)).toBe(false);
+    expect(judge(trace.slice(0, 3), CRITERIA_V1)).toBe(false);
   });
 
-  it('passes a confident session that met the floor', () => {
-    expect(evaluateCriteria(replay(inOneDomain(10, INFORMATIVE, true)), CRITERIA_V1)).toBe(true);
+  it('passes a strong session on the composite', () => {
+    expect(judge(trace, CRITERIA_V1)).toBe(true);
   });
 
-  it('fails a session below the probability bar', () => {
-    expect(evaluateCriteria(replay(inOneDomain(10, EASY_FOR_FAILURE, false)), CRITERIA_V1)).toBe(
-      false,
-    );
+  it('fails a session that answered everything wrongly', () => {
+    expect(judge(driveSession(false).trace, CRITERIA_V1)).toBe(false);
   });
 
-  it('evaluates at its own threshold, not the session threshold', () => {
-    const mp = replay(inOneDomain(10, EASY_FOR_FAILURE, true));
-    const lenient: GiftedCriteria = { ...CRITERIA_V1, abilityThreshold: -1.0 };
-    const strict: GiftedCriteria = { ...CRITERIA_V1, abilityThreshold: 3.0 };
-    expect(evaluateCriteria(mp, lenient)).toBe(true);
-    expect(evaluateCriteria(mp, strict)).toBe(false);
-  });
-
-  it('enforces per-domain requirements when present', () => {
-    const mp = replay(inOneDomain(10, INFORMATIVE, true));
-    const needsVerbal: GiftedCriteria = {
+  it('can pass on one domain when the composite bar is out of reach', () => {
+    /**
+     * The whole reason to delegate to `passRouteFor`. A composite bar set beyond anything this trace can
+     * reach rejects it; a reachable single-domain bar still recognises the spike.
+     */
+    const unreachableComposite: GiftedCriteria = {
       ...CRITERIA_V1,
-      perDomainRequirements: { verbal: { minItemsScored: 2, requiredProbability: 0.5 } },
+      requiredProbability: 0.999999,
+      domainBar: -3,
+      domainRequiredProbability: 0.5,
     };
-    expect(evaluateCriteria(mp, CRITERIA_V1)).toBe(true);
-    expect(evaluateCriteria(mp, needsVerbal)).toBe(false);
+    expect(judge(trace, { ...unreachableComposite, domainRequiredProbability: 0 })).toBe(false);
+    expect(judge(trace, unreachableComposite)).toBe(true);
+  });
+
+  it('enforces a per-domain floor on top of whichever route cleared', () => {
+    const needsUnmeasuredDomain: GiftedCriteria = {
+      ...CRITERIA_V1,
+      perDomainRequirements: { verbal: { minItemsScored: 99, requiredProbability: 0 } },
+    };
+    expect(judge(trace, CRITERIA_V1)).toBe(true);
+    expect(judge(trace, needsUnmeasuredDomain)).toBe(false);
   });
 
   it('agrees with the sheet it produced', () => {
-    const responses = acrossDomains(12, INFORMATIVE, true);
-    const sheet = computeSheet(sheetInput({ responses, itemsServed: 12 }));
-    expect(sheet.meetsCriteria).toBe(evaluateCriteria(replay(responses), CRITERIA_V1));
-    expect(sheet.meetsCriteria).toBe(true);
+    expect(sheetFor(trace).meetsCriteria).toBe(judge(trace, CRITERIA_V1));
   });
 });

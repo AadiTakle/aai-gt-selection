@@ -249,6 +249,7 @@ function makeResponse(overrides: Partial<ResponseRecord> = {}): ResponseRecord {
     correct: null,
     latencyMs: null,
     metrics: null,
+    flags: [],
     selection: {
       reason: 'max information at threshold',
       informationAtThreshold: 0.47120000000000006,
@@ -295,8 +296,10 @@ function makeSheet(overrides: Partial<ScoreSheet> = {}): ScoreSheet {
     stopped: true,
     stopReason: 'confident-above',
     decision: 'recommend',
+    passRoute: { via: 'composite' },
     meetsCriteria: true,
     derivedFromResponseCount: 16,
+    unaccountedItemIds: [],
     ...overrides,
   };
 }
@@ -801,6 +804,8 @@ suite('PlatformStore against DynamoDB Local', () => {
         composite: makeEstimate('composite', 0.4),
         decision: 'no-recommendation',
         meetsCriteria: false,
+    passRoute: null,
+    unaccountedItemIds: [],
       });
 
       await store.putSheet(first, []);
