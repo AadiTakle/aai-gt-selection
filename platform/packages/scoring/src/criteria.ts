@@ -40,7 +40,25 @@ export function evaluateCriteria(
       : { domainRecommendProbability: criteria.domainRequiredProbability }),
   };
 
-  if (passRouteFor(config, posteriors, progress) === null) return false;
+  const route = passRouteFor(config, posteriors, progress);
+  if (route === null) return false;
+
+  /**
+   * A domain that carried the session has to have been measured enough to carry it.
+   *
+   * `passRouteFor` reports which domains cleared and deliberately leaves this judgement to its caller; it
+   * requires only that a domain scored something. One item can clear a probability bar and cannot support a
+   * claim about a child.
+   *
+   * At least one clearing domain must meet the floor, not all of them. If quantitative cleared on eight
+   * items and verbal cleared on two, the recommendation stands on quantitative — verbal's thin clearing adds
+   * nothing to it but does not take anything away either.
+   */
+  if (route.via === 'domain' && criteria.domainMinItemsScored !== undefined) {
+    const floor = criteria.domainMinItemsScored;
+    const wellMeasured = route.domains.some((domain) => (progress.domainScored[domain] ?? 0) >= floor);
+    if (!wellMeasured) return false;
+  }
 
   // Per-domain floors on top of the route, for a criteria set that insists a given domain was measured at
   // all before it will act. The engine's route says what cleared; this says what had to be attempted.

@@ -33,6 +33,16 @@ export interface GiftedCriteria {
   readonly domainBar?: number;
   /** Confidence required on a single domain for that route. Undefined falls back to the engine's default. */
   readonly domainRequiredProbability?: number;
+  /**
+   * Items a domain must have scored before it may carry a session on its own.
+   *
+   * The engine's `passRouteFor` requires only that a domain scored something at all, which is right for it:
+   * it reports what cleared and leaves the judgement to the caller. This is that judgement. A blueprint
+   * minimum of one leaves each domain two or three items in a ten-item session, and measurement showed the
+   * route then almost never fires — but the failure mode if it did would be worse than not firing, because
+   * "recommended on quantitative alone" off two items is a claim about a child that two items cannot support.
+   */
+  readonly domainMinItemsScored?: number;
   /** Floors that must be met before the platform will act, whichever route cleared. */
   readonly perDomainRequirements: Readonly<Partial<Record<DomainName, DomainRequirement>>>;
   readonly description: string;
@@ -51,9 +61,25 @@ export const CRITERIA_V1: GiftedCriteria = {
   abilityThreshold: 1.0,
   requiredProbability: 0.75,
   minItemsScored: 8,
+  /**
+   * The single-domain route, stated rather than left to the engine's defaults.
+   *
+   * The bar sits above the composite threshold because passing on one domain alone is a stronger claim
+   * about that domain than the composite makes about the whole child. The confidence matches the
+   * composite's rather than the engine's looser 0.45, because this decides whether a family is contacted
+   * and one domain is less evidence, not more — it should not be the easier route.
+   *
+   * Six items is the number that makes the route mean anything. Below it the arithmetic will still produce
+   * a probability and the probability will still be indefensible.
+   */
+  domainBar: 1.5,
+  domainRequiredProbability: 0.75,
+  domainMinItemsScored: 6,
   perDomainRequirements: {},
   description:
     'Placeholder criteria pending a product decision. Ability threshold and item floor copied ' +
     'from the prototype screener; outreach probability set above the on-screen recommendation ' +
-    'bar because contacting a family is a stronger claim than encouraging one. Not calibrated.',
+    'bar because contacting a family is a stronger claim than encouraging one. The single-domain ' +
+    'route demands the same confidence as the composite and six scored items in the clearing ' +
+    'domain. Not calibrated.',
 };

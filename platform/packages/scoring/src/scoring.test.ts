@@ -16,7 +16,7 @@ import {
 import { computeSheet } from './sheet.js';
 import { evaluateCriteria } from './criteria.js';
 import { posteriorsFromTrace, toAttempts, toPool, verdictFor, type TraceEntry } from './qbank-adapter.js';
-import { progressFrom } from '@gt/qbank/server';
+import { passRouteFor, progressFrom } from '@gt/qbank/server';
 
 /**
  * The platform's sheet is checked against the engine itself.
@@ -311,10 +311,11 @@ describe('criteria, and the disjunctive route', () => {
     expect(judge(driveSession(false).trace, CRITERIA_V1)).toBe(false);
   });
 
-  it('can pass on one domain when the composite bar is out of reach', () => {
+  it('will not pass a balanced session on one domain, because no domain has the evidence', () => {
     /**
-     * The whole reason to delegate to `passRouteFor`. A composite bar set beyond anything this trace can
-     * reach rejects it; a reachable single-domain bar still recognises the spike.
+     * The finding this floor exists for. A ten-item session over four domains leaves each domain two or
+     * three items. The engine will happily report that a domain cleared a probability bar on two items; the
+     * criteria will not act on it. So a balanced session either passes on the composite or not at all.
      */
     const unreachableComposite: GiftedCriteria = {
       ...CRITERIA_V1,
@@ -322,8 +323,15 @@ describe('criteria, and the disjunctive route', () => {
       domainBar: -3,
       domainRequiredProbability: 0.5,
     };
-    expect(judge(trace, { ...unreachableComposite, domainRequiredProbability: 0 })).toBe(false);
-    expect(judge(trace, unreachableComposite)).toBe(true);
+    const perDomain = DOMAIN_NAMES.map(
+      (domain) => trace.filter((entry) => entry.domain === domain && entry.correct !== null).length,
+    );
+    expect(Math.max(...perDomain)).toBeLessThan(CRITERIA_V1.domainMinItemsScored as number);
+    expect(judge(trace, unreachableComposite)).toBe(false);
+
+    // Drop the floor and the same trace passes, which locates the refusal in the evidence rather than in
+    // the probability.
+    expect(judge(trace, { ...unreachableComposite, domainMinItemsScored: 1 })).toBe(true);
   });
 
   it('enforces a per-domain floor on top of whichever route cleared', () => {
@@ -337,5 +345,107 @@ describe('criteria, and the disjunctive route', () => {
 
   it('agrees with the sheet it produced', () => {
     expect(sheetFor(trace).meetsCriteria).toBe(judge(trace, CRITERIA_V1));
+  });
+});
+
+describe('the single-domain route needs enough evidence to be worth acting on', () => {
+  function judge(trace: readonly TraceEntry[], criteria: GiftedCriteria): boolean {
+    const posteriors = posteriorsFromTrace(trace);
+    const progress = progressFrom(toAttempts(trace), toPool(candidates));
+    return evaluateCriteria(posteriors, progress, criteria);
+  }
+
+  /** Everything in one domain, so that domain is the only route available. */
+  function oneDomain(count: number, b: number, correct: boolean): TraceEntry[] {
+    const of = candidates.filter((c) => c.domain === 'quantitative');
+    return Array.from({ length: count }, (_u, i) => ({
+      ordinal: i + 1,
+      itemId: of[i % of.length]!.itemId,
+      typeCode: of[i % of.length]!.typeCode,
+      domain: 'quantitative' as const,
+      difficulty: 12,
+      params: { b, a: 1.5, c: 0.25 },
+      correct,
+      latencyMs: 4000,
+      rawResponse: null,
+      flags: [],
+    }));
+  }
+
+  const unreachableComposite: GiftedCriteria = {
+    ...CRITERIA_V1,
+    requiredProbability: 0.999999,
+    domainBar: -3,
+    domainRequiredProbability: 0.5,
+  };
+
+  it('refuses a domain that cleared on too few items', () => {
+    // Nine items so the composite floor of eight is met, but only three in the clearing domain.
+    const thin = [...oneDomain(3, 0, true), ...oneDomain(6, 0, true).map((e, i) => ({
+      ...e,
+      ordinal: 4 + i,
+      domain: 'verbal' as const,
+      itemId: candidates.filter((c) => c.domain === 'verbal')[i]!.itemId,
+      typeCode: candidates.filter((c) => c.domain === 'verbal')[i]!.typeCode,
+    }))];
+    const quantOnly: GiftedCriteria = {
+      ...unreachableComposite,
+      domainMinItemsScored: 6,
+      // Only quantitative can clear this bar; verbal answered the same way would too, so restrict by
+      // requiring more than the three quantitative items carry.
+    };
+    const posteriors = posteriorsFromTrace(thin);
+    const progress = progressFrom(toAttempts(thin), toPool(candidates));
+    const route = passRouteFor(
+      {
+        abilityThreshold: quantOnly.abilityThreshold,
+        recommendProbability: quantOnly.requiredProbability,
+        precision: { label: 'x', confidenceAbove: 1, confidenceBelow: 1, minItems: 0, maxItems: 0, note: '' },
+        perDomainMinimum: 0,
+        domainBar: quantOnly.domainBar as number,
+        domainRecommendProbability: quantOnly.domainRequiredProbability as number,
+      },
+      posteriors,
+      progress,
+    );
+    // The engine says a domain cleared; the criteria decide whether that is worth acting on.
+    expect(route?.via).toBe('domain');
+    expect(judge(thin, { ...quantOnly, domainMinItemsScored: 99 })).toBe(false);
+  });
+
+  it('accepts a domain that cleared on enough items', () => {
+    const solid = oneDomain(10, 0, true);
+    expect(judge(solid, { ...unreachableComposite, domainMinItemsScored: 6 })).toBe(true);
+  });
+
+  it('accepts when one clearing domain is well measured even if another is thin', () => {
+    const mixed = [
+      ...oneDomain(8, 0, true),
+      ...Array.from({ length: 2 }, (_u, i) => {
+        const verbal = candidates.filter((c) => c.domain === 'verbal')[i]!;
+        return {
+          ordinal: 9 + i,
+          itemId: verbal.itemId,
+          typeCode: verbal.typeCode,
+          domain: 'verbal' as const,
+          difficulty: 12,
+          params: { b: 0, a: 1.5, c: 0.25 },
+          correct: true,
+          latencyMs: 4000,
+          rawResponse: null,
+          flags: [],
+        };
+      }),
+    ];
+    expect(judge(mixed, { ...unreachableComposite, domainMinItemsScored: 6 })).toBe(true);
+  });
+
+  it("ships a floor, so the engine's bare 'scored something' rule is never the platform's rule", () => {
+    expect(CRITERIA_V1.domainMinItemsScored).toBeGreaterThan(1);
+    // And the single-domain route is not the easier way in.
+    expect(CRITERIA_V1.domainRequiredProbability).toBeGreaterThanOrEqual(
+      CRITERIA_V1.requiredProbability,
+    );
+    expect(CRITERIA_V1.domainBar as number).toBeGreaterThan(CRITERIA_V1.abilityThreshold);
   });
 });

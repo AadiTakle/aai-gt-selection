@@ -237,7 +237,15 @@ The user's constraint is that this must not touch other branches. Concretely:
    they are not among the seven verbs either way. Note this is unrelated to Felipe's three *retirements*
    (`CX-achieve-02`, `FLU-DEDUCE-01`, `FLU-ODDPAIR-01`), none of which Bramblebrook uses.
 
-**A new number to choose.** With one session per keeper, `maxItems` stops being the burst length and
-becomes the whole screening budget. Bramblebrook's "about 4" stays a presentational choice. Felipe's
-`PRECISION_STEPS` top out at 40 items at Thorough, which is a plausible ceiling for a game played across
-many visits, but nobody has picked it. Recorded here rather than assumed.
+**A new number to choose, and it now has a floor under it.** With one session per keeper, `maxItems` stops
+being the burst length and becomes the whole screening budget. Bramblebrook's "about 4" stays a
+presentational choice. Felipe's `PRECISION_STEPS` top out at 40 items at Thorough, which is a plausible
+ceiling for a game played across many visits, but nobody has picked it.
+
+Measurement has since made this concrete rather than open. The single-domain pass route — the thing that
+lets a keeper who loves the tide ledge and ignores the log be recognised — requires **six scored items in
+the clearing domain** before the platform will act on it (`CRITERIA_V1.domainMinItemsScored`). A ten-item
+session across three batteries leaves each battery three or four items and therefore cannot use that route
+at all: it passes on the composite or not at all. So Bramblebrook's per-battery framing needs a budget of
+roughly **eighteen or more items per keeper** for the route it is shaped around to become reachable. That is
+the number to choose, and it is larger than the burst length suggests.
