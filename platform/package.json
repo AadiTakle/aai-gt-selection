@@ -15,7 +15,9 @@
     "ddb:start": "bash scripts/dynamodb-local.sh start",
     "ddb:stop": "bash scripts/dynamodb-local.sh stop",
     "synth": "cdk synth --app \"tsx infra/bin/platform.ts\"",
-    "simulate": "tsx scripts/simulate-variety.ts"
+    "simulate": "tsx scripts/simulate-variety.ts",
+    "seed:bramblebrook": "tsx scripts/seed-bramblebrook.ts",
+    "dev:local": "tsx local/src/dev-server.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.716.0",

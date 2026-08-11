@@ -39,10 +39,18 @@ export default defineConfig({
     port: 5230,
     fs: { allow: [r('.')] },
     proxy: {
-      '/api': 'http://127.0.0.1:5203',
-      // Same origin on purpose, even though nothing here embeds an item frame: it keeps the
-      // catalogue's own renderers one URL away while checking that a hand-drawn item depicts what
-      // the item actually says.
+      /**
+       * The question platform, same-origin through this proxy.
+       *
+       * The game asks for `/platform/api/bank/...`; the platform serves `/api/bank/...`. Rewriting here
+       * rather than in the client keeps the client's paths exactly the contract's, so pointing at a deployed
+       * stack is a base URL and nothing else. Start it with `npm run dev:local` from `platform/`.
+       */
+      '/platform': {
+        target: 'http://127.0.0.1:5210',
+        rewrite: (path: string) => path.replace(/^\/platform/, ''),
+      },
+      // The catalogue's own HTML renderers still come from the prototype API, which serves them statically.
       '/qbank': 'http://127.0.0.1:5203',
     },
   },

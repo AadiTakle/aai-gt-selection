@@ -4,33 +4,52 @@ import type { Battery } from './batteries';
 import type { OptionRef, Serve, SortieState } from './types';
 
 /**
- * One sortie: a short single-battery measurement, dressed in-world as a care verb.
+ * One sortie: a short run of questions at a station, dressed in-world as a care verb.
  *
- * WHY SINGLE-BATTERY. The engine is unidimensional. One `Posterior`, one scalar theta, and the item's
- * domain is discarded at update time, so a mixed session cannot yield four estimates. Restricting the
- * pool to one battery's types makes the session's own estimate a per-battery estimate, which is why
- * this app needs no engine change. `coverageMet` already passes a domain absent from the pool.
+ * Now served by the question platform rather than by the local Express prototype and this app's Vite plugin.
+ * The paths and payloads are `@gt/qbank`'s wire contract, which this hook already spoke — what changed is
+ * what stands behind them, and three of the reasons this file used to give are now obsolete:
  *
- * WHY NO ageBand. Age band and difficulty are the same axis in this bank: every K-1 item sits at b
- * between -3.17 and -2.04, so a band-locked session only ever administers items the child will pass
- * and the posterior never narrows. Difficulty is steered by `abilityThreshold` instead, because
- * `nextItem()` maximises information AT THE THRESHOLD rather than at the estimate. Setting the
- * threshold to the child's running per-battery mean turns a classifier into a measurer.
+ * WHY A BATTERY IS STILL A RESTRICTION, but no longer a workaround. It used to be one: the prototype engine
+ * kept a single pooled posterior and discarded an item's domain at update time, so the only way to get a
+ * per-battery number was to run a whole session inside one battery. The platform keeps four domain posteriors
+ * and a composite, so per-battery estimates come out of one session for free. Restricting a sortie to one
+ * battery is now a *game* decision — a child walks to the tide ledge and answers tide-ledge questions — and
+ * not a measurement compromise.
  *
- * EXPECTED CONSEQUENCE, not a bug: with the threshold tracking the estimate, pAbove sits near 0.5, so
- * the asymmetric confidence bars never fire and `stopReason` is always `item-cap`. Sortie length is
- * therefore set by the precision step, which is what a game wants.
+ * WHY NO THRESHOLD. This app used to steer difficulty by moving the ability threshold to the child's running
+ * mean, which turned a classifier into a measurer and had the documented consequence that the confidence bars
+ * never fired and every sortie ended at the item cap. The platform is server-authoritative on measurement
+ * configuration: the threshold, the precision and the per-domain minimum come from the registered app, and a
+ * client cannot move them. A client that could lower its own bar could manufacture a recommendation.
  *
- * CORRECTNESS NEVER REACHES THE GAME. `/answer` returns `correct`, and this hook deletes it before
- * returning. Nothing downstream can pay out on accuracy, because it is not there to read. The ledger
- * is harvested server to server from `/debug` instead. This is enforced by wiring rather than by
- * comment, and `verify-sanctuary.ts` asserts the returned object has no `correct` property.
+ * WHY NO CHUNK ROUTE. A burst is no longer a session. One session per keeper spans every visit, so the trace
+ * accumulates and the interval actually narrows; `/sanctuary/chunk` and `/sanctuary/close` existed to carry
+ * ability between separate sessions and have nothing left to carry.
+ *
+ * CORRECTNESS STILL NEVER REACHES THE GAME. The contract returns `correct` on an answer, with its own note
+ * that a caller putting it in front of a child should think twice. This hook deletes it before returning, so
+ * nothing downstream can pay out on accuracy because it is not there to read.
  */
 
+/**
+ * Where the platform is, and who is asking.
+ *
+ * Both come from Vite's environment so that pointing the game at a deployed stack is configuration rather
+ * than a code change: set `VITE_GT_PLATFORM_URL` and `VITE_GT_APP_KEY`. The defaults are the local dev
+ * server. The key identifies the app, not a person, and is embedded in the client exactly as it would be in
+ * a Roblox place — which is why the platform trusts it for identity and nothing else.
+ */
+// Read through a cast rather than by adding `vite/client` to the shared tsconfig, which would change the
+// compilation of every app in this workspace to configure one.
+const viteEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env ?? {};
+const PLATFORM_URL = viteEnv.VITE_GT_PLATFORM_URL ?? '/platform';
+const APP_KEY = viteEnv.VITE_GT_APP_KEY ?? '';
+
 async function api<T>(path: string, body?: unknown): Promise<T> {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${PLATFORM_URL}${path}`, {
     method: body === undefined ? 'GET' : 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', 'x-api-key': APP_KEY },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
@@ -53,33 +72,31 @@ export interface Sortie {
 
 export function useSortie(opts: {
   battery: Battery;
+  /** This station's battery, narrowed against what the app is approved to serve. */
   types: readonly string[];
-  /** Where to concentrate information. The child's running per-battery mean, in logits. */
-  threshold: number;
-  /** Every itemId this battery has already served this keeper. Selection is deterministic, so
-   *  without this a returning child re-answers yesterday's items and the estimate double-counts. */
+  settleMs?: number;
+  /**
+   * The keeper this sortie belongs to, carried as the platform's persona.
+   *
+   * It is what makes ability accumulate across visits and what stops a returning child being re-asked items
+   * they have already seen. Pseudonymous: the platform stores no contact details for a Bramblebrook keeper.
+   */
+  keeperId?: string;
+  /**
+   * Accepted and ignored, so the harness compiles.
+   *
+   * Threshold, precision, item exclusion and difficulty range were this app's levers when it drove a local
+   * engine. The platform resolves all four from the registered app and refuses to take them from a client, so
+   * passing them here changes nothing. `SortieHarness`'s threshold slider is inert as a result; measuring
+   * against a pinned threshold is now a job for the platform's own simulation harness, which can set one.
+   */
+  threshold?: number;
   excludeItemIds?: readonly string[];
   difficultyRange?: readonly [number, number];
   precisionIndex?: number;
-  settleMs?: number;
-  /**
-   * Let the server pick the difficulty. On in the game, off in `SortieHarness`, which drives sessions
-   * directly to check the measurement rather than to play and needs to pin the threshold to do so.
-   */
   steered?: boolean;
-  keeperId?: string;
 }): Sortie {
-  const {
-    types,
-    threshold,
-    excludeItemIds,
-    difficultyRange,
-    precisionIndex = 1,
-    settleMs = 900,
-    steered = false,
-    keeperId = 'anon',
-    battery,
-  } = opts;
+  const { types, settleMs = 900, keeperId = 'anon', battery } = opts;
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [serve, setServe] = useState<Serve | null>(null);
@@ -105,26 +122,15 @@ export function useSortie(opts: {
 
   const loadNext = useCallback(async (sid: string) => {
     const next = await api<{ done: boolean; state: SortieState } & Partial<Serve>>(
-      `/bank/sessions/${sid}/next`,
+      `/api/bank/sessions/${sid}/next`,
     );
     if (!alive.current) return;
     setState(next.state);
+    // Nothing to close: the session outlives the burst, so a keeper walking away leaves it open for the
+    // next visit rather than ending it.
     if (next.done || !next.served) {
       setServe(null);
       setPhase('closed');
-      /**
-       * Tell the server the chunk is over so it can harvest the posterior and steer the next one. Sent
-       * fire-and-forget: this is the moment a child sees their slime hatch, and a failed housekeeping
-       * call must never hold that up or surface an error to them. A dropped close costs one chunk of
-       * steering, which is invisible; a blocked hatch is not.
-       */
-      if (steered && id.current) {
-        void fetch('/sanctuary/close', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ sessionId: id.current }),
-        }).catch(() => {});
-      }
       return;
     }
     setServe(next as Serve);
@@ -138,51 +144,31 @@ export function useSortie(opts: {
     setPhase('opening');
     try {
       /**
-       * OPENED THROUGH `/sanctuary/chunk`, NOT BY CREATING A SESSION HERE.
+       * One session per keeper, resumed rather than recreated.
        *
-       * The threshold is the difficulty dial — measured, `thresholdInBankScale = threshold * 3 + 10.5` —
-       * and it must track what the child has been doing or nothing adapts. But this layer is deliberately
-       * blind to correctness (see `delete raw.correct` below), and an ability estimate hands correctness
-       * over by subtraction: a mean that went up means the last answer was right. So the plugin picks the
-       * threshold from its own server-side record and returns nothing but a session id.
+       * The platform holds the trace, so a keeper returning to a station continues the session they already
+       * have: `next` on an open session serves the next question, and the estimate keeps narrowing across
+       * visits instead of restarting from the prior at every burst.
        *
-       * `threshold`, `excludeItemIds` and `difficultyRange` stay in the options for the harness, which
-       * drives sessions directly to check the measurement rather than to play. In the game they are
-       * ignored, and that is the point: the game does not get a say in how hard the next question is.
+       * `types` narrows the pool to this station's battery, and the platform intersects it with what the app
+       * is approved to serve — an unapproved code is refused rather than quietly dropped, so a typo cannot
+       * shrink a child's pool unnoticed.
        */
-      let sid: string;
-      if (steered) {
-        const r = await fetch('/sanctuary/chunk', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ keeperId, battery, types, precisionIndex }),
-        });
-        if (!r.ok) throw new Error(`chunk -> ${r.status}`);
-        sid = ((await r.json()) as { sessionId: string }).sessionId;
-      } else {
-        const res = await api<{ sessionId: string; state: SortieState }>('/bank/sessions', {
-          types,
-          abilityThreshold: threshold,
-          precisionIndex,
-          perDomainMinimum: 1,
-          // No ageBand, deliberately. See the header.
-          ...(excludeItemIds?.length ? { excludeItemIds } : {}),
-          ...(difficultyRange ? { difficultyRange } : {}),
-          seed: Math.floor(Math.random() * 1e6),
-        });
-        sid = res.sessionId;
-        setState(res.state);
-      }
+      const res = await api<{ sessionId: string; state: SortieState }>('/api/bank/sessions', {
+        types,
+        ...(keeperId ? { personaId: keeperId } : {}),
+      });
       if (!alive.current) return;
-      id.current = sid;
-      setSessionId(sid);
-      await loadNext(sid);
+      id.current = res.sessionId;
+      setSessionId(res.sessionId);
+      setState(res.state);
+      await loadNext(res.sessionId);
     } catch (e) {
       if (!alive.current) return;
       setError(String((e as Error).message ?? e));
       setPhase('error');
     }
-  }, [types, threshold, precisionIndex, excludeItemIds, difficultyRange, loadNext]);
+  }, [types, keeperId, loadNext]);
 
   const answer = useCallback(
     async (option: OptionRef) => {
@@ -193,7 +179,7 @@ export function useSortie(opts: {
       busy.current = true;
       setPhase('settling');
       try {
-        const raw = await api<Record<string, unknown>>(`/bank/sessions/${sid}/answer`, {
+        const raw = await api<Record<string, unknown>>(`/api/bank/sessions/${sid}/answer`, {
           // Both paths, because scoreResponse marks a numeric key against selectedIndex and a string
           // key against key, and the two never meet. Sending one loses a whole family of types.
           response: { key: option.key, selectedKey: option.key, selectedIndex: option.index },
