@@ -16,7 +16,7 @@ import {
   type ApiRequest,
   type ApiResponse,
 } from '@platform/shared';
-import { markAgainstKey } from './mark.js';
+import { markResponse } from './mark.js';
 
 /**
  * Marking a response and updating the sheet.
@@ -118,13 +118,23 @@ async function answer(request: ApiRequest): Promise<ApiResponse> {
    * same evidence into the posterior a second time.
    */
   const key = await d.answerKeys.get(served.itemId, served.itemRevision);
-  const correct = key ? markAgainstKey(key, body.response) : null;
+  const item = await d.store.getItem(served.typeCode, served.itemId);
+  const latencyMs = typeof body.latencyMs === 'number' ? body.latencyMs : null;
+  const marked = markResponse({
+    key,
+    response: body.response,
+    latencyMs,
+    difficulty: served.difficulty,
+    content: item?.content ?? {},
+  });
+  const correct = marked.correct;
 
   const outcome = await d.store.completeResponse(sessionId, served.ordinal, {
     rawResponse: body.response ?? null,
     correct,
-    latencyMs: typeof body.latencyMs === 'number' ? body.latencyMs : 0,
+    latencyMs: latencyMs ?? 0,
     metrics: null,
+    flags: marked.flags,
     idempotencyKey: request.headers['idempotency-key'] ?? null,
     answeredAt: new Date().toISOString(),
   });

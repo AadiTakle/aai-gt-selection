@@ -39,6 +39,8 @@ export interface ResponsePatch {
   readonly correct: boolean | null;
   readonly latencyMs: number;
   readonly metrics: Record<string, unknown> | null;
+  /** Markers the engine attached while grading, `rapid-guess` being the one that exists today. */
+  readonly flags: readonly string[];
   readonly idempotencyKey: string | null;
   readonly answeredAt: string;
 }
@@ -169,8 +171,8 @@ export async function completeResponse(
         Key: { PK: sessionPk(sessionId), SK: responseSk(ordinal) },
         UpdateExpression:
           'SET #state = :answered, #rawResponse = :rawResponse, #correct = :correct, ' +
-          '#latencyMs = :latencyMs, #metrics = :metrics, #idempotencyKey = :idempotencyKey, ' +
-          '#answeredAt = :answeredAt',
+          '#latencyMs = :latencyMs, #metrics = :metrics, #flags = :flags, ' +
+          '#idempotencyKey = :idempotencyKey, #answeredAt = :answeredAt',
         ConditionExpression: '#state = :served',
         ExpressionAttributeNames: {
           '#state': 'state',
@@ -178,6 +180,7 @@ export async function completeResponse(
           '#correct': 'correct',
           '#latencyMs': 'latencyMs',
           '#metrics': 'metrics',
+          '#flags': 'flags',
           '#idempotencyKey': 'idempotencyKey',
           '#answeredAt': 'answeredAt',
         },
@@ -188,6 +191,7 @@ export async function completeResponse(
           ':correct': patch.correct,
           ':latencyMs': patch.latencyMs,
           ':metrics': patch.metrics,
+          ':flags': patch.flags,
           ':idempotencyKey': patch.idempotencyKey,
           ':answeredAt': patch.answeredAt,
         },

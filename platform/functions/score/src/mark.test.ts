@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AnswerKeyRecord } from '@platform/domain';
-import { markAgainstKey } from './mark.js';
+import { markAgainstKey, markResponse } from './mark.js';
 
 function key(
   correctKey: string | number,
@@ -115,5 +115,59 @@ describe('unreadable responses', () => {
     for (const response of [undefined, null, {}, { nothing: 1 }, []]) {
       expect(markAgainstKey(key('B'), response)).toBeNull();
     }
+  });
+});
+
+describe('a response too fast to be an attempt', () => {
+  const item = {
+    difficulty: 11,
+    content: { stem: 'which shape completes the pattern', options: [{ key: 'A' }, { key: 'B' }, { key: 'C' }, { key: 'D' }] },
+  };
+
+  it('is unscorable rather than wrong, and says why', () => {
+    const outcome = markResponse({
+      key: key('B'),
+      response: { key: 'B' },
+      latencyMs: 10,
+      ...item,
+    });
+    // Not `false`. A tap that fast is evidence about the interface, not about the child, and counting it
+    // against them would let a bored moment lower an estimate.
+    expect(outcome.correct).toBeNull();
+    expect(outcome.flags).toContain('rapid-guess');
+  });
+
+  it('does not spare a wrong answer given real time', () => {
+    const outcome = markResponse({ key: key('B'), response: { key: 'C' }, latencyMs: 6000, ...item });
+    expect(outcome.correct).toBe(false);
+    expect(outcome.flags).toEqual([]);
+  });
+
+  it('marks a correct answer given real time', () => {
+    const outcome = markResponse({ key: key('B'), response: { key: 'B' }, latencyMs: 6000, ...item });
+    expect(outcome.correct).toBe(true);
+    expect(outcome.flags).toEqual([]);
+  });
+
+  it('scales its floor with how much there was to take in', () => {
+    // More to read and more to weigh means more time before a response is credible.
+    const heavy = {
+      difficulty: 11,
+      content: {
+        stem: 'read the following passage carefully and decide which of the nine statements below follows from it without adding anything of your own',
+        options: Array.from({ length: 9 }, (_u, i) => ({ key: String(i) })),
+      },
+    };
+    const atNineHundred = markResponse({ key: key('0'), response: { key: '0' }, latencyMs: 900, ...heavy });
+    const lightAtNineHundred = markResponse({ key: key('B'), response: { key: 'B' }, latencyMs: 900, ...item });
+    expect(atNineHundred.flags).toContain('rapid-guess');
+    expect(lightAtNineHundred.flags).toEqual([]);
+  });
+
+  it('does not flag a response with no timing at all', () => {
+    // A caller that omits latency is not asserting the child was fast.
+    const outcome = markResponse({ key: key('B'), response: { key: 'B' }, latencyMs: null, ...item });
+    expect(outcome.flags).toEqual([]);
+    expect(outcome.correct).toBe(true);
   });
 });

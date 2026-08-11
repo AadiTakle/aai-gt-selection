@@ -488,24 +488,47 @@ suite('the request path, end to end', () => {
       }
     });
 
-    it('refuses to link a persona when the app is not permitted to', async () => {
+    it('links a pseudonymous persona even when the app may collect no contact details', async () => {
+      /**
+       * A persona is not PII. Its record carries createdAt, locale and firstSeenAppId and nothing else;
+       * contact details live on a separate row under their own key. An app needs a persona to carry ability
+       * between visits and to stop a returning child re-answering yesterday's items, and neither requires
+       * knowing who they are — so `piiPolicy: 'none'` must not block it. An earlier version refused this,
+       * which would have blocked Bramblebrook outright.
+       */
       const plain = await adminHandler(
         apiEvent({
           method: 'POST',
           path: '/v1/admin/apps',
-          body: { name: 'No PII', surfaceKind: 'web', piiPolicy: 'none' },
+          body: { name: 'No PII', surfaceKind: 'web', piiPolicy: 'none', ageBands: ['3-5'] },
         }),
       );
       const plainAppId = JSON.parse(plain.body).app.appId as string;
+      for (const typeCode of banks.typeCodes) {
+        await adminHandler(
+          apiEvent({
+            method: 'PUT',
+            path: `/v1/admin/apps/${plainAppId}/types/${typeCode}`,
+            pathParameters: { appId: plainAppId, typeCode },
+            body: { enabled: true },
+          }),
+        );
+      }
+
       const response = await serveHandler(
         apiEvent({
           method: 'POST',
-          path: '/v1/sessions',
+          path: bankRoutes.createSession(),
           appId: plainAppId,
-          body: { personaId: 'persona-1' },
+          body: { ageBand: '3-5', personaId: 'keeper-1' },
         }),
       );
-      expect(response.statusCode).toBe(403);
+      expect(response.statusCode).toBe(201);
+
+      const sessionId = JSON.parse(response.body).sessionId as string;
+      expect((await d.store.getSession(sessionId))?.personaId).toBe('keeper-1');
+      // Pseudonymous: the persona exists and has no contact row.
+      expect(await d.personas.getContact('keeper-1')).toBeNull();
     });
   });
 

@@ -632,6 +632,7 @@ suite('PlatformStore against DynamoDB Local', () => {
         correct: true,
         latencyMs: 4210,
         metrics: { focusLosses: 0 },
+        flags: [],
         idempotencyKey: 'idem-1',
         answeredAt: '2026-08-10T12:00:09.000Z',
       });
@@ -642,6 +643,7 @@ suite('PlatformStore against DynamoDB Local', () => {
         correct: false,
         latencyMs: 99,
         metrics: null,
+        flags: [],
         idempotencyKey: 'idem-1',
         answeredAt: '2026-08-10T12:00:20.000Z',
       });
@@ -665,6 +667,7 @@ suite('PlatformStore against DynamoDB Local', () => {
           correct: null,
           latencyMs: 12000,
           metrics: null,
+          flags: [],
           idempotencyKey: null,
           answeredAt: '2026-08-10T12:01:00.000Z',
         }),
@@ -681,6 +684,7 @@ suite('PlatformStore against DynamoDB Local', () => {
           correct: true,
           latencyMs: 10,
           metrics: null,
+          flags: [],
           idempotencyKey: null,
           answeredAt: '2026-08-10T12:00:00.000Z',
         }),

@@ -84,14 +84,19 @@ async function createSession(request: ApiRequest): Promise<ApiResponse> {
   }
 
   /**
-   * A persona is created only when the app supplies one.
+   * A persona is created only when the app supplies one, and a persona is not PII.
    *
-   * An anonymous session is the default and stays out of the persona index entirely. Nothing about a child
-   * is stored unless an app permitted to collect contact details chooses to link one.
+   * An earlier version refused this whenever `piiPolicy` was `'none'`, which conflated two different things
+   * and would have blocked Bramblebrook outright. A persona record is pseudonymous by design — spec §6.4 puts
+   * `createdAt`, `locale` and `firstSeenAppId` on `META` and nothing else — and contact details live on a
+   * separate `CONTACT` row under their own key. An app needs a persona to carry ability between visits and to
+   * stop a returning child re-answering yesterday's items, and neither requires knowing who they are.
+   *
+   * So `piiPolicy` gates writing `CONTACT`, which is the only row that identifies anyone. Linking a
+   * pseudonymous persona is always allowed.
    */
   let personaId: string | null = null;
   if (body.personaId) {
-    if (app.piiPolicy === 'none') throw forbidden('app is not permitted to link a persona');
     personaId = body.personaId;
     await d.personas.create(personaId, body.locale ?? null, appId);
   }
