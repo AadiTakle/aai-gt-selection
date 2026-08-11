@@ -11,8 +11,12 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { BARN, BARN_D, BARN_FLOOR_Y, barnSolids } from '../world/barn';
+import { groundY } from '../world/ground';
+import { toWorld } from '../world/plan';
 import {
   createWander,
+  holdWander,
   reseatWander,
   rngFor,
   stepWander,
@@ -268,5 +272,151 @@ describe('slime wander', () => {
     for (let i = 1; i < firsts.length; i += 1) {
       expect(Math.abs((firsts[i] ?? 0) - (firsts[i - 1] ?? 0))).toBeGreaterThan(0.02);
     }
+  });
+});
+
+/* ============================================================================
+   standing on the ground, whatever the ground is doing
+   ========================================================================== */
+
+/**
+ * THE OWNER'S REPORT: "when i drop slimes in the barn, they lowkey sink through the floor."
+ *
+ * Against the REAL barn rather than a toy step, because the numbers are the bug: the sink is exactly
+ * `BARN_FLOOR_Y`, 7cm, and a test written over an invented half-metre platform would pass while being wrong
+ * about the one measurement that matters. `world/ground.test.ts` proves the height function itself; this
+ * proves the plumbing — that a slime's y is resolved from the x and z it actually ENDED the frame at, every
+ * frame, through every path that moves it.
+ */
+describe('the ground under a wandering slime', () => {
+  /** The middle of the threshing floor, and a point out on the grass in front of the doors. */
+  const INSIDE = toWorld(BARN, 0, -2);
+  const OUTSIDE = toWorld(BARN, 0, BARN_D / 2 + 3);
+
+  const barn: Circle[] = barnSolids().map((s) => ({ x: s.position[0], z: s.position[1], r: s.radius }));
+
+  function slimeAt(x: number, z: number, seed = 3): WanderState {
+    return createWander({
+      seed,
+      x,
+      z,
+      radius: 0.3,
+      height: 1,
+      jiggle: 1,
+      bounds: { cx: x, cz: z, r: 6 },
+      ground: groundY,
+    });
+  }
+
+  it('stands on the boards from its very first frame, not in them', () => {
+    const s = slimeAt(INSIDE[0], INSIDE[1]);
+    // At birth: no frame at meadow height, because that frame is the plop a child is watching.
+    expect(s.groundY).toBeCloseTo(BARN_FLOOR_Y, 12);
+    holdWander(s, 1 / 60);
+    expect(s.groundY).toBeCloseTo(BARN_FLOOR_Y, 12);
+  });
+
+  it('is on the meadow out in the yard, and a flat world is still flat', () => {
+    expect(slimeAt(OUTSIDE[0], OUTSIDE[1]).groundY).toBe(0);
+    // No `ground` at all — every preview page, and the vacpack's portraits.
+    const bare = createWander({
+      seed: 3,
+      x: INSIDE[0],
+      z: INSIDE[1],
+      radius: 0.3,
+      height: 1,
+      jiggle: 1,
+      bounds: { cx: INSIDE[0], cz: INSIDE[1], r: 6 },
+    });
+    expect(bare.groundY).toBe(0);
+    run([bare], 5);
+    expect(bare.groundY).toBe(0);
+  });
+
+  it('steps up and down as it crosses the threshold, and never back and forth', () => {
+    /**
+     * Carried across the doorway by hand at 5mm a frame — a slime at full tilt does 11mm — with the brain held
+     * still so that the only thing moving it is the walk being measured. What is asserted is that the height
+     * FOLLOWS: it used to be a number frozen at placement while x and z moved every frame.
+     */
+    const s = slimeAt(OUTSIDE[0], OUTSIDE[1]);
+    const heights: number[] = [];
+    for (let lz = BARN_D / 2 + 3; lz >= -2; lz -= 0.005) {
+      const w = toWorld(BARN, 0, lz);
+      s.x = w[0];
+      s.z = w[1];
+      holdWander(s, 1 / 60);
+      heights.push(s.groundY);
+    }
+    expect(heights[0]).toBe(0);
+    expect(heights[heights.length - 1]).toBeCloseTo(BARN_FLOOR_Y, 12);
+    for (let i = 1; i < heights.length; i += 1) {
+      expect((heights[i] as number) - (heights[i - 1] as number)).toBeGreaterThanOrEqual(-1e-12);
+    }
+    // And back out again, down the same slope.
+    for (let lz = -2; lz <= BARN_D / 2 + 3; lz += 0.005) {
+      const w = toWorld(BARN, 0, lz);
+      s.x = w[0];
+      s.z = w[1];
+      const before = s.groundY;
+      holdWander(s, 1 / 60);
+      expect(s.groundY).toBeLessThanOrEqual(before + 1e-12);
+    }
+    expect(s.groundY).toBe(0);
+  });
+
+  it('does not vibrate when it rests exactly on the lip of the threshold', () => {
+    /**
+     * THE DEFECT A STEP-SHAPED RULE WOULD HAVE HAD. A resting slime is not perfectly still — a neighbour's
+     * push-out nudges it by fractions of a millimetre — so a height that jumped at the boundary would swap
+     * between two values 7cm apart for as long as the slime stood there, which is forever. Ten seconds of that
+     * jitter, and the whole spread of heights has to be micrometres.
+     */
+    const lip = toWorld(BARN, 0, BARN_D / 2 + 0.25);
+    const s = slimeAt(lip[0], lip[1]);
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let f = 0; f < 600; f += 1) {
+      s.x = lip[0] + (f % 2 === 0 ? 1e-6 : -1e-6);
+      s.z = lip[1] + (f % 3 === 0 ? 1e-6 : 0);
+      holdWander(s, 1 / 60);
+      if (s.groundY < lo) lo = s.groundY;
+      if (s.groundY > hi) hi = s.groundY;
+    }
+    expect(hi - lo).toBeLessThan(1e-5);
+  });
+
+  it('never disagrees with the ground it is standing on, over five minutes in the barn', () => {
+    /**
+     * The invariant, asserted on every one of eighteen thousand frames: `groundY` is the height at the x and z
+     * the slime ended the frame at. Three collider passes, a player push-out and three ring clamps all move a
+     * slime after it has walked, so a height taken any earlier belongs to a position it is no longer at — the
+     * same class of bug as the one being fixed, one frame deep instead of permanent.
+     *
+     * Three slimes: plopped deep in the barn, plopped on the stone sill, and plopped out in the yard — each
+     * with `ROAM`'s leash, exactly as `putSlime` hands one over. The one on the sill is the interesting one,
+     * because it is free to wander either way and does.
+     */
+    let sawBoards = false;
+    let sawMeadow = false;
+    for (const [seed, local] of [
+      [11, -2],
+      [23, BARN_D / 2 + 0.1],
+      [37, BARN_D / 2 + 2],
+    ] as const) {
+      const w = toWorld(BARN, 0, local);
+      const s = slimeAt(w[0], w[1], seed);
+      const bounds = { cx: w[0], cz: w[1], r: 6 };
+      for (let f = 0; f < 60 * 300; f += 1) {
+        stepWander(s, 1 / 60, { bounds, solids: barn, herd: [] });
+        expect(s.groundY).toBe(groundY(s.x, s.z));
+        if (Math.abs(s.groundY - BARN_FLOOR_Y) < 1e-12) sawBoards = true;
+        if (s.groundY === 0) sawMeadow = true;
+      }
+    }
+    // They really did stand on both, so the invariant above was tested against both answers rather than
+    // against fifteen minutes of the same one.
+    expect(sawBoards).toBe(true);
+    expect(sawMeadow).toBe(true);
   });
 });

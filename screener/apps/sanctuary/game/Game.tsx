@@ -16,7 +16,8 @@ import { BalanceBough } from './screener/BalanceBough';
 import { IN_WORLD as IN_WORLD_MAP } from './screener/inWorld';
 import { Buildings, SOLIDS } from './world/Buildings';
 import { Lighting } from './world/Lighting';
-import { Slime, pushOutOfSlimes, setRanchSolids } from './slimes/Slime';
+import { groundY } from './world/ground';
+import { Slime, pushOutOfSlimes, setGroundHeight, setRanchSolids } from './slimes/Slime';
 import { grantSlime, putSlime, seedHerd, takeSlime, useHerd } from './slimes/keep';
 import {
   EYE as KEEPER_HEIGHT,
@@ -77,6 +78,25 @@ setRanchSolids([...SOLIDS, ...STATION_SOLIDS, ...SHOP_SOLIDS, ...INTRO_SOLIDS], 
   worldRadius: BOUND,
   from: [0, 8],
 });
+
+/**
+ * AND HOW HIGH THE GROUND IS, which is not everywhere the same.
+ *
+ * Owner: "when i drop slimes in the barn, they lowkey sink through the floor. so i think we need to make
+ * the ground level a little higher." They sank by exactly 7cm: the barn's threshing floor is
+ * `BARN_FLOOR_Y`, held off zero because a floor AT zero z-fights with a meadow at zero, while every slime
+ * is handed `position: [x, 0, z]`.
+ *
+ * Raising the ground level as one number — which is what he suggested and the obvious reading — would have
+ * fixed the barn by floating every slime on the meadow 7cm into the air instead. So it is a function of
+ * position: `world/ground.ts`, reading the same constants the floor and the doorway's stone sill are drawn
+ * from, with the lip blended over 28cm so a slime resting on the threshold cannot shudder between two
+ * heights 7cm apart.
+ *
+ * Registered rather than imported, on the same terms and for the same reason as the collider set above:
+ * nothing in `slimes/` may know that the ranch has a barn in it.
+ */
+setGroundHeight(groundY);
 /** Pen centres, from the buildings track. */
 /**
  * Where the keeper is standing and which way they face, for the things that must happen IN FRONT OF THEM
@@ -403,9 +423,24 @@ function Beat({
           })}
         </div>
       )}
-      <p className="bh-beat-note">
-        {s.answered} of about 4 · {battery}
-      </p>
+      {/*
+        * NO LABEL, AND NO COUNTER. This line used to read `{answered} of about 4 · {battery}`, so the
+        * weighing bough announced itself as "Quantitative" over the child's head.
+        *
+        * Owner: "i think it's best if the tests/stations didn't have the 'quantitative,' 'verbal,'
+        * 'nonverbal' label because these are supposed to be stealth screeners. the students aren't
+        * supposed to know that they're being tested in these regards ... if anything, no label needs to
+        * pop up."
+        *
+        * The battery name is the whole game given away: it is the name of a TEST SECTION, it is the one
+        * piece of vocabulary that tells a child their answers are being sorted into abilities, and it
+        * appeared on the one screen they cannot look away from.
+        *
+        * The count went with it rather than being kept. "0 of about 4" is a section length, which is the
+        * same disclosure in weaker words, and it is also the kind of progress bar that makes a child rush
+        * the last one — which corrupts the estimate this exists to produce. What remains above is the
+        * verb's own in-world name, which is a job on a ranch and not a category of mind.
+        */}
     </div>
   );
 }
@@ -589,7 +624,31 @@ export function Game() {
         {/* The guided opening: Nan's tour, the waypoints, and the challenge board that unlocks the
             second paddock. `busy` is NOT optional — `speak.ts` is one queue, so without it a nudge from
             Nan cancels the day-log's story mid-sentence. */}
-        <IntroGuide busy={!!engaged || shopOpen} onEarn={() => setFlight((f) => f + 1)} />
+        <IntroGuide
+          busy={!!engaged || shopOpen}
+          onEarn={() => setFlight((f) => f + 1)}
+          /**
+           * RE-PUBLISH THE COLLIDERS WHEN THE PADDOCK OPENS, and this is load-bearing.
+           *
+           * `setRanchSolids` above SPREADS `INTRO_SOLIDS` once at module scope — a snapshot of a world in
+           * which the barricade still stands. The keeper is unaffected because its own sweep re-spreads
+           * the arrays every frame, but `slimes/ground.ts` keeps the stale copy, and that copy is what
+           * decides where a slime may be put down.
+           *
+           * Measured against the running game with the gate open: `findable(10.5, 18.5)` was still false,
+           * and a slime plopped at the paddock's centre was relocated to (13.4, 21.8) — OUTSIDE the fence.
+           * So the reward for finishing the board would have been a pen a child can walk into and cannot
+           * put anything in, which is worse than no reward. Re-running the identical call fixes it.
+           *
+           * If the options on the call above ever change, both must match.
+           */
+          onComplete={() =>
+            setRanchSolids([...SOLIDS, ...STATION_SOLIDS, ...SHOP_SOLIDS, ...INTRO_SOLIDS], {
+              worldRadius: BOUND,
+              from: [0, 8],
+            })
+          }
+        />
       </Canvas>
 
       {!locked && !engaged && (

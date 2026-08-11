@@ -97,6 +97,42 @@
   margin: 0.35rem 0 -0.15rem;
 }
 
+/* How far through the board's eight questions the child is. Bottom centre, above .bh-hud's strip, so it
+   is nowhere near the crosshair, the option shelf, or Nan's card in the bottom left. */
+.nb-tally {
+  position: absolute;
+  left: 50%;
+  bottom: 8.25rem;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  background: rgb(255 250 240 / 0.62);
+  box-shadow: 0 4px 0 rgb(120 90 55 / 0.14);
+}
+
+.nb-pip {
+  display: block;
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  background: rgb(120 90 55 / 0.2);
+}
+
+/* Answered. Honey, like everything else in this world that means "done". */
+.nb-pip-done {
+  background: #f0b64a;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.7);
+}
+
+/* The one being asked now, breathing at the same rate as the lanterns. */
+.nb-pip-now {
+  background: #fff0cc;
+  box-shadow: 0 0 0 3px #f0b64a;
+  animation: nb-pulse 1.6s ease-in-out infinite;
+}
+
 /* The adult's way out. The only pressable thing in the layer, and only ever reachable when there is a
    cursor to press it with. */
 .nb-skip {
@@ -297,7 +333,9 @@
   .nb-sweep,
   .nb-inward,
   .nb-outward,
-  .nb-ring {
+  .nb-ring,
+  /* The pip for the question being asked keeps its honey ring; only the breathing stops. */
+  .nb-pip-now {
     animation: none;
   }
 

@@ -159,6 +159,18 @@ export const STEPS: readonly Step[] = [
 export const CLOSING =
   "There. Hear that? The boards are coming off. The paddock is yours, and so is the ranch. Look after them for me.";
 
+/**
+ * Said when the board could not ask a single question — a dead API, or a bank with nothing left in it.
+ *
+ * IT IS NOT AN ERROR MESSAGE AND IT DOES NOT BLAME THE CHILD. From where they are standing they walked up
+ * and pressed E and did exactly what they were asked, so the one thing that must not happen is silence and
+ * an empty board. She takes it on herself, says it will keep, and sends them off to play — which is true:
+ * nothing is recorded, nothing is spent, and the board is put back exactly as it was. See `Outcome` in
+ * `run.ts`, which explains why a run with no answers in it may not open the paddock.
+ */
+export const BOARD_QUIET =
+  "Oh, bother — the old board's gone quiet on me. Never you mind, it'll keep. Go and play, and we'll try it again in a bit.";
+
 /** What the caller has seen the child do. Latched: once true, true forever. See the header. */
 export interface Signals {
   /** Turned their head far enough to have looked around, under pointer lock. */

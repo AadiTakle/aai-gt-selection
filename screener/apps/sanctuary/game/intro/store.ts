@@ -54,10 +54,11 @@ export interface IntroView {
    * DERIVED, NEVER SET DIRECTLY — see `withQuiet`. It used to be written by `IntroGuide` as the plain
    * `busy` boolean `Game.tsx` hands down, which left the third of the three cases in the sentence above
    * simply not implemented: `busy` is `!!engaged || shopOpen`, and `Game.tsx` cannot see the challenge
-   * board because the board is not one of its `SITES`. The board serves `VER-SEQUENCE-01` on its middle
-   * leg through the same `DayLog` and the same single-queue `speak.ts`, and the `board` step's own nudge
-   * lands twenty seconds after the step is entered — comfortably inside a child's first item. So the
-   * exact failure this field exists to prevent was reachable at the one station this directory owns.
+   * board because the board is not one of its `SITES`. Both of the board's middle-leg styles are SPOKEN —
+   * the kinship stone is answered by listening and cannot be answered any other way — and they go through
+   * the same single-queue `speak.ts`, while the `board` step's own nudge lands twenty seconds after the
+   * step is entered, comfortably inside a child's first item. So the exact failure this field exists to
+   * prevent was reachable at the one station this directory owns.
    */
   quiet: boolean;
 }
@@ -162,12 +163,48 @@ function snapshot(): IntroView {
   return view;
 }
 
+/**
+ * The last machine that was published, BY IDENTITY, so re-offering the same one changes nothing.
+ *
+ * `advance` returns the same object when nothing changed and says so, which makes identity exactly the right
+ * key — and the guard is load-bearing rather than an optimisation. `IntroGuide` publishes from an effect
+ * whose dependencies include the `onEarn` callback, and `Game.tsx` passes a fresh closure on every render,
+ * so the same tutorial is re-published constantly. Without this, anything else that writes a line — the
+ * board's own closing announcement below, which has to survive the whole time the keeper is held on the mark
+ * before it can be heard — would be wiped by the next render of a component it has never heard of.
+ */
+let lastTour: Tutorial | null = null;
+
 /** Push the tour's own state across. Called from inside the canvas, on a change and not per frame. */
 export function publishTutorial(t: Tutorial): void {
+  if (t === lastTour) return;
+  lastTour = t;
   if (view.step === t.step && view.line === t.line && view.glyph === t.glyph && view.say === t.say && view.settled === t.settled) {
     return;
   }
   publish({ ...view, step: t.step, line: t.line, glyph: t.glyph, say: t.say, settled: t.settled });
+}
+
+/**
+ * NAN'S OWN VOICE, FOR THE ONE THING THE TOUR CANNOT SAY.
+ *
+ * The closing line belongs to the tour and the tour says it whenever it is still running — see the note in
+ * `IntroGuide` about holding it until the board lets the child go. But a keeper who has ALREADY SEEN THE
+ * TOUR has a settled machine from the first frame, and a settled machine has no step left to carry a line.
+ * That is every returning child and every child whose adult pressed skip, and for all of them finishing the
+ * board was silent: the gate opened behind a first-person camera aimed at a hoarding, and nothing said so.
+ *
+ * A line issued here goes down exactly the same path as one of hers: `IntroPortrait` shows the card and
+ * speaks it, and holds it back while `quiet` — which it always is at the moment of the unlock, because the
+ * board still has the child — so it lands as they are released, over the gate they just opened.
+ */
+export function announceBoard(line: string): void {
+  publish({ ...view, line, glyph: 'none', say: view.say + 1 });
+}
+
+/** Whether the tour has finished with the child, so the board knows whether the closing line is its job. */
+export function tourSettled(): boolean {
+  return view.settled;
 }
 
 /** Push the board's own state across. Engaging it is one of the two things that makes Nan go quiet. */
@@ -237,5 +274,6 @@ export function introQuiet(): boolean {
  */
 export function resetIntroStore(): void {
   externallyBusy = false;
+  lastTour = null;
   publish(BLANK);
 }

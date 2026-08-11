@@ -7,7 +7,7 @@ import {
   LOFT_EYE,
   LOFT_TOP,
 } from './barn';
-import { KEEPER_EYE, toWorld, type P2 } from './plan';
+import { KEEPER_EYE, toLocal, toWorld, type P2 } from './plan';
 
 /**
  * RE-EXPORTED SO `Game.tsx` ADDS EXACTLY ONE IMPORT LINE.
@@ -212,12 +212,7 @@ export function ladderAt(x: number, z: number): Ladder | null {
 /** Whether a point in plan is over the loft's deck. */
 export function overLoft(x: number, z: number): boolean {
   // World back into the barn's frame: the inverse of `toWorld`, which is the same rotation the other way.
-  const c = Math.cos(BARN.rot);
-  const s = Math.sin(BARN.rot);
-  const dx = x - BARN.x;
-  const dz = z - BARN.z;
-  const lx = dx * c - dz * s;
-  const lz = dx * s + dz * c;
+  const [lx, lz] = toLocal(BARN, x, z);
   return Math.abs(lx) < BARN_IN_HALF_W && lz > LOFT.from && lz < BARN_IN_HALF_D;
 }
 

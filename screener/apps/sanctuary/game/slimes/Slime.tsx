@@ -77,6 +77,7 @@ import { joinHerd, leaveHerd, slimeColliders, type SlimeCollider } from './herd'
 import {
   ROAM,
   fieldFor,
+  groundHeightAt,
   nearbySolids,
   placeSlime,
   ranchField,
@@ -105,12 +106,15 @@ export {
   ROAM,
   canStand,
   groundCost,
+  groundHeightAt,
   isFindable,
   nearbySolids,
   placeSlime,
   ranchSolids,
   seedRanchSolids,
+  setGroundHeight,
   setRanchSolids,
+  type GroundHeight,
   type Circle as SolidCircle,
 } from './ground';
 
@@ -157,7 +161,16 @@ export interface SlimeProps {
   uid?: number;
   family: Family;
   stage?: Stage;
-  /** Where it starts. y is the ground height under it; x and z are only the first frame's x and z. */
+  /**
+   * Where it starts. x and z are only the first frame's x and z.
+   *
+   * `y` IS AN OFFSET ABOVE THE GROUND, NOT THE GROUND. It used to be the whole of the slime's height and that
+   * is what made a slime dropped in the barn sink 7cm into the floor: the barn's boards are at
+   * `BARN_FLOOR_Y`, every caller passes zero here, and the number was frozen at placement while the creature
+   * wandered off it. The floor now comes from `setGroundHeight`, per frame, from wherever the slime has got
+   * to; this stays for a preview page that wants a slime on a pedestal, and every caller in the game passes
+   * zero.
+   */
   position: [number, number, number];
   /** Deterministic per-slime variation: heading, gait, pauses, blink rhythm. Same seed, same slime. */
   seed: number;
@@ -328,6 +341,15 @@ export function Slime({
       jiggle: look.jiggle * st.jiggle,
       bounds: { cx: bounds.center[0], cz: bounds.center[1], r: bounds.radius },
       roam,
+      /**
+       * WHERE THE FLOOR IS, from the registry. Flat zero until an integrator registers a world, which is
+       * what the previews and the vacpack's portraits want and get without asking.
+       *
+       * The brain keeps `groundY` in step with x and z from here on, every frame, which is the whole of the
+       * fix for "when i drop slimes in the barn, they lowkey sink through the floor": the height is no longer
+       * a number handed over once at placement while the creature walks away from it.
+       */
+      ground: groundHeightAt,
     }),
   );
 
@@ -416,6 +438,7 @@ export function Slime({
       stage,
       x: state.current.x,
       z: state.current.z,
+      y: position[1] + state.current.groundY,
       top: bake.height * scale,
       r: radius,
     });
@@ -482,12 +505,26 @@ export function Slime({
     if (self) {
       self.x = s.x;
       self.z = s.z;
+      // The surface under it, not the bob: the registry answers "where is this creature standing", and a
+      // reader that saw the hop in here could not tell a slime on the barn floor from one mid-hop over grass.
+      self.y = position[1] + s.groundY;
     }
 
     /* pose */
     const g = root.current;
     if (g) {
-      g.position.set(s.x, position[1] + s.bob * scale, s.z);
+      /**
+       * ON THE GROUND, WHEREVER IT HAS GOT TO. `s.groundY` is resolved by the brain from the final x and z of
+       * every step, so a slime that wanders in through the barn doors steps up onto the boards and steps back
+       * down onto the grass on its way out.
+       *
+       * `position[1]` stays in the sum as an OFFSET rather than as the height. Every caller in the game passes
+       * zero — `keep.ts` writes `[x, 0, z]` on all four routes a slime can enter the world by — so keeping it
+       * costs nothing and leaves a preview page able to stand a slime on a pedestal that the world knows
+       * nothing about. What it no longer is, is the answer to "how high is the floor": that was a number
+       * frozen at placement while x and z moved every frame, which is the defect the owner reported.
+       */
+      g.position.set(s.x, position[1] + s.groundY + s.bob * scale, s.z);
       // Face the way it is going. Local +Z is the face, so rotation.y IS the heading.
       g.rotation.y = s.heading;
     }
@@ -550,7 +587,10 @@ export function Slime({
     const sn = Math.sin(s.heading);
     const lx = dx * c - dz * sn;
     const lz = dx * sn + dz * c;
-    const dy = camera.position.y - (position[1] + layout.y * scale);
+    // Measured from the eye's real altitude, which is the ground under the slime plus the eye's own rise up
+    // its body. Off by the barn's 7cm this would aim the gaze a hair high indoors; it is the same sum the
+    // pose above uses, and writing it twice from the same two terms is what keeps them from drifting.
+    const dy = camera.position.y - (position[1] + s.groundY + layout.y * scale);
     const ahead = lz > 0.2 ? 1 : 0;
     const reach = layout.eyeR * 0.3;
     const wantX = THREE.MathUtils.clamp((lx / (flat + 0.001)) * reach, -reach, reach) * attention * ahead;
