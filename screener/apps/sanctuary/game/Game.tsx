@@ -624,7 +624,31 @@ export function Game() {
         {/* The guided opening: Nan's tour, the waypoints, and the challenge board that unlocks the
             second paddock. `busy` is NOT optional — `speak.ts` is one queue, so without it a nudge from
             Nan cancels the day-log's story mid-sentence. */}
-        <IntroGuide busy={!!engaged || shopOpen} onEarn={() => setFlight((f) => f + 1)} />
+        <IntroGuide
+          busy={!!engaged || shopOpen}
+          onEarn={() => setFlight((f) => f + 1)}
+          /**
+           * RE-PUBLISH THE COLLIDERS WHEN THE PADDOCK OPENS, and this is load-bearing.
+           *
+           * `setRanchSolids` above SPREADS `INTRO_SOLIDS` once at module scope — a snapshot of a world in
+           * which the barricade still stands. The keeper is unaffected because its own sweep re-spreads
+           * the arrays every frame, but `slimes/ground.ts` keeps the stale copy, and that copy is what
+           * decides where a slime may be put down.
+           *
+           * Measured against the running game with the gate open: `findable(10.5, 18.5)` was still false,
+           * and a slime plopped at the paddock's centre was relocated to (13.4, 21.8) — OUTSIDE the fence.
+           * So the reward for finishing the board would have been a pen a child can walk into and cannot
+           * put anything in, which is worse than no reward. Re-running the identical call fixes it.
+           *
+           * If the options on the call above ever change, both must match.
+           */
+          onComplete={() =>
+            setRanchSolids([...SOLIDS, ...STATION_SOLIDS, ...SHOP_SOLIDS, ...INTRO_SOLIDS], {
+              worldRadius: BOUND,
+              from: [0, 8],
+            })
+          }
+        />
       </Canvas>
 
       {!locked && !engaged && (

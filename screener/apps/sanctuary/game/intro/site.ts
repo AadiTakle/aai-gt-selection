@@ -276,9 +276,18 @@ export function boardToWorld(lx: number, lz: number): P2 {
  * being asked. What that number can and cannot support is in the report; it is not a small caveat.
  *
  * Nonverbal first because it is wordless and the most approachable thing in the bank for a child who has
- * been playing for four minutes. Verbal in the middle because it is the slow one — the day-log narrates
- * the whole story out loud, twice over two items — and a slow thing is better in the middle than at the
- * end. Quantitative last because it is quick, so the board finishes briskly rather than trailing off.
+ * been playing for four minutes. Verbal in the middle because it is the slow one — both of its styles are
+ * spoken, so a child has to listen to each item through before they can answer it — and a slow thing is
+ * better in the middle than at the end. Quantitative last because it is quick, so the board finishes
+ * briskly rather than trailing off.
+ *
+ * WHAT THE VERBAL LEG ACTUALLY SERVES, since this note used to say something else. It was written when the
+ * leg was the DAY LOG, and `VER-SEQUENCE-01` has since been retired outright — `shared/batteries.ts`'s
+ * `RETIRED` has the argument, which is that it is serial-order maintenance rather than CogAT Verbal.
+ * `siteTypes('Verbal')` now resolves to the sorting gate and the kinship stone, and the engine alternates
+ * between them, so this leg's two items are usually one of each. Nothing here lists them: the leg asks
+ * `typesForLeg`, which asks `siteTypes`, which reads `VERBS`. A stale list in this directory is exactly
+ * what broke the board — see the note at the top of `Board.tsx`.
  */
 export const LEGS: readonly { battery: Battery; quota: number }[] = [
   { battery: 'Nonverbal', quota: 3 },

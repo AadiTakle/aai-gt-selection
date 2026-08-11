@@ -119,6 +119,30 @@ export function IntroPortrait(): JSX.Element | null {
       <HeadphonePrompt during={view.boardSpeaking} />
 
       <div className="nb-layer" aria-live="polite">
+        {/*
+          HOW MANY QUESTIONS ARE LEFT, and it is here because of a sentence: "i finished the series of
+          questions and nothing unlocked".
+
+          The board published `boardAt`/`boardOf` from the day it was written and NOTHING HAS EVER DRAWN
+          THEM, so a child at the board had no way of knowing there were eight, how many were left, or —
+          when the middle leg stalled on an undrawable type — that anything had gone wrong at all. One
+          pip per question, filled as they are answered, is enough for a five-year-old to read as progress
+          and enough for an adult to see the difference between "nearly there" and "this has stopped".
+
+          Not words, and not a number, because the child this is for cannot read either. Bottom centre,
+          above `game.css`'s HUD strip and well clear of the crosshair and of Nan's card on the left.
+        */}
+        {view.boardOf > 0 ? (
+          <div className="nb-tally" aria-label={`Question ${view.boardAt} of ${view.boardOf}`}>
+            {Array.from({ length: view.boardOf }, (_, i) => (
+              <span
+                key={i}
+                className={`nb-pip${i < view.boardAt - 1 ? ' nb-pip-done' : i === view.boardAt - 1 ? ' nb-pip-now' : ''}`}
+              />
+            ))}
+          </div>
+        ) : null}
+
         {showCard ? (
           <div className={`nb-nan${view.quiet ? ' nb-nan-quiet' : ''}`} key="nan">
             <div className="nb-face">

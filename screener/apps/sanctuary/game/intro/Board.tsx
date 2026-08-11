@@ -1,25 +1,32 @@
 import { useFrame, useThree, type ComputeFunction } from '@react-three/fiber';
-import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type JSX } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import { Raycaster, Vector2, Vector3, type Group } from 'three';
 
 import { toRef } from '../../shared/ItemStage';
 import type { Battery } from '../../shared/batteries';
 import { useSortie } from '../../shared/useSortie';
+import { useAudio } from '../audio';
 import { EARN, earn } from '../economy';
-import { BalanceBough } from '../screener/BalanceBough';
-import { DayLog } from '../screener/DayLog';
-import { PodWall } from '../screener/PodWall';
-import { SortingGate } from '../screener/SortingGate';
-import { Sprouter } from '../screener/Sprouter';
-import { StoneBed } from '../screener/StoneBed';
-import { TideLine } from '../screener/TideLine';
-import { Weave } from '../screener/Weave';
+import { IN_WORLD } from '../screener/inWorld';
 import { PressBadge, Reticle, StandMark, Wisp } from '../stations/Beacon';
 import { Bay, Emblem, Lanterns } from '../stations/carpentry';
 import { fitScale } from '../stations/sites';
 import { usePrefersReducedMotion } from '../world/motion';
-import { keeperId, markBoardTaken } from './keeper';
+import { keeperId } from './keeper';
 import { Gate } from './Paddock';
+import {
+  answeredOne,
+  beginRun,
+  blank,
+  canDraw,
+  legBattery,
+  legOver,
+  presenting,
+  tick,
+  typesForBoardLeg,
+  watchFrom,
+  type Run,
+} from './run';
 import {
   AS_SITE,
   BAY,
@@ -32,9 +39,9 @@ import {
   dockPoint,
   facing,
   openGate,
-  typesForLeg,
 } from './site';
-import { publishBoard } from './store';
+import { BOARD_QUIET, CLOSING } from './tutorial';
+import { announceBoard, publishBoard, tourSettled } from './store';
 
 /**
  * THE CHALLENGE BOARD.
@@ -78,26 +85,20 @@ import { publishBoard } from './store';
 const CENTRE = new Vector2(0, 0);
 
 /**
- * The in-world presentation per item type.
+ * THE PRESENTATIONS COME FROM `screener/inWorld.ts` AND THIS FILE NO LONGER KEEPS A LIST.
  *
- * Every drawn type, not just the three `stations/Stations.tsx` maps: this one board serves all three
- * batteries, so anything `siteTypes()` can hand it has to have somewhere to go. A type absent from this
- * table falls through to the idle emblem rather than to a row of numbered buttons — which is the correct
- * failure, and the one the owner reported as "pressing random numbers for no reason".
+ * There was a table here, and it was a fourth copy of one that already exists, and it was stale — it named
+ * `VER-SEQUENCE-01`, which the battery audit retired and the engine will never serve again, and it had
+ * never heard of `VER-RELPAIR-01`, the kinship stone, which is half of what the Verbal leg is served. So
+ * two items in eight landed on a type this file could not draw, the board fell through to its idle emblem,
+ * and the sequence stopped dead in the middle with nothing on screen to press and nothing in the console.
+ * That is the owner's "i finished the series of questions and nothing unlocked", and it was measured: a
+ * board driven end to end reached item 4 of 8, was served `VER-RELPAIR-01`, and never moved again.
+ *
+ * `inWorld.ts`'s own header records the same bug happening at the stations, for the same reason, and gives
+ * the same remedy: ONE table, imported, never copied. `run.ts` asks it whether a type can be drawn, and
+ * `run.test.ts` asserts the board's servable set is a subset of it, so this cannot come back quietly.
  */
-const PRESENTATION: Record<
-  string,
-  ComponentType<{ content: Record<string, unknown>; onPick: (handed: string) => void; disabled?: boolean }>
-> = {
-  'FLU-MATRIX-01': PodWall,
-  'FLU-CARPET-01': Weave,
-  'SPA-XFORM-01': StoneBed,
-  'QUANT-SERIES-01': TideLine,
-  'QUANT-FUNC-01': Sprouter,
-  'QUANT-BALANCE-01': BalanceBough,
-  'VER-SEQUENCE-01': DayLog,
-  'VER-SORTBOT-01': SortingGate,
-};
 
 interface LiveItem {
   serve: NonNullable<ReturnType<typeof useSortie>['serve']>;
@@ -149,7 +150,15 @@ function Leg({
   onLegDone: () => void;
 }): JSX.Element | null {
   const id = useMemo(() => keeperId(), []);
-  const types = useMemo(() => typesForLeg(battery), [battery]);
+  /**
+   * DRAWABLE STYLES ONLY, which is where the stall is stopped at its source rather than caught downstream.
+   *
+   * `/sanctuary/chunk` builds the pool from exactly the types it is handed, so a type this board cannot
+   * draw is best dealt with by not asking for it. The guard in `ChallengeBoard` and the watchdog in `run.ts`
+   * are still there — a pool can drift, and a presentation can exist and refuse to draw a particular item —
+   * but with this they should never have anything to do.
+   */
+  const types = useMemo(() => typesForBoardLeg(battery), [battery]);
   const s = useSortie({
     battery,
     types,
@@ -164,6 +173,17 @@ function Leg({
 
   const counted = useRef(0);
   const finished = useRef(false);
+  /**
+   * The one timer that says this leg is over, held in a ref rather than cleared by its own effect.
+   *
+   * IT USED TO BE CANCELLABLE BY THE CHILD, which was a second way to stall the board. The completion
+   * timeout was returned as the cleanup of the `[s.answered]` effect, so an answer landing inside its 950ms
+   * window — the session keeps serving past the quota until the chunk is closed, so one is reachable —
+   * cleared the timer, and `finished` was already true so no new one was armed. `onLegDone` was then never
+   * called by anybody. Rare, silent, and exactly the shape of the bug this whole file is being fixed for.
+   */
+  const over = useRef(0);
+  useEffect(() => () => window.clearTimeout(over.current), []);
 
   useEffect(() => {
     void s.open();
@@ -183,13 +203,11 @@ function Leg({
     if (s.answered >= quota && !finished.current) {
       finished.current = true;
       // After the settle, so the last choice is seen to land before the panel changes battery.
-      const t = window.setTimeout(() => {
+      over.current = window.setTimeout(() => {
         closeChunk(s.sessionId);
         onLegDone();
       }, 950);
-      return () => window.clearTimeout(t);
     }
-    return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.answered]);
 
@@ -220,8 +238,7 @@ function Leg({
   useEffect(() => {
     if (s.phase !== 'error' || finished.current) return;
     finished.current = true;
-    const t = window.setTimeout(onLegDone, 1400);
-    return () => window.clearTimeout(t);
+    over.current = window.setTimeout(onLegDone, 1400);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.phase]);
 
@@ -253,25 +270,27 @@ export function ChallengeBoard({
   const gl = useThree((s) => s.gl);
   const setEvents = useThree((s) => s.setEvents);
   const events = useThree((s) => s.events);
+  const audio = useAudio();
 
   const [near, setNear] = useState(false);
   const [engaged, setEngaged] = useState(false);
   const [hot, setHot] = useState(false);
   const [live, setLive] = useState<LiveItem | null>(null);
-  const [leg, setLeg] = useState(0);
-  const [answered, setAnswered] = useState(0);
-  const [unlocked, setUnlocked] = useState(alreadyTaken);
+  /** The whole of where this board has got to. See `run.ts`: finishing it and opening the gate are one act. */
+  const [run, setRun] = useState<Run>(() => beginRun(performance.now()));
   /** Whether the child has ever pressed E here. Drives the battens, and never goes back to false. */
   const [touched, setTouched] = useState(false);
 
-  const perBattery = useRef<Record<string, number>>({});
   const panel = useRef<Group>(null);
   const ray = useRef(new Raycaster());
   const forward = useRef(new Vector3());
   const target = useRef(new Vector3());
   const told = useRef(false);
 
-  const done = unlocked || leg >= LEGS.length;
+  const leg = run.leg;
+  const answered = run.answered;
+  const unlocked = alreadyTaken || run.outcome === 'unlocked';
+  const done = unlocked;
   const active = LEGS[Math.min(leg, LEGS.length - 1)];
 
   /** The gate was already open when we arrived. Take the barricade out before the first frame. */
@@ -407,6 +426,8 @@ export function ChallengeBoard({
         e.preventDefault();
         setEngaged(true);
         setTouched(true);
+        // The leg's patience starts NOW, not when this component mounted. See `watchFrom`.
+        setRun((r) => watchFrom(r, performance.now()));
       }
     };
     window.addEventListener('keydown', onKey);
@@ -451,63 +472,127 @@ export function ChallengeBoard({
   \* ---------------------------------------------------------------- */
 
   const handleAnswered = useCallback(() => {
-    setAnswered((n) => n + 1);
-    const b = active?.battery ?? 'Nonverbal';
-    perBattery.current[b] = (perBattery.current[b] ?? 0) + 1;
+    setRun((r) => answeredOne(r, performance.now()));
     // Paid for having answered, never for having answered correctly — see `economy/coins.ts`, which
     // argues it at length, and note that there is nothing here to branch on even if it did not.
     earn(EARN.perAnswer);
     onEarn?.();
-  }, [active, onEarn]);
+  }, [onEarn]);
 
   const handleLegDone = useCallback(() => {
     setLive(null);
     sessionOfLeg.current = null;
-    setLeg((n) => n + 1);
+    setRun((r) => legOver(r, performance.now()));
   }, []);
 
+  /* ---------------------------------------------------------------- *\
+     Nothing to press
+  \* ---------------------------------------------------------------- */
+
+  const mounted = useMemo(() => {
+    if (!live) return null;
+    const Presentation = IN_WORLD[live.serve.typeCode];
+    if (!Presentation) return null;
+    const content = live.serve.served.content;
+    return { Presentation, content, scale: fitScale(live.serve.typeCode, content), itemId: live.serve.served.itemId };
+  }, [live]);
+
   /**
-   * The legs have run out.
+   * A SERVED ITEM WITH NO PRESENTATION ENDS THE LEG, LOUDLY.
    *
-   * ══ THE ONE CASE THAT IS NOT A COMPLETION ═════════════════════════════════════════════════════
-   *
-   * Every leg has an escape hatch for an unreachable API — see `Leg` — so it is possible to arrive here
-   * having answered NOTHING, with three legs that each gave up after a failed fetch. Treating that as a
-   * finished board would be wrong twice over: it would open the paddock for a server outage, and it would
-   * write the board's own done-flag, so the child would never be offered the screening again. The one
-   * thing this feature exists to produce would be silently gone, and nothing would report a fault.
-   *
-   * So a board that produced no answers at all is put back: the legs reset, nothing is persisted, nothing
-   * opens, and the keeper is released. It is not a punishment and it is not a trap — the child can walk
-   * away, and the board is still standing there to try again when the server is back. Anything from one
-   * answer upward is a completion, because a child who worked at it does not lose their paddock to how
-   * many items a bank happened to have left.
+   * It should be unreachable: a leg only ever asks for types the board can draw (`typesForBoardLeg`) and two
+   * tests assert the two sets are the same set. It is here because the thing it guards against has already
+   * happened once, and when it happened it was completely silent — a missing key in a lookup table is an
+   * absence rather than an error, so the board hung its idle emblem and no console anywhere said a word.
+   * Whatever comes next, it will not be that: the leg resolves, so the run cannot stall, and the reason is
+   * printed with the type code in it so the next person to look does not have to drive a browser to find out.
    */
   useEffect(() => {
-    if (leg < LEGS.length || told.current) return;
+    if (!live || !engaged) return;
+    const typeCode = live.serve.typeCode;
+    if (canDraw(typeCode)) return;
+    console.error(
+      `[challenge board] ${typeCode} was served on the ${legBattery(run) ?? '?'} leg and nothing in ` +
+        `screener/inWorld.ts draws it. Ending the leg rather than holding the child at a blank board. ` +
+        `Register a presentation there, or withdraw the type in shared/batteries.ts.`,
+    );
+    closeChunk(sessionOfLeg.current);
+    handleLegDone();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live, engaged]);
 
-    if (answered === 0) {
-      setEngaged(false);
-      setLive(null);
-      setLeg(0);
-      return;
-    }
+  /**
+   * The patience clock: running only while there is nothing on the board a child could press.
+   *
+   * Between the two of these, `run.ts` knows whether the board is showing anything, and its watchdog ends a
+   * leg that has gone quiet — an empty pool, a dead fetch, a session that opened and never served.
+   */
+  useEffect(() => {
+    if (!engaged) return;
+    const now = performance.now();
+    setRun((r) => (mounted ? presenting(r, now) : blank(r, now)));
+  }, [engaged, mounted]);
 
+  const ticked = useRef(0);
+  useFrame(() => {
+    if (!engaged) return;
+    const now = performance.now();
+    if (now - ticked.current < 250) return;
+    ticked.current = now;
+    setRun((r) => tick(r, now));
+  });
+
+  /* ---------------------------------------------------------------- *\
+     The end of it
+  \* ---------------------------------------------------------------- */
+
+  /**
+   * WORKED THROUGH. The gate is already open and the flag already written — `run.ts` does both inside the
+   * transition that produced this outcome, so there is no ordering here that could go wrong. What is left is
+   * everything a CHILD is owed for having finished, and the owner's report is the reason there is a list:
+   * they finished and saw nothing.
+   *
+   *   The gate itself, which `Gate` animates off `unlocked`: eleven planks let go from the middle outward,
+   *   the leaf swings 72°, the lantern on the far post lights. The keeper is held on the mark for 2.8s
+   *   afterwards so the thing they unlocked is the thing they are looking at.
+   *   The hatch sound, which is the one sound in `audio/` that means a thing has opened.
+   *   Nan's closing line — spoken, not merely written, and see `announceBoard` for the case this file has to
+   *   cover itself: a keeper who has seen the tour before has a SETTLED tour, and a settled tour has no step
+   *   left to carry the line. That is every returning child, and it was silence.
+   *   The coins, which fly because `Game.tsx` passes `onEarn`.
+   */
+  useEffect(() => {
+    if (run.outcome !== 'unlocked' || told.current) return;
     told.current = true;
-    openGate();
-    markBoardTaken();
-    setUnlocked(true);
     earn(EARN.perRound);
     onEarn?.();
-    // Long enough for the boards to fall and the leaf to swing before the keeper is let go, so the thing
-    // they just unlocked is the thing they are looking at.
+    // Optional in the audio API, and a game with no sound must still open its gate.
+    audio.hatch?.();
+    if (tourSettled()) announceBoard(CLOSING);
+    // Long enough for the boards to fall and the leaf to swing before the keeper is let go.
     window.setTimeout(() => {
       setEngaged(false);
       setLive(null);
     }, 2800);
-    onComplete?.({ answered, perBattery: { ...perBattery.current } });
+    onComplete?.({ answered: run.answered, perBattery: { ...run.perBattery } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leg]);
+  }, [run.outcome]);
+
+  /**
+   * PUT BACK: three legs ran and not one question was answered, so the API is down or the banks are empty.
+   *
+   * Nothing is persisted and nothing opens — see `Outcome` in `run.ts` for why that is the right trade — but
+   * the child is not sent away with silence either, because from where they are standing they did everything
+   * they were asked. Nan says so, the keeper is released, and the board is put back exactly as it was so it
+   * can be tried again.
+   */
+  useEffect(() => {
+    if (run.outcome !== 'put-back') return;
+    setEngaged(false);
+    setLive(null);
+    announceBoard(BOARD_QUIET);
+    setRun(beginRun(performance.now()));
+  }, [run.outcome]);
 
   /* ---------------------------------------------------------------- *\
      Telling everyone else
@@ -534,14 +619,6 @@ export function ChallengeBoard({
   const handlePick = useCallback((item: LiveItem, content: Record<string, unknown>, handed: string): void => {
     void item.answer(toRef(content, handed));
   }, []);
-
-  const mounted = useMemo(() => {
-    if (!live) return null;
-    const Presentation = PRESENTATION[live.serve.typeCode];
-    if (!Presentation) return null;
-    const content = live.serve.served.content;
-    return { Presentation, content, scale: fitScale(live.serve.typeCode, content), itemId: live.serve.served.itemId };
-  }, [live]);
 
   const lit = engaged || near ? 1 : 0;
   const showPanel = engaged && mounted !== null;
