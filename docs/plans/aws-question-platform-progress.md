@@ -1,123 +1,82 @@
-# AWS Question Platform — Overnight Progress Ledger
+# Question Platform — Progress Ledger
 
-Durable record of what is done, so an interrupted run can reconcile instead of repeating work.
-**Read this first after any failure.**
+**Branch:** `feat/sanctuary-platform`, worktree `/Users/atakle/gt-sanctuary-platform`, no remote configured.
+**Nothing is deployed.** No AWS account exists, no credentials are on this machine, `cdk synth` only.
 
-**Branch:** `feat/aws-question-platform` (off `dev`)
-**Spec:** `docs/design/aws-question-platform.md`
-**Plan:** `docs/plans/aws-question-platform-implementation.md`
-**Code:** `platform/` — see `platform/README.md`
+| Suite | Count |
+|---|---|
+| `platform` | 311 passing |
+| `screener` including Bramblebrook | 504 passing |
+| `cdk synth` | two templates, no credentials |
 
-## Status: all nine phases complete. 267 platform tests passing, `screener` still at 148.
+## Done
 
-Nothing has been deployed. No AWS resource has been created, read, or modified. No AWS credentials
-exist on this machine.
+| # | Task | Commit |
+|---|---|---|
+| 1 | Build against current dev; stop inferring markability | `5b55389` |
+| 2 | The engine decides, the platform records | `e22eae5` |
+| 3 | Server-side session state (folded into 2 and 4) | `e22eae5`, `5f9d533` |
+| 4 | Speak the bank contract; delete the served-item token | `5f9d533` |
+| 5 | Item parameters from the engine, not a local guess | `9c96d9f` |
+| 6 | The single-domain route needs evidence | `9f8b9e1` |
+| 7 | Rapid guesses become unscorable | `cf97b1b` |
+| 8 | Variety proposal for `@gt/qbank` | `86aa726` |
+| — | Local router and dev server | `bce461e` |
+| — | Seed script, and Bramblebrook on the platform | `86aa726` |
 
-## Hard invariants that held for this run
+## Bugs found by building it, in rough order of how badly they would have bitten
 
-1. **No AWS calls.** `cdk synth` only. Verified: the stacks are account-agnostic and perform no context
-   lookups, and synth completed with no credentials present.
-2. **No edits under `screener/`, `qbank-library/`, or `archive/`.** The platform imports from them.
-   `screener` tests still pass at their baseline 148.
-3. **No commits to `dev`.** Everything is on `feat/aws-question-platform`.
-4. **DynamoDB Local on 8456** (see the port note below).
+1. **Cell-set items would have been marked wrong every time.** `markAgainstKey` was handed only the key, but
+   `scoreResponse` dispatches on the type code — a cell-set answer is compared as a set first. All 140 newly
+   servable Paper Folding items would have compared `'0,0|0,3'` against a tap, silently.
+2. **818 of 4,934 items had the wrong guessing floor.** The compiler assumed four options where it could not
+   tell. `CX-check-01` admits 64 or 256 answers, so its floor is 0.016 and not 0.25 — a fifteenfold
+   overstatement of guessability that suppressed the information those items carry.
+3. **The admin routes were public.** Wired to `HttpNoneAuthorizer` while the comment claimed IAM, which would
+   have shipped an unauthenticated catalogue-publish endpoint.
+4. **`piiPolicy: 'none'` blocked personas entirely**, which would have blocked Bramblebrook outright. A
+   persona is pseudonymous; contact details are a separate row.
+5. **`approveType` read the filesystem**, re-deriving UI requirements from bank files a Lambda does not have.
+6. **The registry misreported 140 items' scoring mode**, and that misreport was what let them past a serving
+   filter testing the same field.
+7. **Domain interleaving silently stopped working** when the parameters were corrected — adjacency drifted to
+   chance level, and only a re-run of the simulation caught it.
+8. **Removing the token broke retry idempotency**, which the end-to-end test caught: a dropped connection
+   would have cost a child their answer.
+9. **The CDK and the dev router had two route tables, already disagreeing.**
+10. Node 20 was already deprecated; `logRetention` likewise. `TableV2` with a CMK cannot render
+    region-agnostic. Port 8010 was contested by an unrelated server that answered HTTP and failed DynamoDB.
 
-## Phase status
+## Claims I made and had to correct
 
-| # | Phase | Status | Commit | Tests |
-|---|---|---|---|---|
-| 0 | Spec, plan, ledger | done | `3e31d21` | — |
-| 1 | `platform/` workspace scaffolding | done | `784cde0` | — |
-| 2 | `@platform/domain` | done | `784cde0` | 23 |
-| 3 | `@platform/scoring` | done | `99e2b4a` | 26 |
-| 4 | `@platform/selection` | done | `7af60a4` | 55 |
-| 5 | `@platform/catalog` | done | `68cca56` | 42 |
-| 6 | `@platform/store` | done | `68cca56` | 50 |
-| 7 | Handlers, shared layer, end-to-end | done | `898d4f7`, `3b150b7` | 17 + 29 |
-| 8 | CDK stacks and synth | done | `22b5fa0` | 25 |
-| 9 | Variety simulation against the real catalog | done | this commit | — |
+- Said rapid-guess detection was working when only the field existed and `grade()` was never called.
+- Said "same seed, same sequence"; exposure counters move between sessions, so reproducing a session needs the
+  seed *and* the exposure snapshot.
+- Read a 150-session run as sensitivity improving to 0.952; at 400 it was 0.833, unchanged.
+- Wrote a comment for a stricter domain-floor rule than the code implemented; the looser one is correct.
 
-## Bugs and wrong assumptions found by building it
+## Outstanding, and none of it is silent
 
-Recorded because each one was a belief that survived review and died on contact with a test.
+**Needs the owner:** an AWS account, credentials, `cdk bootstrap`, the first deploy. The real gifted-criteria
+numbers — `CRITERIA_V1` is a documented placeholder. Confirming guardian-email-only before any real family
+sees it.
 
-1. **Admin routes were public.** `api-stack.ts` wired the four `/v1/admin/*` routes to
-   `HttpNoneAuthorizer` while the comment above them claimed IAM SigV4. That would have shipped an
-   unauthenticated catalog-publish endpoint. Now `HttpIamAuthorizer`, asserted by a template test.
-2. **`approveType` read the filesystem.** It re-derived UI requirements with `planFor`, which reads
-   `qbank-library/banks/<typeCode>.jsonl` — a path a deployed Lambda does not have. It now reads the
-   requirement frozen onto the registry row at publish time, which is also the more correct source.
-3. **The scoring tests were wrong, not the engine.** Six failures came from expecting confidence from
-   easy items answered correctly. P(correct) is near one on both sides of a high threshold, so the
-   likelihood ratio is flat and the posterior barely moves. The engine was right to refuse the
-   inference; a test now pins that behaviour.
-4. **Proportional exposure damping is too weak.** Halving an over-exposed item's score still leaves it
-   the best choice near the threshold. Measured 0.425 maximum exposure against a 0.20 target on a
-   120-item pool. `exposureDampingExponent` was added, defaulting to 3.
-5. **`openingJitterLogits: 0` did not disable the opening layer.** It fell through to a random draw over
-   the whole pool, so "variety off" was still random. A control test now asserts that disabling every
-   layer reproduces the deterministic argmax exactly.
-6. **Tagging lived in the entry point.** `Tags.of(app)` in `bin/platform.ts` meant any other entry point
-   — including the tests — produced untagged resources. Moved into the stacks.
-7. **`TableV2` with a customer-managed key cannot render region-agnostic.** The region is now explicit,
-   defaulting to `us-east-2` rather than `us-east-1`, which also settles spec §17.6 and adds one more
-   layer of separation from the live archive.
-8. **Node 20 was already deprecated.** Deprecated 2026-04-30, creation disabled from 2027-02-01, so the
-   plan's own runtime guidance was stale. Now `nodejs24.x`. `logRetention` is likewise deprecated and
-   was replaced with explicit log groups.
-9. **Port 8010 was contested.** An ssh port-forward and a stray Python server were both bound to it, so
-   a client connected happily and then got `{"detail":"Method Not Allowed"}` from the wrong process,
-   surfacing as an unparseable SDK error. DynamoDB Local moved to 8456 and readiness is now proved with
-   a real `ListTables` call.
-10. **Two spec numbers were wrong.** The selection index is 1.29 MB of JSON / 134 KB gzipped, not the
-    estimated 550 KB. And 21 types have no scorable items, not 20: `QUANT-GLYPHNUM-01` has 391 items and
-    needs a solver for every one.
+**Needs code:**
+- The sortbot pool gate. Ten of thirty-seven `VER-SORTBOT-01` items were excluded by the old dev plugin as
+  unsuitable in the K-1 and 2-3 bands. Not reimplemented, because it belongs in data. Until it is, those items
+  can be served.
+- `/sanctuary/record` cannot report a number. `sessionsForPersona` exists in the store; no HTTP route exposes
+  it. The view reports the gap rather than a stale figure.
+- `GSI6` is declared and empty: `putSession` receives no client address, so the IP-linkage behaviour the spec
+  describes does not exist.
+- The notification queue has no consumer. Choosing an email provider and writing what a family receives is a
+  product decision, and a queue retaining fourteen days is a safer place for those events to wait.
+- 1,634 `computed_solver` items across fourteen types carry real keys behind comparison rules nobody has
+  written — the largest recoverable pool available, deliberately deferred.
+- `SortieHarness`'s threshold slider is inert: the platform is server-authoritative on measurement config.
 
-## Design decisions taken during implementation, beyond the spec
+## External effects
 
-1. `SelectionCandidate`, `AnswerKeyRecord`, `SnapshotRecord`, `OutboxEvent` live in `@platform/domain`
-   (`candidate.ts`), so the compiler and the store need no dependency on the selection algorithm. This
-   made phases 3–6 mutually independent.
-2. `evaluateCriteria` takes a `MultiPosterior`, not a finished `ScoreSheet`, because criteria carry their
-   own ability threshold which need not be the session's.
-3. `SheetInput` gained `threshold` and `domainsAvailable`. The second stops a domain with no scorable
-   items holding the stop rule open forever.
-4. Approved types are read live rather than frozen onto the session, while everything else in
-   `resolvedConfig` is frozen. Revoking a broken type has to take effect on the next question.
-5. `serve` writes the response row at serve time in `served` state. Abandonment becomes visible, and the
-   conditional update on `state` gives idempotent scoring for free.
-6. Exhaustion is discovered and recorded by `serve`, so `score` never reasons about it.
-7. `toServedQuestion` deep-scrubs answer-shaped keys from item content, as a second net behind the
-   registry's structural exclusion of answers.
-8. Client-supplied precision overrides are not accepted. The app config owns the stop rule; letting a
-   client weaken it would let a client decide how confident the platform has to be.
-9. `randomesqueK` defaults to 6 rather than 3, measured (spec §9.2.1).
-
-## The intermittent failure, and what it turned out to be
-
-A single test failed on two of roughly twelve full-suite runs and could not be reproduced on demand —
-thirteen consecutive clean runs, eight of them driving the handler suite alone. The name was never
-captured before it cleared.
-
-The likely cause was found by removing the nondeterminism rather than by catching it. `POST /v1/sessions`
-generates a fresh RNG seed per session, which is right in production and hostile in a test that asserts
-an exact stop reason: a perfect responder served a random draw of easy items can legitimately reach the
-item cap instead of confidence. Tests now pin the seed by rewriting the session record through the store
-— not by accepting a seed on the request, since letting a client choose the seed would let a client
-choose its questions. A separate test asserts production still assigns a fresh seed per session.
-
-Eight consecutive clean full runs at 269 tests followed. This is a hardening measure supported by a
-plausible mechanism, not a confirmed diagnosis, and it is recorded that way.
-
-**It also corrected a claim in the design.** The test written to prove "same seed, same sequence" failed
-every single time. The seed is not the whole input: exposure damping reads counters the previous session
-moved, so one seed replayed against a different cohort history is legitimately asked different
-questions. Spec §9.2 layer 1 now states that reproducing a session needs the seed *and* the exposure
-snapshot, and the test asserts the true property.
-
-## External effects log
-
-Nothing outside this repository has been mutated. No AWS resource has been created, read, or modified.
-No package has been published. Network access was limited to npm installs and the `amazon/dynamodb-local`
-Docker image pull. One read-only HTTP GET was made to the archive's live App Runner URL to confirm it is
-in use, before any work began.
+Nothing outside this repository has been mutated. No AWS resource created, read or modified. No package
+published. `origin/dev` and `origin/feat/sanctuary` were read only. Network access: npm installs and the
+`amazon/dynamodb-local` image pull.
