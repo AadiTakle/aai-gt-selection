@@ -12,6 +12,7 @@ import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { join } from 'node:path';
 import type { Construct } from 'constructs';
+import { ROUTES } from '@platform/shared';
 import type { DataStack } from './data-stack.js';
 import { tagPlatform } from './tags.js';
 
@@ -160,55 +161,30 @@ export class ApiStack extends Stack {
       defaultAuthorizer: authorizer,
     });
 
-    const route = (path: string, method: HttpMethod, target: NodejsFunction, name: string): void => {
-      this.api.addRoutes({
-        path,
-        methods: [method],
-        integration: new HttpLambdaIntegration(name, target),
-      });
-    };
-
-    route('/v1/catalog/types', HttpMethod.GET, this.catalogFn, 'CatalogTypes');
-    route('/v1/catalog/types/{typeCode}', HttpMethod.GET, this.catalogFn, 'CatalogType');
-    route('/v1/catalog/app', HttpMethod.GET, this.catalogFn, 'CatalogApp');
-
     /**
-     * The bank contract, as `@gt/qbank`'s `bankRoutes` declares it.
+     * Routes come from the shared table, not from literals here.
      *
-     * Paths are spelled out here rather than built from `bankRoutes`, because CDK needs literals with
-     * API Gateway's `{param}` syntax and the route builders produce concrete URLs. `infra.test.ts`
-     * asserts the two agree, so a contract change fails the build rather than the game.
-     */
-    route('/api/bank', HttpMethod.GET, this.catalogFn, 'BankCatalogue');
-    route('/api/bank/sessions', HttpMethod.POST, this.serveFn, 'CreateSession');
-    route('/api/bank/sessions/{sessionId}/next', HttpMethod.GET, this.serveFn, 'NextItem');
-    route('/api/bank/sessions/{sessionId}/answer', HttpMethod.POST, this.scoreFn, 'AnswerItem');
-
-    // Outside the bank contract, which has no notion of either.
-    route('/v1/sessions/{sessionId}/abandon', HttpMethod.POST, this.scoreFn, 'AbandonSession');
-    route('/v1/sessions/{sessionId}/sheet', HttpMethod.GET, this.scoreFn, 'ReadSheet');
-
-    /**
-     * Admin routes take IAM SigV4 rather than an app key.
-     *
-     * An app key is embedded in a Roblox place or a web bundle and must be assumed to be public. The
-     * routes that publish a catalog or approve a question type cannot accept a credential with that
-     * property, so the app-key authorizer is replaced here rather than extended. There is
-     * deliberately no api-key path to admin at all.
+     * The stack and the local dev router had already drifted once — the stack still described
+     * `/v1/sessions/*` after the handlers moved to the bank contract, and nothing failed until a test
+     * happened to assert a path. One table, read by both.
      */
     const adminAuthorizer = new HttpIamAuthorizer();
-    const adminRoutes: readonly [string, HttpMethod, string][] = [
-      ['/v1/admin/catalog/publish', HttpMethod.POST, 'AdminPublish'],
-      ['/v1/admin/apps', HttpMethod.POST, 'AdminCreateApp'],
-      ['/v1/admin/apps/{appId}/types/{typeCode}', HttpMethod.PUT, 'AdminApproveType'],
-      ['/v1/admin/items/{itemId}/revise', HttpMethod.POST, 'AdminReviseItem'],
-    ];
-    for (const [path, method, name] of adminRoutes) {
+    const target: Record<string, NodejsFunction> = {
+      catalog: this.catalogFn,
+      serve: this.serveFn,
+      score: this.scoreFn,
+      admin: this.adminFn,
+    };
+
+    for (const definition of ROUTES) {
       this.api.addRoutes({
-        path,
-        methods: [method],
-        integration: new HttpLambdaIntegration(name, this.adminFn),
-        authorizer: adminAuthorizer,
+        path: definition.path,
+        methods: [HttpMethod[definition.method]],
+        integration: new HttpLambdaIntegration(
+          definition.id,
+          target[definition.fn] as NodejsFunction,
+        ),
+        ...(definition.auth === 'iam' ? { authorizer: adminAuthorizer } : {}),
       });
     }
   }

@@ -32,7 +32,12 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['packages/**/*.test.ts', 'functions/**/*.test.ts', 'infra/**/*.test.ts'],
+    include: [
+      'packages/**/*.test.ts',
+      'functions/**/*.test.ts',
+      'infra/**/*.test.ts',
+      'local/**/*.test.ts',
+    ],
     testTimeout: 60_000,
     hookTimeout: 60_000,
   },
