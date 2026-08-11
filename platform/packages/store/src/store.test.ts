@@ -224,6 +224,7 @@ function makeSession(overrides: Partial<SessionRecord> = {}): SessionRecord {
     resolvedConfig: makeApp(appId),
     rngSeed: 'seed-1',
     ageBand: 'K-1',
+    restrictedTypes: null,
     startedAt: '2026-08-10T12:00:00.000Z',
     endedAt: null,
     status: 'active',

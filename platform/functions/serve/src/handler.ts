@@ -1,14 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import {
-  toServedQuestion,
-  type ResponseRecord,
-  type SessionRecord,
-} from '@platform/domain';
-import { ENGINE_VERSION } from '@platform/scoring';
+import type { CreateSessionResponse, NextResponse } from '@gt/qbank/wire';
+import { CRITERIA_V1, type ResponseRecord, type SessionRecord } from '@platform/domain';
+import { ENGINE_VERSION, toEngineConfig } from '@platform/scoring';
 import { selectNext } from '@platform/selection';
-import { CRITERIA_V1 } from '@platform/domain';
 import {
-  SERVED_TOKEN_TTL_MS,
   badRequest,
   created,
   deps,
@@ -23,30 +18,46 @@ import {
   requirePathParam,
   selectionRequestFor,
   sheetFor,
-  signServedToken,
+  toQbankState,
   type ApiRequest,
   type ApiResponse,
-  type Deps,
 } from '@platform/shared';
 
 /**
  * Starting a session, and choosing what to ask next.
  *
+ * Speaks `@gt/qbank`'s wire contract, so a client written against the Express prototype — Bramblebrook
+ * included — reaches this without changing its request shapes. The response types are imported rather than
+ * redeclared, which is the point of that contract: a response that stops matching stops compiling.
+ *
  * This function has no IAM permission on the answer-key table, so no code path here can obtain a key
- * whatever it asks for. That is the reason serving and scoring are separate functions rather than two
- * routes on one.
+ * whatever it asks for. That is why serving and scoring are separate functions rather than two routes.
+ *
+ * ## Measurement configuration is server-authoritative
+ *
+ * `CreateSessionRequest` lets a caller ask for an ability threshold, a precision step, a per-domain minimum
+ * and a recommendation probability. On this platform those come from the registered app and a request cannot
+ * move them: a client that could lower its own bar could manufacture a recommendation. The request is not
+ * rejected for carrying them — that would break existing callers for no gain — and what was actually used
+ * comes back in `config`, which is what the contract's `ResolvedSessionConfig` is for.
+ *
+ * `types` is different and is honoured, narrowed to the app's approved list. It is how a caller asks for one
+ * battery rather than the whole pool, and an unapproved or unknown code is a 400 rather than a silent
+ * narrowing, because a typo would otherwise shrink a child's pool with nobody noticing.
  */
 
-interface CreateSessionBody {
-  readonly personaId?: string;
+interface CreateBody {
+  readonly types?: readonly string[];
   readonly ageBand?: string;
+  readonly personaId?: string;
   readonly locale?: string;
+  readonly seed?: number;
 }
 
 async function createSession(request: ApiRequest): Promise<ApiResponse> {
   const appId = requireAppId(request);
   const d = deps();
-  const body = request.body ? parseJsonBody<CreateSessionBody>(request) : {};
+  const body = request.body ? parseJsonBody<CreateBody>(request) : {};
 
   const app = await d.store.getApp(appId);
   if (!app) throw notFound(`no app ${appId}`);
@@ -62,17 +73,25 @@ async function createSession(request: ApiRequest): Promise<ApiResponse> {
     throw badRequest(`app does not serve age band ${ageBand}`, { serves: app.ageBands });
   }
 
+  const approved = new Set(await d.store.listApprovedTypes(appId));
+  const requested = body.types ?? null;
+  if (requested) {
+    const unapproved = requested.filter((code) => !approved.has(code));
+    if (unapproved.length > 0) {
+      throw badRequest('one or more requested types are not approved for this app', { unapproved });
+    }
+    if (requested.length === 0) throw badRequest('types was supplied but empty');
+  }
+
   /**
    * A persona is created only when the app supplies one.
    *
-   * An anonymous session is the default and stays entirely out of the persona index. Nothing about a
-   * child is stored unless an app that is permitted to collect contact details chooses to link one.
+   * An anonymous session is the default and stays out of the persona index entirely. Nothing about a child
+   * is stored unless an app permitted to collect contact details chooses to link one.
    */
   let personaId: string | null = null;
   if (body.personaId) {
-    if (app.piiPolicy === 'none') {
-      throw forbidden('app is not permitted to link a persona');
-    }
+    if (app.piiPolicy === 'none') throw forbidden('app is not permitted to link a persona');
     personaId = body.personaId;
     await d.personas.create(personaId, body.locale ?? null, appId);
   }
@@ -86,8 +105,11 @@ async function createSession(request: ApiRequest): Promise<ApiResponse> {
     criteriaVersion: CRITERIA_V1.version,
     // Frozen. An app edit mid-session cannot change the rules a child is measured under.
     resolvedConfig: app,
-    rngSeed: randomUUID(),
+    // A caller may pin the seed for a reproducible session; otherwise the platform picks one, because two
+    // children sharing a seed would be asked the same questions.
+    rngSeed: body.seed === undefined ? randomUUID() : String(body.seed),
     ageBand,
+    restrictedTypes: requested ? [...requested] : null,
     startedAt: new Date().toISOString(),
     endedAt: null,
     status: 'active',
@@ -97,63 +119,27 @@ async function createSession(request: ApiRequest): Promise<ApiResponse> {
 
   await d.store.putSession(session);
   // The exposure denominator. Bumped at session start rather than at first item so that an abandoned
-  // session still counts against exposure rates, which is the honest denominator.
+  // session still counts, which is the honest denominator.
   await d.store.bumpAppSessionCount(appId);
 
   const loaded = await loadSession(d, session.sessionId, appId);
   const sheet = sheetFor(loaded);
   await d.store.putSheet(sheet, []);
 
-  return created({
+  const engineConfig = toEngineConfig(app, ageBand);
+  const response: CreateSessionResponse = {
     sessionId: session.sessionId,
-    snapshotId: session.snapshotId,
-    engineVersion: session.engineVersion,
-    criteriaVersion: session.criteriaVersion,
-    sheet,
-  });
-}
-
-function servedPayload(
-  d: Deps,
-  response: ResponseRecord,
-  content: Record<string, unknown>,
-  uiRequirement: unknown,
-): ApiResponse {
-  const item = toServedQuestion({
-    itemId: response.itemId,
-    typeCode: response.typeCode,
-    revision: response.itemRevision,
-    domain: response.domain,
-    difficulty: response.difficulty,
-    params: response.params,
-    optionCount: response.optionCount,
-    ageBands: [],
-    scoringMode: 'deterministic_key',
-    content,
-    syntheticOnly: false,
-    validated: false,
-    calibrated: false,
-  });
-
-  return ok({
-    item,
-    typeCode: response.typeCode,
-    domain: response.domain,
-    difficulty: response.difficulty,
-    ordinal: response.ordinal,
-    uiRequirement,
-    servedToken: signServedToken(
-      {
-        sessionId: response.sessionId,
-        ordinal: response.ordinal,
-        itemId: response.itemId,
-        itemRevision: response.itemRevision,
-        expiresAt: Date.now() + SERVED_TOKEN_TTL_MS,
-      },
-      d.env.tokenSecret,
-    ),
-    selection: response.selection,
-  });
+    poolSize: loaded.eligibleCount,
+    config: {
+      abilityThreshold: engineConfig.abilityThreshold,
+      precision: engineConfig.precision,
+      ...(ageBand ? { ageBand } : {}),
+      perDomainMinimum: engineConfig.perDomainMinimum,
+      recommendProbability: engineConfig.recommendProbability,
+    },
+    state: toQbankState(sheet),
+  };
+  return created(response);
 }
 
 async function nextItem(request: ApiRequest): Promise<ApiResponse> {
@@ -162,26 +148,24 @@ async function nextItem(request: ApiRequest): Promise<ApiResponse> {
   const d = deps();
 
   const loaded = await loadSession(d, sessionId, appId);
+
   if (loaded.session.status !== 'active') {
-    return ok({
-      available: false,
-      reason: loaded.session.stopReason,
-      sheet: await d.store.getCurrentSheet(sessionId),
-    });
+    const stored = await d.store.getCurrentSheet(sessionId);
+    const done: NextResponse = { done: true, state: toQbankState(stored ?? sheetFor(loaded)) };
+    return ok(done);
   }
 
   /**
    * A pending item is re-issued rather than replaced.
    *
    * An app that loses the response to `next` and calls it again must get the same question back. The
-   * alternative silently burns an item from the pool and leaves an orphan row in the trace on every
-   * dropped connection.
+   * alternative silently burns an item from the pool and leaves an orphan row in the trace on every dropped
+   * connection. It is also what makes the answer route need no token: the pending row is the binding.
    */
   if (loaded.pending) {
     const item = await d.store.getItem(loaded.pending.typeCode, loaded.pending.itemId);
     if (!item) throw notFound(`item ${loaded.pending.itemId} is no longer in the registry`);
-    const type = await d.store.getType(loaded.pending.typeCode);
-    return servedPayload(d, loaded.pending, item.content, type?.uiRequirement ?? null);
+    return ok(servedResponse(loaded.pending, item.content, toQbankState(sheetFor(loaded))));
   }
 
   const sheet = sheetFor(loaded);
@@ -193,7 +177,7 @@ async function nextItem(request: ApiRequest): Promise<ApiResponse> {
       new Date().toISOString(),
     );
     await d.store.putSheet(sheet, []);
-    return ok({ available: false, reason: sheet.stopReason, sheet });
+    return ok({ done: true, state: toQbankState(sheet) } satisfies NextResponse);
   }
 
   const ordinal = loaded.responses.length + 1;
@@ -207,8 +191,8 @@ async function nextItem(request: ApiRequest): Promise<ApiResponse> {
   const chosen = selectNext({ ...baseRequest, exposure, personaRecentItemIds: recent });
 
   if (!chosen) {
-    // Discovered here, because this is the only place that asks the pool for something. Scoring never
-    // has to reason about exhaustion.
+    // Discovered here, because this is the only place that asks the pool for something. Scoring never has
+    // to reason about exhaustion.
     const exhausted = sheetFor(loaded, { poolExhausted: true });
     await d.store.finishSession(
       sessionId,
@@ -217,14 +201,14 @@ async function nextItem(request: ApiRequest): Promise<ApiResponse> {
       new Date().toISOString(),
     );
     await d.store.putSheet(exhausted, []);
-    return ok({ available: false, reason: exhausted.stopReason, sheet: exhausted });
+    return ok({ done: true, state: toQbankState(exhausted) } satisfies NextResponse);
   }
 
   const { candidate, trace } = chosen;
   const item = await d.store.getItem(candidate.typeCode, candidate.itemId);
   if (!item) throw notFound(`item ${candidate.itemId} is in the snapshot but not the registry`);
 
-  const response: ResponseRecord = {
+  const record: ResponseRecord = {
     sessionId,
     ordinal,
     state: 'served',
@@ -247,11 +231,38 @@ async function nextItem(request: ApiRequest): Promise<ApiResponse> {
     answeredAt: null,
   };
 
-  await d.store.putServedResponse(response);
+  await d.store.putServedResponse(record);
   await d.store.incrementExposure(appId, candidate.itemId);
 
-  const type = await d.store.getType(candidate.typeCode);
-  return servedPayload(d, response, item.content, type?.uiRequirement ?? null);
+  return ok(servedResponse(record, item.content, toQbankState(sheet)));
+}
+
+/**
+ * The contract spreads the served fields at the top level rather than nesting them, and `served` is a
+ * `ServedItem` — the bank record without its answer or its scoring rule.
+ */
+function servedResponse(
+  record: ResponseRecord,
+  content: Record<string, unknown>,
+  state: ReturnType<typeof toQbankState>,
+): NextResponse {
+  return {
+    done: false,
+    served: {
+      itemId: record.itemId,
+      typeCode: record.typeCode,
+      domain: record.domain,
+      difficulty: record.difficulty,
+      ageBands: [],
+      content,
+    },
+    typeCode: record.typeCode,
+    domain: record.domain,
+    difficulty: record.difficulty,
+    informationAtThreshold: record.selection.informationAtThreshold,
+    selectionReason: record.selection.reason,
+    state,
+  } as NextResponse;
 }
 
 export async function handler(event: Record<string, unknown>): Promise<ApiResponse> {

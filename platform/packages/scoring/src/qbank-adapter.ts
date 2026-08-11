@@ -192,6 +192,69 @@ export function domainCountsOf(progress: Progress): Readonly<Record<DomainName, 
 }
 
 /**
+ * The stored sheet, as the wire contract's `QbankState`.
+ *
+ * The platform stores a richer sheet than the contract carries — it needs the per-domain probability above
+ * the bar, the unscorable split and the information accumulated, none of which are recoverable later. This
+ * narrows that back to what the contract describes, so a client written against `@gt/qbank` reads the same
+ * fields from this platform as from the Express prototype.
+ *
+ * The direction matters: the sheet is derived from a `QbankState` and then narrowed back to one, so nothing
+ * here computes a measurement. It selects fields.
+ */
+export function toQbankState(sheet: {
+  readonly stopped: boolean;
+  readonly stopReason: string | null;
+  readonly decision: string | null;
+  readonly passRoute: unknown;
+  readonly itemsServed: number;
+  readonly composite: {
+    readonly mean: number;
+    readonly interval: readonly [number, number];
+    readonly pAboveThreshold: number;
+    readonly itemsUnscorable: number;
+  };
+  readonly domains: Readonly<
+    Record<
+      string,
+      {
+        readonly mean: number;
+        readonly interval: readonly [number, number];
+        readonly itemsScored: number;
+      }
+    >
+  >;
+}): QbankState {
+  const domains: Record<string, unknown> = {};
+  const perDomain: Record<string, number> = {};
+  for (const [domain, estimate] of Object.entries(sheet.domains)) {
+    perDomain[domain] = estimate.itemsScored;
+    // The contract suppresses a domain nothing was scored in, matching `domainBandsFor`.
+    if (estimate.itemsScored === 0) continue;
+    domains[domain] = {
+      mean: estimate.mean,
+      interval: estimate.interval,
+      itemsServed: estimate.itemsScored,
+      itemsScored: estimate.itemsScored,
+    };
+  }
+
+  return {
+    stopped: sheet.stopped,
+    stopReason: sheet.stopReason,
+    pAbove: sheet.composite.pAboveThreshold,
+    decision: sheet.decision,
+    passRoute: sheet.passRoute,
+    itemsServed: sheet.itemsServed,
+    unscorable: sheet.composite.itemsUnscorable,
+    estimate: sheet.composite.mean,
+    interval: sheet.composite.interval,
+    perDomain,
+    domains,
+  } as unknown as QbankState;
+}
+
+/**
  * An app's configuration, as the engine expects it.
  *
  * The platform's `AppConfig` is the durable record a session freezes; `QbankSessionConfig` is what the

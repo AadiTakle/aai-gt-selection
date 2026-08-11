@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
+import { bankRoutes } from '@gt/qbank/wire';
 import { MAIN_TABLE_INDEXES } from '@platform/store';
 import { ApiStack } from './lib/api-stack.js';
 import { DataStack } from './lib/data-stack.js';
@@ -255,15 +256,40 @@ describe('routing', () => {
     const routes = apiTemplate.findResources('AWS::ApiGatewayV2::Route');
     const keys = Object.values(routes).map((r) => String(r.Properties?.RouteKey));
     for (const expected of [
-      'POST /v1/sessions',
-      'GET /v1/sessions/{sessionId}/next',
-      'POST /v1/sessions/{sessionId}/responses',
+      'GET /api/bank',
+      'POST /api/bank/sessions',
+      'GET /api/bank/sessions/{sessionId}/next',
+      'POST /api/bank/sessions/{sessionId}/answer',
       'GET /v1/sessions/{sessionId}/sheet',
       'GET /v1/catalog/types',
       'POST /v1/admin/catalog/publish',
     ]) {
       expect(keys).toContain(expected);
     }
+  });
+
+  /**
+   * The stack spells its paths out as literals, because API Gateway needs `{param}` where the contract's
+   * route builders produce a concrete URL. This is what keeps the two from drifting: a rename in
+   * `bankRoutes` fails here rather than at runtime.
+   */
+  it('agrees with the contract about where the bank routes live', () => {
+    const routes = apiTemplate.findResources('AWS::ApiGatewayV2::Route');
+    const keys = new Set(Object.values(routes).map((r) => String(r.Properties?.RouteKey)));
+
+    const templated = (built: string) => built.replace(/\/sessions\/[^/]+/, '/sessions/{sessionId}');
+    expect(keys).toContain(`GET ${bankRoutes.catalogue()}`);
+    expect(keys).toContain(`POST ${bankRoutes.createSession()}`);
+    expect(keys).toContain(`GET ${templated(bankRoutes.next('x'))}`);
+    expect(keys).toContain(`POST ${templated(bankRoutes.answer('x'))}`);
+  });
+
+  it('does not expose the operator debug route to an app key', () => {
+    const routes = apiTemplate.findResources('AWS::ApiGatewayV2::Route');
+    const keys = Object.values(routes).map((r) => String(r.Properties?.RouteKey));
+    // The contract's fifth route reports the posterior mean. It is deliberately not served here at all
+    // rather than served behind the app-key authorizer.
+    expect(keys.some((key) => key.includes('/debug'))).toBe(false);
   });
 });
 

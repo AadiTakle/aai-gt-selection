@@ -36,6 +36,14 @@ export interface SessionRecord {
   readonly resolvedConfig: AppConfig;
   readonly rngSeed: string;
   readonly ageBand: string | null;
+  /**
+   * A narrowing of the app's approved types, requested when the session was created.
+   *
+   * Null means the whole approved list. This is how a caller asks for one battery rather than the whole
+   * pool, and it is frozen onto the session for the same reason the config is: a session that could widen
+   * its own pool halfway through would be measuring against a moving blueprint.
+   */
+  readonly restrictedTypes: readonly string[] | null;
   readonly startedAt: string;
   readonly endedAt: string | null;
   readonly status: 'active' | 'stopped' | 'abandoned';

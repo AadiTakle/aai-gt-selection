@@ -18,6 +18,8 @@ export default defineConfig({
       // The screener packages are imported, never modified. Longest alias first so that
       // '@gt/qbank/server' is not swallowed by the '@gt/qbank' prefix.
       '@gt/qbank/server': join(screener, 'qbank/src/server.ts'),
+      // Import-type-only, so it reaches neither node:fs nor the DOM. Aliased ahead of the bare specifier.
+      '@gt/qbank/wire': join(screener, 'qbank/src/wire.ts'),
       // Subpath before the bare specifier, or '@gt/ui-contract' swallows it. Added when the qbank
       // engine started importing the CogAT map directly.
       '@gt/ui-contract/cogat': join(screener, 'ui-contract/src/cogat.ts'),

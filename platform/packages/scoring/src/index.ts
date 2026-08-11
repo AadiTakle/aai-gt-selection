@@ -15,6 +15,7 @@ export {
   toAttempts,
   toEngineConfig,
   toPool,
+  toQbankState,
   verdictFor,
 } from './qbank-adapter.js';
 export type { Coverage, EngineVerdict, ScoredResponse, TraceEntry } from './qbank-adapter.js';

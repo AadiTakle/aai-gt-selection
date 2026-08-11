@@ -7,9 +7,9 @@ import {
   configureSnapshotSource,
   deps,
   resetDeps,
-  signServedToken,
   type Deps,
 } from '@platform/shared';
+import { bankRoutes } from '@gt/qbank/wire';
 import { handler as adminHandler } from './admin/src/handler.js';
 import { publishCatalog } from './admin/src/publish.js';
 import { handler as catalogHandler } from './catalog/src/handler.js';
@@ -127,7 +127,12 @@ suite('the request path, end to end', () => {
     seed = 'fixed-test-seed',
   ): Promise<string> {
     const response = await serveHandler(
-      apiEvent({ method: 'POST', path: '/v1/sessions', appId, body: { ageBand: '3-5', ...body } }),
+      apiEvent({
+        method: 'POST',
+        path: bankRoutes.createSession(),
+        appId,
+        body: { ageBand: '3-5', ...body },
+      }),
     );
     expect(response.statusCode).toBe(201);
     const sessionId = JSON.parse(response.body).sessionId as string;
@@ -143,7 +148,7 @@ suite('the request path, end to end', () => {
     const response = await serveHandler(
       apiEvent({
         method: 'GET',
-        path: `/v1/sessions/${sessionId}/next`,
+        path: bankRoutes.next(sessionId),
         appId: asApp,
         pathParameters: { sessionId },
       }),
@@ -153,20 +158,31 @@ suite('the request path, end to end', () => {
 
   async function answer(
     sessionId: string,
-    servedToken: string,
     key: string,
     asApp = appId,
   ): Promise<Record<string, unknown>> {
     const response = await scoreHandler(
       apiEvent({
         method: 'POST',
-        path: `/v1/sessions/${sessionId}/responses`,
+        path: bankRoutes.answer(sessionId),
         appId: asApp,
         pathParameters: { sessionId },
-        body: { servedToken, response: { key }, latencyMs: 1200 },
+        body: { response: { key }, latencyMs: 4000 },
       }),
     );
     return { statusCode: response.statusCode, ...JSON.parse(response.body) };
+  }
+
+  async function readSheet(sessionId: string, asApp = appId): Promise<ScoreSheet> {
+    const response = await scoreHandler(
+      apiEvent({
+        method: 'GET',
+        path: `/v1/sessions/${sessionId}/sheet`,
+        appId: asApp,
+        pathParameters: { sessionId },
+      }),
+    );
+    return JSON.parse(response.body).sheet as ScoreSheet;
   }
 
   /** Drive a whole session, answering every item correctly. */
@@ -175,27 +191,19 @@ suite('the request path, end to end', () => {
     served: { itemId: string; typeCode: string }[];
   }> {
     const served: { itemId: string; typeCode: string }[] = [];
-    let sheet: ScoreSheet | null = null;
 
     for (let guard = 0; guard < 60; guard += 1) {
       const question = await next(sessionId);
-      if (question.available === false) {
-        sheet = question.sheet as ScoreSheet;
-        break;
-      }
-      const item = question.item as { itemId: string };
+      if (question.done === true) break;
+      const item = question.served as { itemId: string };
       served.push({ itemId: item.itemId, typeCode: question.typeCode as string });
-      const marked = await answer(
-        sessionId,
-        question.servedToken as string,
-        banks.keys.get(item.itemId) as string,
-      );
-      sheet = marked.sheet as ScoreSheet;
-      if (marked.stopped === true) break;
+      const marked = await answer(sessionId, banks.keys.get(item.itemId) as string);
+      if ((marked.state as { stopped: boolean }).stopped) break;
     }
 
-    if (!sheet) throw new Error('session produced no sheet');
-    return { sheet, served };
+    // The bank contract carries a `QbankState`, not a sheet. The sheet is the platform's own record and is
+    // read from the platform's own route.
+    return { sheet: await readSheet(sessionId), served };
   }
 
   // --- tests
@@ -314,133 +322,110 @@ suite('the request path, end to end', () => {
     it('sends no answer key, no item parameters and no scoring mode', async () => {
       const sessionId = await startSession();
       const question = await next(sessionId);
-      const serialised = JSON.stringify(question.item);
+      const serialised = JSON.stringify(question.served);
 
       for (const forbidden of ['correctKey', 'distractorRationales', 'scoringMode', 'params']) {
         expect(serialised).not.toContain(forbidden);
       }
-      expect(question.uiRequirement).toBeDefined();
-      expect(question.servedToken).toBeTypeOf('string');
+      // The contract carries no token: the pending response row is the binding.
+      expect(question.servedToken).toBeUndefined();
+      expect(question.state).toBeDefined();
     });
 
     it('exposes the selection reason, so a sequence can be explained afterwards', async () => {
       const question = await next(await startSession());
-      const selection = question.selection as Record<string, unknown>;
-      expect(selection.layer).toBeTypeOf('string');
-      expect(selection.informationAtThreshold).toBeTypeOf('number');
-      expect(selection.candidatePoolSize).toBeGreaterThan(0);
+      // The contract's own fields, spread at the top level of a serve.
+      expect(question.selectionReason).toBeTypeOf('string');
+      expect(question.informationAtThreshold).toBeTypeOf('number');
+      expect(question.difficulty).toBeTypeOf('number');
     });
   });
 
-  describe('idempotency', () => {
+  describe('idempotency, and the binding that replaced the token', () => {
     it('re-issues the same question when next is called twice', async () => {
       const sessionId = await startSession();
       const first = await next(sessionId);
       const second = await next(sessionId);
-      expect((second.item as { itemId: string }).itemId).toBe(
-        (first.item as { itemId: string }).itemId,
+      expect((second.served as { itemId: string }).itemId).toBe(
+        (first.served as { itemId: string }).itemId,
       );
-      expect(second.ordinal).toBe(first.ordinal);
     });
 
-    it('returns the stored sheet on a replayed answer without moving the posterior', async () => {
+    /**
+     * What the served-item token used to protect.
+     *
+     * The client is no longer asked which item it answered, so it cannot claim a different one: the server
+     * reads the row it left in `served` state. These tests assert the property the token existed for, now
+     * held by the trace instead.
+     */
+    it('answers whatever is pending, not whatever the body claims', async () => {
       const sessionId = await startSession();
       const question = await next(sessionId);
-      const itemId = (question.item as { itemId: string }).itemId;
-      const token = question.servedToken as string;
+      const pendingId = (question.served as { itemId: string }).itemId;
 
-      const first = await answer(sessionId, token, banks.keys.get(itemId) as string);
-      const replay = await answer(sessionId, token, banks.keys.get(itemId) as string);
+      const response = await scoreHandler(
+        apiEvent({
+          method: 'POST',
+          path: bankRoutes.answer(sessionId),
+          appId,
+          pathParameters: { sessionId },
+          // A body naming another item, and an ordinal that is not the pending one.
+          body: { response: { key: 'A' }, itemId: 'some-other-item', ordinal: 99 },
+        }),
+      );
+      expect(response.statusCode).toBe(200);
 
-      expect(replay.replayed).toBe(true);
-      const firstSheet = first.sheet as ScoreSheet;
-      const replaySheet = replay.sheet as ScoreSheet;
-      expect(replaySheet.composite.itemsScored).toBe(firstSheet.composite.itemsScored);
-      expect(replaySheet.composite.mean).toBeCloseTo(firstSheet.composite.mean, 12);
+      const trace = await d.store.listResponses(sessionId);
+      const answered = trace.filter((r) => r.state === 'answered');
+      expect(answered).toHaveLength(1);
+      expect(answered[0]?.itemId).toBe(pendingId);
+    });
+
+    it('refuses an answer when nothing is pending', async () => {
+      const sessionId = await startSession();
+      const response = await scoreHandler(
+        apiEvent({
+          method: 'POST',
+          path: bankRoutes.answer(sessionId),
+          appId,
+          pathParameters: { sessionId },
+          body: { response: { key: 'A' } },
+        }),
+      );
+      // A session that has served nothing has nothing to answer, and inventing an ordinal for it would
+      // put a response in the trace against no item.
+      expect(response.statusCode).toBe(409);
+    });
+
+    it('does not let a second answer move the posterior', async () => {
+      const sessionId = await startSession();
+      const question = await next(sessionId);
+      const itemId = (question.served as { itemId: string }).itemId;
+
+      const first = await answer(sessionId, banks.keys.get(itemId) as string);
+      const replay = await answer(sessionId, banks.keys.get(itemId) as string);
+
+      const firstState = first.state as { estimate: number; itemsServed: number };
+      const replayState = replay.state as { estimate: number; itemsServed: number };
+      expect(replayState.estimate).toBeCloseTo(firstState.estimate, 12);
+      expect(replayState.itemsServed).toBe(firstState.itemsServed);
+
+      const trace = await d.store.listResponses(sessionId);
+      expect(trace.filter((r) => r.state === 'answered')).toHaveLength(1);
     });
 
     it('does not let a replay flip a wrong answer into a right one', async () => {
       const sessionId = await startSession();
       const question = await next(sessionId);
-      const itemId = (question.item as { itemId: string }).itemId;
+      const itemId = (question.served as { itemId: string }).itemId;
       const correct = banks.keys.get(itemId) as string;
       const wrong = correct === 'A' ? 'B' : 'A';
-      const token = question.servedToken as string;
 
-      await answer(sessionId, token, wrong);
-      await answer(sessionId, token, correct);
+      await answer(sessionId, wrong);
+      await answer(sessionId, correct);
 
       const trace = await d.store.listResponses(sessionId);
       expect(trace.find((r) => r.itemId === itemId)?.correct).toBe(false);
-    });
-  });
-
-  describe('the served token is the trust boundary', () => {
-    it('refuses a token minted for another session', async () => {
-      const a = await startSession();
-      const b = await startSession();
-      const question = await next(a);
-      const response = await scoreHandler(
-        apiEvent({
-          method: 'POST',
-          path: `/v1/sessions/${b}/responses`,
-          appId,
-          pathParameters: { sessionId: b },
-          body: { servedToken: question.servedToken, response: { key: 'A' } },
-        }),
-      );
-      expect(response.statusCode).toBe(403);
-    });
-
-    it('refuses an expired token', async () => {
-      const sessionId = await startSession();
-      const question = await next(sessionId);
-      const expired = signServedToken(
-        {
-          sessionId,
-          ordinal: question.ordinal as number,
-          itemId: (question.item as { itemId: string }).itemId,
-          itemRevision: 1,
-          expiresAt: Date.now() - 1000,
-        },
-        'test-secret-for-served-tokens',
-      );
-      const response = await scoreHandler(
-        apiEvent({
-          method: 'POST',
-          path: `/v1/sessions/${sessionId}/responses`,
-          appId,
-          pathParameters: { sessionId },
-          body: { servedToken: expired, response: { key: 'A' } },
-        }),
-      );
-      expect(response.statusCode).toBe(403);
-      expect(JSON.parse(response.body).error).toMatch(/expired/);
-    });
-
-    it('refuses a token signed with the wrong secret', async () => {
-      const sessionId = await startSession();
-      const question = await next(sessionId);
-      const forged = signServedToken(
-        {
-          sessionId,
-          ordinal: question.ordinal as number,
-          itemId: (question.item as { itemId: string }).itemId,
-          itemRevision: 1,
-          expiresAt: Date.now() + 60_000,
-        },
-        'not-the-secret',
-      );
-      const response = await scoreHandler(
-        apiEvent({
-          method: 'POST',
-          path: `/v1/sessions/${sessionId}/responses`,
-          appId,
-          pathParameters: { sessionId },
-          body: { servedToken: forged, response: { key: 'A' } },
-        }),
-      );
-      expect(response.statusCode).toBe(403);
     });
   });
 
@@ -493,12 +478,11 @@ suite('the request path, end to end', () => {
 
       for (let i = 0; i < 6; i += 1) {
         const question = await next(sessionId, quantAppId);
-        if (question.available === false) break;
+        if (question.done === true) break;
         expect(question.typeCode).toBe(onlyType);
         await answer(
           sessionId,
-          question.servedToken as string,
-          banks.keys.get((question.item as { itemId: string }).itemId) as string,
+          banks.keys.get((question.served as { itemId: string }).itemId) as string,
           quantAppId,
         );
       }
@@ -570,11 +554,7 @@ suite('the request path, end to end', () => {
     it('closes a session and keeps the trace it had', async () => {
       const sessionId = await startSession();
       const question = await next(sessionId);
-      await answer(
-        sessionId,
-        question.servedToken as string,
-        banks.keys.get((question.item as { itemId: string }).itemId) as string,
-      );
+      await answer(sessionId, banks.keys.get((question.served as { itemId: string }).itemId) as string);
 
       const response = await scoreHandler(
         apiEvent({
@@ -584,7 +564,8 @@ suite('the request path, end to end', () => {
           pathParameters: { sessionId },
         }),
       );
-      const sheet = JSON.parse(response.body).sheet as ScoreSheet;
+      expect((JSON.parse(response.body).state as { stopReason: string }).stopReason).toBe('abandoned');
+      const sheet = await readSheet(sessionId);
       expect(sheet.stopReason).toBe('abandoned');
       expect(sheet.composite.itemsScored).toBe(1);
       expect((await d.store.getSession(sessionId))?.status).toBe('abandoned');
@@ -600,7 +581,7 @@ suite('the request path, end to end', () => {
           pathParameters: { sessionId },
         }),
       );
-      expect((await next(sessionId)).available).toBe(false);
+      expect((await next(sessionId)).done).toBe(true);
     });
   });
 

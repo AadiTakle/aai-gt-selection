@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  SERVED_TOKEN_TTL_MS,
-  TokenError,
-  signServedToken,
-  verifyServedToken,
-  type ServedTokenClaims,
-} from './token.js';
-import {
   HttpError,
   parseJsonBody,
   requireAppId,
@@ -16,71 +9,14 @@ import {
   notFound,
 } from './http.js';
 
-const SECRET = 'test-signing-secret';
-
-function claims(overrides: Partial<ServedTokenClaims> = {}): ServedTokenClaims {
-  return {
-    sessionId: 'sess-1',
-    ordinal: 3,
-    itemId: 'item-9',
-    itemRevision: 2,
-    expiresAt: Date.now() + SERVED_TOKEN_TTL_MS,
-    ...overrides,
-  };
-}
-
-describe('served item tokens', () => {
-  it('round trips the claims it was given', () => {
-    const original = claims();
-    expect(verifyServedToken(signServedToken(original, SECRET), SECRET)).toEqual(original);
-  });
-
-  it('rejects a token signed with a different secret', () => {
-    const token = signServedToken(claims(), 'other-secret');
-    expect(() => verifyServedToken(token, SECRET)).toThrow(TokenError);
-  });
-
-  it('rejects a tampered payload', () => {
-    const token = signServedToken(claims(), SECRET);
-    const [payload, signature] = token.split('.') as [string, string];
-    const forged = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as ServedTokenClaims;
-    const tampered = Buffer.from(JSON.stringify({ ...forged, itemId: 'item-i-prefer' })).toString(
-      'base64url',
-    );
-    expect(() => verifyServedToken(`${tampered}.${signature}`, SECRET)).toThrow(
-      /signature does not verify/,
-    );
-  });
-
-  it('rejects an expired token', () => {
-    const token = signServedToken(claims({ expiresAt: Date.now() - 1 }), SECRET);
-    expect(() => verifyServedToken(token, SECRET)).toThrow(/expired/);
-  });
-
-  it('rejects a malformed token rather than throwing something unhelpful', () => {
-    for (const bad of ['', 'nodot', 'a.b.c']) {
-      expect(() => verifyServedToken(bad, SECRET)).toThrow(TokenError);
-    }
-  });
-
-  it('rejects a signature of the wrong length without throwing from timingSafeEqual', () => {
-    const token = signServedToken(claims(), SECRET);
-    const [payload] = token.split('.') as [string];
-    expect(() => verifyServedToken(`${payload}.QQ`, SECRET)).toThrow(
-      /signature does not verify/,
-    );
-  });
-
-  it('refuses to sign or verify with an empty secret', () => {
-    expect(() => signServedToken(claims(), '')).toThrow(/empty secret/);
-    expect(() => verifyServedToken('a.b', '')).toThrow(/empty secret/);
-  });
-
-  it('binds the ordinal, so a token cannot be replayed into another slot', () => {
-    const token = signServedToken(claims({ ordinal: 3 }), SECRET);
-    expect(verifyServedToken(token, SECRET).ordinal).toBe(3);
-  });
-});
+/**
+ * The served-item token used to live here.
+ *
+ * It signed which item a session had been handed, because the client told the server what it was answering
+ * and that claim could not be trusted. With the trace held server-side the pending response row is already
+ * that binding, so the HMAC, its expiry and their tests were deleted rather than carried. See
+ * docs/design/platform-qbank-reconciliation.md section 5.2.
+ */
 
 describe('request parsing', () => {
   it('reads an API Gateway HTTP API 2.0 event', () => {

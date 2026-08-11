@@ -6,7 +6,7 @@ import {
   type ScoreSheet,
   type SessionRecord,
 } from '@platform/domain';
-import { computeSheet, toEngineConfig, type TraceEntry } from '@platform/scoring';
+import { computeSheet, toEngineConfig, toQbankState, type TraceEntry } from '@platform/scoring';
 import { eligible, type SelectionIndex, type SelectionRequest } from '@platform/selection';
 import type { Deps } from './deps.js';
 import { forbidden, notFound } from './http.js';
@@ -26,8 +26,11 @@ export interface LoadedSession {
   readonly answered: readonly ResponseRecord[];
   /** The response already served and awaiting an answer, if there is one. */
   readonly pending: ResponseRecord | null;
+  /** The app's approvals, narrowed by whatever the session restricted itself to at creation. */
   readonly approvedTypes: ReadonlySet<string>;
   readonly index: SelectionIndex;
+  /** How many items this session could still be offered, which the contract reports as `poolSize`. */
+  readonly eligibleCount: number;
 }
 
 export async function loadSession(
@@ -59,16 +62,29 @@ export async function loadSession(
    * action you take when a type turns out to be broken, and it has to take effect on the next
    * question rather than after every open session drains.
    */
-  const approvedTypes = new Set(await d.store.listApprovedTypes(session.appId));
+  const approved = await d.store.listApprovedTypes(session.appId);
+  /**
+   * The session's own restriction is intersected with the app's live approvals, not substituted for them.
+   *
+   * A type revoked from the app after a session began stops being served to it, which is the point of
+   * reading approvals live. A restriction the session asked for cannot widen that.
+   */
+  const restricted = session.restrictedTypes;
+  const approvedTypes = new Set(
+    restricted ? approved.filter((code) => restricted.includes(code)) : approved,
+  );
 
-  return {
+  const loaded: LoadedSession = {
     session,
     responses,
     answered: responses.filter((r) => r.state === 'answered'),
     pending: responses.find((r) => r.state === 'served') ?? null,
     approvedTypes,
     index,
+    eligibleCount: 0,
   };
+
+  return { ...loaded, eligibleCount: eligible(selectionRequestFor(loaded, 1)).length };
 }
 
 /**
@@ -78,6 +94,8 @@ export async function loadSession(
  * difficulties is a deliberate act rather than an accident of read ordering — and so an item that has
  * since left the pool still contributes its evidence.
  */
+export { toQbankState };
+
 export function toTrace(answered: readonly ResponseRecord[]): TraceEntry[] {
   return answered.map((r) => ({
     ordinal: r.ordinal,

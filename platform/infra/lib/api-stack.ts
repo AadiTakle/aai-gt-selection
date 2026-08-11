@@ -172,10 +172,19 @@ export class ApiStack extends Stack {
     route('/v1/catalog/types/{typeCode}', HttpMethod.GET, this.catalogFn, 'CatalogType');
     route('/v1/catalog/app', HttpMethod.GET, this.catalogFn, 'CatalogApp');
 
-    route('/v1/sessions', HttpMethod.POST, this.serveFn, 'CreateSession');
-    route('/v1/sessions/{sessionId}/next', HttpMethod.GET, this.serveFn, 'NextItem');
+    /**
+     * The bank contract, as `@gt/qbank`'s `bankRoutes` declares it.
+     *
+     * Paths are spelled out here rather than built from `bankRoutes`, because CDK needs literals with
+     * API Gateway's `{param}` syntax and the route builders produce concrete URLs. `infra.test.ts`
+     * asserts the two agree, so a contract change fails the build rather than the game.
+     */
+    route('/api/bank', HttpMethod.GET, this.catalogFn, 'BankCatalogue');
+    route('/api/bank/sessions', HttpMethod.POST, this.serveFn, 'CreateSession');
+    route('/api/bank/sessions/{sessionId}/next', HttpMethod.GET, this.serveFn, 'NextItem');
+    route('/api/bank/sessions/{sessionId}/answer', HttpMethod.POST, this.scoreFn, 'AnswerItem');
 
-    route('/v1/sessions/{sessionId}/responses', HttpMethod.POST, this.scoreFn, 'SubmitResponse');
+    // Outside the bank contract, which has no notion of either.
     route('/v1/sessions/{sessionId}/abandon', HttpMethod.POST, this.scoreFn, 'AbandonSession');
     route('/v1/sessions/{sessionId}/sheet', HttpMethod.GET, this.scoreFn, 'ReadSheet');
 
