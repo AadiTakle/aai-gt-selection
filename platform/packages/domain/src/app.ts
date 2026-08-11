@@ -31,7 +31,15 @@ export interface VarietyConfig {
   readonly earlyItemCount: number;
   /** Damp an item's information by 1 / (1 + times its type has been served). */
   readonly sameTypeDamping: boolean;
-  /** Prefer a different domain when an alternative is within this relative information loss. */
+  /**
+   * Prefer a different domain when an alternative is within this relative information loss.
+   *
+   * Measured, and re-measured once the guessing floors were corrected. At 0.10 the layer worked while
+   * every item was assumed to have four options; once probe sets and cell sets got their real floors the
+   * information landscape spread out, off-domain alternatives stopped landing within 10%, and same-domain
+   * adjacency drifted from 0% back up to 24.8% — chance level for four domains, meaning the layer had
+   * quietly stopped doing anything. At 0.30 it returns to 0% for about 0.03 items per decision.
+   */
   readonly domainInterleaveTolerance: number;
   /** No item should appear in more than this fraction of an app's sessions. Zero disables. */
   readonly targetExposureRate: number;
@@ -66,7 +74,7 @@ export const DEFAULT_VARIETY_CONFIG: VarietyConfig = {
   earlyKFraction: 0.1,
   earlyItemCount: 3,
   sameTypeDamping: true,
-  domainInterleaveTolerance: 0.1,
+  domainInterleaveTolerance: 0.3,
   targetExposureRate: 0.2,
   exposureDampingExponent: 3,
   openingJitterLogits: 0.5,

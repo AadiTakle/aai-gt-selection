@@ -341,6 +341,14 @@ const policies: readonly { label: string; variety: VarietyConfig }[] = [
     label: 'no type damping',
     variety: { ...DEFAULT_VARIETY_CONFIG, sameTypeDamping: false },
   },
+  {
+    label: 'interleave tol 0.30',
+    variety: { ...DEFAULT_VARIETY_CONFIG, domainInterleaveTolerance: 0.3 },
+  },
+  {
+    label: 'interleave tol 0.60',
+    variety: { ...DEFAULT_VARIETY_CONFIG, domainInterleaveTolerance: 0.6 },
+  },
 ];
 
 const reports = [baseline, ...policies.map((p) => runPolicy(p.label, index, approvedTypes, sessions, p.variety, selectNext))];

@@ -64,7 +64,7 @@ export interface ResponseRecord {
   readonly difficulty: number;
   /** The parameters in force at serve time, not at read time. */
   readonly params: ItemParameters;
-  readonly optionCount: number;
+  readonly optionCount: number | null;
   readonly rawResponse: unknown;
   /** Null when the platform could not mark it. Null moves no evidence. */
   readonly correct: boolean | null;

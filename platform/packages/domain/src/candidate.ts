@@ -19,7 +19,8 @@ export interface SelectionCandidate {
   readonly params: ItemParameters;
   /** Authoring difficulty, carried for the response record and for debugging. */
   readonly difficulty: number;
-  readonly optionCount: number;
+  /** Null when the item's content does not imply a fixed number of answers; then `params.c` is zero. */
+  readonly optionCount: number | null;
   readonly ageBands: readonly string[];
   readonly scoringMode: ScoringMode;
   /**

@@ -3,7 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-import { toLogits } from '@gt/qbank/server';
+import {
+  loadBanks,
+  optionCountOf,
+  paramsForRecord,
+  toLogits,
+  type BankRecord,
+} from '@gt/qbank/server';
 import { parseTypeCode } from '@platform/domain';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -202,11 +208,47 @@ describe('type records', () => {
 });
 
 describe('item parameters', () => {
-  it('rescales the authoring difficulty exactly as the prototype engine does', () => {
+  /**
+   * Parameters are the engine's, item for item.
+   *
+   * This is the assertion that keeps selection honest: the platform selects on `params`, the engine selects
+   * on `paramsForRecord`, and if those ever diverge the two disagree about what a question is worth. An
+   * earlier version of this test compared against a local derivation that assumed four options, which agreed
+   * with the engine on 4,116 of 4,934 items and was wrong about the other 818.
+   */
+  it('carries exactly the parameters the engine would compute', () => {
+    const byId = new Map<string, BankRecord>();
+    for (const bank of loadBanks().values()) {
+      for (const record of bank.scorable) byId.set(record.itemId, record);
+    }
+
     for (const item of compiled.items) {
+      const record = byId.get(item.itemId);
+      expect(record).toBeDefined();
+      const expected = paramsForRecord(record as BankRecord);
+      expect(item.params.b).toBe(expected.b);
+      expect(item.params.a).toBe(expected.a);
+      expect(item.params.c).toBe(expected.c);
       expect(item.params.b).toBe(toLogits(item.difficulty));
       expect(item.params.a).toBe(DEFAULT_DISCRIMINATION);
-      expect(item.params.c).toBe(1 / item.optionCount);
+      expect(item.optionCount).toBe(optionCountOf(record as BankRecord));
+    }
+  });
+
+  it('reads a guessing floor from a probe set rather than assuming four options', () => {
+    // CX-check-01 is six or eight independent probes: 64 or 256 answers, not 4.
+    const probes = compiled.items.filter((item) => item.typeCode === 'CX-check-01');
+    expect(probes.length).toBeGreaterThan(0);
+    expect(probes.some((item) => (item.optionCount ?? 0) >= 64)).toBe(true);
+    for (const item of probes) expect(item.params.c).toBeLessThan(0.05);
+  });
+
+  it('treats a cell-set item as unguessable rather than one-in-four', () => {
+    const punch = compiled.items.filter((item) => item.typeCode === 'SPA-PUNCH-01');
+    expect(punch.length).toBeGreaterThan(0);
+    for (const item of punch) {
+      expect(item.optionCount).toBeNull();
+      expect(item.params.c).toBe(0);
     }
   });
 
@@ -220,23 +262,33 @@ describe('item parameters', () => {
     expect(alternate.items).toHaveLength(EXPECTED_SCORABLE);
   });
 
-  it('takes the option count from the content, and assumes four when there is no list', () => {
-    let derived = 0;
-    let assumed = 0;
+  it('counts the answers an item admits, and says null when its content cannot tell', () => {
+    let counted = 0;
+    let unknown = 0;
+    let beyondItsOptionList = 0;
+
     for (const item of compiled.items) {
-      const options = item.content['options'];
-      if (Array.isArray(options) && options.length > 0) {
-        expect(item.optionCount).toBe(options.length);
-        derived += 1;
-      } else {
-        expect(item.optionCount).toBe(DEFAULT_OPTION_COUNT);
-        assumed += 1;
+      if (item.optionCount === null) {
+        // Null is meaningful: it is what makes the item unguessable.
+        expect(item.params.c).toBe(0);
+        unknown += 1;
+        continue;
       }
+      expect(item.optionCount).toBeGreaterThan(0);
+      expect(item.params.c).toBe(1 / item.optionCount);
+      counted += 1;
+
+      const options = item.content['options'];
+      const listed = Array.isArray(options) ? options.length : 0;
+      if (item.optionCount > Math.max(listed, 1)) beyondItsOptionList += 1;
     }
-    // Both branches are exercised by the real library: nine types are constructed, not chosen.
-    expect(derived).toBeGreaterThan(0);
-    expect(assumed).toBeGreaterThan(0);
-    expect(derived + assumed).toBe(EXPECTED_SCORABLE);
+
+    expect(counted).toBeGreaterThan(0);
+    expect(unknown).toBeGreaterThan(0);
+    expect(counted + unknown).toBe(EXPECTED_SCORABLE);
+    // The reason a local derivation was not good enough: many items admit far more answers than they
+    // list options, because the answer is a combination rather than a choice.
+    expect(beyondItsOptionList).toBeGreaterThan(0);
   });
 
   it('finds option counts other than the default, so the derivation is doing work', () => {
@@ -458,13 +510,16 @@ describe('a bank directory other than the library', () => {
     expect(local.stats.itemCount).toBe(3);
   });
 
-  it('derives the option count per item and falls back on an absent or empty list', () => {
+  it('counts a listed set of options, and refuses to invent one that is absent or empty', () => {
     const byId = new Map(local.items.map((item) => [item.itemId, item]));
     expect(byId.get('three')?.optionCount).toBe(3);
     expect(byId.get('three')?.params.c).toBe(1 / 3);
-    expect(byId.get('none')?.optionCount).toBe(DEFAULT_OPTION_COUNT);
-    expect(byId.get('empty')?.optionCount).toBe(DEFAULT_OPTION_COUNT);
-    expect(byId.get('empty')?.params.c).toBe(0.25);
+    // No list, so no count, so no guessing floor. Assuming four here was wrong for 818 of the real
+    // library's items and is exactly the assumption this stopped making.
+    expect(byId.get('none')?.optionCount).toBeNull();
+    expect(byId.get('none')?.params.c).toBe(0);
+    expect(byId.get('empty')?.optionCount).toBeNull();
+    expect(byId.get('empty')?.params.c).toBe(0);
   });
 
   it('keeps the non-key part of the answer block', () => {

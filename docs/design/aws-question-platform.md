@@ -448,17 +448,27 @@ Against the **real compiled catalog** — 4,534 scorable items across the 32 typ
 1,000 simulated children drawn from a standard normal, answering per the same 3PL the engine scores
 with. `platform/scripts/simulate-variety.ts` produces this table.
 
+Re-measured on 2026-08-10 after two corrections: the catalog now holds 4,934 scorable items, and item
+parameters come from the engine's `paramsForRecord` rather than a local derivation that assumed four
+options (which was wrong for 818 of them). 400 children.
+
 | Property | Deterministic argmax | With variety (defaults) |
 |---|---|---|
-| Mean items to a decision | 10.16 | 10.37 |
-| **Accuracy against the child's true ability** | **0.920** | **0.920** |
-| Sensitivity / specificity | 0.835 / 0.937 | 0.805 / 0.943 |
-| Distinct opening items across 1,000 sessions | **1** | 406 |
-| Most common opening, as a share of sessions | **100%** | 0.7% |
-| Highest exposure rate of any item | **1.000** | 0.204 |
-| **Distinct items the whole cohort touched, of 4,534** | **16** | 506 |
-| Adjacent pairs repeating a domain | **51.0%** | 0.0% |
-| Largest share of a session taken by one type | **60.4%** | 10.5% |
+| Mean items to a decision | 9.97 | 10.15 |
+| **Accuracy against the child's true ability** | 0.932 | **0.945** |
+| Sensitivity / specificity | 0.741 / 0.962 | **0.796** / **0.968** |
+| Distinct opening items across 400 sessions | **1** | 285 |
+| Most common opening, as a share of sessions | **100%** | 1.5% |
+| Highest exposure rate of any item | **1.000** | 0.200 |
+| **Distinct items the whole cohort touched, of 4,934** | **16** | 560 |
+| Adjacent pairs repeating a domain | **37.7%** | 0.0% |
+| Largest share of a session taken by one type | **50.3%** | 10.7% |
+
+**Variety is now better than free, not merely close to it.** With the guessing floors corrected it beats
+the deterministic engine on accuracy against known ability, 0.945 against 0.932, and on sensitivity,
+0.796 against 0.741. The reason is that correcting the floors made probe-set and cell-set items far more
+informative than they had been claimed to be, and an argmax that fixates on sixteen items never reaches
+them while a sampled band does.
 
 The first column is the honest statement of the problem, and it is worse than "sessions look alike."
 A thousand children between them see **sixteen questions**. One item appears in every session. One

@@ -28,7 +28,14 @@ export interface RegistryItem {
   /** On the bank's own 1 to 20 authoring scale. `params.b` is the same quantity in logits. */
   readonly difficulty: number;
   readonly params: ItemParameters;
-  readonly optionCount: number;
+  /**
+   * How many distinct answers the item admits, or null when that cannot be determined from its content.
+   *
+   * Null is not a missing value to paper over: it is what makes `params.c` zero, meaning the item cannot be
+   * guessed. A cell-set item where any subset of a grid is a possible answer has no small option count, and
+   * assuming one would tell the model a child had a one-in-four chance of tapping the right eight squares.
+   */
+  readonly optionCount: number | null;
   readonly ageBands: readonly string[];
   readonly scoringMode: ScoringMode;
   /** Everything a renderer needs. Never an answer. */
@@ -45,7 +52,8 @@ export interface ServedQuestion {
   readonly domain: DomainName;
   readonly difficulty: number;
   readonly ageBands: readonly string[];
-  readonly optionCount: number;
+  /** Null when the item's content does not imply a fixed number of answers. */
+  readonly optionCount: number | null;
   readonly content: Record<string, unknown>;
 }
 

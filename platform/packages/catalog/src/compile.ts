@@ -1,4 +1,12 @@
-import { domainOf, loadBanks, toLogits, type BankRecord, type LoadedBank } from '@gt/qbank/server';
+import {
+  domainOf,
+  loadBanks,
+  optionCountOf,
+  paramsForRecord,
+  toLogits,
+  type BankRecord,
+  type LoadedBank,
+} from '@gt/qbank/server';
 import {
   scrubContent,
   tryParseTypeCode,
@@ -135,11 +143,9 @@ function titleFor(family: string): string {
  * A zero-length list is treated as absent rather than propagated, because `c = 1 / 0` is infinite
  * and would make the item look infinitely guessable to the information calculation.
  */
-function optionCountOf(record: BankRecord): number {
-  const options = (record.content ?? {})['options'];
-  if (!Array.isArray(options) || options.length === 0) return DEFAULT_OPTION_COUNT;
-  return options.length;
-}
+/**
+ * Deliberately not implemented here. See the note on `params` below.
+ */
 
 /**
  * Which scoring modes a type actually contains.
@@ -220,14 +226,27 @@ export function compileCatalog(opts: CompileOptions): CompiledCatalog {
     }
 
     for (const record of bank.scorable) {
+      /**
+       * Parameters come from the engine, not from here.
+       *
+       * This used to count `content.options` and assume four when it could not tell. Measured against the
+       * real banks that was wrong for 818 of 4,934 items: `CX-check-01` is a set of six or eight independent
+       * probes, so it admits 64 or 256 answers and its guessing floor is 0.016, not the 0.25 being asserted
+       * — a fifteenfold overstatement of how guessable it is, which suppresses the information those items
+       * carry and quietly biases selection away from them. A further 140 cell-set items are not guessable at
+       * all, where a floor of 0.25 claims a child has a one-in-four chance of tapping the right eight squares.
+       *
+       * `optionCountOf` knows about probe sets, steppers, grids and bin spaces, and says null rather than
+       * guessing. One definition of what an item is worth, and it is the one the engine selects on.
+       */
       const optionCount = optionCountOf(record);
+      const engineParams = paramsForRecord(record);
       // The item and its selection candidate share these objects rather than each holding a copy.
-      // Both fields are readonly and nothing downstream mutates them, and sharing states the
-      // invariant that matters: the index cannot drift from the item it stands for.
       const params: ItemParameters = {
-        b: toLogits(record.difficulty),
-        a: discrimination,
-        c: 1 / optionCount,
+        b: engineParams.b,
+        // The engine fixes discrimination at 1.5; the option exists so a caller can explore alternatives.
+        a: discrimination ?? engineParams.a,
+        c: engineParams.c,
       };
       const domain = domainOf(record);
       const ageBands = record.ageBands ?? [];
