@@ -2,6 +2,7 @@ import {
   KEEPER_EYE,
   chainSegment,
   pushOut,
+  toLocal,
   toWorld,
   type P2,
   type Placed,
@@ -233,12 +234,7 @@ export const DOOR_SIDES: readonly (1 | -1)[] = [-1, 1];
 
 /** True when a point is inside the barn's footprint, with a little padding. */
 export function insideBarn(x: number, z: number, pad = 0.5): boolean {
-  const c = Math.cos(BARN.rot);
-  const s = Math.sin(BARN.rot);
-  const dx = x - BARN.x;
-  const dz = z - BARN.z;
-  const lx = dx * c - dz * s;
-  const lz = dx * s + dz * c;
+  const [lx, lz] = toLocal(BARN, x, z);
   return Math.abs(lx) < BARN_W / 2 + pad && Math.abs(lz) < BARN_D / 2 + pad;
 }
 

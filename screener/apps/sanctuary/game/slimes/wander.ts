@@ -79,6 +79,21 @@ export interface WanderState {
   walked: number;
 
   /* animation outputs, read by the component and written only here */
+  /**
+   * THE HEIGHT OF THE GROUND UNDER IT, in world metres. Not an animation output: where it is standing.
+   *
+   * THE OWNER'S REPORT: "when i drop slimes in the barn, they lowkey sink through the floor." The barn's
+   * floor is 7cm above the meadow — a floor at exactly zero z-fights with a meadow at exactly zero — and a
+   * slime's y used to be whatever it was handed at PLACEMENT and never moved again, while x and z moved every
+   * frame. So a slime placed in the barn stood 7cm inside the boards, and one that wandered out of the barn
+   * would have stayed 7cm up over the grass.
+   *
+   * It is resolved from the FINAL x and z of every step, after the clamps and the push-outs, which is the
+   * whole reason it lives in here rather than at the render site: this is the one function that produces a
+   * slime's position, so a height resolved at the end of it cannot disagree with the position it belongs to.
+   * `ground` is where the number comes from.
+   */
+  groundY: number;
   /** Height off the ground, in body units. */
   bob: number;
   /** Vertical scale multiplier. Volume is preserved by the component, not here. */
@@ -115,6 +130,25 @@ export interface WanderState {
   clock: number;
   hop: number;
   rng: () => number;
+  /**
+   * HOW HIGH THE GROUND IS AT A POINT. Injected, defaulting to a flat world at zero.
+   *
+   * A fact about the WORLD held on the individual, which is worth defending because `bounds` — also a fact
+   * about the world — is passed in per step instead. The difference is who has to maintain it: `groundY` must
+   * agree with x and z after EVERY mutation of them, and x and z are mutated by birth, by a reseat, by a step
+   * and by three clamps. Held here, one private helper keeps the invariant and no caller can forget it;
+   * passed per step, a slime is a frame stale every time it is born or set down somewhere new, and a
+   * seven-centimetre pop on the frame a child watches their slime land is precisely the defect being fixed.
+   *
+   * Injected rather than imported because nothing in `slimes/` may depend on `world/` — see the note at the
+   * top of `ground.ts`. The default keeps every preview page and every portrait on a flat plane at zero.
+   */
+  ground: (x: number, z: number) => number;
+}
+
+/** The ground under a slime, kept in step with its position. The only writer of `groundY`. */
+function settleGround(s: WanderState): void {
+  s.groundY = s.ground(s.x, s.z);
 }
 
 /* ============================================================================
@@ -176,6 +210,8 @@ export function createWander(opts: {
   bounds: WanderBounds;
   /** How far it may get from where it is being born. Default unlimited; see `ROAM` in `ground.ts`. */
   roam?: number | undefined;
+  /** How high the ground is, if the world it is being born into has any relief. Default flat at zero. */
+  ground?: ((x: number, z: number) => number) | undefined;
 }): WanderState {
   const rng = rngFor(opts.seed);
   // Burn a few draws so the fields below are not correlated across neighbouring seeds.
@@ -193,6 +229,7 @@ export function createWander(opts: {
     tx: opts.x,
     tz: opts.z,
     walked: 0,
+    groundY: 0,
     bob: 0,
     squash: 1,
     effort: 0,
@@ -216,6 +253,7 @@ export function createWander(opts: {
     clock: rng() * 10,
     hop: rng(),
     rng,
+    ground: opts.ground ?? (() => 0),
   };
 
   s.turnBias = Math.sin(s.heading * 7.31 + s.phase) >= 0 ? 1 : -1;
@@ -225,6 +263,9 @@ export function createWander(opts: {
   // outside its bounds does not spend its life pulling against a home it was never allowed to stand on.
   s.homeX = s.x;
   s.homeZ = s.z;
+  // And it stands on the ground from its very first frame. A slime born in the barn that spent one frame at
+  // meadow height would pop 7cm on mount, which is when a child is looking straight at it.
+  settleGround(s);
   return s;
 }
 
@@ -243,6 +284,8 @@ export function reseatWander(s: WanderState, x: number, z: number, roam = s.roam
   s.stuck = 0;
   s.mode = 'rest';
   s.timer = 0.4 + s.rng() * 2.2;
+  // Set down somewhere new is set down on whatever is there. This is the plop into the barn.
+  settleGround(s);
 }
 
 /* ============================================================================
@@ -624,6 +667,16 @@ export function stepWander(s: WanderState, dt: number, w: WanderWorld): void {
   else s.stuck = Math.max(0, s.stuck - step * 2);
   if (s.stuck > 0.9) rethink(s);
 
+  /**
+   * AND THE HEIGHT OF WHATEVER IT IS NOW STANDING ON. Last, after everything that could have moved it.
+   *
+   * Here rather than up beside the movement, because everything between the two — three collider passes, the
+   * player push-out and three ring clamps — moves x and z. A height taken any earlier would belong to a
+   * position the slime is no longer at, which is the same class of bug as the one this fixes: a y that does
+   * not follow its own x and z.
+   */
+  settleGround(s);
+
   writePose(s, step);
 }
 
@@ -650,6 +703,9 @@ export function holdWander(s: WanderState, dt: number): void {
   s.mode = 'rest';
   s.timer = 999;
   s.effort += (0 - s.effort) * Math.min(1, step * 5);
+  // It is not moving, but it may have been PUT somewhere since the last frame — a lineup rearranged, a card
+  // re-posed — and a held slime standing 7cm inside the floor is the same defect standing still.
+  settleGround(s);
   writePose(s, step);
 }
 

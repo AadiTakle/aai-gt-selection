@@ -124,6 +124,8 @@ function mount(world: readonly Slimelet[]): Map<number, SlimeCollider> {
         stage: sl.stage,
         x: sl.position[0],
         z: sl.position[2],
+        // The ground under it, which `Slime.tsx` resolves per frame. Nothing about identity reads it.
+        y: sl.position[1],
         top: 0.95,
         r: slimeRadius(sl.family, sl.stage),
       }),

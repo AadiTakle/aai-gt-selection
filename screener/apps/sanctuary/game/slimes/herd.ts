@@ -51,6 +51,24 @@ export interface SlimeCollider {
   /** Live world centre on the ground plane. Written every frame by the slime itself. */
   x: number;
   z: number;
+  /**
+   * LIVE HEIGHT OF THE SURFACE IT IS STANDING ON, in world metres. Zero on the meadow.
+   *
+   * Written every frame beside x and z, because it is a fact of the same kind and changes for the same
+   * reason: the ranch is not one plane. The barn's threshing floor is 7cm up — a floor at exactly zero
+   * z-fights with a meadow at exactly zero — and a slime's height used to be frozen at placement, which is
+   * the owner's "when i drop slimes in the barn, they lowkey sink through the floor".
+   *
+   * It is here rather than only inside the component because the claim it settles is a claim about the
+   * RUNNING page, and it is one a screenshot answers badly: 7cm at the distance a child plays at is a few
+   * pixels of a soft shadow. `__slimes()` publishes it, so a harness can ask the real renderer for the
+   * number instead of squinting at it — the same argument `ground.ts` makes for `__ranch`.
+   *
+   * NOT to be confused with `top`, which is the creature's own BODY HEIGHT and is used as one by
+   * `vacpack/suction.ts` and the flying proxy's aspect. Adding an altitude into that would rescale the
+   * slime that flies out of the nozzle.
+   */
+  y: number;
   /** Live world top, for anything that wants to hang a heart or a name over its head. */
   top: number;
   /** Collision radius in world units. Constant for the life of the slime. */

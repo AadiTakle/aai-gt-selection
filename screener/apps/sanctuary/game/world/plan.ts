@@ -77,6 +77,23 @@ export function toWorld(p: Placed, lx: number, lz: number): P2 {
 }
 
 /**
+ * World (x, z) back into a placed object's own frame. The exact inverse of `toWorld`.
+ *
+ * WRITTEN DOWN BECAUSE IT WAS ALREADY INLINE IN THREE PLACES — `insideBarn`, `overLoft` and now the ground
+ * height — each with its own copy of the four multiplies and its own chance of a sign the wrong way round.
+ * `toWorld`'s note says there should be a single place for the convention to be right or wrong; that was
+ * only true of the forward direction, and asking "am I inside that building" is the direction the game
+ * actually asks more often.
+ */
+export function toLocal(p: Placed, wx: number, wz: number): P2 {
+  const c = Math.cos(p.rot);
+  const s = Math.sin(p.rot);
+  const dx = wx - p.x;
+  const dz = wz - p.z;
+  return [dx * c - dz * s, dx * s + dz * c];
+}
+
+/**
  * A world `rotation.y` for something authored at local angle `a` (an `atan2(dz, dx)` heading).
  *
  * `rot - a`, and the minus is the whole point: three's `rotation.y` runs opposite to an atan2 heading, so

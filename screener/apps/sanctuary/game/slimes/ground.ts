@@ -303,6 +303,54 @@ export function seedRanchSolids(solids: readonly SolidLike[], opts: RanchOptions
   setRanchSolids(solids, opts);
 }
 
+/* ============================================================================
+   How high the ground is
+   ========================================================================== */
+
+/**
+ * The height of the surface at a point on the ground plane.
+ *
+ * Structurally satisfied by `world/ground.ts`'s `groundY`, and declared here rather than imported for the
+ * same reason the collider set is handed in rather than imported — see the note at the top of this file.
+ * `slimes/` must not know that the ranch has a barn in it.
+ */
+export type GroundHeight = (x: number, z: number) => number;
+
+const FLAT: GroundHeight = () => 0;
+let height: GroundHeight = FLAT;
+
+/**
+ * REGISTER WHERE THE GROUND IS. Called once, at module scope, by the integrator, beside `setRanchSolids`.
+ *
+ * THE OWNER'S REPORT: "when i drop slimes in the barn, they lowkey sink through the floor." They do, by
+ * exactly 7cm, because the barn's threshing floor is laid at `BARN_FLOOR_Y = 0.07` — a floor at zero
+ * z-fights with the meadow at zero — while every slime is handed `position: [x, 0, z]`. A slime placed
+ * inside the barn stands with the bottom 7cm of itself under the boards.
+ *
+ * WHY A FUNCTION AND NOT A NUMBER, which is the whole of the fix. The owner's instinct was to raise the
+ * ground level, and a single raise fixes the barn by floating every slime on the meadow 7cm into the air
+ * instead — the same defect on nine times as much of the ranch. The height has to vary with position, and
+ * the only module that knows where the buildings are is `world/`.
+ *
+ * DEFAULTING TO FLAT IS THE POINT OF THE DEFAULT, not an oversight. The preview pages stand a few slimes on
+ * a bare plane with no ranch around them, and a slime in the vacpack's window is drawn in a portrait with no
+ * world at all; both want zero, and both get it without knowing this exists.
+ */
+export function setGroundHeight(fn: GroundHeight | null): void {
+  height = fn ?? FLAT;
+}
+
+/**
+ * How high the ground is here. Flat zero until an integrator says otherwise.
+ *
+ * Called once per slime per frame, which is why it is a bare function call through a module-level binding
+ * rather than a lookup: `world/ground.ts` resolves the barn in about a dozen multiplies and the herd is
+ * forty strong, so this is cheaper than the neighbour list it sits beside.
+ */
+export function groundHeightAt(x: number, z: number): number {
+  return height(x, z);
+}
+
 export function ranchField(): SolidField {
   return ranch.field;
 }
@@ -319,6 +367,7 @@ export function ranchRadius(): number {
 export function clearRanchSolids(): void {
   ranch = { field: EMPTY, worldRadius: 34, from: [0, 8], grid: null, builtMs: 0 };
   seeded = false;
+  height = FLAT;
 }
 
 /* ============================================================================
