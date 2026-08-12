@@ -109,6 +109,53 @@ contains the same engine and variety layers, rather than assuming it.
   fourteen questions as fourteen failures has been told something false. Psychometrically correct, and a
   framing problem the game has to carry.
 
+## 12 Aug, found by playing it: sessions never accumulated
+
+The owner played Bramblebrook and asked to see their score. The platform had **twelve sessions holding
+twenty-six answers** for one keeper, so there was no score to show — the estimate restarted at the prior every
+few questions and the widest interval never narrowed. One-session-per-keeper, the thing that made the composite
+mean anything, did not work.
+
+Two causes, one fix:
+
+1. **`createSession` always minted `sess-${randomUUID()}`.** `useSortie`'s own comment said "one session per
+   keeper, resumed rather than recreated" and nothing implemented resumption. The client called create every
+   time a child engaged a station board.
+2. **React's development double-mount fired the open effect twice**, so each engagement produced a duplicate
+   abandoned session with zero answers. Visible in the data as pairs of sessions sharing a start time.
+
+`createSession` now resumes the persona's active session for the same app and snapshot, retargeting its
+`restrictedTypes` to the battery being asked for, and returns 200 rather than 201. Resumption lives on the
+server because the owner's instruction was that a caller should not have to think about the backend; asking
+every caller to keep a session id and decide when to reuse it is exactly that. It absorbs the double-mount for
+free, since the second call returns the first call's session.
+
+Retargeting needed its own justification. `restrictedTypes` was frozen at creation, so resuming without it
+would lock a keeper to whichever station they visited first — one battery forever, and a composite over one
+domain. It deliberately does not touch `resolvedConfig`, which stays frozen: that holds the rules a child is
+*measured* under, and changing those mid-session would judge two halves of one trace by different standards.
+Restricted types only narrow which items may be drawn.
+
+### Why the tests did not catch it
+
+**The integration test was named `runs a keeper through every station and accumulates one session`, collected
+the session ids into a `Set`, and never asserted on the set.** It also asserted `201` on every station, which
+is the bug written down as an expectation. The check its name promised was gathered and never made.
+
+That is the more useful finding than the bug. The measurement runs in `docs/overnight/` all drove a single
+continuous session, so nothing in 316 tests or 4,000 simulated children exercised the path a real child takes —
+walking up to a second station. It took playing the game for five minutes.
+
+The test now asserts one session id, that the trace on it holds every answered question, and that the interval
+narrowed below the prior's width. Three further tests cover the boundaries: retargeting to a new battery, no
+resumption of a stopped session, and no resumption at all without a persona, because two anonymous children
+share nothing that could distinguish them and pooling their evidence would be worse than restarting.
+
+Also added `npm run show:sessions`, a local diagnostic that prints every session with its sheet, because
+`/sanctuary/record` still cannot report a number and there was no way to answer "what was my score". Its first
+version scanned one page and reported two sessions out of thirteen — a filtered DynamoDB scan applies the filter
+after reading a 1 MB page, and the table holds ~4,934 registry items ahead of the session rows. It paginates now.
+
 ## Outstanding, and none of it is silent
 
 **Needs the owner:** an AWS account, credentials, `cdk bootstrap`, the first deploy — the only thing standing
@@ -121,8 +168,9 @@ sees it.
 - The sortbot pool gate. Ten of thirty-seven `VER-SORTBOT-01` items were excluded by the old dev plugin as
   unsuitable in the K-1 and 2-3 bands. Not reimplemented, because it belongs in data. Until it is, those items
   can be served.
-- `/sanctuary/record` cannot report a number. `sessionsForPersona` exists in the store; no HTTP route exposes
-  it. The view reports the gap rather than a stale figure.
+- `/sanctuary/record` cannot report a number. `sessionsForPersona` exists in the store and `GET
+  /v1/sessions/{id}/sheet` returns a sheet, but no route maps a persona to their sessions, so the view cannot
+  find the session to ask about. `npm run show:sessions` is the stopgap.
 - `GSI6` is declared and empty: `putSession` receives no client address, so the IP-linkage behaviour the spec
   describes does not exist.
 - The notification queue has no consumer. Choosing an email provider and writing what a family receives is a

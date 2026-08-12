@@ -124,6 +124,48 @@ export async function finishSession(
 }
 
 /**
+ * Point an already-open session at a different slice of the pool.
+ *
+ * Bramblebrook is why this exists. Each station is one battery, and a keeper walks between them across many
+ * visits, so "which types may be served" is a property of *where the child is standing right now* and not of
+ * the session. Freezing it at creation forced a new session per station, which restarted the estimate every
+ * time and meant the interval never narrowed — the exact flaw one-session-per-keeper was meant to remove.
+ *
+ * This deliberately does not touch `resolvedConfig`, which stays frozen for the session's whole life. The
+ * distinction is worth being precise about: `resolvedConfig` holds the rules a child is *measured* under, and
+ * changing those mid-session would mean two halves of one trace judged by different standards. Restricted
+ * types only narrow which items may be drawn, and every item drawn is scored the same way regardless. One is a
+ * measurement rule and the other is a pool filter.
+ *
+ * Conditioned on the session still being active, so a stopped session cannot be reopened by retargeting it.
+ */
+export async function retargetSession(
+  ctx: RepoContext,
+  sessionId: string,
+  restrictedTypes: readonly string[] | null,
+): Promise<boolean> {
+  try {
+    await ctx.doc.send(
+      new UpdateCommand({
+        TableName: ctx.tableName,
+        Key: { PK: sessionPk(sessionId), SK: META_SK },
+        UpdateExpression: 'SET #restrictedTypes = :types',
+        ConditionExpression: 'attribute_exists(PK) AND #status = :active',
+        ExpressionAttributeNames: { '#restrictedTypes': 'restrictedTypes', '#status': 'status' },
+        ExpressionAttributeValues: {
+          ':types': restrictedTypes === null ? null : [...restrictedTypes],
+          ':active': 'active',
+        },
+      }),
+    );
+    return true;
+  } catch (err) {
+    if (isConditionalCheckFailed(err)) return false;
+    throw err;
+  }
+}
+
+/**
  * Write the response row at serve time, in `served` state.
  *
  * Two things fall out of writing this before the child has answered. Abandonment becomes visible

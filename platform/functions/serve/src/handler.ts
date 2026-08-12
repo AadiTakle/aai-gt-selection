@@ -101,6 +101,37 @@ async function createSession(request: ApiRequest): Promise<ApiResponse> {
     await d.personas.create(personaId, body.locale ?? null, appId);
   }
 
+  /**
+   * Resume the keeper's open session rather than minting a second one.
+   *
+   * Without this, a surface that opens a session each time a child engages something gets a fresh trace every
+   * time, and the estimate restarts from the prior at every burst — which is precisely the flaw that
+   * one-session-per-keeper was supposed to remove. Bramblebrook made it visible: twelve sessions for
+   * twenty-six answers, so the widest interval never narrowed and no decision was ever reachable.
+   *
+   * Doing it here rather than in the client is the point. The owner's instruction was that a caller should
+   * "not have to worry about database/backend at all, just call the API", and asking every caller to remember
+   * a session id in local storage and decide when to reuse it is exactly that worry. `personaId` is the
+   * caller's whole contribution; identity of the session is the platform's problem.
+   *
+   * It also absorbs a second bug for free: React's development double-mount fires the open effect twice, and
+   * with unconditional creation that produced a duplicate abandoned session per engagement.
+   *
+   * Scoped to this app and this snapshot. A session belongs to the app that started it, and one spanning a
+   * catalogue publish would mix items whose parameters were resolved under different snapshots — for that,
+   * starting fresh is the honest choice.
+   */
+  if (personaId) {
+    const resumed = await resumeSession(d, {
+      personaId,
+      appId,
+      snapshotId: snapshot.snapshotId,
+      requested,
+      ageBand,
+    });
+    if (resumed) return resumed;
+  }
+
   const session: SessionRecord = {
     sessionId: `sess-${randomUUID()}`,
     appId,
@@ -145,6 +176,68 @@ async function createSession(request: ApiRequest): Promise<ApiResponse> {
     state: toQbankState(sheet),
   };
   return created(response);
+}
+
+/**
+ * The keeper's open session for this app and snapshot, retargeted to the battery being asked for.
+ *
+ * Returns `null` when there is nothing resumable, in which case the caller creates one. Newest-first is what
+ * `sessionsForPersona` already gives, and only the newest active session is considered: if an older one is
+ * somehow also active, resuming the newest is the behaviour a returning child expects, and the older one ages
+ * out through the same abandonment path as any session nobody came back to.
+ */
+async function resumeSession(
+  d: ReturnType<typeof deps>,
+  opts: {
+    readonly personaId: string;
+    readonly appId: string;
+    readonly snapshotId: string;
+    readonly requested: readonly string[] | null;
+    readonly ageBand: string | null;
+  },
+): Promise<ApiResponse | null> {
+  const recent = await d.store.sessionsForPersona(opts.personaId, 8);
+  for (const candidateId of recent) {
+    const existing = await d.store.getSession(candidateId);
+    if (!existing) continue;
+    if (existing.status !== 'active') continue;
+    if (existing.appId !== opts.appId) continue;
+    if (existing.snapshotId !== opts.snapshotId) continue;
+
+    const sameTypes =
+      JSON.stringify(existing.restrictedTypes ?? null) === JSON.stringify(opts.requested ?? null);
+    if (!sameTypes && !(await d.store.retargetSession(candidateId, opts.requested))) {
+      // It stopped between the read and the write. Fall through and let a new session be created.
+      continue;
+    }
+
+    const loaded = await loadSession(d, candidateId, opts.appId);
+    // The stored sheet, not a recomputed one: it is the accumulated estimate, which is the entire point.
+    const sheet = (await d.store.getCurrentSheet(candidateId)) ?? sheetFor(loaded);
+    /**
+     * The config frozen onto the session at its start, not the app's current config.
+     *
+     * A session resumed after an app edit must still be measured under the rules it began with, which is the
+     * whole reason `resolvedConfig` is stored on the record. Reading the live app here would let an edit
+     * change the standard applied to half of a child's trace.
+     */
+    const engineConfig = toEngineConfig(existing.resolvedConfig, existing.ageBand);
+    const response: CreateSessionResponse = {
+      sessionId: candidateId,
+      poolSize: loaded.eligibleCount,
+      config: {
+        abilityThreshold: engineConfig.abilityThreshold,
+        precision: engineConfig.precision,
+        ...(existing.ageBand ? { ageBand: existing.ageBand } : {}),
+        perDomainMinimum: engineConfig.perDomainMinimum,
+        recommendProbability: engineConfig.recommendProbability,
+      },
+      state: toQbankState(sheet),
+    };
+    // 200 rather than 201: nothing was created. The session id in the body is what the caller uses either way.
+    return ok(response);
+  }
+  return null;
 }
 
 async function nextItem(request: ApiRequest): Promise<ApiResponse> {

@@ -167,12 +167,22 @@ suite('Bramblebrook on the platform', () => {
     let unscorable = 0;
 
     // Three bursts, one per station, the way a child walks the ranch.
+    let burst = 0;
     for (const station of STATIONS) {
       const created = await call('POST', bankRoutes.createSession(), {
         personaId: keeperId,
         types: station.types,
       });
-      expect(created.status).toBe(201);
+      /**
+       * Created once, resumed thereafter.
+       *
+       * This assertion is the one this test was named for and did not make. It collected `sessionIds` and
+       * never checked the set, so three separate sessions passed a test called "accumulates one session" —
+       * and the real game duly produced twelve sessions for twenty-six answers, with an interval that could
+       * never narrow. A set gathered and not asserted on is not a check.
+       */
+      expect(created.status).toBe(burst === 0 ? 201 : 200);
+      burst += 1;
       const sessionId = created.body.sessionId as string;
       sessionIds.add(sessionId);
 
@@ -205,6 +215,26 @@ suite('Bramblebrook on the platform', () => {
     expect(served.length).toBeGreaterThanOrEqual(9);
     expect(new Set(served.map((s) => s.itemId)).size).toBe(served.length);
 
+    // One session across all three stations, which is what makes the rest of this meaningful.
+    expect(sessionIds.size).toBe(1);
+    const [onlySession] = [...sessionIds];
+
+    /**
+     * And the trace on that one session holds every question, which is the property the interval depends on.
+     *
+     * Asserting the session count alone would not catch a resumed session that somehow wrote its responses
+     * elsewhere; this is the difference between one id and one accumulating body of evidence.
+     */
+    const trace = await d.store.listResponses(onlySession as string);
+    expect(trace.filter((r) => r.state === 'answered')).toHaveLength(served.length);
+
+    // The estimate narrowed. A restarting session sits at the prior's width of about 3.3 logits forever.
+    const sheet = await d.store.getCurrentSheet(onlySession as string);
+    expect(sheet).not.toBeNull();
+    const width = sheet!.composite.interval[1] - sheet!.composite.interval[0];
+    expect(width).toBeLessThan(3.0);
+    expect(sheet!.derivedFromResponseCount).toBe(served.length);
+
     // All three batteries contributed, and the verbal ones are the two that only became servable when the
     // loader learned a numeric key is an option index.
     const types = new Set(served.map((s) => s.typeCode));
@@ -220,6 +250,63 @@ suite('Bramblebrook on the platform', () => {
     expect(status).toBe(400);
     expect(body.unapproved).toEqual(['SPA-MAZE-01']);
   });
+
+  it('retargets the resumed session to the new station rather than keeping the old battery', async () => {
+    /**
+     * The reason resumption needed more than "return the existing id".
+     *
+     * `restrictedTypes` is frozen onto the session at creation, so resuming without retargeting would lock a
+     * keeper to whichever station they happened to visit first — the quantitative log forever, no matter which
+     * board they walked up to next. The child would see one battery and the composite would never earn its name.
+     */
+    const keeperId = `keeper-${randomUUID().slice(0, 8)}`;
+    const first = await call('POST', bankRoutes.createSession(), {
+      personaId: keeperId,
+      types: ['QUANT-SERIES-01'],
+    });
+    expect(first.status).toBe(201);
+
+    const second = await call('POST', bankRoutes.createSession(), {
+      personaId: keeperId,
+      types: ['FLU-MATRIX-01'],
+    });
+    expect(second.status).toBe(200);
+    expect(second.body.sessionId).toBe(first.body.sessionId);
+
+    const next = await call('GET', bankRoutes.next(second.body.sessionId as string));
+    expect(next.body.typeCode).toBe('FLU-MATRIX-01');
+  }, 60_000);
+
+  it('does not resume a session that has already stopped', async () => {
+    const keeperId = `keeper-${randomUUID().slice(0, 8)}`;
+    const first = await call('POST', bankRoutes.createSession(), {
+      personaId: keeperId,
+      types: ['QUANT-SERIES-01'],
+    });
+    const sessionId = first.body.sessionId as string;
+    await d.store.finishSession(sessionId, 'abandoned', null, new Date().toISOString());
+
+    const second = await call('POST', bankRoutes.createSession(), {
+      personaId: keeperId,
+      types: ['QUANT-SERIES-01'],
+    });
+    // A finished screening is finished. Resuming it would append to a trace someone already drew a line under.
+    expect(second.status).toBe(201);
+    expect(second.body.sessionId).not.toBe(sessionId);
+  }, 60_000);
+
+  it('keeps an anonymous session out of resumption entirely', async () => {
+    /**
+     * No persona, no continuity, and that is the correct behaviour rather than a gap: resumption is keyed on
+     * the persona, and two anonymous children share nothing that could tell them apart. Silently joining them
+     * into one session would pool two people's evidence into one estimate.
+     */
+    const a = await call('POST', bankRoutes.createSession(), { types: ['QUANT-SERIES-01'] });
+    const b = await call('POST', bankRoutes.createSession(), { types: ['QUANT-SERIES-01'] });
+    expect(a.status).toBe(201);
+    expect(b.status).toBe(201);
+    expect(a.body.sessionId).not.toBe(b.body.sessionId);
+  }, 60_000);
 
   it('gives a returning keeper fresh items rather than the ones already seen', async () => {
     const keeperId = `keeper-${randomUUID().slice(0, 8)}`;

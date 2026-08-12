@@ -153,6 +153,11 @@ export class PlatformStore {
     return sessions.getSession(this.ctx, id);
   }
 
+  /** Narrow an open session to a different battery. False if it is no longer active. */
+  retargetSession(id: string, restrictedTypes: readonly string[] | null): Promise<boolean> {
+    return sessions.retargetSession(this.ctx, id, restrictedTypes);
+  }
+
   finishSession(
     id: string,
     stopReason: StopReason,
