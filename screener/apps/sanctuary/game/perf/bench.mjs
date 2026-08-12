@@ -18,6 +18,18 @@
  * rather than refresh rate — and the three `--disable-*-backgrounding` flags stop the throttle from
  * engaging at all. Without them this script measures the window manager.
  *
+ * ══ RUN IT ON A QUIET MACHINE ═════════════════════════════════════════════════════════════════════
+ *
+ * The timings are wall-clock and they measure the whole machine, not just this tab. A laptop that is
+ * also running a browser full of tabs and a dev server reports frame times two to three times the
+ * quiet-machine figure, and the tell is unmistakable when you look for it: the 4x throttle reading
+ * comes out level with or better than the 6x one, which cannot happen and means the noise is larger
+ * than the effect being measured. If you see that, close things and run it again.
+ *
+ * DRAW CALLS DO NOT HAVE THIS PROBLEM. They are a count, not a duration, and they come back identical
+ * run to run under any load. When a result has to be trusted without a quiet machine to hand, that is
+ * the number to trust.
+ *
  * ══ WHY IT PATCHES WEBGL ══════════════════════════════════════════════════════════════════════════
  *
  * `WebGLRenderer.info.render.calls` counts the shadow pass and the main pass together, and the split

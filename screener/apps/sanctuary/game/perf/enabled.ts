@@ -9,3 +9,17 @@
 export function perfEnabled(search: string = typeof window === 'undefined' ? '' : window.location.search): boolean {
   return new URLSearchParams(search).has('perf');
 }
+
+/**
+ * `?nobatch=1` turns the batcher off.
+ *
+ * This is how the promise that the batcher changes no pixels is KEPT rather than asserted:
+ * `guard.mjs` loads the same build twice, once with this and once without, and diffs the frames. A
+ * build flag would not do — the two runs have to be the same code, or the comparison proves nothing
+ * about the code that ships.
+ */
+export function batchingEnabled(
+  search: string = typeof window === 'undefined' ? '' : window.location.search,
+): boolean {
+  return !new URLSearchParams(search).has('nobatch');
+}

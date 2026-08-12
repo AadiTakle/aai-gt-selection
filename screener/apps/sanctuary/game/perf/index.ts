@@ -9,6 +9,7 @@
  * scene at runtime, which is more machinery than editing the geometry at its source and is the right
  * trade only while the branch is busy.
  */
+export { Batched } from './Batched';
 export { Hud } from './Hud';
 export { Probe } from './Probe';
 export { perfEnabled } from './enabled';

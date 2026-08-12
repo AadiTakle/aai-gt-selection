@@ -21,8 +21,31 @@ const WINDOW = 120;
 
 export function Probe(): JSX.Element | null {
   const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
   const frames = useRef<number[]>([]);
   const last = useRef(performance.now());
+
+  /**
+   * The scene, on the window, so a script outside the page can walk it.
+   *
+   * r3f keeps no handle on the canvas element and three exposes none, so without this there is no way
+   * to ask "which subtree issues these 725 draw calls" from a Playwright run — and that question is
+   * how the batcher's targets were chosen. It exists only under `?perf=1`, alongside everything else
+   * in this directory.
+   */
+  useEffect(() => {
+    const w = window as unknown as { __bhScene?: unknown; __bhCamera?: unknown };
+    w.__bhScene = scene;
+    /* The camera too, and for a sharper reason: `guard.mjs` has to put the view in exactly the same
+       place in two separate page loads to diff them, and a camera driven by pointer lock and key
+       state cannot be posed repeatably from outside. */
+    w.__bhCamera = camera;
+    return () => {
+      delete w.__bhScene;
+      delete w.__bhCamera;
+    };
+  }, [scene, camera]);
 
   useFrame(() => {
     const now = performance.now();
