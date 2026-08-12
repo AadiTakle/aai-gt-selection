@@ -332,7 +332,7 @@ if (labels) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Canvas shadows camera={{ fov: 55, near: 0.1, far: 200 }} dpr={[1, 1.75]}>
+    <Canvas shadows="variance" camera={{ fov: 55, near: 0.1, far: 200 }} dpr={[1, 1.75]}>
       <color attach="background" args={['#bfe4f2']} />
       <fog attach="fog" args={['#cfe9f4', 40, 130]} />
       <hemisphereLight args={['#dff0ff', '#7fa860', 0.75]} />

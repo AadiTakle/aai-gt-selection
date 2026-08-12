@@ -30,6 +30,7 @@ import { Stations, STATION_SOLIDS, SITES } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
 import { useAudio, MuteButton, HeadphonePrompt } from './audio';
+import { Batched, Hud as PerfHud, Probe as PerfProbe, perfEnabled } from './perf';
 import { useVacpackTank } from './vacpack';
 import { INTRO_SOLIDS, IntroGuide, IntroPortrait, useBoardEngaged } from './intro';
 import { FAMILY_BATTERY, type Family as Fam } from './contract';
@@ -594,10 +595,17 @@ export function Game() {
 
   return (
     <div className="bh-root">
-      <Canvas shadows camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
+      {/* `shadows="variance"` rather than a bare `shadows`, and it is load-bearing: r3f rewrites
+          `gl.shadowMap.type` on every render of this component, so a bare prop fought `Lighting`'s
+          one-time VSM write and won after the first resize or hot update. See `world/Lighting.tsx`. */}
+      <Canvas shadows="variance" camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
+        {perfEnabled() && <PerfProbe />}
         <color attach="background" args={['#eec89a']} />
         <Suspense fallback={null}>
           <Lighting />
+          {/* NOT wrapped in `<Batched>`, and that is a measurement rather than an oversight: of its
+              165 meshes, 87 are already `InstancedMesh` and 77 carry a texture or transparency, so a
+              batcher folds exactly nothing here. `Buildings.tsx` had already done this work. */}
           <Buildings />
           {slimes.map((sl) => (
             <Slime key={sl.uid} {...sl} />
@@ -605,6 +613,10 @@ export function Game() {
         </Suspense>
         {/* Suck, carry, plop. Disabled while a station is engaged so a click means "choose" there
             and "hoover" everywhere else, with no mode the child has to learn. */}
+        {/* The stall carries 294 static meshes — the shelf and its figurines — which is the largest
+            batchable set in the game. The wrapper's tags sit AROUND the element without re-indenting
+            it, so this is an insertion of two lines into a file another author is working in. */}
+        <Batched label="shop">
         <Shop
           engaged={shopOpen}
           onEngage={() => setShopOpen(true)}
@@ -638,6 +650,7 @@ export function Game() {
             audio.plop?.();
           }}
         />
+        </Batched>
         <Vacpack
           enabled={locked && !engaged && !shopOpen && !boardEngaged}
           onCapture={(id) => {
@@ -654,6 +667,9 @@ export function Game() {
             putSlime(family, position);
           }}
         />
+        {/* The stations' structures are static; their item content is not, and swaps every question.
+            `Batch` notices that and rebuilds rather than leaving the previous question hanging. */}
+        <Batched label="stations">
         <Stations
           engaged={engaged}
           live={live}
@@ -661,6 +677,7 @@ export function Game() {
           onLeave={() => setEngaged(null)}
           onGrant={grant}
         />
+        </Batched>
         <Keeper locked={locked && !engaged && !shopOpen && !boardEngaged} />
         {/* The guided opening: Nan's tour, the waypoints, and the challenge board that unlocks the
             second paddock. `busy` is NOT optional — `speak.ts` is one queue, so without it a nudge from
@@ -691,6 +708,8 @@ export function Game() {
           }
         />
       </Canvas>
+
+      {perfEnabled() && <PerfHud />}
 
       {!locked && !engaged && (
         <button type="button" className="bh-enter" onClick={lock}>
