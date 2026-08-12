@@ -215,9 +215,9 @@ the second reading than on the first.
 | --- | --- | --- | --- |
 | baseline (`bfaf73f`) | 1139 | 725 | 414 |
 | after batching (§4.1) | 654 | 367 | 287 |
-| after cadence (§4.3) | **510** | 367 | 144 |
+| after cadence (§4.3) | **514** | 370 | 144 |
 
-**A 55% cut, and it stops 60 short of the 450 target.** That number was an estimate made before
+**A 55% cut, and it stops 64 short of the 450 target.** That number was an estimate made before
 anything had been taken apart, and the honest reason it was missed is in §2's third row: roughly 430
 of the frame's calls were never in scope. They are the slimes, the vacpack in camera space, and the
 intro — all of them animated, none of them mergeable by any scheme that does not change the picture.
@@ -238,3 +238,26 @@ Three things the measurement corrected about the design:
 
 §4.4 is also unbuilt: the owner asked for no art changes for now, and shadow resolution is an art
 change however small. The budget for it exists and the one-line change is described above.
+
+### What the pixel guard caught
+
+It earned its cost several times over, and every one of these was silent — none would have been
+noticed in play, and all three would have been called an art change if anyone had spotted them later.
+
+- **Mirrored props merged in inside-out.** `applyMatrix4` moves vertices and normals and leaves the
+  index alone, so a prop placed by mirroring another kept its winding once the mirror was baked into
+  its vertices. Three flips `frontFace` per object, which is why it looks right unmerged and wrong
+  merged.
+- **A material can animate while its mesh stands still.** Stillness was judged on the world matrix
+  alone, and a merged mesh carries a *clone* of the material, so anything animated by mutating its
+  material froze on merge.
+- **A lantern that lights up later.** The same problem in its slower form: 65 lanterns are dark and
+  constant through the observation window, get merged, and then light. No observation window can
+  catch that, so `Batch` watches its merged sources' material state and dissolves when it changes.
+
+**And one it only cornered.** 249 pixels of 540,000 still differ at the spawn pose — four distant
+lantern highlights, 0.046%, inside the 0.1% budget. `?nobatch=<label>` bisects it to the stations
+wrapper rather than the shop (265 pixels against 39, where two identical runs differ by about 45).
+The leading explanation is shadow-frustum culling granularity: a merged mesh has one bounding sphere
+spanning every station, so geometry that used to fall outside the shadow camera is no longer culled
+out of it. That is unconfirmed, and it is written down rather than rounded to zero.
