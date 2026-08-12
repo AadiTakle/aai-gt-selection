@@ -5,7 +5,6 @@ import {
   AdditiveBlending,
   Color,
   FogExp2,
-  VSMShadowMap,
   type DirectionalLight,
   type Group,
   type Sprite,
@@ -209,20 +208,37 @@ export function Lighting(): JSX.Element {
     // back without letting the cream walls clip.
     gl.toneMappingExposure = 1.06;
     /**
-     * Variance shadow mapping, chosen after the two alternatives failed on this stack.
+     * Variance shadow mapping is NOT set here any more. It is `shadows="variance"` on the `<Canvas>`
+     * in `Game.tsx`, and the move was forced by a bug rather than by taste.
      *
-     * `PCFSoftShadowMap` is deprecated in three 0.185 and silently falls back to plain `PCFShadowMap`,
-     * which is hard-edged; drei's `<SoftShadows>` PCSS patch fails to link against 0.185's shadow chunks
-     * and floods the console with `useProgram: program not valid`. VSM blurs the depth moments in the
-     * shadow pass itself, so the softness costs one small separable blur rather than a per-pixel sample
-     * loop — the cheapest of the three, which is the deciding argument on an integrated GPU.
+     * The reasoning for VSM itself is unchanged and still worth keeping: `PCFSoftShadowMap` is
+     * deprecated in three 0.185 and silently falls back to plain `PCFShadowMap`, which is hard-edged;
+     * drei's `<SoftShadows>` PCSS patch fails to link against 0.185's shadow chunks and floods the
+     * console with `useProgram: program not valid`. VSM blurs the depth moments in the shadow pass
+     * itself, so the softness costs one small separable blur rather than a per-pixel sample loop.
+     *
+     * WHY IT CANNOT BE SET FROM HERE. r3f's `configure()` writes `gl.shadowMap.type` on EVERY render
+     * of the `<Canvas>` component — its layout effect has no dependency array — and for a bare
+     * `shadows` prop it writes `PCFSoftShadowMap`. This effect ran once, with deps `[scene, gl]` that
+     * never change again. Children's layout effects run before their parent's, so on the first mount
+     * this won and on every re-render after it r3f won.
+     *
+     * Measured: one window resize, or one hot update, permanently downgraded the game to hard PCF
+     * shadows, and every word of the paragraph above stopped applying without anything saying so.
+     * Each flip also recompiled every material in the scene — `gl.info.programs` climbed 53 → 92 →
+     * 118 without the old variants being released.
+     *
+     * It was also the trigger for a white screen. Once the map has been rebuilt in PCF's format, any
+     * later write of VSM on a frame `perf/cadence.ts` skips leaves VSM shaders sampling a PCF-packed
+     * map: the moments are garbage, the Chebyshev bound exceeds 1, and the light is MULTIPLIED rather
+     * than attenuated. Every lit surface goes white while unlit props and the sun render correctly.
+     * Reproduced 3 times in 6 forced trials at scene luminance 227.6 against a healthy 123.
+     *
+     * One writer, asserted every render, and the mid-session type change simply stops existing.
      */
-    const previousShadowType = gl.shadowMap.type;
-    gl.shadowMap.type = VSMShadowMap;
     return () => {
       scene.fog = previousFog;
       gl.toneMappingExposure = previousExposure;
-      gl.shadowMap.type = previousShadowType;
     };
   }, [scene, gl]);
 

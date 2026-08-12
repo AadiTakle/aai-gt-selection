@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { shadowCadence } from './cadence';
 
-const base = { frame: 1, every: 2, hasMap: true, typeChanged: false };
+const base = { frame: 1, every: 2, hasMap: true, typeChanged: false, mapMismatched: false };
 
 describe('shadow cadence', () => {
   it('rebuilds on every nth frame and skips the rest', () => {
@@ -27,6 +27,15 @@ describe('shadow cadence', () => {
        instead of attenuating it: every lit surface goes white, unlit ones look fine. */
     expect(shadowCadence({ ...base, frame: 3, typeChanged: true })).toBe(true);
     expect(shadowCadence({ ...base, frame: 7, typeChanged: true })).toBe(true);
+  });
+
+  it('never skips while the built map does not match the type it is sampled as', () => {
+    /* REGRESSION, and the one that was actually reproduced: a map built in PCF's RGBA/byte format
+       sampled by VSM shaders gives garbage moments, a Chebyshev bound above 1, and MULTIPLIED light —
+       every lit surface white, unlit props and the sun fine. Level-triggered on what three actually
+       built, because this hook's edge and three's `_previousType` can drift apart permanently. */
+    expect(shadowCadence({ ...base, frame: 3, mapMismatched: true })).toBe(true);
+    expect(shadowCadence({ ...base, frame: 9, mapMismatched: true })).toBe(true);
   });
 
   it('rebuilds every frame when the cadence is turned off', () => {

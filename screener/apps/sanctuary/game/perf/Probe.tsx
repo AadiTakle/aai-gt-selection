@@ -35,8 +35,12 @@ export function Probe(): JSX.Element | null {
    * in this directory.
    */
   useEffect(() => {
-    const w = window as unknown as { __bhScene?: unknown; __bhCamera?: unknown };
+    const w = window as unknown as { __bhScene?: unknown; __bhCamera?: unknown; __bhRenderer?: unknown };
     w.__bhScene = scene;
+    /* The renderer too. `gl.shadowMap.type` and the shadow map's texture format are the two values
+       that identify the white-frame failure described in `cadence.ts`, and neither is reachable from
+       the scene. */
+    w.__bhRenderer = gl;
     /* The camera too, and for a sharper reason: `guard.mjs` has to put the view in exactly the same
        place in two separate page loads to diff them, and a camera driven by pointer lock and key
        state cannot be posed repeatably from outside. */
@@ -44,8 +48,9 @@ export function Probe(): JSX.Element | null {
     return () => {
       delete w.__bhScene;
       delete w.__bhCamera;
+      delete w.__bhRenderer;
     };
-  }, [scene, camera]);
+  }, [scene, camera, gl]);
 
   useFrame(() => {
     const now = performance.now();

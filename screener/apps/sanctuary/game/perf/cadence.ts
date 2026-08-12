@@ -1,6 +1,6 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef, type RefObject } from 'react';
-import type { DirectionalLight } from 'three';
+import { HalfFloatType, VSMShadowMap, type DirectionalLight } from 'three';
 
 /**
  * THE SUN DOES NOT MOVE, SO ITS SHADOW MAP NEED NOT BE REDRAWN SIXTY TIMES A SECOND.
@@ -72,6 +72,17 @@ export interface CadenceInput {
   hasMap: boolean;
   /** Has `renderer.shadowMap.type` changed since the previous frame? */
   typeChanged: boolean;
+  /**
+   * Does the map three actually built match the shadow type it is being sampled as?
+   *
+   * Level-triggered, where `typeChanged` is edge-triggered — and the two are not equivalent. This
+   * hook's edge is remembered in a ref; three's is `_previousType`, which three only advances when
+   * `render()` gets past its own early returns. A frame where three bails early consumes this hook's
+   * edge and not three's, and from then on the two disagree permanently. Comparing what was BUILT
+   * against what is being SAMPLED cannot drift, so it catches that case and any other route into the
+   * mismatch.
+   */
+  mapMismatched: boolean;
 }
 
 /**
@@ -80,9 +91,17 @@ export interface CadenceInput {
  * Pure, because the two conditions that force `true` are the entire safety of this file and both were
  * learned from a bug rather than from the documentation.
  */
-export function shadowCadence({ frame, every, hasMap, typeChanged }: CadenceInput): boolean {
+export function shadowCadence({
+  frame,
+  every,
+  hasMap,
+  typeChanged,
+  mapMismatched,
+}: CadenceInput): boolean {
   /* No map means the frame after this one would sample nothing. Never skip. */
   if (!hasMap) return true;
+  /* Built for one shadow type, sampled as another: this is the white frame. Never skip. */
+  if (mapMismatched) return true;
   /* A type change is applied to the map only on a frame the light is not skipped on, and three
      forgets that the change ever happened at the end of the same render. Never skip. */
   if (typeChanged) return true;
@@ -108,11 +127,18 @@ export function useShadowCadence(light: RefObject<DirectionalLight | null>, ever
        double mount, a hot reload, a restored context — can leave the light in a state this hook
        believes it is not in. */
     current.shadow.autoUpdate = false;
+    /* VSM builds a half-float RG target; every other type builds an RGBA byte target. So the map's
+       own texture says which type it was built for, without asking three to remember. */
+    const map = current.shadow.map;
+    const builtForVsm = map !== null && map.texture.type === HalfFloatType;
+    const wantsVsm = type === VSMShadowMap;
+
     current.shadow.needsUpdate = shadowCadence({
       frame: frame.current,
       every,
-      hasMap: current.shadow.map !== null,
+      hasMap: map !== null,
       typeChanged,
+      mapMismatched: map !== null && builtForVsm !== wantsVsm,
     });
   });
 

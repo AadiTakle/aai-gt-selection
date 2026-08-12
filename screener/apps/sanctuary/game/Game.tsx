@@ -595,7 +595,10 @@ export function Game() {
 
   return (
     <div className="bh-root">
-      <Canvas shadows camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
+      {/* `shadows="variance"` rather than a bare `shadows`, and it is load-bearing: r3f rewrites
+          `gl.shadowMap.type` on every render of this component, so a bare prop fought `Lighting`'s
+          one-time VSM write and won after the first resize or hot update. See `world/Lighting.tsx`. */}
+      <Canvas shadows="variance" camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
         {perfEnabled() && <PerfProbe />}
         <color attach="background" args={['#eec89a']} />
         <Suspense fallback={null}>
