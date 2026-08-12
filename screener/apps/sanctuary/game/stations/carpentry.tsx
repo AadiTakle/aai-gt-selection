@@ -774,7 +774,10 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
         flow: [1, 0.2],
       }),
       fall: fallingStream(),
-      churn: churnMaterial(),
+      churn: churnMaterial({
+        half: [inner.w / 2, inner.d / 2],
+        centre: [fallAt.x, basin.z - fallAt.z],
+      }),
       // One material per ring, not one shared between them: they carry different opacities at any
       // instant, and sharing would make the second ring overwrite the first every frame so both pulsed
       // as one. Two `MeshBasicMaterial`s is a rounding error against being able to see the effect.

@@ -620,7 +620,18 @@ export function fallingStream(): { material: ShaderMaterial; uniforms: Record<st
 export function fallGeometry(topRadius = 0.06, bottomRadius = 0.028): CylinderGeometry {
   // three's signature is ( radiusTop, radiusBottom, ... ) and the argument order here is the one place
   // this can silently invert: swapped, the fall trumpets outward on its way down and reads as a funnel.
-  return new CylinderGeometry(topRadius, bottomRadius, 1, 7, 1, true);
+  //
+  // FOURTEEN HEIGHT SEGMENTS, and the number is load-bearing rather than a default nudged upward. With
+  // the 1 that was here the tube had TWO vertex rings, so the vertex shader's whole stated purpose —
+  // swelling the radius so the OUTLINE undulates, "and the outline is what the eye actually uses to
+  // identify a shape" — could not do anything along the length: there was nothing between top and
+  // bottom to displace, and the silhouette was two straight lines by construction.
+  //
+  // It also silently broke the lip damping below. `smoothstep( 1.0, LIP, uv.y )` only ever saw
+  // uv.y in { 0, 1 }, so it pinned the top ring and left the bottom at full bulge — which converts a
+  // flicker at the mouth into the whole column pumping width as a cone. Fourteen rings over an 86cm
+  // fall is ~6cm each against an ~18cm wobble, so the wave resolves. 196 triangles instead of 14.
+  return new CylinderGeometry(topRadius, bottomRadius, 1, 7, 14, true);
 }
 
 /**
@@ -636,8 +647,19 @@ export function fallGeometry(topRadius = 0.06, bottomRadius = 0.028): CylinderGe
  * with no bookkeeping, and it is also the truer read: what you actually see where a small fall meets a
  * fed basin is a bright churning patch ON the water, not a cloud above it.
  */
-export function churnMaterial(): { material: ShaderMaterial; uniforms: Record<string, IUniform> } {
-  const uniforms: Record<string, IUniform> = { uTime: CLOCK, uTint: { value: new Color(WATER.foam) } };
+export function churnMaterial(bounds: RingBounds): {
+  material: ShaderMaterial;
+  uniforms: Record<string, IUniform>;
+} {
+  const uniforms: Record<string, IUniform> = {
+    uTime: CLOCK,
+    uTint: { value: new Color(WATER.foam) },
+    /* The same bounds the foam rings take, for the same reason: a 27cm disc centred 11.25cm from the
+       trough's end overruns the pool by 13.6cm and is drawn flat on the kerb, so the stream reads as
+       landing on the stone rather than in the water. */
+    uChurnHalf: { value: new Vector2(bounds.half[0], bounds.half[1]) },
+    uChurnCentre: { value: new Vector2(bounds.centre[0], bounds.centre[1]) },
+  };
   const material = new ShaderMaterial({
     uniforms,
     transparent: true,
@@ -646,15 +668,23 @@ export function churnMaterial(): { material: ShaderMaterial; uniforms: Record<st
     side: DoubleSide,
     vertexShader: /* glsl */ `
       varying vec2 vUvw;
+      varying vec2 vChurn;
       void main() {
         vUvw = uv;
+        // Offset from the disc's centre in metres, so the fragment stage can tell how near the
+        // waterline it is. Column length is the world scale, as in the foam ring material.
+        vChurn = position.xy * length( modelMatrix[ 0 ].xyz );
         gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
       }
     `,
     fragmentShader: /* glsl */ `
+      #define RING_FADE_GLSL ${RING_FADE.toFixed(2)}
       uniform float uTime;
       uniform vec3 uTint;
+      uniform vec2 uChurnHalf;
+      uniform vec2 uChurnCentre;
       varying vec2 vUvw;
+      varying vec2 vChurn;
       void main() {
         vec2 p = vUvw - 0.5;
         float r = length( p ) * 2.0;
@@ -665,6 +695,9 @@ export function churnMaterial(): { material: ShaderMaterial; uniforms: Record<st
         // Two out-of-phase breaths, so the spray swells unevenly rather than pulsing like a metronome.
         float swell = 0.72 + 0.18 * sin( uTime * 2.3 ) + 0.1 * sin( uTime * 3.7 + 1.1 );
         float a = smoothstep( 1.0, 0.15, r / swell ) * 0.26;
+        // Out at the waterline, exactly as the foam rings do. See foamRingMaterial below.
+        vec2 churnRim = uChurnHalf - abs( uChurnCentre + vChurn );
+        a *= smoothstep( 0.0, RING_FADE_GLSL, min( churnRim.x, churnRim.y ) );
         gl_FragColor = vec4( uTint, a );
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
