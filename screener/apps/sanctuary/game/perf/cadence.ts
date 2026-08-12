@@ -133,12 +133,30 @@ export function useShadowCadence(light: RefObject<DirectionalLight | null>, ever
     const builtForVsm = map !== null && map.texture.type === HalfFloatType;
     const wantsVsm = type === VSMShadowMap;
 
+    const mismatched = map !== null && builtForVsm !== wantsVsm;
+
+    /**
+     * A mismatch is REPAIRED, not merely never-skipped.
+     *
+     * Forcing `needsUpdate` prevents the skip that creates this state, and in practice that is enough
+     * because the hook runs before `gl.render` and three's `_previousType` can only lag. But if the
+     * mismatch is ever reached with no `typeChanged` pending in three, forcing an update just renders
+     * the light into the wrong-shaped target again, forever: `WebGLShadowMap` recreates only at
+     * `shadow.map === null || typeChanged === true`. Disposing the target satisfies the first arm, so
+     * the next frame rebuilds it in the format it is actually being sampled as.
+     */
+    if (mismatched && map !== null) {
+      map.depthTexture?.dispose();
+      map.dispose();
+      current.shadow.map = null;
+    }
+
     current.shadow.needsUpdate = shadowCadence({
       frame: frame.current,
       every,
-      hasMap: map !== null,
+      hasMap: current.shadow.map !== null,
       typeChanged,
-      mapMismatched: map !== null && builtForVsm !== wantsVsm,
+      mapMismatched: mismatched,
     });
   });
 
