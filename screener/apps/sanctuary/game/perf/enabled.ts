@@ -19,7 +19,13 @@ export function perfEnabled(search: string = typeof window === 'undefined' ? '' 
  * about the code that ships.
  */
 export function batchingEnabled(
+  label?: string,
   search: string = typeof window === 'undefined' ? '' : window.location.search,
 ): boolean {
-  return !new URLSearchParams(search).has('nobatch');
+  const value = new URLSearchParams(search).get('nobatch');
+  if (value === null) return true;
+  /* `?nobatch=1` (or bare) turns everything off; `?nobatch=shop` turns off one wrapper, which is how
+     a difference gets bisected to the subtree that causes it. */
+  if (value === '' || value === '1') return false;
+  return !value.split(',').includes(label ?? '');
 }

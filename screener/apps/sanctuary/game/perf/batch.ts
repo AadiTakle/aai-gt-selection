@@ -2,9 +2,10 @@ import type { Group, Mesh, Object3D } from 'three';
 
 import { mergeGroup } from './merge';
 import { castSignature, materialSignature } from './signature';
+import { materialState } from './still';
 
 /**
- * ONE BATCH OF A SUBTREE, AND THE THREE WAYS IT CAN GO STALE.
+ * ONE BATCH OF A SUBTREE, AND THE FOUR WAYS IT CAN GO STALE.
  *
  * ══ WHY STALENESS IS THE HARD PART ════════════════════════════════════════════════════════════════
  *
@@ -59,6 +60,17 @@ interface HiddenSource {
   mesh: Mesh;
   /** What the owner last asked `visible` to be. Starts true — it was visible when it was merged. */
   wanted: boolean;
+  /**
+   * The source material's animatable channels as they were when it was merged.
+   *
+   * A merged mesh carries a CLONE of the material, so a mutation of the original after the merge
+   * reaches nothing. `still.ts` already refuses to merge a material that animates DURING its window,
+   * but the ranch's lanterns are not animated continuously — they are dark, and then at some point
+   * they light. Constant through the window, merged, and then 65 lamps stayed dark while every
+   * unmerged copy came on. Caught by `guard.mjs` as four bright specks that would never have been
+   * noticed in play.
+   */
+  material: string;
 }
 
 const EMPTY_STATS: BatchStats = {
@@ -145,7 +157,7 @@ export class Batch {
    * The accessor is `configurable` so `dissolve` can delete it and hand the plain property back.
    */
   private hide(mesh: Mesh): void {
-    const record: HiddenSource = { mesh, wanted: true };
+    const record: HiddenSource = { mesh, wanted: true, material: materialState(mesh) };
     this.hidden.push(record);
     Object.defineProperty(mesh, 'visible', {
       configurable: true,
@@ -162,7 +174,11 @@ export class Batch {
 
   isStale(host: Object3D): boolean {
     if (!this.built) return false;
-    return this.invalidated || meshCount(host) !== this.countAtMerge;
+    if (this.invalidated || meshCount(host) !== this.countAtMerge) return true;
+    for (const source of this.hidden) {
+      if (materialState(source.mesh) !== source.material) return true;
+    }
+    return false;
   }
 
   /** Un-hide every source, dispose everything this batch created, and empty the sink. */

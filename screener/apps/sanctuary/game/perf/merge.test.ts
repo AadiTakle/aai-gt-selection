@@ -121,6 +121,39 @@ describe('merging the static world', () => {
     expect(triangleCount(merged!)).toBe(12 + new SphereGeometry(1, 6, 4).toNonIndexed().attributes.position!.count / 3);
   });
 
+  it('flips the winding of a mirrored source, which would otherwise merge in inside-out', () => {
+    /* REGRESSION found by `guard.mjs`. `applyMatrix4` moves vertices and normals and leaves the index
+       alone, so a prop placed by mirroring another keeps its old winding once the mirror is baked in.
+       Drawn on its own it is fine — three flips `frontFace` per object — but a merged mesh has no
+       per-object correction left. */
+    const root = new Group();
+    const normal = boxAt(0, '#ffffff');
+    const mirrored = boxAt(4, '#ffffff');
+    mirrored.scale.x = -1;
+    root.add(normal, mirrored);
+    root.updateMatrixWorld(true);
+
+    const merged = mergeGroup([normal, mirrored], root)!;
+    const pos = merged.geometry.attributes.position!;
+    const idx = merged.geometry.index;
+    const at = (i: number) => {
+      const v = idx ? idx.getX(i) : i;
+      return [pos.getX(v), pos.getY(v), pos.getZ(v)] as const;
+    };
+    /* Signed volume via the divergence theorem: outward-facing triangles give a positive total.
+       An inside-out half would drag the sum toward zero. */
+    let volume = 0;
+    const count = idx ? idx.count : pos.count;
+    for (let i = 0; i < count; i += 3) {
+      const [ax, ay, az] = at(i);
+      const [bx, by, bz] = at(i + 1);
+      const [cx, cy, cz] = at(i + 2);
+      volume +=
+        (ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx)) / 6;
+    }
+    expect(volume).toBeCloseTo(2, 5); // two unit cubes, both facing outward
+  });
+
   it('returns null for a single mesh, which is already one draw call', () => {
     const root = new Group();
     const a = boxAt(0, '#ffffff');

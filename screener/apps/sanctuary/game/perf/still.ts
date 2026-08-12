@@ -1,4 +1,4 @@
-import type { Mesh, Object3D } from 'three';
+import type { Mesh, MeshStandardMaterial, Object3D } from 'three';
 
 /**
  * WHICH MESHES NEVER MOVE — measured over the first few frames rather than declared.
@@ -42,7 +42,38 @@ import type { Mesh, Object3D } from 'three';
  *
  * A mesh that appears after watching began is EXCLUDED, because it has not been watched long enough
  * to have earned the judgement.
+ *
+ * ══ A MATERIAL CAN ANIMATE WITHOUT THE MESH MOVING ════════════════════════════════════════════════
+ *
+ * Found by the pixel guard rather than by thinking about it, which is the whole reason that gate
+ * exists. Watching only the world matrix let the lamp bulbs be merged — they never move — and the
+ * merged mesh carries a CLONE of the material. The lamps' glow is animated by mutating the material,
+ * so the clone stopped receiving those mutations and four lamps froze mid-breath while every
+ * unbatched copy kept pulsing. It was 244 pixels out of 540,000, invisible in play, and exactly the
+ * class of silent wrongness this work is not allowed to introduce.
+ *
+ * So the fingerprint covers the material's animatable channels too. A pulsing lamp now disqualifies
+ * itself the same way the windmill vane does.
  */
+/**
+ * The material channels an animation actually drives, as a string.
+ *
+ * Deliberately not every property: this runs over every mesh every frame of the window, and the
+ * things that get animated on a stylised scene like this one are colour, emissive glow and fade.
+ */
+export function materialState(mesh: Mesh): string {
+  const material = mesh.material;
+  if (!material || Array.isArray(material)) return '-';
+  const m = material as MeshStandardMaterial;
+  return [
+    m.color?.getHex() ?? '-',
+    m.emissive?.getHex() ?? '-',
+    m.emissiveIntensity ?? '-',
+    m.opacity,
+    m.visible,
+  ].join(',');
+}
+
 interface Track {
   key: string;
   /** Consecutive observations, including this one, in which the matrix has not changed. */
@@ -65,7 +96,7 @@ export class StillWatch {
       const mesh = o as Mesh;
       if (!mesh.isMesh) return;
       seen.add(mesh.uuid);
-      const key = mesh.matrixWorld.elements.join(',');
+      const key = `${mesh.matrixWorld.elements.join(',')}|${materialState(mesh)}`;
       const track = this.tracks.get(mesh.uuid);
       if (!track) {
         /* Only what is present when watching begins may enrol. */

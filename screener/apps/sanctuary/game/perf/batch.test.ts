@@ -127,6 +127,18 @@ describe('a batch', () => {
     expect(sink.children).toHaveLength(1);
   });
 
+  it('goes stale when a merged source\'s material changes — the lanterns lighting up', () => {
+    /* REGRESSION, found by `guard.mjs`. The merged mesh holds a CLONE of the material, so a lantern
+       that is dark during the observation window, gets merged, and lights up later would stay dark
+       forever while every unmerged copy came on. */
+    const { host, sink, still, props } = world(4);
+    const batch = new Batch();
+    batch.build(host, sink, still);
+    expect(batch.isStale(host)).toBe(false);
+    (props[0]!.material as MeshStandardMaterial).emissiveIntensity = 2;
+    expect(batch.isStale(host)).toBe(true);
+  });
+
   it('is never stale before it has built anything', () => {
     const { host, sink } = world(3);
     const batch = new Batch();

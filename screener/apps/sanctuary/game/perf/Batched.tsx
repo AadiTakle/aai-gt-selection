@@ -51,7 +51,8 @@ interface Props {
   enabled?: boolean;
 }
 
-export function Batched({ children, label = 'subtree', enabled = batchingEnabled() }: Props): JSX.Element {
+export function Batched({ children, label = 'subtree', enabled }: Props): JSX.Element {
+  const on = enabled ?? batchingEnabled(label);
   const host = useRef<Group>(null);
   const sink = useRef<Group>(null);
   const watch = useRef(new StillWatch(WINDOW, HOLD));
@@ -62,7 +63,7 @@ export function Batched({ children, label = 'subtree', enabled = batchingEnabled
   const ticks = useRef(0);
 
   useFrame(() => {
-    if (!enabled || abandoned.current) return;
+    if (!on || abandoned.current) return;
     const root = host.current;
     const target = sink.current;
     if (!root || !target) return;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Group, Mesh } from 'three';
+import { Group, Mesh, MeshStandardMaterial } from 'three';
 
 import { StillWatch } from './still';
 
@@ -60,6 +60,30 @@ describe('which meshes never move', () => {
     bob.position.y = 1; // moved on the last observation: its run resets to one
     frame(w, root);
     expect(w.stillUuids().has(bob.uuid)).toBe(false);
+  });
+
+  it('excludes a mesh whose material animates while it stands still — the pulsing lamp', () => {
+    /* REGRESSION, found by `guard.mjs`. Watching only the world matrix merged the lamp bulbs, and a
+       merged mesh carries a CLONE of the material — so the clone stopped receiving the glow's
+       mutations and four lamps froze mid-breath, 244 pixels of silent wrongness. */
+    const root = new Group();
+    const lamp = new Mesh(undefined, new MeshStandardMaterial({ emissive: '#ffcc88' }));
+    root.add(lamp);
+    const w = watching();
+    for (let i = 0; i < 4; i += 1) {
+      (lamp.material as MeshStandardMaterial).emissiveIntensity = 1 + i * 0.1;
+      frame(w, root);
+    }
+    expect(w.stillUuids().has(lamp.uuid)).toBe(false);
+  });
+
+  it('keeps a mesh whose material is merely set once and left alone', () => {
+    const root = new Group();
+    const wall = new Mesh(undefined, new MeshStandardMaterial({ color: '#886644' }));
+    root.add(wall);
+    const w = watching();
+    for (let i = 0; i < 4; i += 1) frame(w, root);
+    expect(w.stillUuids().has(wall.uuid)).toBe(true);
   });
 
   it('is not settled before its window has elapsed', () => {

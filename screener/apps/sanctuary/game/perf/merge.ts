@@ -44,6 +44,37 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
  */
 const KEPT = new Set(['position', 'normal']);
 
+/** Reverse every triangle so a mirrored geometry faces outward again. */
+function flipWinding(geometry: BufferGeometry): void {
+  const index = geometry.index;
+  if (index) {
+    const a = index.array as unknown as { [i: number]: number; length: number };
+    for (let i = 0; i < a.length; i += 3) {
+      const t = a[i]!;
+      a[i] = a[i + 2]!;
+      a[i + 2] = t;
+    }
+    index.needsUpdate = true;
+    return;
+  }
+  /* Non-indexed: swap the first and third vertex of every triangle, in every attribute. */
+  for (const name of Object.keys(geometry.attributes)) {
+    const attr = geometry.attributes[name]!;
+    const size = attr.itemSize;
+    const a = attr.array as unknown as { [i: number]: number };
+    for (let tri = 0; tri < attr.count; tri += 3) {
+      for (let c = 0; c < size; c += 1) {
+        const i0 = tri * size + c;
+        const i2 = (tri + 2) * size + c;
+        const t = a[i0]!;
+        a[i0] = a[i2]!;
+        a[i2] = t;
+      }
+    }
+    attr.needsUpdate = true;
+  }
+}
+
 function prepared(mesh: Mesh, toRoot: Matrix4): BufferGeometry | null {
   const source = mesh.geometry;
   if (!source?.attributes?.position) return null;
@@ -55,10 +86,28 @@ function prepared(mesh: Mesh, toRoot: Matrix4): BufferGeometry | null {
   geometry.morphAttributes = {};
   if (!geometry.attributes.normal) geometry.computeVertexNormals();
 
-  /* `applyMatrix4` transforms positions AND normals (by the inverse transpose), so a mirrored or
-     non-uniformly scaled prop keeps its shading. */
+  /* `applyMatrix4` transforms positions AND normals (by the inverse transpose), so a non-uniformly
+     scaled prop keeps its shading. */
   const local = new Matrix4().copy(toRoot).multiply(mesh.matrixWorld);
   geometry.applyMatrix4(local);
+
+  /**
+   * A MIRRORED PROP COMES OUT INSIDE-OUT UNLESS ITS WINDING IS FLIPPED.
+   *
+   * `applyMatrix4` moves vertices and normals and does not touch the index, so a transform with a
+   * negative determinant — any prop placed by mirroring another, which is how you build a pair of
+   * lanterns or a symmetrical stall — keeps its original triangle winding while its geometry has been
+   * turned through itself. three then culls the faces that should be visible and draws the ones that
+   * should not, and the prop renders inside-out.
+   *
+   * It survived a mirrored mesh drawn on its own because the source mesh's own `matrixWorld` carried
+   * the mirror and three's renderer flips `frontFace` per object for exactly this reason. Merging
+   * bakes the mirror into the vertices, so that per-object correction is gone and the winding has to
+   * be fixed here instead.
+   *
+   * Found by `guard.mjs`: four small props around the stall lanterns, 248 pixels out of 540,000.
+   */
+  if (local.determinant() < 0) flipWinding(geometry);
 
   const material = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as
     | MeshStandardMaterial

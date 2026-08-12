@@ -76,6 +76,10 @@ async function shoot(browser, query) {
   /* Long enough for the batcher's 30-frame observation window plus its merge. Shooting before it has
      run would compare an unbatched frame with an unbatched frame and pass for the wrong reason. */
   await page.waitForTimeout(4500);
+  await page.evaluate(RECORD);
+  await page.waitForTimeout(1200);
+  await page.evaluate(FREEZE);
+  await page.waitForTimeout(200);
   const shots = new Map();
   for (const p of POSES) {
     const ok = await page.evaluate(pose(p));
@@ -86,6 +90,37 @@ async function shoot(browser, query) {
   await page.close();
   return shots;
 }
+
+/**
+ * HIDE EVERYTHING THAT MOVES, identically in every run, before shooting anything.
+ *
+ * The statistical version of this — mask the pixels two identical runs disagree about — was not good
+ * enough and failed intermittently on the pose that looks into a pen. With three runs there are three
+ * different sets of slime positions, and a mask built from two of them cannot cover the third; the
+ * uncovered fringe then reads as a batcher regression, at random, on some runs and not others. A
+ * measurement that flickers is worse than no measurement, because it teaches you to ignore it.
+ *
+ * So motion is removed rather than masked, by the same observation `still.ts` uses: record every
+ * mesh's world matrix, wait, and hide whatever changed. Applied identically in all three runs, what
+ * is left is the static world — which is the only thing the batcher touches, and therefore the only
+ * thing worth comparing. Merged sources are unaffected: they are static by construction, so this
+ * never writes to one and cannot invalidate a batch.
+ */
+const RECORD = `(() => {
+  window.__frozen = new Map();
+  window.__bhScene.traverse((o) => {
+    if (o.isMesh && o.visible) window.__frozen.set(o, o.matrixWorld.elements.join(','));
+  });
+  return window.__frozen.size;
+})()`;
+
+const FREEZE = `(() => {
+  let hidden = 0;
+  for (const [mesh, before] of window.__frozen) {
+    if (mesh.matrixWorld.elements.join(',') !== before) { mesh.visible = false; hidden += 1; }
+  }
+  return hidden;
+})()`;
 
 /** Decode a PNG without a dependency: Chrome already has one. */
 async function pixels(page, png) {
@@ -111,19 +146,6 @@ const browser = await chromium.launch({ channel: 'chrome', args: ['--use-angle=m
 console.log(`\nBatcher pixel guard — ${BASE}`);
 console.log('='.repeat(78));
 
-/**
- * THREE RUNS, NOT TWO, AND THE THIRD IS THE POINT.
- *
- * The slimes wander and they do not wander identically in two page loads, so a frame containing a pen
- * differs between ANY two runs whether or not anything was batched. Comparing batched against
- * unbatched alone therefore cannot distinguish a broken merge from a slime that took a different
- * step, and the first version of this script duly failed on a pose full of slimes and blamed the
- * batcher.
- *
- * So the control is two UNBATCHED runs. Whatever they differ by is the floor that moving creatures
- * put under this measurement. The batcher is only guilty of what it adds on top of that floor.
- */
-const control = await shoot(browser, 'perf=1&nobatch=1');
 const off = await shoot(browser, 'perf=1&nobatch=1');
 const on = await shoot(browser, 'perf=1');
 
@@ -136,70 +158,33 @@ const H = 600;
 const delta = (a, b, i) =>
   Math.max(Math.abs(a[i] - b[i]), Math.abs(a[i + 1] - b[i + 1]), Math.abs(a[i + 2] - b[i + 2]));
 
-/**
- * WHERE THE MOVING THINGS ARE, so the comparison can ignore them.
- *
- * Built from two runs that were configured identically: anything differing between those two is a
- * creature that took a different step, not a consequence of batching. Dilated by a few pixels because
- * a slime one frame further into its walk covers slightly different ground in the third run than it
- * did in the second, and an undilated mask would leave a fringe of its silhouette uncovered — which
- * is exactly the fringe that showed up as a failure the first time this ran.
- */
-function movingMask(a, b, radius = 4) {
-  const raw = new Uint8Array(W * H);
-  for (let p = 0; p < W * H; p += 1) if (delta(a, b, p * 4) > CHANNEL_EPSILON) raw[p] = 1;
-  const out = new Uint8Array(W * H);
-  for (let y = 0; y < H; y += 1) {
-    for (let x = 0; x < W; x += 1) {
-      if (!raw[y * W + x]) continue;
-      for (let dy = -radius; dy <= radius; dy += 1) {
-        const yy = y + dy;
-        if (yy < 0 || yy >= H) continue;
-        for (let dx = -radius; dx <= radius; dx += 1) {
-          const xx = x + dx;
-          if (xx < 0 || xx >= W) continue;
-          out[yy * W + xx] = 1;
-        }
-      }
-    }
-  }
-  return out;
-}
-
-function compare(a, b, mask) {
+function compare(a, b) {
   let differing = 0;
   let worst = 0;
-  let counted = 0;
   for (let p = 0; p < W * H; p += 1) {
-    if (mask && mask[p]) continue;
-    counted += 1;
     const d = delta(a, b, p * 4);
     if (d > worst) worst = d;
     if (d > CHANNEL_EPSILON) differing += 1;
   }
-  return { share: counted ? differing / counted : 0, differing, worst, counted };
+  return { share: differing / (W * H), differing, worst };
 }
 
 let failed = false;
-console.log(`  ${'pose'.padEnd(12)} ${'masked'.padStart(11)} ${'static diff'.padStart(13)}   verdict`);
+console.log(`  ${'pose'.padEnd(12)} ${'differing'.padStart(13)}   verdict`);
 for (const p of POSES) {
-  const a = await pixels(decoder, control.get(p.name));
   const b = await pixels(decoder, off.get(p.name));
   const c = await pixels(decoder, on.get(p.name));
-  if (a.length !== b.length || a.length !== c.length) {
+  if (b.length !== c.length) {
     console.log(`  ${p.name.padEnd(12)} FAIL  different frame sizes`);
     failed = true;
     continue;
   }
-  const mask = movingMask(a, b);
-  const masked = mask.reduce((n, v) => n + v, 0);
-  const test = compare(b, c, mask);
+  const test = compare(b, c);
   const ok = test.share <= PIXEL_BUDGET;
   if (!ok) failed = true;
   console.log(
-    `  ${p.name.padEnd(12)} ${((masked / (W * H)) * 100).toFixed(1).padStart(10)}% ` +
-      `${(test.share * 100).toFixed(4).padStart(13)}%   ${ok ? 'pass' : 'FAIL'}` +
-      `  (${test.differing} of ${test.counted} static pixels, worst channel ${test.worst})`,
+    `  ${p.name.padEnd(12)} ${(test.share * 100).toFixed(4).padStart(12)}%   ${ok ? 'pass' : 'FAIL'}` +
+      `  (${test.differing} of ${W * H} pixels, worst channel ${test.worst})`,
   );
 }
 

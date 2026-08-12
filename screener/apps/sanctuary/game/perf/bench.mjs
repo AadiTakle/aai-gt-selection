@@ -89,7 +89,9 @@ const INSTRUMENT = `(() => {
     const b = window.__bench;
     b.frames.push(now - last);
     b.main.push(main); b.shadow.push(shadow);
-    b.mainTris = mainT; b.shadowTris = shadowT;
+    /* MAX, not last: with the shadow cadence on, half the frames skip the shadow pass entirely and
+       reporting the last frame's count shows a misleading 0k. */
+    b.mainTris = Math.max(b.mainTris, mainT); b.shadowTris = Math.max(b.shadowTris, shadowT);
     main = 0; shadow = 0; mainT = 0; shadowT = 0; last = now;
     requestAnimationFrame(tick);
   };
