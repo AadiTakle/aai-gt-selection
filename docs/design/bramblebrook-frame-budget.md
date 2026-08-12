@@ -205,3 +205,36 @@ The other three cannot honestly claim it, and should not pretend to:
 5. shadow map resolution — separate, droppable
 
 Each step is independently mergeable and independently measurable.
+
+## 8. What actually happened
+
+Recorded after the fact, because a design document that only says what was intended is worth less on
+the second reading than on the first.
+
+| | draw calls | main | shadow |
+| --- | --- | --- | --- |
+| baseline (`bfaf73f`) | 1139 | 725 | 414 |
+| after batching (§4.1) | 654 | 367 | 287 |
+| after cadence (§4.3) | **510** | 367 | 144 |
+
+**A 55% cut, and it stops 60 short of the 450 target.** That number was an estimate made before
+anything had been taken apart, and the honest reason it was missed is in §2's third row: roughly 430
+of the frame's calls were never in scope. They are the slimes, the vacpack in camera space, and the
+intro — all of them animated, none of them mergeable by any scheme that does not change the picture.
+
+Three things the measurement corrected about the design:
+
+- **`Buildings` was the wrong target.** §4.1 named it as the obvious one. It turned out to hold 165
+  meshes of which 87 are already `InstancedMesh` and 77 carry a texture or transparency, so a batcher
+  folds nothing there — that file had already done this work. The real load was the shop stall (270
+  meshes) and the stations (187), neither of which the design had looked at.
+- **Both real targets change while a child plays**, which a one-shot merge cannot survive: a station
+  swaps meshes every question and a stale merge leaves the previous question hanging in the air. That
+  forced the staleness machinery in `perf/batch.ts`, which is most of its complexity and none of its
+  original plan.
+- **§4.2, the caster budget, was not built.** After §4.1 and §4.3 the shadow pass is 144 calls, so the
+  remaining win is small — and it is the one change here that would visibly alter the image. Skipped
+  on both counts, as §4.2 said to.
+
+§4.4 is also unbuilt: the owner asked for no art changes for now, and shadow resolution is an art
+change however small. The budget for it exists and the one-line change is described above.
