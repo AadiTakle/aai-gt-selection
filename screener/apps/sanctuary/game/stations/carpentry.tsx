@@ -184,6 +184,7 @@ export function Bay({ site, lit }: { site: StationSite; lit: number }): JSX.Elem
     if (sill.current) sill.current.emissiveIntensity = wash.current * 0.45;
   });
 
+
   const g = useMemo(
     () => ({
       head: new RoundedBoxGeometry(halfW * 2 + 0.5, 0.32, 0.62, 2, 0.1),
@@ -611,30 +612,27 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
   /** The rim stands 9cm above the surface: enough to read as a kerb, little enough to see over. */
   const rimTop = waterY + 0.09;
 
-  const g = useMemo(
-    () => ({
-      wallLong: new RoundedBoxGeometry(basin.w, basin.height, basin.wall, 3, 0.1),
-      wallShort: new RoundedBoxGeometry(basin.wall, basin.height, basin.d - basin.wall * 2, 3, 0.1),
-      bed: new RoundedBoxGeometry(basin.w - basin.wall * 2, 0.22, basin.d - basin.wall * 2, 2, 0.06),
-      water: new ShapeGeometry(
-        roundedRectXY(basin.w - basin.wall * 2 + 0.06, basin.d - basin.wall * 2 + 0.06, 0.2),
-      ),
-      flume: new RoundedBoxGeometry(1.15, 0.16, 0.38, 2, 0.06),
-      flumePost: new CylinderGeometry(0.09, 0.12, 1, 8),
-      nozzle: new CylinderGeometry(0.06, 0.075, 0.22, 10),
-      fall: fallGeometry(),
-      /** The inner thread, narrower and scrolling faster. See `spring` below. */
-      thread: fallGeometry(0.022, 0.014),
-      splash: splashRingGeometry(),
-      churn: churnGeometry(),
-      stone: new SphereGeometry(0.26, 10, 8),
-      reed: new CylinderGeometry(0.018, 0.032, 0.8, 5),
-    }),
-    [basin.w, basin.d, basin.wall, basin.height],
-  );
-
   /** Where the flume's nozzle sits, and therefore how far the water falls. */
   const nozzleY = waterY + 0.92;
+
+  /**
+   * THE FLUME BOARD, as numbers rather than three literals buried in the JSX below.
+   *
+   * It has to be a constant because the nozzle is set INTO it, and how long a peg may be is the BOARD's
+   * business — its thickness, its corner radius, its tilt. A hand-typed nozzle beside a hand-typed board
+   * is what put the spout's top rim 9mm out through the TOP face: a dark slot across the plank two
+   * centimetres short of the tip, which at the dock's 4° grazing angle reads as the join coming apart.
+   */
+  const FLUME = {
+    len: 1.15,
+    thick: 0.16,
+    wide: 0.38,
+    round: 0.06,
+    x: 0.05,
+    lift: 0.14,
+    z: -0.02,
+    tilt: -0.16,
+  } as const;
 
   /**
    * THE NOZZLE, AND THE ONE PLACE WATER MAY LEAVE IT.
@@ -650,8 +648,104 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
    * reason the impact point below is derived: a hand-matched pair drifts apart the moment the spout is
    * nudged, and a stream beside its spout is invisible in the code and obvious on screen.
    */
-  const NOZZLE = { x: 0.56, lift: 0.02, tilt: 0.3, length: 0.22, z: -0.02 } as const;
+  const NOZZLE = {
+    x: 0.56,
+    lift: 0.02,
+    tilt: 0.3,
+    length: 0.22,
+    z: -0.02,
+    bore: 0.06,
+    mouth: 0.075,
+  } as const;
   const spoutX = NOZZLE.x + Math.sin(NOZZLE.tilt) * (NOZZLE.length / 2);
+
+  /**
+   * HOW MUCH OF THAT ARM IS WOOD — derived, because the board decides it and not the eye.
+   *
+   * In the board's own frame the peg leans 0.46rad, so its top rim is an ELLIPSE and its uphill edge
+   * stands `sin(0.46) * bore` = 26.6mm above the rim's centre. At the authored 0.22 that centre already
+   * sat 61mm above the board's mid-plane, so the edge came out 9mm through the TOP face — a quarter of
+   * the rim, in open air, showing `timberDeep` through `timber` as a dark slot across the plank.
+   * Nudging `lift` cannot fix it: lowering the nozzle walks it further into the board's ROUNDED tip,
+   * where there is even less wood than at the mid-plane.
+   *
+   * So the peg stops AT the mid-plane: the mouth's perpendicular depth below the board, divided by the
+   * cosine of the angle between peg and board. Anchoring the MOUTH rather than the middle is the whole
+   * point — the woodwork above it may now be any length at all and `spoutX`, and therefore the stream,
+   * the churn patch and the ripple rings, cannot move.
+   */
+  const mouthLift = NOZZLE.lift - Math.cos(NOZZLE.tilt) * (NOZZLE.length / 2);
+  const mouthDepth =
+    (spoutX - FLUME.x) * Math.sin(FLUME.tilt) + (FLUME.lift - mouthLift) * Math.cos(FLUME.tilt);
+  const nozzleLength = mouthDepth / Math.cos(NOZZLE.tilt - FLUME.tilt);
+  const nozzleAt = {
+    x: spoutX - Math.sin(NOZZLE.tilt) * (nozzleLength / 2),
+    lift: mouthLift + Math.cos(NOZZLE.tilt) * (nozzleLength / 2),
+  };
+
+  /**
+   * AND THE POST REACHES ITS BOARD, which it did not.
+   *
+   * `nozzleY + 0.1` against a board at `nozzleY + 0.14` is the same hand-typed pair as the nozzle, one
+   * joint along: the board TILTS, so at the post's own x it has risen 7.6cm, and the post's top stopped
+   * 2 to 5cm short of the underside depending on where across the post you measure. A flume resting on
+   * nothing. It is hard to catch from the dock because the board's own edge covers the gap from below
+   * and its body from above — which is exactly why it needs deriving rather than looking at.
+   *
+   * Carried to the board's MID-plane, like the nozzle, so the post is buried in it rather than kissing
+   * it: a post that merely touches its beam shows daylight the first time either is nudged.
+   */
+  const POST_X = -0.42;
+  const postTop = nozzleY + FLUME.lift + (POST_X - FLUME.x) * Math.tan(FLUME.tilt);
+
+  /**
+   * AND THE SAME ARITHMETIC FOR THE HEIGHT, which the first pass left out — the other half of the same
+   * mistake. `spoutX` swings the outlet sideways by `sin(tilt) * length/2`; the same turn drops it by
+   * `cos(tilt) * length/2`, so the mouth is 8.5cm BELOW `nozzleY`, not at it.
+   *
+   * The fall was hung with its top plane at `nozzleY` — the nozzle's ORIGIN — and at that height the
+   * tilted bore has already walked 2.6cm toward -X while the vertical tube stayed at `spoutX`. Measured
+   * perpendicular to the nozzle's axis, the tube's rim stood 12mm OUTSIDE the wall before the shader's
+   * bulge was applied at all, and the fall is open-ended and double-sided, so you were looking into the
+   * pipe. That pale crescent on the spout's belly is the "z-fighting with the mouth"; it is not depth
+   * precision — the two surfaces meet at about 73° — it is water that is genuinely outside the wood.
+   *
+   * `* 0.1` is how far up the bore the rim then hides, measured along the nozzle's OWN axis and as a
+   * fraction of its length, because that is the only direction in which "inside the wood" means
+   * anything. A tenth of 22cm leaves 8mm of wood all round the rim. Deeper is worse, not better: the
+   * bore narrows toward the top while the vertical tube stays where it is.
+   */
+  const spoutY = nozzleY + NOZZLE.lift - Math.cos(NOZZLE.tilt) * (NOZZLE.length / 2);
+  /* `sin(tilt) * mouth` is the height the tilted mouth's own rim rises across its radius — exactly the
+     cover the lip has to give, and 22.2mm either way. It must NOT be a fraction of `NOZZLE.length`,
+     which is now derived from the board: shortening the peg would shrink the tuck and slip the fall's
+     rim back out below the mouth's downhill lip. */
+  const fallTop = spoutY + Math.sin(NOZZLE.tilt) * NOZZLE.mouth;
+  /** Lip to pool. Both tubes hang from `fallTop`, so neither can drift off the other's lip. */
+  const fallSpan = Math.max(0.1, fallTop - waterY);
+
+  const g = useMemo(
+    () => ({
+      wallLong: new RoundedBoxGeometry(basin.w, basin.height, basin.wall, 3, 0.1),
+      wallShort: new RoundedBoxGeometry(basin.wall, basin.height, basin.d - basin.wall * 2, 3, 0.1),
+      bed: new RoundedBoxGeometry(basin.w - basin.wall * 2, 0.22, basin.d - basin.wall * 2, 2, 0.06),
+      water: new ShapeGeometry(
+        roundedRectXY(basin.w - basin.wall * 2 + 0.06, basin.d - basin.wall * 2 + 0.06, 0.2),
+      ),
+      flume: new RoundedBoxGeometry(FLUME.len, FLUME.thick, FLUME.wide, 2, FLUME.round),
+      flumePost: new CylinderGeometry(0.09, 0.12, 1, 8),
+      nozzle: new CylinderGeometry(NOZZLE.bore, NOZZLE.mouth, nozzleLength, 10),
+      fall: fallGeometry(),
+      /** The inner thread, narrower and scrolling faster. See `spring` below. */
+      thread: fallGeometry(0.022, 0.014),
+      splash: splashRingGeometry(),
+      churn: churnGeometry(),
+      stone: new SphereGeometry(0.26, 10, 8),
+      reed: new CylinderGeometry(0.018, 0.032, 0.8, 5),
+    }),
+    [basin.w, basin.d, basin.wall, basin.height],
+  );
+
 
   /**
    * THE SPRING, WHICH NOW RUNS. Everything about how it moves lives in `world/water.ts`; what belongs
@@ -684,7 +778,12 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
       // One material per ring, not one shared between them: they carry different opacities at any
       // instant, and sharing would make the second ring overwrite the first every frame so both pulsed
       // as one. Two `MeshBasicMaterial`s is a rounding error against being able to see the effect.
-      foam: [foamRingMaterial(), foamRingMaterial()],
+      // Both rings get the same bounds, in the pool surface's own frame — the frame `impact` above is
+      // already in, so the fade and the shader's ripples cannot disagree about where the water ends.
+      foam: [
+        foamRingMaterial({ half: [inner.w / 2, inner.d / 2], centre: [fallAt.x, basin.z - fallAt.z] }),
+        foamRingMaterial({ half: [inner.w / 2, inner.d / 2], centre: [fallAt.x, basin.z - fallAt.z] }),
+      ],
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [basin.w, basin.d, basin.wall, basin.z, fallAt.x, fallAt.z]);
@@ -771,22 +870,22 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
         <mesh
           geometry={g.flumePost}
           material={m.timber}
-          position={[-0.42, groundY + (nozzleY + 0.1 - groundY) / 2, 0]}
-          scale={[1, nozzleY + 0.1 - groundY, 1]}
+          position={[POST_X, groundY + (postTop - groundY) / 2, 0]}
+          scale={[1, postTop - groundY, 1]}
           castShadow
           receiveShadow
         />
         <mesh
           geometry={g.flume}
           material={m.timber}
-          position={[0.05, nozzleY + 0.14, -0.02]}
-          rotation={[0, 0, -0.16]}
+          position={[FLUME.x, nozzleY + FLUME.lift, FLUME.z]}
+          rotation={[0, 0, FLUME.tilt]}
           castShadow
         />
         <mesh
           geometry={g.nozzle}
           material={m.timberDeep}
-          position={[NOZZLE.x, nozzleY + NOZZLE.lift, NOZZLE.z]}
+          position={[nozzleAt.x, nozzleY + nozzleAt.lift, NOZZLE.z]}
           rotation={[0, 0, NOZZLE.tilt]}
         />
 
@@ -800,14 +899,14 @@ export function TideLedgeBase({ site, reduced }: { site: StationSite; reduced: b
         <mesh
           geometry={g.fall}
           material={spring.fall.material}
-          position={[spoutX, (nozzleY + waterY) / 2, NOZZLE.z]}
-          scale={[1, Math.max(0.1, nozzleY - waterY), 1]}
+          position={[spoutX, fallTop - fallSpan / 2, NOZZLE.z]}
+          scale={[1, fallSpan, 1]}
         />
         <mesh
           geometry={g.thread}
           material={spring.fall.material}
-          position={[spoutX + 0.025, (nozzleY + waterY) / 2 + 0.03, NOZZLE.z + 0.025]}
-          scale={[1, Math.max(0.1, nozzleY - waterY) * 0.94, 1]}
+          position={[spoutX + 0.025, fallTop - (fallSpan * 0.94) / 2, NOZZLE.z + 0.025]}
+          scale={[1, fallSpan * 0.94, 1]}
         />
 
         {/*
