@@ -56,9 +56,23 @@ export interface GiftedCriteria {
  * None of these numbers has met a child. Replacing them is an owner decision, recorded in
  * `docs/design/aws-question-platform.md` section 17.
  */
+/**
+ * The gifted bar for grades 3 to 5, at the 95th percentile.
+ *
+ * θ = 1.645 is the 95th percentile of a standard normal, and 95th-percentile CogAT "strictly applied" is the
+ * bar GT states in `docs/interviews/2026-08-03-crystal-martel-call.md`. The prototype's 1.0 was roughly the
+ * 84th percentile and was chosen to screen generously; that argument belongs on the *recommendation
+ * probability*, not on where the line is, and conflating the two made the instrument look stricter than it was
+ * while measuring somewhere else entirely.
+ *
+ * `domainBar` moves with it. It must stay above the composite threshold — passing on one domain alone is a
+ * stronger claim about that domain than the composite makes about the whole child — and at 1.5 it would have
+ * fallen *below* a 1.645 composite, quietly making the single-domain route the easier way in. 2.0 restores the
+ * ordering, and a test now asserts it rather than trusting the numbers to stay in order.
+ */
 export const CRITERIA_V1: GiftedCriteria = {
   version: 'criteria-v1',
-  abilityThreshold: 1.0,
+  abilityThreshold: 1.645,
   requiredProbability: 0.75,
   minItemsScored: 8,
   /**
@@ -72,14 +86,15 @@ export const CRITERIA_V1: GiftedCriteria = {
    * Six items is the number that makes the route mean anything. Below it the arithmetic will still produce
    * a probability and the probability will still be indefensible.
    */
-  domainBar: 1.5,
+  domainBar: 2.0,
   domainRequiredProbability: 0.75,
   domainMinItemsScored: 6,
   perDomainRequirements: {},
   description:
-    'Placeholder criteria pending a product decision. Ability threshold and item floor copied ' +
-    'from the prototype screener; outreach probability set above the on-screen recommendation ' +
+    'Targets gifted identification in grades 3 to 5 at the 95th percentile (theta 1.645), which is ' +
+    'the CogAT bar GT states. Outreach probability sits above an app\u2019s on-screen recommendation ' +
     'bar because contacting a family is a stronger claim than encouraging one. The single-domain ' +
-    'route demands the same confidence as the composite and six scored items in the clearing ' +
-    'domain. Not calibrated.',
+    'route demands the same confidence as the composite, a higher ability bar, and six scored ' +
+    'items in the clearing domain. Not calibrated against children: the difficulties these ' +
+    'probabilities are computed over are a linear rescale of an authoring scale.',
 };

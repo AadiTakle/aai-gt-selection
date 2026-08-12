@@ -149,14 +149,28 @@ describe('toServedQuestion', () => {
 });
 
 describe('defaults', () => {
-  it('names criteria v1 a placeholder, because the real bar is a product decision', () => {
+  it('says out loud that the criteria are not calibrated against children', () => {
+    /**
+     * This used to assert the word "placeholder". The bar is no longer a placeholder — it is GT's stated
+     * one — but the *probabilities* are still computed over difficulties that are a rescale of an authoring
+     * judgement rather than calibrated from responses. That is the caveat worth holding onto, so the test now
+     * pins the caveat rather than the word.
+     */
     expect(CRITERIA_V1.version).toBe('criteria-v1');
-    expect(CRITERIA_V1.description.toLowerCase()).toContain('placeholder');
+    expect(CRITERIA_V1.description.toLowerCase()).toContain('not calibrated');
   });
 
-  it('carries the prototype ability threshold and item floor', () => {
-    expect(CRITERIA_V1.abilityThreshold).toBe(1.0);
+  it('aims at the 95th percentile, and keeps the single-domain bar above the composite', () => {
+    // theta 1.645 is the 95th percentile of a standard normal, which is GT's stated CogAT bar for grades 3-5.
+    expect(CRITERIA_V1.abilityThreshold).toBeCloseTo(1.645, 3);
     expect(CRITERIA_V1.minItemsScored).toBe(8);
+    /**
+     * Ordering, not style. Passing on one battery alone is a stronger claim about that battery than the
+     * composite makes about the whole child, so it must be the harder bar. Raising the composite to 1.645 left
+     * domainBar at 1.5 — below it — which would have made the single-battery route the easier way in with
+     * nothing failing to say so.
+     */
+    expect(CRITERIA_V1.domainBar as number).toBeGreaterThan(CRITERIA_V1.abilityThreshold);
   });
 
   it('demands more confidence to act than the prototype needs to encourage on screen', () => {

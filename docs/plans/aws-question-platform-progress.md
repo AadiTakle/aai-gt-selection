@@ -55,10 +55,66 @@
 - Read a 150-session run as sensitivity improving to 0.952; at 400 it was 0.833, unchanged.
 - Wrote a comment for a stricter domain-floor rule than the code implemented; the looser one is correct.
 
+## Overnight, 11–12 Aug: aiming at the target audience, and proving the cloud path
+
+Artifacts in `docs/overnight/`, indexed by its README. Four things were asked and all four are answered there;
+this section records only what changed in the code and what it cost.
+
+**The cut moved to the 95th percentile.** `CRITERIA_V1.abilityThreshold` 1.0 → 1.645, which is GT's stated
+CogAT bar rather than the prototype's roughly-84th-percentile value. The old 1.0 was a generous *screening*
+instinct in the wrong place: leniency belongs on the recommendation probability, not on where the line is, and
+having it in the threshold meant the instrument measured the 84th while everyone discussed the 95th.
+
+**A bug the move exposed.** `domainBar` was 1.5, which against a 1.645 composite would have sat *below* it —
+making the single-battery pass route the easier way in, silently. Now 2.0, with tests in two packages asserting
+the ordering rather than trusting the numbers to stay ordered.
+
+**Age-band filtering is off for Bramblebrook, deliberately.** The bands are difficulty tiers wearing grade
+labels: grade-appropriate items top out at 0.64 logits against a 1.645 cut, and *zero* sit within half a logit
+of it. Band-locking a grade 3-5 session makes a gifted decision unreachable in principle, not just imprecise —
+every item is one the child passes, so the posterior never narrows where it matters. 100% of items served are
+now above the grade-appropriate ceiling, which is what above-level testing is.
+
+**Measured on Bramblebrook's real pool** (seven types, 800 items, ~120 informative at the new cut), 4,000
+children: 12 questions median to a decision, 17 at p90, 92.9% deciding before the 24-item cap; accuracy 0.969,
+sensitivity 0.774, specificity 0.979; 4,000 distinct sequences and 93 distinct openings against deterministic
+selection's 12 and 1.
+
+**The cloud path is verified against an emulator, and the report says so on every line.** 16 checks in
+`scripts/verify-cloud-path.ts`, covering the published catalogue, key isolation, the authorizer failing closed,
+selection restricted to the approved battery, no key on the wire, trace rows carrying the parameters in force
+when served, the sheet reconciling against its own trace, both backfill indexes, exposure counters, and the
+persona having no contact row. It also inspects the synthesised CDK bundle to confirm the deployed artifact
+contains the same engine and variety layers, rather than assuming it.
+
+### What this run got wrong before getting it right
+
+- Reported sensitivity 0.722 from a 500-child cohort. At a 95th-percentile cut only 5% of a sample is positive,
+  so that was 18 cases and ±0.21 — not a measurement. Re-ran at 4,000 for ±0.06. The cut's height changes how
+  large a cohort has to be, and the earlier runs at lower cuts did not need this.
+- Left two `as never` casts in the verification script reaching for store internals that were never used in the
+  report. Deleted rather than fixed.
+- Two tests asserted the old threshold as a fact about the product. One of them asserted the word
+  "placeholder" in the criteria description. The bar is no longer a placeholder, but the probabilities are still
+  uncalibrated, so that test now pins the caveat that is still true instead of the word that was not.
+
+### Decisions left with the owner
+
+- **`recommendProbability` 0.30 → 0.20.** Buys 6.3 points of sensitivity for no additional questions, at roughly
+  3.8 more declined applications per additional gifted child found. Recommended on the asymmetric-loss argument
+  already committed to in this codebase, and deliberately **not** applied: it is a values judgement. Every
+  number in the artifacts is measured at 0.30.
+- **Bramblebrook's copy.** A gifted third grader now meets sixth-to-eighth-grade material and will get a good
+  share of it wrong, because the most informative question is one you might miss. A child who experiences
+  fourteen questions as fourteen failures has been told something false. Psychometrically correct, and a
+  framing problem the game has to carry.
+
 ## Outstanding, and none of it is silent
 
-**Needs the owner:** an AWS account, credentials, `cdk bootstrap`, the first deploy. The real gifted-criteria
-numbers — `CRITERIA_V1` is a documented placeholder. Confirming guardian-email-only before any real family
+**Needs the owner:** an AWS account, credentials, `cdk bootstrap`, the first deploy — the only thing standing
+between the verified emulated path and a real one. Calibrated item difficulties: `CRITERIA_V1` now carries GT's
+stated bar, but the probabilities are computed over a rescale of an authoring judgement, so nothing here is
+calibrated against children. Confirming guardian-email-only before any real family
 sees it.
 
 **Needs code:**

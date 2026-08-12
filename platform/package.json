@@ -16,6 +16,8 @@
     "ddb:stop": "bash scripts/dynamodb-local.sh stop",
     "synth": "cdk synth --app \"tsx infra/bin/platform.ts\"",
     "simulate": "tsx scripts/simulate-variety.ts",
+    "verify:cloud": "tsx scripts/verify-cloud-path.ts",
+    "measure:bramblebrook": "tsx scripts/measure-bramblebrook.ts",
     "seed:bramblebrook": "tsx scripts/seed-bramblebrook.ts",
     "dev:local": "tsx local/src/dev-server.ts"
   },

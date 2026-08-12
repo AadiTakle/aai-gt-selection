@@ -98,7 +98,10 @@ function candidatesFrom(banks: Map<string, LoadedBank>): SelectionCandidate[] {
 }
 
 const CONFIG: QbankSessionConfig = {
-  abilityThreshold: 1.0,
+  // Measured where the criteria judge. Driving a session at one threshold and judging it at another is a
+  // real configuration but a confusing test: a perfect responder can look unremarkable simply because the
+  // questions were aimed somewhere else.
+  abilityThreshold: CRITERIA_V1.abilityThreshold,
   precision: precisionAt(2),
   perDomainMinimum: 1,
   recommendProbability: 0.35,
@@ -447,5 +450,22 @@ describe('the single-domain route needs enough evidence to be worth acting on', 
       CRITERIA_V1.requiredProbability,
     );
     expect(CRITERIA_V1.domainBar as number).toBeGreaterThan(CRITERIA_V1.abilityThreshold);
+  });
+});
+
+describe('the criteria are internally ordered', () => {
+  it('puts the single-domain bar above the composite threshold', () => {
+    /**
+     * Not a style check. The domain route exists so a spiky child can pass on one domain when the composite
+     * rejects them, and that is only defensible if clearing one domain is a *harder* ability claim than
+     * clearing the composite. Raising the composite to the 95th percentile left domainBar at 1.5 — below it —
+     * which would have made the single-domain route the easier way in without anything failing.
+     */
+    expect(CRITERIA_V1.domainBar as number).toBeGreaterThan(CRITERIA_V1.abilityThreshold);
+  });
+
+  it('aims at the 95th percentile', () => {
+    // theta 1.645 is the 95th percentile of a standard normal, and 95th-percentile CogAT is GT's stated bar.
+    expect(CRITERIA_V1.abilityThreshold).toBeCloseTo(1.645, 3);
   });
 });

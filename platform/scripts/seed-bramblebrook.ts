@@ -137,8 +137,23 @@ async function main(): Promise<void> {
     name: 'Bramblebrook',
     surfaceKind: 'game',
     status: 'active',
-    abilityThreshold: 1.0,
-    // A game surface carries the most construct-irrelevant variance, so it recommends most generously.
+    /**
+     * The 95th percentile, matching CRITERIA_V1 and the CogAT bar GT states.
+     *
+     * Selection maximises information *at this threshold*, so this is also what sets the difficulty a child
+     * is first asked: items near b = 1.645. In this bank that difficulty lives in the 6-8 band, which means a
+     * third grader's opening question is above grade level by construction. That is deliberate and it is how
+     * above-level testing finds the top few percent — an instrument that only asks grade-level questions
+     * cannot separate a gifted third grader from a merely capable one, because both answer them all.
+     */
+    abilityThreshold: 1.645,
+    /**
+     * Deliberately generous, and separately from where the line is.
+     *
+     * A false positive costs one family a declined application; a false negative costs a child nobody hears
+     * about. A game surface also carries the most construct-irrelevant variance of any front door, so it
+     * should be the most willing to pass someone through for a human to look at.
+     */
     recommendProbability: 0.3,
     precision: {
       confidenceAbove: 0.75,
@@ -149,6 +164,15 @@ async function main(): Promise<void> {
     // Light coverage rather than a floor of six: selection distributes across batteries on its own, and
     // forcing six each would make every session at least eighteen items before it could stop.
     perDomainMinimum: 2,
+    /**
+     * No age-band restriction, which in this bank is a difficulty restriction.
+     *
+     * The bands are difficulty tiers wearing grade labels: K-1 spans b -3.17 to -2.04, 2-3 spans -2.26 to
+     * -0.71, 4-5 spans -0.97 to +0.64, and 6-8 spans +0.37 to +3.17. There is no '3-5' band at all. Locking a
+     * grade 3-5 session to grade-appropriate items would cap the hardest question available at 0.64 logits,
+     * a full logit below the 1.645 cut, so the posterior could never discriminate at the bar this instrument
+     * exists to decide. Difficulty is chosen by information at the threshold instead.
+     */
     ageBands: [],
     uiCapabilities: [...required.elements],
     // Every one of the seven demands no reading, which is what makes the game usable by a child who cannot
