@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 
 import { handedFor } from './address';
 import { kinshipStoneDraws, kinshipStoneServes } from './KinshipStone';
-import { SORTING_GATE_BANDS, sortingGateServes } from './SortingGate';
+import { sortingGateDraws, sortingGateServes } from './SortingGate';
 
 const API = process.env.GT_API ?? 'http://localhost:5203';
 const BANKS = fileURLToPath(new URL('../../../../data/sanctuary/banks/', import.meta.url));
@@ -271,43 +271,50 @@ for (const t of ['VER-SORTBOT-01', 'VER-SEQUENCE-01', 'VER-RELPAIR-01']) {
    ========================================================================== */
 
 /**
- * `VER-SORTBOT-01` is the first type here that REFUSES most of its bank, so the refusal needs proving too.
+ * `VER-SORTBOT-01` REFUSES part of its bank and DRAWS part of what it serves, and both numbers need
+ * proving, for opposite reasons.
  *
- * Marking and drawability are independent claims and both can fail on their own. The loop above proves the
- * server understands this type's address; this proves the component will only ever be handed items it can
- * draw honestly. Without it the gate is a comment, and a comment is not a measurement — the numbers in
- * `SortingGate.tsx`'s header would quietly stop being true the first time somebody added a noun to
- * `eventMeaning.ts`, in either direction.
+ * Marking, serving and drawing are three independent claims. The loop above proves the server understands
+ * this type's address; this proves the component is handed only items a child can be asked, and that a
+ * picture appears only where a picture is honest. Without it both gates are comments, and a comment is not a
+ * measurement — the numbers in `SortingGate.tsx`'s header would quietly stop being true the first time
+ * somebody added a noun to `eventMeaning.ts` or regenerated the bank.
  *
- * THE SHIPPED PREDICATE, IMPORTED, not a copy. `toRef` above is copied because `shared/ItemStage.tsx`
+ * THE SHIPPED PREDICATES, IMPORTED, not copies. `toRef` above is copied because `shared/ItemStage.tsx`
  * drags a dozen lazily-imported renderers in behind it; `SortingGate.tsx` does not have that problem —
  * `tsx` loads it and its `@react-three/fiber` import without a bundler and without a browser, because the
- * predicate is a pure function over the payload and nothing in the module needs a canvas to be defined. So
- * the thing under test here is the same function the component gates on.
+ * predicates are pure functions over the payload and nothing in the module needs a canvas to be defined.
  *
- * WHAT THE NUMBERS SHOULD BE, measured over the bank on disk:
+ * WHAT THE NUMBERS SHOULD BE, measured over the bank on disk, and WHAT THEY WERE BEFORE WORDS:
  *
- *     K-1        13 of 17 servable
- *     2-3        14 of 20 servable
- *     4-5         0 of 20 servable      vocabulary is abstract; nothing draws `ad hominem`
- *     6-8         0 of 43 servable      same, and 26 of them have two options drawn alike
+ *     band   items   servable   with pictures        before, when pictures were the only channel
+ *     K-1      17       17           13              13 of 17 — the other four had two words drawn alike
+ *     2-3      20       20           14              14 of 20 — same
+ *     4-5      20       20            0               0 of 20 — nothing draws `nylon`, `hydro`, `apricot`
+ *     6-8      43       25            0               0 of 43 — nothing draws `argon`, and 26 had collisions
+ *     pool    100       82           27              27
  *
- * The two zeroes are the important ones and they are why the band list is a convenience rather than the
- * mechanism: the content gate rejects every single item of both large bands on its own merits, so it
- * SUBSUMES the band gate. If a future noun ever made a 4-5 item pass, the gate would let it through and it
- * would be right to — the band list would then be the thing that was wrong.
+ * THE 18 REFUSALS ARE ALL VOCABULARY AND ALL AT 6-8 — Zipf tier 1, `ad hominem` and `abate` and
+ * `parsimonious`; `readability.ts` argues that floor and why it is a rarity tier rather than the whole band.
+ * THE 27 DRAWN ARE EXACTLY THE OLD SERVED POOL, which is the point worth asserting: every item whose
+ * pictures were ever proven good still shows them, beside the word rather than instead of it.
+ *
+ * A FAILURE HERE IS NOT NECESSARILY A REGRESSION. If a noun added to `eventMeaning.ts` makes a 4-5 item
+ * drawable, this fails and it is right to — go and LOOK at that item, check the drawing is not a picture of
+ * the wrong thing (see `REFUSED`), and then raise the number.
  */
 const SORTBOT = 'VER-SORTBOT-01';
 const BANDS = ['K-1', '2-3', '4-5', '6-8'] as const;
-/** Every band the gate is allowed to serve must be in `SORTING_GATE_BANDS`, and vice versa. */
-const WANT: Record<string, [number, number]> = {
-  'K-1': [13, 17],
-  '2-3': [14, 20],
-  '4-5': [0, 20],
-  '6-8': [0, 43],
+/** `[servable, drawable, total]` per band. */
+const WANT: Record<string, [number, number, number]> = {
+  'K-1': [17, 13, 17],
+  '2-3': [20, 14, 20],
+  '4-5': [20, 0, 20],
+  '6-8': [25, 0, 43],
 };
-/** What the served pool comes to. Asserted, so a regenerated bank cannot silently invalidate `REFUSED`. */
-const WANT_POOL = 27;
+/** What the served and the drawn pools come to. Asserted, so a regenerated bank cannot pass silently. */
+const WANT_POOL = 82;
+const WANT_DRAWN = 27;
 
 interface SortRow {
   ageBands: string[];
@@ -319,22 +326,26 @@ const sortRows: SortRow[] = readFileSync(`${BANKS}${SORTBOT}.jsonl`, 'utf8')
   .filter((l) => l.trim())
   .map((l) => JSON.parse(l) as SortRow);
 
-console.log(`\n${SORTBOT} drawability gate  (declared bands: ${SORTING_GATE_BANDS.join(', ')})`);
+console.log(`\n${SORTBOT} gates  (serving and drawing are different questions)`);
 let gateFailed = 0;
 for (const band of BANDS) {
   const rows = sortRows.filter((r) => r.ageBands.includes(band));
-  const ok = rows.filter((r) => sortingGateServes(r.content)).length;
-  const [wantOk, wantTotal] = WANT[band] ?? [0, 0];
-  const good = ok === wantOk && rows.length === wantTotal;
+  const serves = rows.filter((r) => sortingGateServes(r.content)).length;
+  const draws = rows.filter((r) => sortingGateDraws(r.content)).length;
+  const [wantServes, wantDraws, wantTotal] = WANT[band] ?? [0, 0, 0];
+  const good = serves === wantServes && draws === wantDraws && rows.length === wantTotal;
   if (!good) gateFailed += 1;
-  const served = SORTING_GATE_BANDS.includes(band) ? 'served' : 'gated out';
-  console.log(`  ${band.padEnd(4)} ${String(ok).padStart(2)}/${String(rows.length).padStart(2)} servable  [want ${wantOk}/${wantTotal}]  ${served}  ${good ? 'ok' : 'MISMATCH'}`);
+  console.log(
+    `  ${band.padEnd(4)} ${String(serves).padStart(2)}/${String(rows.length).padStart(2)} servable, ` +
+      `${String(draws).padStart(2)} with pictures  [want ${wantServes}/${wantTotal}, ${wantDraws}]  ${good ? 'ok' : 'MISMATCH'}`,
+  );
 }
-const pool = sortRows.filter(
-  (r) => r.ageBands.some((b) => SORTING_GATE_BANDS.includes(b)) && sortingGateServes(r.content),
-).length;
+const pool = sortRows.filter((r) => sortingGateServes(r.content)).length;
+const drawnPool = sortRows.filter((r) => sortingGateDraws(r.content)).length;
 console.log(`  pool actually served: ${pool}   [want ${WANT_POOL}]`);
+console.log(`  pool with pictures:   ${drawnPool}   [want ${WANT_DRAWN}]`);
 if (pool !== WANT_POOL) gateFailed += 1;
+if (drawnPool !== WANT_DRAWN) gateFailed += 1;
 console.log(`  ${gateFailed === 0 ? 'PASS' : 'FAIL'}`);
 
 /* ============================================================================
@@ -342,28 +353,34 @@ console.log(`  ${gateFailed === 0 ? 'PASS' : 'FAIL'}`);
    ========================================================================== */
 
 /**
- * `VER-RELPAIR-01` has two predicates where every other type has one, and BOTH have to be asserted,
- * for opposite reasons.
+ * `VER-RELPAIR-01` has two predicates as well, and BOTH have to be asserted, for opposite reasons.
  *
  * `kinshipStoneServes` refuses nothing. A gate that refuses nothing looks like a gate nobody finished, so
- * the 100 is asserted rather than assumed: it is the claim that every word of every item reaches the child
- * through the voice, and if a regenerated bank ever ships a malformed pair this is what says so.
+ * the 100 is asserted rather than assumed: it is the claim that every word of every item is one the child of
+ * that band can be shown and can hear read aloud. It runs the same vocabulary floor that costs
+ * `VER-SORTBOT-01` eighteen items and this bank none — the rarest item here is Zipf tier 3 (`gigantic`,
+ * `heartbroken`) — and one floor with one refusal count of 18 and one of 0 is what makes it a measurement
+ * rather than a knob. If a regenerated bank ever ships a malformed pair, this is also what says so.
  *
- * `kinshipStoneDraws` refuses everything, and that is the measurement the whole design rests on — the
- * reason this type is spoken instead of pictured. `tokenGlyph` covers 91 of the bank's 445 distinct words,
- * and the count of items in which EVERY word has a drawing is zero in all four bands:
+ * `kinshipStoneDraws` refuses everything, and that is the measurement this type's whole shape rests on.
+ * `tokenGlyph` covers 91 of the bank's 445 distinct words and the count of items in which EVERY word has a
+ * drawing is zero in all four bands:
  *
- *     band   items   servable   drawable
+ *     band   items   servable   with pictures
  *     K-1      17       17          0        every one is `is a kind of`; a category has no picture
  *     2-3      20       20          0
  *     4-5      20       20          0
  *     6-8      43       43          0
  *
- * THE ZEROES ARE ASSERTED RATHER THAN REPORTED, so that a noun added to `eventMeaning.ts` turns pictures on
- * DELIBERATELY. Somebody drawing a `petal` for another type would otherwise silently flip an item of this
- * one into picture mode, unlooked at, and picture mode is exactly where the inversion hazard in
- * `kinshipGate.ts` lives. A failure here is not a regression; it is a prompt to go and LOOK at the item
- * that became drawable and then raise the number.
+ * WHAT THAT ZERO USED TO MEAN AND WHAT IT MEANS NOW is the difference this change makes. It used to mean the
+ * item had no visual channel at all and was answered by LISTENING — so a muted tab was a blank stone. It now
+ * means the plates carry words and no cow. The words are the channel; the pictures are trimming that this
+ * bank's vocabulary does not happen to allow.
+ *
+ * THE ZEROES ARE STILL ASSERTED RATHER THAN REPORTED, so that a noun added to `eventMeaning.ts` turns
+ * pictures on DELIBERATELY. Somebody drawing a `petal` for another type would otherwise silently flip an
+ * item into picture mode unlooked at, and picture mode is where the inversion hazard in `kinshipGate.ts`
+ * lives. A failure here is a prompt to go and LOOK at the item that became drawable, then raise the number.
  */
 const RELPAIR = 'VER-RELPAIR-01';
 /** `[servable, drawable, total]` per band. */
@@ -379,7 +396,7 @@ const relRows: SortRow[] = readFileSync(`${BANKS}${RELPAIR}.jsonl`, 'utf8')
   .filter((l) => l.trim())
   .map((l) => JSON.parse(l) as SortRow);
 
-console.log(`\n${RELPAIR} gates  (spoken type: serving and drawing are different questions)`);
+console.log(`\n${RELPAIR} gates  (serving and drawing are different questions)`);
 let kinFailed = 0;
 for (const band of BANDS) {
   const rows = relRows.filter((r) => r.ageBands.includes(band));

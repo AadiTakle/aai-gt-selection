@@ -2,13 +2,14 @@ import { Canvas } from '@react-three/fiber';
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { fitScale } from '../stations/sites';
 import { BalanceBough } from './BalanceBough';
 import { DayLog } from './DayLog';
 import { EventGlyph } from './EventGlyph';
 import { tokenGlyph } from './eventMeaning';
-import { KinshipStone, kinshipStoneDraws } from './KinshipStone';
+import { KinshipStone, kinshipStoneDraws, kinshipStoneServes } from './KinshipStone';
 import { PodWall } from './PodWall';
-import { SortingGate, sortingGateServes } from './SortingGate';
+import { SortingGate, sortingGateDraws, sortingGateServes } from './SortingGate';
 import { Sprouter } from './Sprouter';
 import { StoneBed } from './StoneBed';
 import { HUE } from './theme';
@@ -55,8 +56,18 @@ const SHOWS: Record<
       onPick: (handed: string) => void;
       disabled?: boolean;
     }>;
-    /** Present where a type does not draw its whole bank. Applied under `?served=1`. */
+    /** Present where a type does not serve its whole bank. Applied under `?served=1`. */
     servedOnly?: (content: Record<string, unknown>) => boolean;
+    /**
+     * Present where a type serves items it cannot PICTURE. Applied under `?drawn=1`.
+     *
+     * A second flag rather than a reuse of the first, which is a correction. Both verbal types now answer
+     * two different questions — may this be asked, and may it carry pictures — and `?served=1` used to mean
+     * the first for the sorting gate and the second for the kinship stone. That is one flag with two
+     * meanings, and it is how a shot gets mislabelled: a run of `?served=1` on the stone rendered NOTHING
+     * and looked exactly like a broken component.
+     */
+    drawnOnly?: (content: Record<string, unknown>) => boolean;
   }
 > = {
   tide: { type: 'QUANT-SERIES-01', Component: TideLine },
@@ -67,26 +78,34 @@ const SHOWS: Record<
   weave: { type: 'FLU-CARPET-01', Component: Weave },
   balance: { type: 'QUANT-BALANCE-01', Component: BalanceBough },
   /**
-   * `served=1` narrows the pool to what `SortingGate` will actually be given in play.
+   * `?served=1` narrows to the 82 items `SortingGate` will actually be given in play; `?drawn=1` narrows
+   * to the 27 that additionally carry pictures, which are the ones where a shot has two things to judge.
    *
-   * Every other entry here can be browsed whole, because every other type draws its whole bank. This one
-   * refuses 70 of its 100 items — see `sortingGateServes` for the measurement and the five items it
-   * catches that would otherwise lead a picture-reading child to a wrong answer. Looking at a rejected
-   * item is occasionally useful (it is how you see WHY it was rejected), so the filter is opt-in rather
-   * than forced; but a shot taken without it is not a shot of what ships.
+   * The refusals are 18 items of tier-1 vocabulary, all at 6-8 — `ad hominem`, `abate`. Looking at a
+   * rejected item is occasionally useful (it is how you see WHY), so both filters are opt-in; but a shot
+   * taken without `?served=1` is not a shot of what ships.
    */
-  sortbot: { type: 'VER-SORTBOT-01', Component: SortingGate, servedOnly: sortingGateServes },
+  sortbot: {
+    type: 'VER-SORTBOT-01',
+    Component: SortingGate,
+    servedOnly: sortingGateServes,
+    drawnOnly: sortingGateDraws,
+  },
   /**
-   * `served=1` here does NOT narrow the pool, because nothing narrows this type's pool — every one of its
-   * 100 items is served, since it is answered by listening and speech has no vocabulary gap.
+   * `?served=1` here narrows to nothing, because nothing narrows this type's pool: all 100 items are served.
+   * The flag is still wired so that a malformed pair or a bank that grew a rare word would show up as a
+   * pool of less than 100 in the corner label rather than as nothing at all.
    *
-   * What the filter narrows to instead is the items that additionally carry PICTURES, which is the thing
-   * worth being able to look at and which today is the empty set. That is a deliberate reuse of the flag
-   * rather than a second one: the question a shot of this type has to answer is "is this what ships", and
-   * for the sorting gate that means the served pool while for the kinship stone it means the drawn pool.
-   * A run with `?served=1` that renders nothing IS the measurement — see `kinshipGate.ts`.
+   * `?drawn=1` narrows to the items that carry PICTURES, which is the empty set — see `kinshipGate.ts` for
+   * why a category has no appearance. A run that renders nothing IS that measurement, and it is now under
+   * its own flag so it cannot be mistaken for a broken component.
    */
-  kinship: { type: 'VER-RELPAIR-01', Component: KinshipStone, servedOnly: kinshipStoneDraws },
+  kinship: {
+    type: 'VER-RELPAIR-01',
+    Component: KinshipStone,
+    servedOnly: kinshipStoneServes,
+    drawnOnly: kinshipStoneDraws,
+  },
 };
 
 interface Item {
@@ -223,19 +242,40 @@ function App() {
 
   const banded = band ? items.filter((it) => it.ageBands.includes(band)) : items;
   const served = params.get('served') === '1' && entry.servedOnly;
-  const pool = served ? banded.filter((it) => entry.servedOnly!(it.content)) : banded;
+  const drawn = params.get('drawn') === '1' && entry.drawnOnly;
+  let pool = banded;
+  if (served) pool = pool.filter((it) => entry.servedOnly!(it.content));
+  if (drawn) pool = pool.filter((it) => entry.drawnOnly!(it.content));
   const item = pool[Math.min(pick, pool.length - 1)];
   if (!item) return null;
 
+  /**
+   * `?fit=1` mounts the item at the scale the STATION mounts it at, which is the only honest answer to
+   * "can a child read this".
+   *
+   * WHY IT IS OPT-IN AND WHY IT EXISTS. This file's whole claim is that its framing is the child's framing,
+   * and until words arrived that was true enough: the camera is `Game.tsx`'s `viewing` vantage exactly, and
+   * an item drawn at scale 1 at 8.4m subtends about the same angle as the same item at `fitScale` 0.45 at
+   * the 4.6m a child actually docks at. Close enough to judge a silhouette by — and NOT close enough to
+   * judge a letter by, which is now the thing being judged. So the real `fitScale` from `sites.ts` is
+   * available here, imported rather than restated, because a second copy of that arithmetic is a second
+   * opinion about what the child sees.
+   *
+   * Left opt-in because every other shooter in this directory was composed against scale 1 and a silent
+   * change of scale would invalidate every existing shot at once.
+   */
+  const fit = params.get('fit') === '1' ? fitScale(entry.type, item.content) : 1;
+
   const Shown = entry.Component;
   // Reported in the corner so a screenshot can never be mistaken for a different difficulty. The pool
-  // size is here too, because `?served=1` silently changes which item a given `?i=` is.
+  // size is here too, because the filters silently change which item a given `?i=` is.
   const label =
     `${entry.type} · ${item.itemId} · b=${item.difficulty} · ${item.ageBands.join('/')}` +
-    ` · ${pick + 1}/${pool.length}${served ? ' served' : ''}`;
+    ` · ${pick + 1}/${pool.length}${served ? ' served' : ''}${drawn ? ' drawn' : ''}` +
+    (fit === 1 ? '' : ` · fitScale ${fit.toFixed(3)}`);
 
   return (
-    <Stage tight={tight} label={label}>
+    <Stage tight={tight} label={label} scale={fit} dock={fit === 1 ? undefined : 4.6}>
       <Shown key={item.itemId} content={item.content} onPick={(h) => console.log('picked', h)} />
     </Stage>
   );
@@ -249,24 +289,35 @@ function App() {
  * gets, or a shot taken through it proves nothing. Two copies drift, and the drift is invisible — both
  * shots look fine, they just no longer agree about what a child can see.
  *
- * `scale` exists only for the contact sheet, which is not an item and has no bay to fit.
+ * `scale` carries the contact sheet, which is not an item and has no bay to fit, and `?fit=1`, which is the
+ * opposite case: an item mounted at exactly the scale its station mounts it at.
+ *
+ * `dock` IS THE OTHER HALF OF `?fit=1` AND IT IS NOT OPTIONAL. Scaling the panel by `fitScale` while leaving
+ * the camera at the default 8.4m is not a truthful shot, it is a doubly-shrunk one: `fitScale` exists
+ * BECAUSE the child stands at `dock` 4.6m, so the two go together. The first `?fit=1` run left the camera
+ * where it was and came back 1.8 times smaller than anything a child will ever see — a shot that would have
+ * argued for letters nobody needs.
  */
 function Stage({
   children,
   tight,
   label,
   scale = 1,
+  dock,
 }: {
   children: React.ReactNode;
   tight: boolean;
   label: string;
   scale?: number;
+  /** Metres from the panel, when the shot is meant to be the station's own framing. */
+  dock?: number;
 }) {
+  const camZ = dock === undefined ? (tight ? -8.0 : -4.6) : -13 + dock;
   return (
     <>
       <Canvas
         shadows
-        camera={{ fov: 62, near: 0.1, far: 220, position: [0, 3.0, tight ? -8.0 : -4.6] }}
+        camera={{ fov: 62, near: 0.1, far: 220, position: [0, 3.0, camZ] }}
         dpr={[1, 1.75]}
         onCreated={({ camera }) => {
           camera.rotation.order = 'YXZ';

@@ -1,23 +1,20 @@
 /**
  * Screenshots of the kinship stone, from the vantage the child gets.
  *
- * WHY A FOURTH SHOOTER. The same reason there is a third: iterating on a silhouette means running the
- * shooter a dozen times, and waiting on shots you are not looking at is how you stop looking. Same browser
- * flags, same vantage, same looking-glass — a different list.
+ * WHAT A SHOT OF THIS TYPE HAS TO PROVE, now that it has words on it: THAT YOU CAN READ THEM. Everything
+ * else this shooter used to check — ten places the same size, on the same plane, the empty place the only
+ * thing glowing, nothing poking below the sill — still matters and is still visible here, but it is no
+ * longer the point. The point is that an adult looking at the shot can say what the item is asking, because
+ * when this type was answered by LISTENING nobody could, including the owner.
  *
- * AND ONE REASON PECULIAR TO THIS TYPE. `VER-RELPAIR-01` is SPOKEN, and a screenshot is silent, so a shot
- * of it can only ever prove half the claim. What it can prove is the half that has burnt this directory
- * before: that the ten places are the same size, on the same plane, joined the same way, that the empty
- * place is the only thing glowing, that the candidate hues do not compete with it, and that nothing pokes
- * below the sill. The other half — that the voice says the right thing and never says the relation —
- * lives in `analogyLines`, which is pure and can be printed. Both halves are needed and neither substitutes
- * for the other.
+ * `?fit=1` IS THE SHOT THAT ANSWERS THAT and the others are for iterating. It mounts the panel at the
+ * station's own `fitScale` and puts the camera at the child's own `dock` of 4.6m, so the letters are the
+ * size the child gets. A plain shot is 1.8 times closer in apparent size than the game and will make
+ * anything look legible.
  *
- * NO `?served=1` ON ANY OF THESE, unlike the sorting gate's shooter, and that is not an omission. Nothing
- * is gated out of this type's pool; the flag on this entry narrows to the items that additionally carry
- * PICTURES, which is the empty set, so a shot taken with it would come back as bare sky. A plain shot is
- * already a shot of exactly what ships, because the component decides per item whether to draw and today
- * always decides not to.
+ * BOTH OPTION COUNTS MATTER because the stone's HEIGHT follows the candidate count — five lines at three
+ * options, six at four — and `sites.ts` gives the type a different `fitScale` for each (0.517 and 0.452).
+ * Three options live only in K-1's first fifteen items; every other band is four throughout.
  *
  * Run: node apps/sanctuary/game/screener/shoot-kinship.mjs
  */
@@ -26,15 +23,6 @@ import { chromium } from '/tmp/hl-pw/node_modules/playwright/index.mjs';
 const OUT = '/Users/alphaintern/gt-dev-view/shots';
 const BASE = 'http://127.0.0.1:5230/game/screener/preview.html';
 
-/**
- * Chosen to span both option counts and all four bands.
- *
- * BOTH COUNTS MATTER MORE HERE THAN ANYWHERE ELSE in this directory, because this is the only presentation
- * whose width is set by the candidates rather than by its apparatus, so three options and four options are
- * genuinely different pictures — 3.90 against 5.20 of half-width, and a `fitScale` that clamps at 0.52
- * against one of 0.452. The three-option case lives only in K-1, in its first fifteen items; every other
- * band is four options throughout.
- */
 const SHOTS = [
   ['kinship-k1-3opt', 'show=kinship&band=K-1&i=0'],
   ['kinship-k1-3opt-b', 'show=kinship&band=K-1&i=9'],
@@ -42,8 +30,36 @@ const SHOTS = [
   ['kinship-23', 'show=kinship&band=2-3&i=6'],
   ['kinship-45', 'show=kinship&band=4-5&i=3'],
   ['kinship-68', 'show=kinship&band=6-8&i=11'],
+  ['kinship-68-long', 'show=kinship&band=6-8&i=30'],
+  // The four that answer the actual question: the child's own scale and distance.
+  ['kinship-fit-k1', 'show=kinship&band=K-1&i=0&fit=1'],
+  ['kinship-fit-23', 'show=kinship&band=2-3&i=6&fit=1'],
+  ['kinship-fit-45', 'show=kinship&band=4-5&i=3&fit=1'],
+  ['kinship-fit-68', 'show=kinship&band=6-8&i=11&fit=1'],
   ['kinship-tight', 'show=kinship&band=2-3&i=6&tight=1'],
 ];
+
+/**
+ * WHERE A CANDIDATE LINE IS ON SCREEN, at the default framing and 1280x800.
+ *
+ * DERIVED RATHER THAN READ OFF A SHOT, which is the difference between a number that stays true and one
+ * that silently stops being: project the panel-space height of line `i` through the preview's own camera —
+ * (0, 3.0, -4.6) looking at (0, 3.6, -13), pitch -0.06, fov 62 — and the stone's `lineY`, which is
+ * `((lines - 1) / 2 - i) * 0.98` with `lines` = 2 + the option count.
+ *
+ *   dy = 0.6 + lineY,  dz = -8.4
+ *   y  = 400 * (1 - (dy * 0.9982 + 0.5037) / (8.385 - dy * 0.05996) / 0.6009)
+ *
+ * AND THE CLICK IS VERIFIED ANYWAY. `Preview.tsx` logs `picked <handed>` on every pick, so a miss is
+ * reported as a miss instead of coming back as a "picked" shot that looks exactly like an unpicked one —
+ * which is a far better impression of a broken pick handler than of a stale constant.
+ */
+function lineScreenY(i, options) {
+  const lines = 2 + options;
+  const dy = 0.6 + ((lines - 1) / 2 - i) * 0.98;
+  const ndc = (dy * 0.9982 + 0.5037) / (8.385 - dy * 0.05996) / 0.6009;
+  return Math.round(400 * (1 - ndc));
+}
 
 const browser = await chromium.launch({
   channel: 'chrome',
@@ -52,8 +68,10 @@ const browser = await chromium.launch({
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
 
 const problems = [];
+const picks = [];
 page.on('console', (m) => {
   if (m.type() === 'error') problems.push(m.text());
+  if (m.text().startsWith('picked ')) picks.push(m.text());
 });
 page.on('pageerror', (e) => problems.push(String(e)));
 
@@ -67,50 +85,33 @@ for (const [name, query] of SHOTS) {
 }
 
 /**
- * Hover and pick.
+ * Hover and pick, on the SECOND candidate line of a four-option item.
  *
- * Three claims. The hover tell has to be unmissable, because on a spoken item with no pictures the lit
- * plinth is the ONLY confirmation a child gets that the pair they just heard is the pair they are pointing
- * at. The chosen pair has to VISIBLY rise into the empty place, or the pick reads as nothing having
- * happened. And NOTHING about the picture may say whether it was right — the pair rises because that is
- * what the child said about it, and this component has no idea whether that is true.
- *
- * Viewport coordinates, over a candidate. These have to be re-read off a shot every time the layout moves:
- * a stale pair of numbers lands the click on grass and the "picked" shot comes back looking exactly like
- * the unpicked one, which is a much better impression of a broken pick handler than of a stale constant.
+ * Second rather than first because a first-line hit proves less: the hover tell and the rise into the empty
+ * place both work for a component that ignores which line was pointed at, and the second line is the one
+ * where getting the row arithmetic wrong shows up. Three claims: the hover ledge is unmissable, the chosen
+ * pair VISIBLY leaves its line and rises into the empty place, and NOTHING about the picture says whether it
+ * was right — the pair rises whichever one was chosen.
  */
-const PICKS = [['kinship-pick', 'show=kinship&band=2-3&i=6', 538, 442]];
+const PICK = 'show=kinship&band=2-3&i=6';
+await page.goto(`${BASE}?${PICK}`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(2600);
+const y = lineScreenY(3, 4);
+await page.mouse.move(640, y);
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${OUT}/kinship-pick-hover.png` });
+await page.mouse.click(640, y);
+await page.waitForTimeout(1200);
+await page.screenshot({ path: `${OUT}/kinship-pick-picked.png` });
+console.log(`kinship-pick-hover.png, kinship-pick-picked.png  (clicked line 2 of 4 at y=${y})`);
+console.log(picks.length ? `  onPick fired: ${picks.join(', ')}` : '  NOTHING WAS PICKED — the click missed');
 
-for (const [name, query, x, y] of PICKS) {
-  await page.goto(`${BASE}?${query}`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(2600);
-  await page.mouse.move(x, y);
-  await page.waitForTimeout(700);
-  await page.screenshot({ path: `${OUT}/${name}-hover.png` });
-  await page.mouse.click(x, y);
-  await page.waitForTimeout(1400);
-  await page.screenshot({ path: `${OUT}/${name}-picked.png` });
-  console.log(`${name}-hover.png, ${name}-picked.png`);
-}
-
-/**
- * Reduced motion. The claim: the empty place resolves to its breath's MIDPOINT rather than to nothing, so a
- * child whose parent set this can still find the place that is waiting — and the horn, which pulses while
- * the stone is talking, stays plainly lit rather than going dark.
- */
-const still = await browser.newPage({
-  viewport: { width: 1280, height: 800 },
-  deviceScaleFactor: 2,
-  reducedMotion: 'reduce',
-});
-await still.goto(`${BASE}?show=kinship&band=2-3&i=6`, { waitUntil: 'networkidle' });
-await still.waitForTimeout(2600);
-await still.screenshot({ path: `${OUT}/kinship-reduced-motion.png` });
+/** Reduced motion: the sockets must still plainly glow, and the chosen pair must still be seated. */
+await page.emulateMedia({ reducedMotion: 'reduce' });
+await page.goto(`${BASE}?${PICK}`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(2600);
+await page.screenshot({ path: `${OUT}/kinship-reduced-motion.png` });
 console.log('kinship-reduced-motion.png');
 
+if (problems.length) console.log(`\nconsole/page errors:\n  ${problems.join('\n  ')}`);
 await browser.close();
-if (problems.length) {
-  console.log('\nconsole/page errors:');
-  for (const p of problems.slice(0, 12)) console.log(`  ${p}`);
-  process.exitCode = 1;
-}

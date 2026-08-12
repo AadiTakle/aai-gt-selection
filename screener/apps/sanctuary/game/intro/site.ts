@@ -276,9 +276,11 @@ export function boardToWorld(lx: number, lz: number): P2 {
  * being asked. What that number can and cannot support is in the report; it is not a small caveat.
  *
  * Nonverbal first because it is wordless and the most approachable thing in the bank for a child who has
- * been playing for four minutes. Verbal in the middle because it is the slow one — both of its styles are
- * spoken, so a child has to listen to each item through before they can answer it — and a slow thing is
- * better in the middle than at the end. Quantitative last because it is quick, so the board finishes
+ * been playing for four minutes. Verbal in the middle because it is the slow one — its words are read as
+ * well as shown, and an emerging reader takes longer over a sentence than over a shape — and a slow thing
+ * is better in the middle than at the end. (It used to be slower still: both verbal styles were answerable
+ * ONLY by listening, so a child had to hear each item through before they could answer at all. The words
+ * are now written on the plates and the narration only reinforces them.) Quantitative last because it is quick, so the board finishes
  * briskly rather than trailing off.
  *
  * WHAT THE VERBAL LEG ACTUALLY SERVES, since this note used to say something else. It was written when the

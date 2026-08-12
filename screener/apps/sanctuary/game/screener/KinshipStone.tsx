@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type * as THREE from 'three';
 
 import { handedFor } from './address';
-import { EventGlyph } from './EventGlyph';
 import { tokenGlyph, type EventMark } from './eventMeaning';
 /**
  * The gates live in a dependency-free module because the serve gate must run at POOL level, in the server
@@ -14,12 +13,14 @@ import { tokenGlyph, type EventMark } from './eventMeaning';
 import { kinshipStoneDraws, kinshipStoneServes, pairsOf, pairWords } from './kinshipGate';
 import { canSpeak, hushSpeech, narrate, speak, type NarrationState, type StoryLine } from './speak';
 import { bankColor, breath, HUE, MAT, shade, useReducedMotion, useSlab } from './theme';
+import { EmptySlot, WordCard } from './wordPlate';
 
 export { kinshipStoneDraws, kinshipStoneServes, pairWords };
 
 /**
- * `VER-RELPAIR-01` as a thing in the hollow: the kinship stone, a standing stone with a pair of things
- * shown joined at the top and an empty joined place beneath it, and a row of candidate pairs below that.
+ * `VER-RELPAIR-01` as a thing in the hollow: the kinship stone, a standing stone with six lines cut across
+ * its face. The top line holds a pair of words that go together, the line under it is empty, and the lines
+ * below hold the pairs to choose from.
  *
  * WHAT THE ITEM ACTUALLY IS, read off the bank rather than off the brief. `content` is
  * `{typeCode, presentation, relation, stemPair, options, frequencyBand}`. `stemPair` is always exactly two
@@ -27,28 +28,73 @@ export { kinshipStoneDraws, kinshipStoneServes, pairWords };
  * Verbal Analogies — one of CogAT's three Verbal subtests — and the task is to pick the pair whose two
  * things are joined the same way the stem's two are.
  *
- * ══ THIS TYPE IS SPOKEN, AND THAT IS A MEASUREMENT, NOT A PREFERENCE ══════════════════════════════
+ * ══ THIS TYPE SHOWS ITS WORDS, AND THAT IS A REVERSAL OF WHAT IT USED TO DO ════════════════════════
  *
- * The obvious build is the one every other presentation here uses: draw every word through `tokenGlyph`
- * and let the child compare pictures. It was tried first and it does not exist. `tokenGlyph`'s noun table
- * was built for `VER-SORTBOT-01`'s vocabulary and against this bank it covers 91 of 445 distinct words —
- * 20% — and the number of items in which EVERY word has a drawing is, per band, 0, 0, 0 and 0. Not a thin
- * pool. No pool. `kinshipGate.ts` carries the per-band table.
+ * IT USED TO BE ANSWERED BY LISTENING. `tokenGlyph` covers 91 of this bank's 445 distinct words and the
+ * count of items where EVERY word has a drawing is zero in all four bands, so there were no pictures to
+ * put on the cards; the pairs were spoken and the stone was ten blank slabs with a turned ring on each.
+ * A screenshot of it is eight identical stone tiles. On a muted tab, a school image with no voice
+ * packages, in a noisy room, or for a deaf child, the item contained NOTHING AT ALL — and the owner, who
+ * can hear, reported exactly that: "i can't hear anything with the headphone one so i have no clue what it
+ * means ... i think basically all the verbal questions make no sense and at this point you have to use
+ * words".
  *
- * And it is not a gap a bigger table closes, which is the part that decided the design. The most frequent
- * misses are the superordinate halves of `is a kind of` pairs — `animal`, `fruit`, `insect`, `number`,
- * `person` — and a category has no appearance. Draw `animal` as an animal and the correct pair in
- * `robin : bird | maple : tree | robin : nest | bird : wing` becomes a bird beside a bird while the stem
- * shows two visibly different creatures, so the pair that shares the relation is the one pair that plainly
- * does not match: the item INVERTS and a child reasoning correctly is marked wrong. Draw it as a category
- * badge instead and the badge appears in the stem and in exactly one option, which hands over the answer.
- * `kinshipGate.ts` sets that argument out in full.
+ * He is right, and the rule that produced it was right in the wrong place. "A five-year-old cannot read,
+ * so every item must be answerable from pictures" is correct for figure matrices and number series. It
+ * cannot hold for the verbal battery, which is about words by definition, and this type is the proof: the
+ * undrawable half of an analogy is almost always the CATEGORY — `animal`, `fruit`, `insect`, `number` —
+ * and a category has no appearance. `kinshipGate.ts` carries that argument in full, including why drawing
+ * it either hands over the answer or inverts the item.
  *
- * So the words are said out loud, and the pictures are support that today never fires. This is not a
- * consolation prize: an analogy is four short pairs with NO ORDER TO HOLD, which is precisely what
- * `VER-SEQUENCE-01` — the type this one replaces — could not say for itself, and precisely why that one is
- * being retired. The listening load here is a comparison the child can re-check at will, not a sequence
- * they must keep intact while they think.
+ * SO THE WORDS ARE ON THE STONE, large, dark on pale, one plate each. The voice reads them aloud while
+ * they are visible, which is what an emerging reader actually needs, and the pictures would be a third
+ * channel if there were any. A question with one channel fails completely when that channel fails; this
+ * one now has two, either of which is enough.
+ *
+ * ══ WHY THE WHOLE LAYOUT TURNED NINETY DEGREES, WHICH IS ARITHMETIC AND NOT TASTE ══════════════════
+ *
+ * The old shape was a shelf: eight cards in a row, two per pair, four pairs across. Words cannot go in it.
+ *
+ * The child reads this at `dock` 4.6m from a panel scaled by `fitScale`, which at 1280x800 and fov 62 is
+ * about 145 screen pixels per world unit before the panel's own scale. `sites.ts` gives this type a bay of
+ * 4.70 x 3.00 units, so the ENTIRE panel is about 680 x 435 pixels of screen however it is arranged. Eight
+ * word plates across that is 85 pixels each — 7 pixels per character on `heartbroken`, and no font rescues
+ * that. It is the same wall the sorting gate hit.
+ *
+ * Two plates across instead of eight is 340 pixels each, and the four candidates stack as ROWS. That is
+ * the whole reason for the new shape, and the numbers it buys, measured rather than hoped:
+ *
+ *     plate 3.42 x 0.70 units   →   224 x 46 screen pixels at four options, 256 x 53 at three
+ *     letters                   →   about 28 pixels tall, dropping to 24 on the longest word in the bank
+ *
+ * WHAT IT COSTS is that the four candidates are no longer all the same distance from the camera. A pair
+ * 2.9 units below the panel's centre is 3% further away than one at its centre and renders 3% smaller.
+ * That is the constraint this directory holds hardest — "a candidate nearer the camera renders larger,
+ * which is a false signal" — so it is worth being exact about: the old shelf had that error at 0% between
+ * candidates and 13% between the shelf and the stem, this has it at 3% between the outermost candidates,
+ * monotone down the column and identical for every item. Against 7 pixels per character it is not a
+ * trade, and it is smaller than the hover lift the child triggers on purpose.
+ *
+ * ONE PLATE SIZE AND ONE PLATE DEPTH, EVERYWHERE, and ONE PAIR ARRANGEMENT everywhere. The stem, the
+ * empty line and every candidate draw the identical `WordPair` at the identical scale on the identical
+ * plane, which on this type is load-bearing twice over. Once for the usual reason, and once for a reason
+ * peculiar to analogies: nearly every item carries a REVERSAL lure — `chill : fridge` against a stem of
+ * `oven : bake` — and the only thing distinguishing a pair from its reverse is which side each word is
+ * on. That survives only if the arrangement is pixel-identical between the stem and the candidates, which
+ * it is, because they are the same component. Left to right, as the written form does it, and no arrow or
+ * chevron anywhere: a convention a child has to be taught first is a vocabulary test hiding in a
+ * reasoning test.
+ *
+ * ══ THE PANEL SUPPLIES THE INSTRUCTION; THIS FILE SUPPLIES THE WORDS ══════════════════════════════
+ *
+ * `Game.tsx` renders the ask above the panel — this bank ships an empty `prompt`, so it writes "Which pair
+ * goes together in the same way?" there. Nothing here draws a second copy of it. What this file draws is
+ * the item's own words and nothing else, which is the whole division of labour: the instruction is a
+ * sentence about the task, the words are the task.
+ *
+ * The spoken ASK below is deliberately the SAME SENTENCE as the panel's, word for word, because a child
+ * learning to read is following the line they can see while the voice says it. Two near-identical
+ * sentences would be two things to reconcile. If that sentence changes in `Game.tsx`, change it here too.
  *
  * ══ WHAT THE VOICE MAY AND MAY NOT SAY ════════════════════════════════════════════════════════════
  *
@@ -59,70 +105,37 @@ export { kinshipStoneDraws, kinshipStoneServes, pairWords };
  * ordering, arrived at for the same reason, and it is why `analogyLines` is a function with an argument
  * about it rather than a template inline in the component.
  *
- * `the same way` is the strongest thing the ask is allowed to be. It says a relation exists, which the
- * child can see from the stem anyway, and says nothing whatever about which relation.
+ * THE TWO WORDS OF A PAIR ARRIVE AS ONE UTTERANCE and the pairs are separated by an equal silence: the
+ * PAIRING is the unit of meaning, and splitting it into two lines would offer the child eight loose words
+ * to reassemble. THE PAIRS ARE SPOKEN TOP TO BOTTOM, in the order they stand on the stone, because that
+ * order is how a child knows which line they just heard. It is addressing, not content. Their gaps are
+ * equal for the reason `speak.ts` gives, since an extra beat anywhere would mark one candidate as special.
  *
- * THE TWO WORDS OF A PAIR ARRIVE AS ONE UTTERANCE and the pairs are separated by an equal silence. That is
- * the opposite gap structure from the log, and deliberately: there, running the parts together would claim
- * an order the array does not have; here, the PAIRING is the unit of meaning and splitting it into two
- * separate lines would offer the child eight loose words to reassemble.
+ * ══ HEARING IT AGAIN IS FREE, UNLIMITED AND UNTIMED ═══════════════════════════════════════════════
  *
- * THE OPTIONS ARE SPOKEN LEFT TO RIGHT, in the order they stand on the stone, and unlike the log's parts
- * that order is CLAIMED and must be true — it is how a child knows which socket they just heard. It is
- * addressing, not content: the answer lives in the pairs, not in their arrangement. Their gaps are equal
- * for the reason `speak.ts` gives, since an extra beat anywhere would mark one candidate as special.
- *
- * ══ IT MUST BE REPEATABLE, WITHOUT LIMIT AND WITHOUT COST ═════════════════════════════════════════
- *
- * A spoken item that can be heard once is a memory test wearing a reasoning test's clothes, which is the
- * exact charge that retired `VER-SEQUENCE-01`. So there are two ways to hear it again, both unlimited,
- * neither timed, neither recorded:
- *
- *   THE HORN retells the whole item from the top, as many times as it is pressed. The hollow's established
- *     "say it again" object — see `DayLog.tsx`, which argues for the shape at length.
- *
- *   POINTING AT A PAIR says just that pair. This is the one that actually removes the memory load, and it
- *     is why the horn alone was not enough: a child who has lost track of which candidate was which does
- *     not need the whole item again, they need THAT one, and having to sit through three others to reach
- *     it is the load by another route. It is suppressed while the arrival telling is still running, so
- *     a wandering cursor cannot talk over the question.
- *
+ * THE HORN retells the whole item from the top, as many times as it is pressed — the hollow's established
+ * "say it again" object, argued for at length in `DayLog.tsx`. POINTING AT A LINE says just that pair,
+ * which is what a child who has lost track of one line actually wants. Both are suppressed while the
+ * arrival telling is still running, so a wandering cursor cannot chop the question off mid-sentence.
  * Nothing about either is scored. `onPick` fires on a click and on nothing else.
  *
- * ══ THE ONE FAILURE THIS CANNOT SURVIVE, WRITTEN DOWN RATHER THAN HIDDEN ══════════════════════════
- *
- * A machine with no voice. `speechSynthesis` is absent on some embeddings, present and permanently silent
- * on a school image with no voice packages, and blocked until a user gesture in others — `speak.ts`
- * enumerates them, and `DayLog` survives all of it because its pictures carry the story on their own. HERE
- * THEY DO NOT, because today there are none. On a voiceless machine this item has nothing in it.
- *
- * That cannot be decided when the pool is built, so it is not gated; it is detected (`voiceless` below),
- * the horn goes visibly dull so nobody spends the round pressing it, and it is reported. It is the single
- * biggest operational risk this type carries and it is a deployment question, not a rendering one.
+ * A MACHINE WITH NO VOICE is now a machine that reads a little slower. `speechSynthesis` is absent on some
+ * embeddings and silently mute on others — `speak.ts` enumerates them — and this used to be the single
+ * biggest operational risk the type carried, because there was nothing else in the item. The horn still
+ * goes visibly dull so nobody spends the round pressing it, and the question is all still there.
  *
  * ══ THE THINGS EVERY PRESENTATION HERE HAS LEARNED THE HARD WAY ═══════════════════════════════════
  *
- * ONE CARD SIZE AND ONE CARD DEPTH, EVERYWHERE, and one PAIR ARRANGEMENT everywhere. The stem, the empty
- * place and every candidate draw the identical `Pair` at the identical scale on the identical plane. On
- * this type that is load-bearing twice over. Once for the usual reason — a shelf nearer the camera renders
- * candidates larger and a size difference is a false signal — and once for a reason peculiar to analogies:
- * nearly every item carries a REVERSAL lure, `fin : fish` against a stem of `flower : petal`, and the only
- * thing that distinguishes a pair from its reverse is which side each thing is on. That discrimination
- * survives only if the arrangement is pixel-identical between the stem and the candidates, which it is,
- * because they are the same component. It is also why no arrow, chevron or other direction mark is drawn:
- * direction is carried by position, the way the written form carries it by reading order, and a convention
- * a child has to be taught first is a vocabulary test hiding in a reasoning test.
- *
  * MATTE. `roughness` never below 0.85 on anything structural, `metalness` zero throughout. A clearcoat
- * would mirror the station lamp onto whichever card faced it, and a brighter card is a card a child reads
- * as chosen.
+ * would mirror the station lamp onto whichever plate faced it, and a brighter plate is a plate a child
+ * reads as chosen.
  *
  * THE MISSING PLACE IS THE ONLY THING THAT GLOWS. The hollow's one convention, and `SortingGate.tsx`
  * records what happens when it is bent: a band of honey trim next to a honey socket merges with it and the
- * empty place stops being findable. So the joining groove is carved stone and vine, not light, and the
- * candidate hues are muted bands on the cradles — never on the cards, never emissive.
+ * empty place stops being findable. So the joining is carved stone and vine, not light, and the candidate
+ * hues are muted tabs at the ends of the lines — never on the plates, never emissive.
  *
- * IT CANNOT KNOW THE ANSWER. Nothing here compares anything. The chosen pair rises into the empty place
+ * IT CANNOT KNOW THE ANSWER. Nothing here compares anything. The chosen pair rises into the empty line
  * because that is what the CHILD said about it. `onPick` hands back the address and that is all that
  * leaves this file.
  *
@@ -135,32 +148,27 @@ export { kinshipStoneDraws, kinshipStoneServes, pairWords };
  *
  * ══ WHAT THE BAY HAS TO CONTAIN ═══════════════════════════════════════════════════════════════════
  *
- * `game/stations/sites.ts` is not this directory's to edit, so the arithmetic is left here for whoever adds
- * the branch. The candidate row always wins the width; the stone and the horn never do.
+ * `game/stations/sites.ts` is not this directory's to edit, so the arithmetic is left here for whoever
+ * updates the branch. IT IS SAFE TO LEAVE ALONE — the drawing fits inside the extents already declared
+ * there, at both option counts — and it is worth updating, because the declared width is now 20% larger
+ * than anything drawn and the panel is scaled down to fit a box it no longer fills.
  *
- *     halfW   n * 1.30    the outer edge of the outermost cradle, `n * OPT_PITCH / 2`. 3.90 at three
- *                         options, 5.20 at four. The stone's own half-width is 1.43 and the horn reaches
- *                         2.31, both inside it at either count, so there is nothing to max() against —
- *                         but it is written as a max below in case a future item has two options.
- *     halfH   2.90        the stone's cap. The lowest plinth reaches 2.73 below, so the drawing is very
- *                         nearly symmetric about its own origin and the panel's centre can sit at the
- *                         site's own height with no adjustment.
+ *     declared today   halfW max(1.43, n * 1.30)  → 3.90 at three options, 5.20 at four
+ *                      halfH 2.90
+ *     actually drawn   halfW 4.34   the horn's outer edge, `STONE_W / 2 + 0.34 + HORN_R`. Constant now:
+ *                                   the candidate count no longer moves the width, only the height.
+ *                      halfH (2 + n) * ROW_PITCH / 2 + 0.15 → 2.60 at three options, 3.09 at four
  *
  *     if (typeCode === 'VER-RELPAIR-01') {
  *       const n = Array.isArray(content.options) ? content.options.length : 4;
- *       return { halfW: Math.max(1.43, n * 1.30), halfH: 2.90 };
+ *       return { halfW: 4.34, halfH: (2 + n) * 0.49 + 0.15 };
  *     }
  *
- * MEASURED OFF THE CONSTANTS ABOVE AND CONFIRMED IN A SHOT AT 1280x800, not copied from a first draft:
- * every number here moved once already, when the candidate pitch had to grow to stop the four cradles
- * reading as one bench.
- *
- * AT FOUR OPTIONS THIS IS THE WIDEST PANEL THE VERBAL BAY HAS BEEN ASKED TO HOLD, and it costs apparent
- * size. `fitScale` is `min(4.7 / 10.40, 3.0 / 5.80)` = 0.452 at four options and clamps to 0.52 at three,
- * against the sorting gate's 0.52, so a card renders about 13% smaller than the same card at the same
- * station on the other type. That is the honest price of showing ten places instead of seven, and it is
- * paid in a currency this type barely spends: nothing on a card has to be READ, because the cards are
- * places and the words are in the air. Re-run the measurement rather than taking it on trust.
+ * WITH THE DECLARED NUMBERS the panel renders at `fitScale` 0.452 (four options) and 0.517 (three), and
+ * projects to 3.92 x 2.68 and 4.49 x 2.69 units of a 4.70 x 3.00 bay — inside the sill at both counts,
+ * which is the property that makes leaving `sites.ts` alone safe rather than merely tolerable. WITH THE
+ * MEASURED NUMBERS both counts land at about 0.51 and fill the bay, which is worth roughly four screen
+ * pixels of letter height. Re-run the measurement rather than taking either on trust.
  */
 
 /* ============================================================================
@@ -174,12 +182,13 @@ export { kinshipStoneDraws, kinshipStoneServes, pairWords };
  * print exactly what a child would hear for a real item without booting a browser. Read the note in this
  * file's header on what these sentences may not say before changing a word of them.
  */
-const OPENING = 'Listen. These two go together.';
+const OPENING = 'Look. These two words go together.';
 /**
- * The load-bearing sentence. `the same way` names that a relation exists and refuses to name which one —
- * `content.relation` holds the answer in plain words and nothing here is allowed to leak it.
+ * The load-bearing sentence, and it is `Game.tsx`'s panel text verbatim — see the header on why the spoken
+ * line and the written line have to be the same sentence. It names that a relation exists and refuses to
+ * name which one; `content.relation` holds the answer in plain words and nothing here may leak it.
  */
-const ASK = 'Which two go together the same way?';
+const ASK = 'Which pair goes together in the same way?';
 
 /**
  * Equal after every line, and EXACTLY equal after every candidate.
@@ -200,7 +209,7 @@ const ARRIVAL_BEAT_MS = 900;
  * The leading capital and the full stops are for intonation only, which is the same argument `speak.ts`
  * makes in `settled`: `speechSynthesis` takes its contour from punctuation, and two bare nouns run
  * together are read as a list fragment with a rising, unfinished tail. The words themselves are the
- * bank's and are never otherwise altered.
+ * bank's and are never otherwise altered — the plates show exactly the strings this speaks.
  */
 function saidPair(pair: readonly [string, string]): string {
   const first = pair[0].charAt(0).toUpperCase() + pair[0].slice(1);
@@ -214,7 +223,7 @@ export function analogyLines(content: Record<string, unknown>): StoryLine[] {
     { text: OPENING, gapMs: LINE_GAP_MS },
     { text: saidPair(p.stem), gapMs: LINE_GAP_MS },
     { text: ASK, gapMs: LINE_GAP_MS },
-    // Left to right, which is the order they stand in on the stone. See the header: here that order is
+    // Top to bottom, which is the order they stand in on the stone. See the header: here that order is
     // addressing rather than content, so claiming it is safe and necessary.
     ...p.options.map((o) => ({ text: saidPair(o), gapMs: LINE_GAP_MS })),
   ];
@@ -224,71 +233,50 @@ export function analogyLines(content: Record<string, unknown>): StoryLine[] {
    layout
    ========================================================================== */
 
-/** One card, and every place in the item is exactly this one. See the header for why none may differ. */
-const CARD = 1.02;
-/** How much of the card a drawing fills, when there is one. Lifted from `DayLog` and `SortingGate`. */
-const GLYPH = 0.84;
+/**
+ * ONE WORD PLATE, and every place in the item is exactly this one. See the header for why none may differ,
+ * and for the pixel arithmetic that set these two numbers.
+ *
+ * The width is the largest that keeps the whole stone plus its horn inside the bay at THREE options, which
+ * is the tighter of the two cases: `fitScale` is 0.517 there against 0.452 at four, so a panel that fits
+ * at three fits at four with room to spare. The height is what six lines of it leave in 5.80 units.
+ */
+const PLATE_W = 3.42;
+const PLATE_H = 0.7;
+
+/** Clear air between the two plates of a pair, which the joining is drawn into. */
+const WORD_GAP = 0.3;
 /** Centre to centre WITHIN a pair. */
-const PAIR_GAP = 1.18;
-/** Stone either side of the two cards. */
-const CRADLE_PAD = 0.11;
-/** One pair's cradle, outer. */
-const CRADLE_W = PAIR_GAP + CARD + CRADLE_PAD * 2;
-/**
- * Between candidate pairs, and it is set by the HIT VOLUME rather than by the cradle.
- *
- * A five-year-old aiming a mouse in three dimensions is imprecise, and on this type a miss costs more than
- * usual, because pointing is also how you hear a pair again. The colliders are tiled edge to edge at
- * exactly this pitch — no gap to fall through, and no overlap, since overlapping volumes mean the child
- * who aims between two pairs gets whichever one three happens to hit first, which is a coin toss wearing
- * a choice's clothes.
- *
- * IT IS WIDER THAN THE CRADLE, WHICH THE FIRST SHOT DECIDED. The pitch was the cradle exactly, on the
- * sorting gate's reasoning that a collider should be its object's width, and what came back was A BENCH:
- * four cradles butted edge to edge with a card every 1.18 units, eight identical slabs in an unbroken row,
- * and no way to see where one pair ended and the next began. On a type whose entire question is "which
- * TWO go together" that is not a cosmetic failure, it deletes the question — a child looking at that row
- * has no reason to group card 3 with card 4 rather than with card 2.
- *
- * So the pairs are separated twice over: by this air, and by the posts at each cradle's ends (see
- * `Cradle`). Within a pair the cards are 0.16 apart; between pairs it is 0.18 of air plus two 0.14 posts,
- * which is 0.46 — nearly three times the inner gap, and that RATIO is the whole of what makes a pair read
- * as a pair. The colliders still tile at the pitch, so the air belongs to one candidate or the other and
- * there is nothing to fall through.
- */
-const OPT_PITCH = CRADLE_W + 0.18;
-
-/** The three heights. Separated by HEIGHT and never by depth — see the header. */
-const STEM_Y = 2.02;
-const SOCK_Y = 0.46;
-const OPT_Y = -1.62;
+const PAIR_PITCH = PLATE_W + WORD_GAP;
 
 /**
- * How far a cradle reaches BELOW the middle of its cards — the sill, the band and the joining.
+ * Between one line and the next, and it is the same for every line including the stem and the empty place.
  *
- * The upward reach is not a constant because nothing needs it: the cradle's back is symmetric about the
- * cards and the plinth and the extents are both measured downward from here. A `CRADLE_UP` was declared
- * alongside this and used by nothing, which is how a number stops being true without anybody noticing.
+ * UNIFORM, WHICH TOOK A DECISION. Giving the stem and the empty place more air than the candidates get
+ * would separate the question from the choices, which is genuinely useful — and it would also make the
+ * candidate lines the tight ones, which is where the reading happens. The separation is carried instead by
+ * a carved rail across the stone (see `railY`) and by the candidate hue tabs, neither of which costs any
+ * height. The 0.19 of stone left between plate rims is what makes six lines read as six.
  */
-const CRADLE_DOWN = 0.81;
+const ROW_PITCH = 0.98;
 
-/** The standing stone itself, which stands behind the stem and the empty place. */
-const STONE_W = CRADLE_W + 0.44;
-const STONE_TOP = 2.90;
-const STONE_BOTTOM = -0.55;
+/** The recess one pair is set into: both plates and a hand's width of stone around them. */
+const ROW_W = PAIR_PITCH + PLATE_W + 0.24;
+
+/** The standing stone itself. Its height follows the number of lines; its width never does. */
+const STONE_W = ROW_W + 0.46;
 
 /** The horn's mouth radius, and where it hangs off the stone's shoulder. */
 const HORN_R = 0.5;
-const HORN_X = -(STONE_W / 2 + 0.3);
+const HORN_X = -(STONE_W / 2 + 0.34);
 
 /**
- * A hue per candidate, so a child can hold "the blue one" across four spoken pairs.
+ * A hue per candidate, so a child can hold "the blue line" across four spoken pairs.
  *
- * BY POSITION, NEVER BY CONTENT, which is what makes it safe: it is a handle for referring to a candidate,
+ * BY POSITION, NEVER BY CONTENT, which is what makes it safe: it is a handle for referring to a candidate
  * and it carries not one bit about which candidate is right. `DayLog` already does exactly this and argues
- * for it — "the child can still see that the third slab is the gold one and track it from row to row" —
- * and on a spoken item with no pictures the need is sharper, because position in a row of four is
- * otherwise the only thing a five-year-old has to hang a heard pair on.
+ * for it. It matters less than it did — the lines have words on them now, which is a far better handle —
+ * but a child who cannot yet read them still needs one, and it costs nothing.
  *
  * `gold` is left out of the ring on purpose: it resolves to `HUE.honey`, which is the socket's colour, and
  * the hollow's rule is that the missing place is the only thing wearing it.
@@ -298,12 +286,14 @@ function hueFor(i: number): string {
   return bankColor(CAND_HUES[i % CAND_HUES.length] ?? 'coral');
 }
 
-/** A card is drawn against this rather than against white — see the note in `Card`. */
-const FACE = HUE.stone;
+/** How many lines the stone has: the given pair, the empty place, and one per candidate. */
+function lineCount(n: number): number {
+  return 2 + Math.max(1, n);
+}
 
-/** Where the nth of `count` things sits across a row. */
-function slotX(i: number, count: number, pitch: number): number {
-  return (i - (count - 1) / 2) * pitch;
+/** The height of the nth line from the top, measured from the stone's own centre. */
+function lineY(i: number, lines: number): number {
+  return ((lines - 1) / 2 - i) * ROW_PITCH;
 }
 
 /* ============================================================================
@@ -311,126 +301,65 @@ function slotX(i: number, count: number, pitch: number): number {
    ========================================================================== */
 
 /**
- * One place a word lives.
+ * THE JOINING, drawn the same way in all three places: a cord run between the two plates of a pair, over a
+ * groove cut in the stone behind it.
  *
- * WHEN THERE IS NO PICTURE — which today is every card of every item — the face carries a shallow turned
- * bowl and nothing else. Deliberately EMPTY rather than filled with a neutral token: `tokenGlyph` returns a
- * pebble or a shell for a word it does not know, and a pebble on a card is a drawing a child will try to
- * read. A plain bowl says "a word belongs here" and says nothing false. It is identical on all ten cards,
- * so it cannot make one of them more interesting than another.
- *
- * WHEN THERE IS ONE, a warm mid stone rather than paper white, which `DayLog` learned from a screenshot
- * and this file inherits: the pictures are built from primitives and many have white or cream parts — an
- * egg, a cloud, a hen, a plate — which vanish against a near-white face.
- */
-function Card({ mark }: { mark: EventMark | null }) {
-  const face = useSlab(CARD, CARD, 0.16, 0.09);
-  const rim = useSlab(CARD + 0.1, CARD + 0.1, 0.11, 0.1);
-  return (
-    <group>
-      <mesh geometry={rim} position={[0, 0, -0.05]}>
-        <meshStandardMaterial color={shade(HUE.stoneDeep, 0.1)} roughness={0.9} metalness={0} />
-      </mesh>
-      <mesh geometry={face}>
-        <meshStandardMaterial color={FACE} roughness={0.88} metalness={0} />
-      </mesh>
-      {mark ? (
-        <group position={[0, 0.02, 0.12]} scale={GLYPH}>
-          <EventGlyph glyph={mark.glyph} state={mark.state} bg={FACE} />
-        </group>
-      ) : (
-        /* A turned ring rather than a filled disc, and it took a shot to settle. The first version was a
-           dark disc, which at this size reads as an object ON the card — an eye, a coin, a hole — and a
-           card with an object on it is a card a child will try to read. A ring is plainly a moulding in
-           the stone. `z` is 0.082 against a face whose front is at 0.080: any less and it is swallowed by
-           the slab, which is what happened first and looked exactly like a card with nothing drawn on it
-           by mistake. */
-        <mesh position={[0, 0, 0.082]}>
-          <torusGeometry args={[CARD * 0.29, 0.035, 8, 26]} />
-          <meshStandardMaterial color={shade(HUE.stoneDeep, -0.06)} roughness={0.95} metalness={0} />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
-/**
- * THE JOINING, drawn the same way in all three places: a groove cut between the two cards with a boss
- * under each of them.
- *
- * This is what makes a pair read as A PAIR WITH SOMETHING BETWEEN THEM rather than as two things that
+ * This is what makes a pair read as A PAIR WITH SOMETHING BETWEEN THEM rather than as two words that
  * happen to be next to each other, which is the difference between a child comparing relations and a child
- * comparing objects. Carved stone rather than light, because the missing place is the only thing in the
- * hollow allowed to glow and a lit groove immediately above a lit socket merges with it — the mistake
+ * comparing words. Carved stone and vine rather than light, because the missing place is the only thing in
+ * the hollow allowed to glow and a lit tie immediately above a lit socket merges with it — the mistake
  * `SortingGate.tsx` records against its own IN bin.
  *
- * SYMMETRIC, with no arrowhead and no taper. Direction is carried by which card is on which side, exactly
- * as the written form carries it by reading order; a mark meaning "this way round" is a convention, and a
- * convention has to be taught before the item can be answered. Since nearly every item in this bank
- * carries a reversal lure, this is the discrimination the whole presentation turns on — see the header.
+ * SYMMETRIC, with no arrowhead and no taper. Direction is carried by which word is on which side, exactly
+ * as the written form carries it by reading order. Since nearly every item in this bank carries a reversal
+ * lure, this is the discrimination the whole presentation turns on — see the header.
+ *
+ * IT SITS IN THE GAP AND NOT IN FRONT OF THE PLATES. The old version of this file cut its groove behind
+ * the cradle's front board, so the one element carrying the whole idea of the presentation was hidden
+ * behind a plank in every shot. Here the plates are 0.30 apart and the cord runs through that air, which
+ * cannot be occluded by anything.
  */
 function Joining() {
   return (
-    /* IN FRONT OF THE CRADLE'S FRONT BOARD, at z 0.24 against the board's 0.21, and that is not a detail.
-       The first version cut the groove at z 0.14, INSIDE the board, so the one element carrying the whole
-       idea of the presentation was hidden behind a plank in every shot — the pairs read as two cards
-       sitting near each other and nothing else. If the joining is ever not visible, this type is not
-       asking its question. */
-    <group position={[0, -0.52, 0.24]}>
-      <mesh>
-        <boxGeometry args={[PAIR_GAP, 0.17, 0.07]} />
+    <group>
+      {/* The groove, cut into the stone behind the cord. */}
+      <mesh position={[0, 0, -0.06]}>
+        <boxGeometry args={[WORD_GAP + 0.06, 0.26, 0.06]} />
         <meshStandardMaterial {...MAT.cut} />
       </mesh>
+      {/* The cord itself. Vine rather than stone so the joining reads as a TIE — something put there on
+          purpose — rather than as a moulding in the slab. */}
+      <mesh position={[0, 0, 0.06]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.055, 0.055, WORD_GAP + 0.16, 10]} />
+        <meshStandardMaterial {...MAT.vine} />
+      </mesh>
       {[-1, 1].map((side) => (
-        <mesh key={side} position={[(side * PAIR_GAP) / 2, 0, 0.04]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.13, 0.15, 0.1, 18]} />
+        <mesh key={side} position={[(side * (WORD_GAP + 0.14)) / 2, 0, 0.06]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.085, 0.095, 0.08, 14]} />
           <meshStandardMaterial color={shade(HUE.stoneDeep, 0.06)} roughness={0.9} metalness={0} />
         </mesh>
       ))}
-      {/* The cord itself, run between the two bosses. Vine rather than stone so the joining reads as a
-          TIE — something put there on purpose — rather than as a moulding in the slab. */}
-      <mesh position={[0, 0, 0.07]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.05, 0.05, PAIR_GAP, 10]} />
-        <meshStandardMaterial {...MAT.vine} />
-      </mesh>
     </group>
   );
 }
 
 /**
- * The stone one pair sits in: a single slab spanning both cards, so a pair is one object.
+ * The line one pair sits in: a recess cut across the stone, wide enough for both plates.
  *
- * `band` is the candidate's own hue, on the cradle's front edge and never on a card. Absent for the stem,
- * which is not a candidate and does not need a handle to refer to it by; what the stem must share with the
- * candidates is the ARRANGEMENT, and it does, because this is the same component.
+ * `band` is the candidate's own hue, on a tab at the recess's left end and never on a plate. Absent for the
+ * stem, which is not a candidate and does not need a handle to refer to it by; what the stem must share
+ * with the candidates is the ARRANGEMENT, and it does, because this is the same component.
  */
-function Cradle({ band }: { band?: string }) {
+function Line({ band }: { band?: string }) {
+  const bed = useSlab(ROW_W, PLATE_H + 0.3, 0.18, 0.08);
   return (
     <group>
-      {/* The back, which the cards stand against. */}
-      <mesh position={[0, -0.09, -0.22]}>
-        <boxGeometry args={[CRADLE_W, CARD + 0.5, 0.2]} />
-        <meshStandardMaterial {...MAT.stone} />
-      </mesh>
-      {/* The sill the cards sit on. Shallower than it was, so the joining in front of it stands proud. */}
-      <mesh position={[0, -CRADLE_DOWN + 0.12, 0.04]}>
-        <boxGeometry args={[CRADLE_W, 0.24, 0.3]} />
+      <mesh geometry={bed} position={[0, 0, -0.16]}>
         <meshStandardMaterial {...MAT.stoneDeep} />
       </mesh>
-      {/* THE END POSTS, and they are the other half of the fix `OPT_PITCH` describes. Air alone does not
-          separate four cradles at this scale — it reads as a gap in a bench rather than as the edge of an
-          object. An upright at each end gives the cradle a silhouette that closes, so a row of four is
-          four things. They are on the STEM's cradle too, because what the stem must share with the
-          candidates is its arrangement, and an unposted stem would be a different object. */}
-      {[-1, 1].map((side) => (
-        <mesh key={side} position={[(side * CRADLE_W) / 2, -0.09, -0.04]}>
-          <boxGeometry args={[0.14, CARD + 0.62, 0.42]} />
-          <meshStandardMaterial {...MAT.stoneDeep} />
-        </mesh>
-      ))}
       {band ? (
-        <mesh position={[0, -CRADLE_DOWN + 0.02, 0.2]}>
-          <boxGeometry args={[CRADLE_W - 0.3, 0.13, 0.06]} />
+        <mesh position={[-(ROW_W / 2 + 0.1), 0, -0.06]}>
+          <boxGeometry args={[0.16, PLATE_H, 0.1]} />
           {/* Not emissive, and never will be. See the header on what glows. */}
           <meshStandardMaterial color={band} roughness={0.9} metalness={0} />
         </mesh>
@@ -439,15 +368,46 @@ function Cradle({ band }: { band?: string }) {
   );
 }
 
-/** One complete pair: two cards in one cradle with the joining between them. */
-function Pair({ marks, band }: { marks: readonly [EventMark | null, EventMark | null]; band?: string }) {
+/**
+ * A LINE WHOSE PAIR HAS GONE UP: the recess, the hue tab, and two plain stone blanks where the plates were.
+ *
+ * THE BLANKS ARE THE WHOLE POINT AND A SHOT PUT THEM THERE. Removing the plates and leaving the bare recess
+ * looked right in the code and came back wrong: the vacated line is a long dark rectangle, and next to a
+ * FILLED socket — which by then has a pair sitting in it and is no longer dark — it becomes the most
+ * missing-looking place on the stone. Two competing empty places, and the brighter one is the answered
+ * question. So the line is closed over in mid stone: plainly used, plainly not a socket, and it still holds
+ * its shape so the row of candidates does not collapse by one.
+ */
+function SpentLine({ band, blank }: { band: string; blank: THREE.ExtrudeGeometry }) {
   return (
     <group>
-      <Cradle band={band} />
+      <Line band={band} />
+      {[0, 1].map((i) => (
+        <mesh key={i} geometry={blank} position={[(i === 0 ? -PAIR_PITCH : PAIR_PITCH) / 2, 0, 0]}>
+          <meshStandardMaterial color={shade(HUE.stone, -0.05)} roughness={0.95} metalness={0} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** One complete pair: two word plates in one line with the joining between them. */
+function WordPair({
+  words,
+  marks,
+  band,
+}: {
+  words: readonly [string, string];
+  marks: readonly [EventMark | null, EventMark | null];
+  band?: string;
+}) {
+  return (
+    <group>
+      <Line band={band} />
       <Joining />
       {[0, 1].map((i) => (
-        <group key={i} position={[(i === 0 ? -PAIR_GAP : PAIR_GAP) / 2, 0, 0.02]}>
-          <Card mark={marks[i] ?? null} />
+        <group key={i} position={[(i === 0 ? -PAIR_PITCH : PAIR_PITCH) / 2, 0, 0.02]}>
+          <WordCard word={words[i] ?? ''} w={PLATE_W} h={PLATE_H} mark={marks[i] ?? null} />
         </group>
       ))}
     </group>
@@ -455,70 +415,50 @@ function Pair({ marks, band }: { marks: readonly [EventMark | null, EventMark | 
 }
 
 /**
- * THE ONE MISSING PLACE: an empty cradle with two sockets in it, joined the same way the stem's pair is.
+ * THE ONE MISSING PLACE: an empty line with two sockets in it, joined the same way the stem's pair is.
  *
  * The hollow has exactly one convention for this and every dressing in the directory uses it — a recessed
  * dark bed ringed in breathing honey light, the only thing in the world that moves on its own. A child who
  * cannot read a word of this finds it in under a second, and having found it has understood the item
- * without being told: those two up there are joined, and TWO MORE go here, joined the same way.
+ * without being told: those two up there go together, and TWO MORE go here, joined the same way.
  *
- * Both halves breathe together, on one clock, because this is one place and not two. Under
- * `prefers-reduced-motion` the breath resolves to its MIDPOINT rather than to nothing, so the sockets still
- * plainly glow and the affordance survives — the rule the whole directory follows.
+ * BOTH HALVES BREATHE ON ONE CLOCK, driven from here rather than from inside `EmptySlot`, because this is
+ * one place and not two: two sockets pulsing out of phase read as two separate places. Nothing here goes
+ * through React — the two ring materials are collected and mutated inside `useFrame`, which is
+ * `theme.ts`'s rule about what may run at 60fps. Under `prefers-reduced-motion` the breath resolves to its
+ * MIDPOINT rather than to nothing, so the sockets still plainly glow and the affordance survives.
  */
 function EmptyPlace({ filled }: { filled: boolean }) {
-  /**
-   * A RIM, NOT A FIELD, which a shot corrected.
-   *
-   * These were the sorting gate's numbers — a 1.18 ring around a 0.94 bed — and that socket is alone on
-   * its shelf while these two are 1.18 apart. Two 1.18 rings at a 1.18 pitch touch exactly, so the honey
-   * merged into one flat panel with two dark holes punched in it and a bright T-shape standing between
-   * them. The empty place stopped reading as two sockets and started reading as a yellow sign.
-   *
-   * A 1.16 ring around a 1.00 bed leaves an even 0.08 rim and 0.02 of clear air between the two, so each
-   * half is a recess with a lit edge and the pair still reads as one place. The honey is a line again
-   * rather than an area, which is the whole of why it is the only thing here allowed to glow.
-   */
-  const ring = useSlab(CARD + 0.14, CARD + 0.14, 0.14, 0.11);
-  const bed = useSlab(CARD - 0.02, CARD - 0.02, 0.16, 0.09);
-  const mats = useRef<(THREE.MeshStandardMaterial | null)[]>([null, null]);
   const frame = useRef<THREE.Group>(null);
   const reduced = useReducedMotion();
+  const mats = useRef<(THREE.MeshStandardMaterial | null)[]>([null, null]);
 
   useFrame(({ clock }) => {
     const b = filled ? 0.25 : breath(clock.elapsedTime, 2.6, reduced);
     for (const m of mats.current) if (m) m.emissiveIntensity = 0.4 + b * 0.9;
     if (frame.current) {
-      const s = filled ? 1 : 1 + b * 0.025;
+      const s = filled ? 1 : 1 + b * 0.02;
       frame.current.scale.set(s, s, 1);
     }
   });
 
   return (
     <group>
-      <Cradle />
+      <Line />
       <Joining />
       <group ref={frame}>
         {[0, 1].map((i) => (
-          <mesh key={i} geometry={ring} position={[(i === 0 ? -PAIR_GAP : PAIR_GAP) / 2, 0, -0.12]}>
-            <meshStandardMaterial
-              ref={(m) => {
+          <group key={i} position={[(i === 0 ? -PAIR_PITCH : PAIR_PITCH) / 2, 0, 0]}>
+            <EmptySlot
+              w={PLATE_W}
+              h={PLATE_H}
+              onMaterial={(m) => {
                 mats.current[i] = m;
               }}
-              color={HUE.honey}
-              emissive={HUE.honey}
-              emissiveIntensity={0.8}
-              roughness={0.5}
-              metalness={0}
             />
-          </mesh>
+          </group>
         ))}
       </group>
-      {[0, 1].map((i) => (
-        <mesh key={i} geometry={bed} position={[(i === 0 ? -PAIR_GAP : PAIR_GAP) / 2, 0, -0.04]}>
-          <meshStandardMaterial {...MAT.cut} />
-        </mesh>
-      ))}
     </group>
   );
 }
@@ -613,17 +553,20 @@ export function KinshipStone({
   const [narration, setNarration] = useState<NarrationState>('idle');
   const reduced = useReducedMotion();
 
-  const stoneSlab = useSlab(STONE_W, STONE_TOP - STONE_BOTTOM, 0.3, 0.18);
+  const pairs = useMemo(() => pairsOf(content), [content]);
+  const lines = lineCount(pairs?.options.length ?? 4);
+  const stoneH = lines * ROW_PITCH + 0.3;
+  const stoneSlab = useSlab(STONE_W, stoneH, 0.3, 0.18);
+  /** What a spent line is closed over with. Built here because a hook may not live inside the option map. */
+  const blank = useSlab(PLATE_W, PLATE_H, 0.1, 0.05);
 
   /**
-   * PICTURES ARE ALL OR NOTHING PER ITEM — see `kinshipStoneDraws`. Drawing the pairs that happen to be
-   * drawable and leaving the rest blank would make some candidates carry a picture and others not, and a
-   * candidate with a picture on it is the one a child looks at; 23 of the bank's 100 items would be mixed
-   * that way. It resolves false for every item today, which is why the stone is a stone and not a gallery.
+   * PICTURES ARE ALL OR NOTHING PER ITEM — see `kinshipStoneDraws`, which argues that a per-word rule
+   * would leave the correct pair as the only bare line on the stone, because the undrawable word in an
+   * analogy is systematically the category the relation is about. It resolves false for every item today,
+   * which is why the plates carry words and no cow. The words are the channel; this is the trimming.
    */
   const drawn = useMemo(() => kinshipStoneDraws(content), [content]);
-
-  const pairs = useMemo(() => pairsOf(content), [content]);
 
   const marksOf = useCallback(
     (pair: readonly [string, string]): readonly [EventMark | null, EventMark | null] =>
@@ -650,22 +593,22 @@ export function KinshipStone({
   }, [content, pairs, marksOf]);
 
   /** Everything the stone says and the silence between. Nothing here may reorder or relabel it. */
-  const lines = useMemo(() => analogyLines(content), [content]);
+  const said = useMemo(() => analogyLines(content), [content]);
 
   const retell = useCallback(() => {
-    if (lines.length === 0) return;
-    narrate(lines, setNarration);
-  }, [lines]);
+    if (said.length === 0) return;
+    narrate(said, setNarration);
+  }, [said]);
 
   /**
    * Told once on arrival, after a beat, and then left alone.
    *
    * Automatic rather than waiting for a press, because a child should not have to discover the horn to
-   * find out what they are being asked; the horn is for the second and third time. Nothing is left talking
-   * when the item changes — this component is keyed on the item, so unmount is per question.
+   * hear the words the first time; the horn is for the second and third. Nothing is left talking when the
+   * item changes — this component is keyed on the item, so unmount is per question.
    */
   useEffect(() => {
-    if (lines.length === 0) return;
+    if (said.length === 0) return;
     if (!canSpeak()) {
       setNarration('unavailable');
       return;
@@ -675,16 +618,16 @@ export function KinshipStone({
       clearTimeout(t);
       hushSpeech();
     };
-  }, [lines, retell]);
+  }, [said, retell]);
 
   const voiceless = narration === 'unavailable';
   const speaking = narration === 'speaking';
 
   /**
-   * Say one pair on its own, which is the affordance that keeps this from being a memory test.
+   * Say one pair on its own, which is what a child who has lost track of one line actually wants.
    *
    * SUPPRESSED WHILE THE ARRIVAL TELLING IS RUNNING, and that guard is not cosmetic: `speak()` cancels
-   * whatever is queued, so a cursor drifting across the shelf during the opening would chop the question
+   * whatever is queued, so a cursor drifting down the stone during the opening would chop the question
    * off mid-sentence and leave the child with one candidate and no ask.
    */
   const sayPair = useCallback(
@@ -695,52 +638,62 @@ export function KinshipStone({
     [speaking],
   );
 
-  const n = Math.max(1, options.length);
   if (!pairs) return null;
 
   const stemMarks = marksOf(pairs.stem);
   const pickedOption = picked === null ? null : (options.find((o) => o.index === picked) ?? null);
+  const sockY = lineY(1, lines);
+  /** Where the carved rail runs: between the empty place and the first candidate. */
+  const railY = (lineY(1, lines) + lineY(2, lines)) / 2;
 
   return (
     <group>
-      {/* The stone itself, standing behind the pair that is given and the place that is empty. */}
-      <mesh geometry={stoneSlab} position={[0, (STONE_TOP + STONE_BOTTOM) / 2, -0.34]}>
+      {/* The stone itself. */}
+      <mesh geometry={stoneSlab} position={[0, 0, -0.34]}>
         <meshStandardMaterial {...MAT.stone} />
       </mesh>
       {/* A moss cap, so a standing stone in a hollow looks like it has been standing a while. */}
-      <mesh position={[0, STONE_TOP - 0.08, -0.34]}>
+      <mesh position={[0, stoneH / 2 - 0.07, -0.34]}>
         <boxGeometry args={[STONE_W - 0.3, 0.14, 0.34]} />
         <meshStandardMaterial {...MAT.moss} />
       </mesh>
+      {/* THE RAIL, which is what separates the question from the choices now that every line has the same
+          pitch. A moulding rather than air, because air would have to come out of the line spacing and the
+          line spacing is where the reading happens. */}
+      <mesh position={[0, railY, -0.2]}>
+        <boxGeometry args={[STONE_W - 0.16, 0.1, 0.3]} />
+        <meshStandardMaterial {...MAT.stoneDeep} />
+      </mesh>
 
       {/* GIVEN: the pair whose joining the child has to read. */}
-      <group position={[0, STEM_Y, 0]}>
-        <Pair marks={stemMarks} />
+      <group position={[0, lineY(0, lines), 0]}>
+        <WordPair words={pairs.stem} marks={stemMarks} />
       </group>
 
       {/* MISSING: two more, joined the same way. The only thing here that glows. */}
-      <group position={[0, SOCK_Y, 0]}>
+      <group position={[0, sockY, 0]}>
         <EmptyPlace filled={pickedOption !== null} />
         {pickedOption ? (
           <SeatedPair
+            words={pickedOption.pair}
             marks={pickedOption.marks}
             band={pickedOption.hue}
-            from={[slotX(pickedOption.index, n, OPT_PITCH), OPT_Y - SOCK_Y, 0.04]}
+            from={[0, lineY(2 + pickedOption.index, lines) - sockY, 0]}
             reduced={reduced}
           />
         ) : null}
       </group>
 
       {/* The horn, off the stone's shoulder, where nothing is measuring. */}
-      <group position={[HORN_X, STEM_Y - 0.2, 0.1]}>
+      <group position={[HORN_X, lineY(0, lines), 0.1]}>
         <Horn speaking={speaking} dormant={voiceless} lit={onHorn} />
       </group>
       {/* A five-year-old aiming in three dimensions does not hit a horn, so what actually takes the press
           is a volume far larger than the horn — everything a child could plausibly be pointing at when
-          they mean "again". */}
+          they mean "again". Its lower edge clears the topmost candidate line's own volume. */}
       <mesh
         visible={false}
-        position={[HORN_X, STEM_Y - 0.2, 0.6]}
+        position={[HORN_X, lineY(0, lines), 0.6]}
         onPointerOver={(e) => {
           e.stopPropagation();
           setOnHorn(true);
@@ -755,17 +708,22 @@ export function KinshipStone({
           retell();
         }}
       >
-        <boxGeometry args={[1.5, 1.5, 1.4]} />
+        <boxGeometry args={[1.5, 1.4, 1.4]} />
       </mesh>
 
-      {/* CANDIDATES: the same pair object, the same size, on the same plane, separated by height alone. */}
+      {/* CANDIDATES: the same pair object, the same size, on the same plane, one line each. */}
       {options.map((o) => {
+        const y = lineY(2 + o.index, lines);
         const live = !disabled && picked === null;
         const lit = hover === o.index && live;
         const taken = picked === o.index;
         return (
-          <group key={o.index} position={[slotX(o.index, n, OPT_PITCH), OPT_Y, 0]}>
-            {/* Invisible and oversized, tiled edge to edge at the shelf pitch — see `OPT_PITCH`. */}
+          <group key={o.index} position={[0, y, 0]}>
+            {/* Invisible and oversized: the WHOLE LINE takes the press, tiled edge to edge at the line
+                pitch. No gap to fall through, and no overlap — overlapping volumes mean the child who
+                aims between two lines gets whichever one three happens to hit first, which is a coin toss
+                wearing a choice's clothes. A full-width line is a far more forgiving target than the old
+                shelf's cards were, which is the one thing the new layout gives away for free. */}
             <mesh
               visible={false}
               position={[0, 0, 0.5]}
@@ -780,7 +738,7 @@ export function KinshipStone({
               }}
               onClick={(e) => {
                 e.stopPropagation();
-                // A tap on a pair that cannot be chosen any more still says it, because wanting to hear
+                // A tap on a line that cannot be chosen any more still says it, because wanting to hear
                 // it again is not the same as wanting to answer and must never cost anything.
                 if (!live) {
                   sayPair(o.pair);
@@ -790,22 +748,25 @@ export function KinshipStone({
                 onPick(o.handed);
               }}
             >
-              <boxGeometry args={[OPT_PITCH, 2.3, 1.7]} />
+              <boxGeometry args={[STONE_W, ROW_PITCH, 1.7]} />
             </mesh>
 
-            {/* The pair leaves the shelf when it is seated, so the shelf shows what is still on offer. Its
-                plinth stays, so the empty place still reads as a place. */}
-            {taken ? null : (
-              <group position={[0, lit ? 0.12 : 0, 0]} scale={lit ? 1.04 : 1}>
-                <Pair marks={o.marks} band={o.hue} />
+            {/* The pair leaves its line when it is seated, so the stone shows what is still on offer. The
+                line is then closed over in stone rather than left as a hole — see `SpentLine`. */}
+            {taken ? (
+              <SpentLine band={o.hue} blank={blank} />
+            ) : (
+              <group position={[0, lit ? 0.06 : 0, 0]}>
+                <WordPair words={o.pair} marks={o.marks} band={o.hue} />
               </group>
             )}
 
-            {/* The plinth is the hover tell: a whole lit block under the pair, which is unmissable to a
-                child who is not sure whether their aim landed — and on a spoken item it is also the only
-                confirmation that the thing they just heard is the thing they are pointing at. */}
-            <mesh position={[0, -CRADLE_DOWN - 0.15, 0]}>
-              <boxGeometry args={[CRADLE_W - 0.5, 0.3, 0.5]} />
+            {/* The hover tell: a lit ledge the full width of the line, which is unmissable to a child who
+                is not sure whether their aim landed. It lives in the 0.19 of stone between this line's
+                plates and the next line's, so it costs no reading height, and it is UNDER the line rather
+                than on it, so it can never be read as one plate being brighter than another. */}
+            <mesh position={[0, -(PLATE_H / 2 + 0.13), 0.06]}>
+              <boxGeometry args={[ROW_W - 0.4, 0.12, 0.4]} />
               <meshStandardMaterial
                 color={lit ? HUE.honey : shade(HUE.stone, 0.04)}
                 emissive={lit ? HUE.honey : '#000000'}
@@ -822,10 +783,10 @@ export function KinshipStone({
 }
 
 /**
- * The chosen pair, rising from the shelf into the empty place.
+ * The chosen pair, rising from its line into the empty place.
  *
  * WHY IT MOVES AT ALL. A pair that simply appears in the sockets reads as the stone having filled them; a
- * pair that visibly travels from the shelf reads as the CHILD having put it there. The difference matters
+ * pair that visibly travels from its line reads as the CHILD having put it there. The difference matters
  * because of what the movement is not: it is not a verdict. The pair rises whichever one was chosen,
  * because rising is what the child SAID about it. Nothing here knows or could know whether it is right.
  *
@@ -834,14 +795,16 @@ export function KinshipStone({
  * the pair is simply seated, which is the resting state of the same fact.
  *
  * It keeps its own hue on the way up and after it lands, so the pair in the empty place is visibly the pair
- * that left the shelf — which is the one moment the candidate hues have to do real work.
+ * that left the line it came from.
  */
 function SeatedPair({
+  words,
   marks,
   band,
   from,
   reduced,
 }: {
+  words: readonly [string, string];
   marks: readonly [EventMark | null, EventMark | null];
   band: string;
   /** Where the pair started, in the empty place's own coordinates. */
@@ -860,7 +823,7 @@ function SeatedPair({
 
   return (
     <group ref={group} position={[from[0], from[1], from[2]]}>
-      <Pair marks={marks} band={band} />
+      <WordPair words={words} marks={marks} band={band} />
     </group>
   );
 }

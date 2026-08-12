@@ -106,18 +106,26 @@ function ensureData(): void {
 /**
  * Items that exist, are scorable, and still must never be served.
  *
- * `VER-SORTBOT-01` asks a child to judge category membership from pictures, and on some of its items the
- * pictures cannot carry the question — a distractor drawn as a member of the category, or an answer whose
- * substitute drawing does not have the visible attribute the category is about. On five of them the item
- * INVERTS: a child reasoning correctly from what is on screen picks the trap and is marked wrong, and the
- * engine records that as inability.
+ * `VER-SORTBOT-01` asks a child to judge category membership, and 18 of its 100 items ask it in vocabulary
+ * no child of the band has — `ad hominem`, `syllogism`, `parsimonious`, `abate`, all of them Zipf tier 1 and
+ * all of them at 6-8. Showing a word larger does not teach it, so those are refused.
+ *
+ * IT USED TO REFUSE 73, and that is the number worth remembering. This type's words were DRAWN rather than
+ * written, because the whole screener was built on the rule that a five-year-old cannot read — so an item
+ * whose words `tokenGlyph` could not draw distinctly was an item nobody could be shown, which cost every
+ * item of 4-5 and 6-8 plus ten of the small bands. The words are now written on the plates
+ * (`screener/wordPlate.tsx`), so being undrawable no longer means being unanswerable, and the pool went from
+ * 27 to 82. `sortbotGate.ts` keeps the old drawability measurement as a separate predicate that decides only
+ * whether a picture accompanies the word — including the three items whose substitute drawing is a picture of
+ * the wrong thing — and that predicate must never be wired in here.
  *
  * The gate has to run HERE, not in the component. A render-time check runs after selection, when the child
  * is already looking at the question and an answer will be recorded against it — declining to draw at that
  * point produces an unanswerable item plus a blank panel, which is strictly worse than not gating.
  *
- * 27 of 37 survive at K-1 and 2-3; 4-5 and 6-8 are rejected entirely on their own merits, so this subsumes
- * the band gate rather than merely agreeing with it. Better 27 honest items than 37 with six traps.
+ * `VER-RELPAIR-01` has a gate of the same shape and it refuses NOTHING: its rarest item is tier 3
+ * (`gigantic`, `heartbroken`), which is ordinary reading for the band that gets it. It is not applied here
+ * because there is nothing to apply — see `kinshipGate.ts`, which asserts the 100.
  */
 function ungatedSortbotIds(): string[] {
   const dir = process.env.GT_QBANK_BANKS ?? '../qbank-library/banks';
