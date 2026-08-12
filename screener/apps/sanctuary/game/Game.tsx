@@ -30,6 +30,7 @@ import { Stations, STATION_SOLIDS, SITES } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
 import { useAudio, MuteButton, HeadphonePrompt } from './audio';
+import { Hud as PerfHud, Probe as PerfProbe, perfEnabled } from './perf';
 import { useVacpackTank } from './vacpack';
 import { INTRO_SOLIDS, IntroGuide, IntroPortrait, useBoardEngaged } from './intro';
 import { FAMILY_BATTERY, type Family as Fam } from './contract';
@@ -595,6 +596,7 @@ export function Game() {
   return (
     <div className="bh-root">
       <Canvas shadows camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
+        {perfEnabled() && <PerfProbe />}
         <color attach="background" args={['#eec89a']} />
         <Suspense fallback={null}>
           <Lighting />
@@ -691,6 +693,8 @@ export function Game() {
           }
         />
       </Canvas>
+
+      {perfEnabled() && <PerfHud />}
 
       {!locked && !engaged && (
         <button type="button" className="bh-enter" onClick={lock}>

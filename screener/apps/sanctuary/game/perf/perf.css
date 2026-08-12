@@ -1,0 +1,50 @@
+/* The instrument's own styling, kept out of `game.css` so nothing here can collide with the game's. */
+.bh-perf {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9000;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgb(12 10 8 / 82%);
+  color: #f4ead9;
+  font: 600 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.bh-perf-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.bh-perf-n {
+  min-width: 3.4em;
+  text-align: right;
+  font-size: 14px;
+}
+
+.bh-perf-k {
+  opacity: 0.62;
+  font-weight: 500;
+}
+
+.bh-perf-quiet {
+  margin-top: 2px;
+  opacity: 0.45;
+  font-weight: 500;
+}
+
+.bh-perf-ok {
+  color: #7ee08a;
+}
+
+.bh-perf-warn {
+  color: #ffc861;
+}
+
+.bh-perf-bad {
+  color: #ff7a6b;
+}
