@@ -44,8 +44,24 @@ export interface SheetInput {
   readonly criteria: GiftedCriteria;
   /** The answered trace, in order. */
   readonly trace: readonly TraceEntry[];
-  /** Every candidate in the session's snapshot, unfiltered. */
+  /** Every candidate in the session's snapshot, unfiltered. Used to reconcile the trace against the bank. */
   readonly candidates: readonly SelectionCandidate[];
+  /**
+   * What this session could *ever* be asked, which is what the stop rule's domain-coverage check needs.
+   *
+   * Distinct from `candidates`, and the difference is not cosmetic. The coverage rule refuses to decide until
+   * every domain present in the pool has been sampled, so handing it the whole catalogue asks a question no
+   * app can answer: Bramblebrook is approved for seven types across three domains, and the snapshot holds
+   * 1,428 spatial items it can never serve. Coverage could never be satisfied, so no session could ever stop
+   * on confidence and every one ran to the item cap — 24 questions where 12 would have decided.
+   *
+   * It is also not the *eligible* pool, which removes items already served: coverage asks what the pool
+   * contains, not what is left in it. And it is not narrowed by a session's `restrictedTypes` either, because
+   * that restriction is per-burst — a keeper walking to the next station can still be asked the rest.
+   *
+   * Defaults to `candidates`, which keeps every existing caller's behaviour.
+   */
+  readonly servable?: readonly SelectionCandidate[];
   /** Including any item served but not yet answered. */
   readonly itemsServed: number;
   readonly poolExhausted?: boolean;
@@ -83,7 +99,7 @@ export function computeSheet(input: SheetInput): ScoreSheet {
   const verdict = verdictFor({
     config: input.config,
     trace: input.trace,
-    candidates: input.candidates,
+    candidates: input.servable ?? input.candidates,
     ...(input.poolExhausted === undefined ? {} : { poolExhausted: input.poolExhausted }),
     ...(input.abandoned === undefined ? {} : { abandoned: input.abandoned }),
   });

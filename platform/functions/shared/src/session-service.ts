@@ -28,6 +28,14 @@ export interface LoadedSession {
   readonly pending: ResponseRecord | null;
   /** The app's approvals, narrowed by whatever the session restricted itself to at creation. */
   readonly approvedTypes: ReadonlySet<string>;
+  /**
+   * The app's approvals *without* the session's per-burst restriction.
+   *
+   * Selection wants `approvedTypes`, because a burst should only draw from the station the child is standing
+   * at. The stop rule's domain-coverage check wants this one, because over the whole session a keeper walks
+   * between stations and can be asked anything the app approves.
+   */
+  readonly appApprovedTypes: ReadonlySet<string>;
   readonly index: SelectionIndex;
   /** How many items this session could still be offered, which the contract reports as `poolSize`. */
   readonly eligibleCount: number;
@@ -80,6 +88,7 @@ export async function loadSession(
     answered: responses.filter((r) => r.state === 'answered'),
     pending: responses.find((r) => r.state === 'served') ?? null,
     approvedTypes,
+    appApprovedTypes: new Set(approved),
     index,
     eligibleCount: 0,
   };
@@ -135,9 +144,17 @@ export function sheetFor(
     config: toEngineConfig(session.resolvedConfig, session.ageBand),
     criteria: CRITERIA_V1,
     trace: toTrace(answered),
-    // The whole snapshot, not the eligible subset: coverage is a question about what the pool *contains*,
-    // and `eligible` deliberately removes items this session has already served.
+    // The whole snapshot, for reconciling the trace against the bank.
     candidates: index.items,
+    /**
+     * What this app could ever ask, which is what the coverage check must see.
+     *
+     * Passing the whole snapshot here meant the rule waited on domains the app has no approved type for, so
+     * coverage was unsatisfiable and every session ran to the item cap instead of stopping when confident.
+     * Not narrowed by the session's `restrictedTypes`: that is the station the child is at right now, and
+     * they will walk to the others.
+     */
+    servable: index.items.filter((item) => loaded.appApprovedTypes.has(item.typeCode)),
     itemsServed: responses.length,
     poolExhausted: options.poolExhausted ?? false,
     abandoned: options.abandoned ?? session.status === 'abandoned',

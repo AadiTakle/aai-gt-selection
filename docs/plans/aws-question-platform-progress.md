@@ -156,6 +156,53 @@ Also added `npm run show:sessions`, a local diagnostic that prints every session
 version scanned one page and reported two sessions out of thirteen — a filtered DynamoDB scan applies the filter
 after reading a 1 MB page, and the table holds ~4,934 registry items ahead of the session rows. It paginates now.
 
+## 12 Aug, second bug from the same five minutes: sessions could never stop
+
+Reading the owner's score sheet showed 19 answered items, 98% confidence they were below the cut, and a status
+of "still gathering". The stop rule should have fired at 12.
+
+`sheetFor` passed `index.items` — the whole 4,934-item snapshot — as the pool. `stopReasonFor` refuses to decide
+until every domain *present in the pool* has met `perDomainMinimum`, and the snapshot holds 1,428 spatial items
+Bramblebrook has no approved type for. Coverage was therefore unsatisfiable, and **every session ran to the
+24-item cap instead of stopping when confident** — twice the questions and twice the play time, for no gain in
+accuracy.
+
+The comment defending the choice was half right: coverage is indeed a question about what the pool *contains*
+rather than what is left in it, which is why the eligible subset would be wrong. But it overshot by asking about
+the whole catalogue instead of what this app could ever be asked. `SheetInput` now takes a separate `servable`
+pool for the coverage check while `candidates` keeps reconciling the trace against the bank — two different
+questions that one parameter was answering. `servable` is deliberately *not* narrowed by a session's
+`restrictedTypes`, since that is the station a keeper stands at now and they will walk to the others.
+
+### The measurement gap this exposes, which is the real finding
+
+Every number in `docs/overnight/` came from calling the engines directly with a pool pre-filtered to the seven
+types — so spatial was absent, coverage was exempt, and the simulation stopped at a median of 12 while
+production could never stop at all. **The simulation tested the design and was silent about the deployment**,
+which is the same failure as the integration test that never walked to a second station.
+
+`scripts/measure-live-path.ts` now measures the same quantity a second way, driving HTTP through the real
+routes. It agrees: median 12, 14 of 16 stopping on confidence, 2 hitting the cap.
+
+### What this harness got wrong first
+
+- Piped a twenty-minute run through `tail`, which buffers until exit, so a working run looked like a hang for
+  thirty-five minutes. Killed and re-run streaming.
+- Declared a map of item parameters and never filled it, so `pCorrect` was handed the *authoring* difficulty
+  (~14) as a logit and returned the guessing floor for every child at every ability. The cohort answered at
+  chance and the output looked plausible.
+- Counted every answer a keeper gave across the whole walk, reporting 48-question sessions. Those were two
+  screenings of 24 added together: once a session reaches a decision, resumption correctly refuses it and the
+  next station opens a new one.
+
+### Worth a product decision
+
+That last one is not only a harness bug. **When a session reaches a decision and the child keeps playing, a
+second screening silently begins.** `next` on a stopped session returns done, so the current round closes, but
+the next station engagement creates a fresh session with a fresh prior. Nobody decided that should happen. The
+options are to stop offering questions, to keep serving without scoring, or to treat a second screening as
+legitimately new — and it should be chosen rather than inherited.
+
 ## Outstanding, and none of it is silent
 
 **Needs the owner:** an AWS account, credentials, `cdk bootstrap`, the first deploy — the only thing standing

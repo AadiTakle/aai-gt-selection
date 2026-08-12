@@ -79,6 +79,20 @@ of sensitivity.
 Also recorded there: about a quarter of session time is walking, because interleaving batteries means changing
 station on 97% of questions and Bramblebrook has one station per battery. A tunable exists; I left it alone.
 
+## Corrected 12 Aug, after the owner played it
+
+Two bugs that every measurement here missed, both found in five minutes of real play, and both of the same
+kind: the simulations built their own inputs, so they tested the design and were silent about the deployment.
+
+1. **Sessions never accumulated.** `createSession` always minted a new session, so the estimate restarted at
+   every station and no interval ever narrowed. Twelve sessions held twenty-six answers.
+2. **Sessions could never stop.** The stop rule was handed the whole catalogue, so it waited on spatial items
+   Bramblebrook cannot serve. Every session ran to the 24-item cap; the "12 questions" figure below described
+   a pool production did not use.
+
+Both fixed, and both now covered by tests that drive the real routes. `npm run measure:live` measures question
+counts a second way, through HTTP, and agrees with the simulation at a median of 12.
+
 ## Files
 
 | file | what it is |

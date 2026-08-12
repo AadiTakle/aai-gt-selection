@@ -6,7 +6,8 @@ numbers are measured and which are assumed, because they are not the same kind o
 
 ## The answer
 
-**12 questions for the median child. 17 for nine children in ten. 24 at the hard cap.**
+**12 questions for the median child. 17 for nine children in ten. 24 at the hard cap.** Confirmed twice: by
+simulation over 4,000 children, and through the real HTTP handlers over 16.
 
 At the pace a third to fifth grader plausibly plays Bramblebrook, 12 questions is about **8 minutes** of play,
 in a range of roughly **6 to 12** depending on how long the child thinks. The 24-question worst case is about
@@ -14,6 +15,25 @@ in a range of roughly **6 to 12** depending on how long the child thinks. The 24
 
 In the game's own rhythm of roughly four questions per visit, a baseline decision therefore takes **about three
 visits**, not one.
+
+## A correction, added 12 Aug after the owner played it
+
+Everything below was measured by calling the selection and scoring engines directly, with the pool already
+filtered to Bramblebrook's seven types. **Production did not behave this way, and playing the game is what
+exposed it.**
+
+`sheetFor` handed the stop rule the whole catalogue rather than the slice this app can serve. The rule waits
+until every domain *present in the pool* has been sampled, and the snapshot holds 1,428 spatial items
+Bramblebrook has no approved type for — so coverage was unsatisfiable, no session could ever stop on
+confidence, and **every real session ran to the 24-item cap.** The owner's own session sat at 19 items with 98%
+confidence it was below the cut, still reporting "still gathering".
+
+Fixed by passing the app-approved pool to the coverage check. The numbers below were then re-measured a second
+way, driving HTTP requests through the same routes the game uses (`npm run measure:live`), and the two now
+agree: **median 12 questions, 14 of 16 sessions stopping on confidence rather than exhausting the cap.**
+
+The lesson is the same one the session-resumption bug taught. A simulation that constructs its own inputs
+tests the design and says nothing about the deployment. Both measurements exist now for that reason.
 
 ## Questions: measured
 

@@ -153,6 +153,22 @@ suite('Bramblebrook on the platform', () => {
     return { key: asString, selectedKey: asString, selectedIndex: asIndex };
   }
 
+  /**
+   * An answer that is not the key, whatever shape the key takes.
+   *
+   * Both channels have to be wrong at once: `scoreResponse` marks a numeric key against `selectedIndex` and a
+   * string key against `key`, so moving only one of them leaves the other accidentally correct for half the
+   * types in this app.
+   */
+  function wrongAnswerFor(itemId: string): { key: string; selectedKey: string; selectedIndex: number } {
+    const key = keyOf.get(itemId);
+    const asString = String(key ?? '');
+    const wrongString = asString === 'A' ? 'B' : 'A';
+    const asIndex = typeof key === 'number' ? key : Number(asString);
+    const wrongIndex = Number.isFinite(asIndex) ? (asIndex === 0 ? 1 : 0) : 1;
+    return { key: wrongString, selectedKey: wrongString, selectedIndex: wrongIndex };
+  }
+
   it('reports only the seven verbs in its catalogue', async () => {
     const { status, body } = await call('GET', bankRoutes.catalogue());
     expect(status).toBe(200);
@@ -294,6 +310,49 @@ suite('Bramblebrook on the platform', () => {
     expect(second.status).toBe(201);
     expect(second.body.sessionId).not.toBe(sessionId);
   }, 60_000);
+
+  it('can reach a decision even though it has no spatial type to serve', async () => {
+    /**
+     * The coverage rule waits until every domain *in the pool* has been sampled, and Bramblebrook has no
+     * approved spatial type while the snapshot holds 1,428 spatial items. Handed the whole catalogue, the rule
+     * waited forever on a domain the app cannot serve: coverage was unsatisfiable, so no session ever stopped
+     * on confidence and every one ran to the 24-item cap. This is that, pinned — a session that answers enough
+     * to be decided must actually be decided.
+     *
+     * Answers are deliberately wrong, because the fastest route to a confident verdict at a 95th-percentile
+     * cut is a run of misses at difficulties chosen to sit on the bar.
+     */
+    const keeperId = `keeper-${randomUUID().slice(0, 8)}`;
+    const created = await call('POST', bankRoutes.createSession(), { personaId: keeperId });
+    const sessionId = created.body.sessionId as string;
+
+    let stopped = false;
+    let served = 0;
+    for (let i = 0; i < 24; i += 1) {
+      const next = await call('GET', bankRoutes.next(sessionId));
+      if (next.body.done === true) {
+        stopped = true;
+        break;
+      }
+      served += 1;
+      const item = next.body.served as { itemId: string };
+      await call('POST', bankRoutes.answer(sessionId), {
+        response: wrongAnswerFor(item.itemId),
+        latencyMs: 7000,
+      });
+    }
+
+    expect(stopped).toBe(true);
+    // Under the cap, which is the whole point: before the fix this could only ever end by exhausting it.
+    expect(served).toBeLessThan(24);
+
+    const sheet = await d.store.getCurrentSheet(sessionId);
+    expect(sheet?.stopped).toBe(true);
+    expect(sheet?.stopReason).toBe('confident-below');
+    expect(sheet?.decision).toBe('no-recommendation');
+    // Spatial was never asked about and must not be holding the decision up.
+    expect(sheet?.domains.spatial.itemsScored).toBe(0);
+  }, 180_000);
 
   it('keeps an anonymous session out of resumption entirely', async () => {
     /**
