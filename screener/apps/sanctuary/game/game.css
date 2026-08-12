@@ -182,6 +182,20 @@
   box-shadow: 0 10px 0 rgb(120 90 55 / 0.18);
 }
 
+/**
+ * The question itself. Bigger than a caption and smaller than the title, because it is the thing a child
+ * actually has to act on — and read aloud where the item narrates, so an emerging reader hears it while
+ * seeing it.
+ */
+.bh-beat-ask {
+  margin: 0.15rem 0 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #5a4326;
+  text-wrap: balance;
+}
+
 .bh-beat-note {
   margin: 1.1rem 0 0;
   font-size: 0.85rem;

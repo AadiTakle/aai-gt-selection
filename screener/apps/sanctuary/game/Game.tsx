@@ -260,6 +260,26 @@ function Keeper({ locked }: { locked: boolean }) {
  */
 export { IN_WORLD } from './screener/inWorld';
 
+
+/**
+ * What the child is being asked, in words.
+ *
+ * The bank's own `prompt` wherever it has one — never paraphrased, because the item's wording is part of
+ * the item. Three of the drawn types ship an empty prompt, so they get one written here: they are the pure
+ * figure types, where the task was thought self-evident from the drawing. It is self-evident to an adult
+ * who knows they are looking at a puzzle.
+ */
+const ASK: Record<string, string> = {
+  'FLU-MATRIX-01': 'Which piece finishes the pattern?',
+  'FLU-CARPET-01': 'Which piece comes next?',
+  'VER-RELPAIR-01': 'Which pair goes together in the same way?',
+};
+
+function ask(typeCode: string, content: Record<string, unknown>): string {
+  const own = typeof content.prompt === 'string' ? content.prompt.trim() : '';
+  return own || ASK[typeCode] || 'Choose one.';
+}
+
 export interface LiveItem {
   serve: NonNullable<ReturnType<typeof useSortie>['serve']>;
   asking: boolean;
@@ -404,6 +424,27 @@ function Beat({
         * the whole point: a child is doing a thing the ranch needs, not sitting a section.
         */}
       <p className="bh-beat-title">{verbFor(s.serve.typeCode)?.title ?? verb?.title ?? 'Something to do'}</p>
+      {/*
+        * THE QUESTION, IN WORDS. Five of the seven served types ship a `prompt` in the bank and NOT ONE of
+        * them was ever rendered — the panel showed only the verb's in-world name.
+        *
+        * The owner found it from the other end: "there is a balance one ish that just looks like it has
+        * random symbols so i can't tell what it's asking." He was right, and the symbols were not the
+        * problem. That item ships with "Choose the group of shapes that balances the left pan." and the
+        * child never saw it. Its beam is also welded level in every state on purpose, so there is not even
+        * a visual cue that the thing is a scale seeking balance. Three shapes in one pan and four trays of
+        * shapes below is unanswerable without the sentence, however good the drawing is.
+        *
+        * This is the same correction as his instruction about the verbal battery — "you have to use words
+        * it just might not be as big of words as you're used to". The rule that a five-year-old cannot
+        * read was applied to the INSTRUCTION as well as to the content, which left several items with no
+        * statement of the task at all. A short sentence, read aloud where narration exists, is how a
+        * five-year-old is actually told what to do.
+        *
+        * Nothing here says test, quiz, score, or names a battery: these are the bank's own task
+        * instructions, in its own words.
+        */}
+      <p className="bh-beat-ask">{ask(s.serve.typeCode, content)}</p>
       {inWorld ? null : (
         <div className="bh-beat-options">
           {options.map((o, i) => {
