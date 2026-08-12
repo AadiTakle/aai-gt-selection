@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Raycaster, Vector3 } from 'three';
+import {
+  BoxGeometry,
+  Group,
+  InstancedMesh,
+  Mesh,
+  MeshStandardMaterial,
+  Raycaster,
+  Vector3,
+} from 'three';
 
 import { Batch, ThrashGuard, meshCount } from './batch';
 
@@ -49,6 +57,35 @@ describe('a batch', () => {
     const stats = new Batch().build(host, sink, still);
     expect(stats.skipped.interactive).toBe(1);
     expect(props[0]!.visible).toBe(true);
+  });
+
+  it('refuses an InstancedMesh, whose copies a merge would delete', () => {
+    /* The most severe misrender this file could produce: an InstancedMesh IS an `isMesh`, and merging
+       one bakes only its base geometry — every instance but the first would vanish. `Buildings.tsx`
+       instances everything that repeats, so that is most of the ranch. */
+    const host = new Group();
+    const sink = new Group();
+    const many = new InstancedMesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial(), 8);
+    const other = prop(4);
+    host.add(many, other);
+    host.updateMatrixWorld(true);
+
+    const stats = new Batch().build(host, sink, new Set([many.uuid, other.uuid]));
+    expect(stats.skipped.instanced).toBe(1);
+    expect(sink.children).toHaveLength(0); // one lone prop is not worth a merge
+  });
+
+  it('disposes what it made when it dissolves, or a session leaks a batch per question', () => {
+    const { host, sink, still } = world(6);
+    const batch = new Batch();
+    batch.build(host, sink, still);
+    const merged = sink.children[0] as Mesh;
+    let disposed = false;
+    merged.geometry.addEventListener('dispose', () => {
+      disposed = true;
+    });
+    batch.dissolve(sink);
+    expect(disposed).toBe(true);
   });
 
   it('is not stale while nothing has changed', () => {

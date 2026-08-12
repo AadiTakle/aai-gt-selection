@@ -325,7 +325,7 @@ function Preview(): JSX.Element {
   }, [pre]);
 
   return (
-    <Canvas shadows camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
+    <Canvas shadows="variance" camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
       <color attach="background" args={['#eec89a']} />
       <Harness />
     </Canvas>

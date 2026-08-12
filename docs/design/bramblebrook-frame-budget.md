@@ -110,7 +110,7 @@ branch were quiet, and it is not.
 
 ## 4. The changes
 
-### 4.1 Batch the static world — `perf/batch.tsx`
+### 4.1 Batch the static world — `perf/Batched.tsx` + `perf/batch.ts`
 
 `<Batched>` wraps a subtree and merges its static meshes into one geometry per material group.
 
@@ -163,7 +163,7 @@ which is far more than this budget needs.
 
 ## 5. The instrument
 
-`perf/probe.tsx` mounts behind `?perf=1` and shows frame median and p99, draw calls split main versus
+`perf/Probe.tsx` mounts behind `?perf=1` and shows frame median and p99, draw calls split main versus
 shadow, triangles, and program count. `perf/bench.mjs` reproduces the throttle sweep headlessly,
 following the convention of the existing `shoot.mjs` and `prove-marking.mjs`.
 
@@ -198,8 +198,8 @@ The other three cannot honestly claim it, and should not pretend to:
 
 ## 7. Order of work
 
-1. `perf/probe.tsx` + `perf/bench.mjs` — no behaviour change
-2. `perf/batch.tsx` — the primary lever, cuts both passes
+1. `perf/Probe.tsx` + `perf/bench.mjs` — no behaviour change
+2. `perf/Batched.tsx` — the primary lever, cuts both passes
 3. `perf/casters.ts` — caster budget
 4. `perf/cadence.ts` — shadow cadence
 5. shadow map resolution — separate, droppable
@@ -255,9 +255,34 @@ noticed in play, and all three would have been called an art change if anyone ha
   constant through the observation window, get merged, and then light. No observation window can
   catch that, so `Batch` watches its merged sources' material state and dissolves when it changes.
 
-**And one it only cornered.** 249 pixels of 540,000 still differ at the spawn pose — four distant
-lantern highlights, 0.046%, inside the 0.1% budget. `?nobatch=<label>` bisects it to the stations
-wrapper rather than the shop (265 pixels against 39, where two identical runs differ by about 45).
-The leading explanation is shadow-frustum culling granularity: a merged mesh has one bounding sphere
-spanning every station, so geometry that used to fall outside the shadow camera is no longer culled
-out of it. That is unconfirmed, and it is written down rather than rounded to zero.
+**And one it cornered and then closed.** A 249-pixel residual at the spawn pose was bisected to the
+stations wrapper with `?nobatch=<label>` and provisionally blamed on shadow-frustum culling
+granularity. That guess was wrong. It fell to 39 pixels once merged sources stopped being hidden by a
+faked `visible` and started leaving rendering through their layer mask — the residual was the
+batcher's own hiding mechanism interacting with picking and shadow state, not the frustum.
+
+## 9. What the review found afterwards
+
+Nine further defects, none of which the pixel guard could see, because every one of them needs an
+EVENT — a hatch, a press, a hover — and a static frame diff never fires one. They are recorded in
+the commits; the two worth repeating here are the ones that were not the batcher's fault:
+
+**`<Canvas shadows>` had two writers.** r3f's `configure()` rewrites `gl.shadowMap.type` on every
+render of the Canvas component — its layout effect has no dependency array — while `Lighting.tsx`
+set VSM exactly once. One window resize, or one hot update, permanently downgraded the game to hard
+PCF shadows and leaked a full set of recompiled shader programs each time (53 → 92 → 118). That is a
+pre-existing defect, and it silently discarded the entire soft-shadow rationale in §4.
+
+It also caused the white screen the owner reported. Once the map has been rebuilt in PCF's RGBA/byte
+format, `WebGLLights.js:244` binds it by FORMAT to a `sampler2DShadow`, and ANGLE rejects every such
+draw with `Mismatch between texture format and sampler type`. Every lit shadow-receiving mesh is
+dropped — 632 draw calls to 346 — and what is left is the inside of the sky sphere with the world
+removed, plus the unlit props and the sun. Reproduced at luminance 227.6 against a healthy 123.
+
+The fix is `shadows="variance"`, so r3f is the only writer and the mid-session type change stops
+existing, plus a level-triggered check in `perf/cadence.ts` comparing the format three actually built
+against the type it is being sampled as.
+
+**And the guard now fails on GL errors.** It watched pixels from five fixed poses and never read the
+console, so it passed for hours while the renderer was printing that mismatch hundreds of times a
+second. A frame that looks right with GL errors underneath it is not right.

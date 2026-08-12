@@ -1,5 +1,5 @@
 /**
- * Frame timings, reduced to the four numbers that decide whether a child sees a stall.
+ * Frame timings, reduced to the three numbers that decide whether a child sees a stall.
  *
  * THE MEDIAN AND NOT THE MEAN. The mean of sixty good frames and one 200ms stall is a number that
  * describes neither of them, and it moves when the stall does, which makes it useless for telling
@@ -12,12 +12,11 @@
 export interface Summary {
   n: number;
   median: number;
-  p90: number;
   p99: number;
   max: number;
 }
 
-const EMPTY: Summary = { n: 0, median: 0, p90: 0, p99: 0, max: 0 };
+const EMPTY: Summary = { n: 0, median: 0, p99: 0, max: 0 };
 
 export function summarise(samples: readonly number[]): Summary {
   if (samples.length === 0) return { ...EMPTY };
@@ -29,7 +28,6 @@ export function summarise(samples: readonly number[]): Summary {
   return {
     n: sorted.length,
     median: at(0.5),
-    p90: at(0.9),
     p99: at(0.99),
     max: sorted[sorted.length - 1]!,
   };

@@ -61,6 +61,42 @@ const pose = (p) => `(() => {
   return true;
 })()`;
 
+/**
+ * WHAT THE PIXEL DIFF CANNOT SEE, AND WHY THIS LIST EXISTS.
+ *
+ * The white frame that shipped was a GL state error: an RG16F shadow target bound to a
+ * `sampler2DShadow`, which ANGLE rejects with `Mismatch between texture format and sampler type`,
+ * dropping every lit draw. The console said so, hundreds of times a second. This script was watching
+ * pixels from five fixed poses and never looked, so it passed the whole time.
+ *
+ * A renderer that is shouting is a failure whatever the pixels say.
+ */
+const FATAL_CONSOLE = [
+  'GL_INVALID_OPERATION',
+  'GL_INVALID_ENUM',
+  'GL_INVALID_VALUE',
+  'Mismatch between texture format and sampler type',
+  'program not valid',
+  'Context Lost',
+  /* Specifically this one, not deprecations in general: it is what r3f's `configure()` prints when it
+     writes PCFSoftShadowMap over the Canvas's shadow type, which is the trigger for the mismatch
+     above. `THREE.Clock has been deprecated` comes from drei on every load and is not ours. */
+  'PCFSoftShadowMap has been deprecated',
+];
+
+const complaints = [];
+
+function watchConsole(page, label) {
+  const note = (text) => {
+    if (!FATAL_CONSOLE.some((needle) => text.includes(needle))) return;
+    /* One line per distinct complaint: a GL error repeats every frame and would bury everything. */
+    const key = `${label}: ${text.slice(0, 140)}`;
+    if (!complaints.includes(key)) complaints.push(key);
+  };
+  page.on('console', (m) => note(m.text()));
+  page.on('pageerror', (e) => complaints.push(`${label}: pageerror ${String(e).slice(0, 140)}`));
+}
+
 async function shoot(browser, query) {
   /* `reducedMotion` quiets everything that honours it — the drifting clouds, the idle bobs — which is
      most of what would otherwise differ between two loads for reasons unrelated to batching. */
@@ -69,6 +105,7 @@ async function shoot(browser, query) {
     deviceScaleFactor: 1,
     reducedMotion: 'reduce',
   });
+  watchConsole(page, query.includes('nobatch') ? 'unbatched' : 'batched');
   await page.goto(`${BASE}?${query}`, { waitUntil: 'networkidle' });
   /* The panel has to be off in the shot. `?perf=1` is only set because the camera is published under
      it, and the panel's own numbers differ between runs — it would diff itself. */
@@ -189,9 +226,16 @@ for (const p of POSES) {
 }
 
 await browser.close();
+
+if (complaints.length > 0) {
+  failed = true;
+  console.log('\nThe renderer complained. A frame that looks right with GL errors under it is not right:');
+  for (const c of complaints) console.log(`  ${c}`);
+}
+
 console.log(
   failed
-    ? '\nThe batcher changed the picture. That is a bug in the merge, not a tuning question.\n'
-    : '\nThe picture is unchanged.\n',
+    ? '\nFAIL — see above. A pixel difference is a bug in the merge; a GL error is a bug in the state.\n'
+    : '\nThe picture is unchanged and the renderer is quiet.\n',
 );
 process.exit(failed ? 1 : 0);
