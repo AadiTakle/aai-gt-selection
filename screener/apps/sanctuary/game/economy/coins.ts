@@ -57,8 +57,16 @@ export const LS_COINS = 'gt-sanctuary:coins';
  * and the same argument applies without change to the coins.
  */
 export const EARN = {
-  /** Per question answered. Paid on the way past, whatever was chosen. */
+  /** Per question answered, whatever was chosen. Nothing is ever withheld for being wrong. */
   perAnswer: 1,
+  /**
+   * The bonus on top of `perAnswer` when the answer was the keyed one, so a correct answer pays double.
+   *
+   * Additive rather than a multiplier because the floor is the part that must not move: every answer pays,
+   * a miss still pays, and the difference is an extra coin rather than a coin withheld. Written this way so
+   * that "nothing can be lost" stays visible in the constants rather than living in a comment.
+   */
+  correctBonus: 1,
   /** Once, when a round closes. */
   perRound: 4,
 } as const;

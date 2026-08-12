@@ -27,9 +27,30 @@ import type { OptionRef, Serve, SortieState } from './types';
  * accumulates and the interval actually narrows; `/sanctuary/chunk` and `/sanctuary/close` existed to carry
  * ability between separate sessions and have nothing left to carry.
  *
- * CORRECTNESS STILL NEVER REACHES THE GAME. The contract returns `correct` on an answer, with its own note
- * that a caller putting it in front of a child should think twice. This hook deletes it before returning, so
- * nothing downstream can pay out on accuracy because it is not there to read.
+ * CORRECTNESS NOW REACHES THE GAME, BY DECISION, AND ONLY AFTER THE ANSWER IS COMMITTED.
+ *
+ * This hook used to delete `correct` before returning, and the contract still warns that a caller putting it
+ * in front of a child should think twice. The owner has asked for it: right and wrong are told, right pays
+ * double and sounds better. What that buys is a game worth playing, which a stealth screener depends on more
+ * than it depends on any single psychometric nicety — a child who quits after four questions is measured not
+ * at all.
+ *
+ * What it costs, written down rather than discovered later:
+ *
+ *   - **The bank is now leakable.** A child who plays the same station repeatedly learns which option was
+ *     keyed, and a child who talks to another child spreads it. Exposure control damps how often an item is
+ *     reused but does not prevent it.
+ *   - **Behaviour changes mid-measurement.** Feedback is famously double-edged; roughly a third of the
+ *     interventions in Kluger & DeNisi's meta-analysis lowered performance. A child who learns they are
+ *     getting them wrong at 60% — which is what maximising information *means* — may try less hard, and that
+ *     lands in the ability estimate as though it were ability.
+ *   - **The reward is now informative about correctness**, so paying double is a second channel telling a
+ *     child the same thing. `Cradle.tsx`'s "earned by taking part, never by being right" no longer holds.
+ *
+ * The one thing that is NOT given up: the answer is scored server-side before any of this is known here. The
+ * child commits, the platform marks, and only then does the browser learn the outcome — so feedback cannot
+ * change the response it is feedback about. That ordering is what keeps the measurement honest, and it is
+ * also the only kind of feedback the learning literature is unambiguously positive about.
  */
 
 /**
@@ -59,12 +80,36 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 
 export type Phase = 'idle' | 'opening' | 'asking' | 'settling' | 'closed' | 'error';
 
+/**
+ * Whether this visit is over, given what the platform said and how many questions have been asked here.
+ *
+ * A free function rather than a branch inside the timer, because the two reasons a station closes are easy to
+ * confuse and this is where the difference lives. `stopped` is the platform's: the child has been measured and
+ * there are no more questions for them at all. `roundLength` is the game's: this visit asked what it came to
+ * ask, and the child will be back. The session outlives the round, so the second must not be mistaken for the
+ * first anywhere that decides whether to open a station again.
+ */
+export function visitOver(
+  state: { stopped: boolean },
+  askedHere: number,
+  roundLength: number | undefined,
+): boolean {
+  if (state.stopped) return true;
+  return roundLength !== undefined && askedHere >= roundLength;
+}
+
 export interface Sortie {
   phase: Phase;
   serve: Serve | null;
   state: SortieState | null;
   error: string | null;
   answered: number;
+  /**
+   * Whether the last answer was the keyed one, or `null` when nothing has been answered yet or the platform
+   * could not mark it. `null` is not "wrong": an unmarkable response — a tap too fast to be an attempt, or an
+   * item whose scoring rule is not written — must not be shown to a child as a miss.
+   */
+  lastCorrect: boolean | null;
   sessionId: string | null;
   open: () => Promise<void>;
   answer: (option: OptionRef) => Promise<void>;
@@ -75,6 +120,14 @@ export function useSortie(opts: {
   /** This station's battery, narrowed against what the app is approved to serve. */
   types: readonly string[];
   settleMs?: number;
+  /**
+   * How many questions one visit to a station asks before the round closes.
+   *
+   * The session is longer than the round and outlives it — the platform decides when a child has been
+   * measured, and this only decides when *this visit* ends. Left undefined, a round runs until the session
+   * itself stops, which is what every caller did before stations had a set length.
+   */
+  roundLength?: number;
   /**
    * The keeper this sortie belongs to, carried as the platform's persona.
    *
@@ -96,14 +149,22 @@ export function useSortie(opts: {
   precisionIndex?: number;
   steered?: boolean;
 }): Sortie {
-  const { types, settleMs = 900, keeperId = 'anon', battery } = opts;
+  const { types, settleMs = 900, keeperId = 'anon', battery, roundLength } = opts;
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [serve, setServe] = useState<Serve | null>(null);
   const [state, setState] = useState<SortieState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [answered, setAnswered] = useState(0);
+  const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  /**
+   * Answers given at this station on this visit, as a ref rather than the `answered` state.
+   *
+   * `advance` runs from a timer whose closure captured `answered` before the answer landed, so reading state
+   * there would compare a stale count against the round length and overshoot by one every time.
+   */
+  const inRound = useRef(0);
 
   const id = useRef<string | null>(null);
   const shownAt = useRef(Date.now());
@@ -141,6 +202,8 @@ export function useSortie(opts: {
   const open = useCallback(async () => {
     setError(null);
     setAnswered(0);
+    setLastCorrect(null);
+    inRound.current = 0;
     setPhase('opening');
     try {
       /**
@@ -187,16 +250,25 @@ export function useSortie(opts: {
         });
         if (!alive.current) return;
 
-        // The single most important line in this file.
-        delete raw.correct;
+        /**
+         * The outcome, as the platform marked it. `undefined` and `null` both mean "not marked" and are kept
+         * distinct from `false` all the way to the screen: a child who was not scored has not missed.
+         */
+        setLastCorrect(typeof raw.correct === 'boolean' ? raw.correct : null);
 
         setState(raw.state as SortieState);
         setAnswered((n) => n + 1);
+        inRound.current += 1;
 
         const advance = () => {
           busy.current = false;
           if (!alive.current) return;
-          if ((raw.state as SortieState).stopped) {
+          /**
+           * Closing here rather than fetching one more question and abandoning it matters: `next` writes the
+           * served row before the child answers, and an unanswered row is re-issued on the next visit *and*
+           * suppresses the stop rule until it is answered. Deciding before the fetch keeps the round clean.
+           */
+          if (visitOver(raw.state as SortieState, inRound.current, roundLength)) {
             setServe(null);
             setPhase('closed');
           } else {
@@ -214,8 +286,8 @@ export function useSortie(opts: {
         setPhase('error');
       }
     },
-    [phase, loadNext, settleMs],
+    [phase, loadNext, settleMs, roundLength],
   );
 
-  return { phase, serve, state, error, answered, sessionId, open, answer };
+  return { phase, serve, state, error, answered, lastCorrect, sessionId, open, answer };
 }

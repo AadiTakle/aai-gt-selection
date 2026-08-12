@@ -31,17 +31,21 @@ import { penFor, type StationSite } from './sites';
  * it must be a physical thing ... that you can come back to or answer and it gives you a slime or
  * something?" — and this file is the answer, so it is worth being exact about the two rules it obeys.
  *
- * RULE ONE: IT IS EARNED BY TAKING PART, NEVER BY BEING RIGHT. The five pips on the post light one at a
- * time as the child hands something over, and the egg rocks each time. That is the whole of the
- * accounting: how many times this child chose something, and nothing else. The egg hatches at the end of
- * a round regardless of what was chosen, and a child who picks the same option four times in a row gets
- * exactly the same slime as a child who picks four different ones.
+ * RULE ONE: THE SLIME IS EARNED BY TAKING PART, NEVER BY BEING RIGHT — AND THAT IS NOW THE ONLY REWARD OF
+ * WHICH THAT IS TRUE. The pips on the post light one at a time as the child hands something over, and the
+ * egg rocks each time. That is the whole of the accounting here: how many times this child chose something.
+ * The egg hatches at the end of a round regardless of what was chosen, and a child who picks the same
+ * option five times running gets exactly the same slime as one who picks five different ones.
  *
- * This is not merely a policy choice, it is the only implementable one. `shared/useSortie.ts` deletes
- * correctness before it returns — nothing in the browser is ever told whether a choice was the keyed one
- * — so there is no signal here to be tempted by and no way to reintroduce one by accident. The stronger
- * reason is the one in the brief: a reward that tracks accuracy is a score, a score is a verdict, and a
- * five-year-old being handed a verdict on their reasoning is the thing this whole app exists not to do.
+ * It used to be the only implementable policy as well, because `shared/useSortie.ts` deleted correctness
+ * before returning and there was no signal here to be tempted by. That is no longer so: the owner has asked
+ * for right and wrong to be told, and coins now pay double for a correct answer. The reasoning and the cost
+ * are recorded in that hook's header.
+ *
+ * The egg deliberately did not follow. A slime is the thing a child walks away with and shows someone, and
+ * making *that* contingent on accuracy is what would turn a station into a scoreboard. Coins are a currency
+ * that already varies with how much you did; a creature is a keepsake. So the pips stay a count of taking
+ * part, and a child who got every question wrong still leaves with a slime.
  *
  * RULE TWO: NOTHING CAN BE LOST. Leaving a station mid-question drops the pips and takes nothing away;
  * the egg is still there when the child comes back. There is no state in which a station is spent,
@@ -73,8 +77,18 @@ const NEST_Y = 1.5;
  */
 const NEST_OUT = 0.5;
 const NEST_FWD = 1.25;
-/** How many pips the post carries. A round is about four items, so five is never all lit. */
-const PIPS = 5;
+/**
+ * How many pips the post carries, and therefore how long a round is.
+ *
+ * These were two facts that disagreed: the post carried five pips while a round was "about four items", so the
+ * last pip never lit and the lights counted up towards a number that meant nothing. A round is now exactly
+ * `PIPS` questions — the lights fill, the last one lands, the round closes and the egg hatches. `Game.tsx`
+ * passes this to `useSortie` as the round length so the two cannot drift apart again.
+ *
+ * Five rather than four because the session's floor is twelve: at five a child reaches a decision in three
+ * visits, and at four it takes three visits plus one question, which is a fourth visit that ends immediately.
+ */
+export const PIPS = 5;
 
 export type CradlePhase = 'resting' | 'hatching';
 

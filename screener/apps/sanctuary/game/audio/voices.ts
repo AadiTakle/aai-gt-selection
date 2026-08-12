@@ -761,6 +761,8 @@ export interface Voices {
   plop(ctx: BaseAudioContext, out: AudioNode, at: number): void;
   coin(ctx: BaseAudioContext, out: AudioNode, at: number): void;
   hatch(ctx: BaseAudioContext, out: AudioNode, at: number): void;
+  right(ctx: BaseAudioContext, out: AudioNode, at: number): void;
+  wrong(ctx: BaseAudioContext, out: AudioNode, at: number): void;
 }
 
 /**
@@ -774,6 +776,18 @@ export interface Voices {
  * HATCH: an F major triad in sines with the entries staggered 70 ms apart and a slow 30 ms attack, over a
  * quiet sub at the root. Warm because it is a major triad in the lower middle of the register with no
  * attack transient at all — nothing about a hatching egg should have an edge on it.
+ *
+ * RIGHT: a C major arpeggio climbing C-E-G-C over 210 ms, each note a sine with a fifth above it, then the
+ * octave held a little longer than the rest. It has to be audibly better than `coin` without becoming the
+ * biggest sound in the game, which `hatch` still is — so it is brighter and longer than the coin's two notes
+ * and quieter and thinner than the hatch's triad. Rising, because the one thing every listener reads as
+ * "yes" regardless of musical training is a rising line.
+ *
+ * WRONG: two soft sines a whole tone apart, the lower entering 90 ms later, at a third of the right-answer
+ * gain and with a 25 ms attack so it has no click on it. Deliberately NOT a buzzer, NOT dissonant and NOT
+ * low: it is an acknowledgement that a turn was taken, pitched so it cannot be mistaken for the rising one.
+ * A five-year-old meeting deliberately above-grade material will hear this more often than the other, and a
+ * sound that punishes would be teaching them something false about themselves five times a visit.
  */
 export function createVoices(rand: Rand = Math.random): Voices {
   const squishPick = createChooser(VARIANTS.length, rand);
@@ -803,6 +817,21 @@ export function createVoices(rand: Rand = Math.random): Voices {
       partial(ctx, out, at, 349.23 * j, 0.21, 0.03, 1.2);
       partial(ctx, out, at + 0.07, 440 * j, 0.16, 0.03, 1.1);
       partial(ctx, out, at + 0.14, 523.25 * j, 0.13, 0.03, 1.0);
+    },
+    right(ctx, out, at) {
+      const j = jitter(rand, 0.01);
+      // C5 E5 G5 C6, 70 ms apart, each with a quiet fifth above it for body.
+      partial(ctx, out, at, 523.25 * j, 0.2, 0.005, 0.34);
+      partial(ctx, out, at, 784 * j, 0.055, 0.005, 0.26);
+      partial(ctx, out, at + 0.07, 659.25 * j, 0.2, 0.005, 0.34);
+      partial(ctx, out, at + 0.14, 784 * j, 0.2, 0.005, 0.38);
+      partial(ctx, out, at + 0.21, 1046.5 * j, 0.22, 0.006, 0.62);
+      partial(ctx, out, at + 0.21, 1568 * j, 0.05, 0.006, 0.5);
+    },
+    wrong(ctx, out, at) {
+      const j = jitter(rand, 0.01);
+      partial(ctx, out, at, 587.33 * j, 0.075, 0.025, 0.34);
+      partial(ctx, out, at + 0.09, 523.25 * j, 0.065, 0.025, 0.42);
     },
   };
 }

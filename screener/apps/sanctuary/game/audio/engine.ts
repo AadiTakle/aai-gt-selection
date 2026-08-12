@@ -339,6 +339,10 @@ export interface AudioApi {
   suckStop: () => void;
   coin?: () => void;
   hatch?: () => void;
+  /** The answer was the keyed one. */
+  right?: () => void;
+  /** It was not, and this is an acknowledgement rather than a buzzer. See `voices.ts`. */
+  wrong?: () => void;
 }
 
 /**
@@ -397,6 +401,16 @@ export const audioApi: AudioApi = {
     const l = active();
     if (!l) return;
     l.voices.hatch(l.ctx, l.bus.voices, soon(l.ctx));
+  },
+  right() {
+    const l = active();
+    if (!l) return;
+    l.voices.right(l.ctx, l.bus.voices, soon(l.ctx));
+  },
+  wrong() {
+    const l = active();
+    if (!l) return;
+    l.voices.wrong(l.ctx, l.bus.voices, soon(l.ctx));
   },
 };
 

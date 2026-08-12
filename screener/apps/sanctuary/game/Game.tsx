@@ -26,7 +26,7 @@ import {
   stepKeeper,
   type Ladder,
 } from './world/ladder';
-import { Stations, STATION_SOLIDS, SITES } from './stations';
+import { Stations, STATION_SOLIDS, SITES, PIPS } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
 import { useAudio, MuteButton, HeadphonePrompt } from './audio';
@@ -271,11 +271,14 @@ function Beat({
   onDone,
   report,
   onAnswered,
+  roundLength,
 }: {
   verbId: string;
   onDone: () => void;
   report: (live: LiveItem | null) => void;
-  onAnswered: (n: number) => void;
+  /** `correct` is null when the platform could not mark the response, which is not the same as wrong. */
+  onAnswered: (n: number, correct: boolean | null) => void;
+  roundLength: number;
 }) {
   const verb = useMemo(() => VERBS.find((v) => v.id === verbId), [verbId]);
   /**
@@ -350,11 +353,10 @@ function Beat({
   const s = useSortie({
     battery,
     types,
-    threshold: -1.5,
-    precisionIndex: 0,
     settleMs: 900,
-    steered: true,
     keeperId,
+    // A visit asks exactly as many questions as the post has pips, so the lights and the round agree.
+    roundLength,
   });
 
   useEffect(() => {
@@ -371,7 +373,7 @@ function Beat({
   // it reaches this layer, and a payout on accuracy would teach a child to guess fast for coins,
   // which is exactly the behaviour the ability estimate depends on not happening.
   useEffect(() => {
-    onAnswered(s.answered);
+    onAnswered(s.answered, s.lastCorrect);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.answered]);
 
@@ -404,6 +406,21 @@ function Beat({
         * the whole point: a child is doing a thing the ranch needs, not sitting a section.
         */}
       <p className="bh-beat-title">{verbFor(s.serve.typeCode)?.title ?? verb?.title ?? 'Something to do'}</p>
+      {/*
+        * The verdict, shown only while the pick is settling and only when the platform actually marked it.
+        *
+        * Wording chosen to be about the answer and not about the child: "That's it" and "Not that one" name
+        * the choice, where "Correct" and "Wrong" name the person who made it. A child meeting deliberately
+        * above-grade material will read the second one four times a visit.
+        *
+        * `null` shows nothing at all. A response that could not be marked — too fast to be an attempt, or a
+        * type whose scoring rule is unwritten — must not appear as a miss.
+        */}
+      {s.phase === 'settling' && s.lastCorrect !== null && (
+        <p className={s.lastCorrect ? 'bh-verdict bh-verdict-yes' : 'bh-verdict bh-verdict-no'}>
+          {s.lastCorrect ? "That's it" : 'Not that one'}
+        </p>
+      )}
       {inWorld ? null : (
         <div className="bh-beat-options">
           {options.map((o, i) => {
@@ -661,11 +678,19 @@ export function Game() {
         <div className="bh-overlay">
           <Beat
             verbId={engaged}
-            onAnswered={(n) => {
+            roundLength={PIPS}
+            onAnswered={(n, correct) => {
               if (n <= paidFor.current) return;
               paidFor.current = n;
-              earn(EARN.perAnswer);
-              audio.coin?.();
+              /**
+               * Every answer pays; a correct one pays double. An unmarked response pays the base rate rather
+               * than nothing, because the child took their turn and the platform's inability to score it is
+               * not theirs to be charged for.
+               */
+              earn(correct === true ? EARN.perAnswer + EARN.correctBonus : EARN.perAnswer);
+              if (correct === true) audio.right?.();
+              else if (correct === false) audio.wrong?.();
+              else audio.coin?.();
               setFlight((f) => f + 1);
             }}
             report={setLive}

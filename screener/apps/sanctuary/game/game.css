@@ -182,6 +182,46 @@
   box-shadow: 0 10px 0 rgb(120 90 55 / 0.18);
 }
 
+/*
+ * The verdict, while a pick settles.
+ *
+ * The title above it keeps its own margin, so this sits under it without moving anything: the panel is at the
+ * top of the screen and a line that pushed the layout down would shift the one thing on screen a child is
+ * looking at, every single answer.
+ *
+ * Not colour alone. Each state carries a mark as well as a hue, because roughly one boy in twelve cannot
+ * separate these two hues and this is the one moment in the game where the meaning is the difference between
+ * them. Weight differs too, so the two read apart in greyscale.
+ */
+.bh-verdict {
+  margin: -0.5rem 0 0.15rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+.bh-verdict-yes {
+  color: #2f6b3d;
+  font-weight: 800;
+}
+
+.bh-verdict-yes::before {
+  content: '✓ ';
+}
+
+/*
+ * Quieter than the affirmative on purpose: lighter weight, softer colour, a neutral mark rather than a cross.
+ * A child meeting deliberately above-grade items sees this more often than the other one, and the design brief
+ * for that moment is "your turn was counted", not "you failed".
+ */
+.bh-verdict-no {
+  color: #7c6248;
+  font-weight: 600;
+}
+
+.bh-verdict-no::before {
+  content: '· ';
+}
+
 .bh-beat-note {
   margin: 1.1rem 0 0;
   font-size: 0.85rem;
