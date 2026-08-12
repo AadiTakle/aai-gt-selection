@@ -110,6 +110,20 @@ export interface AppConfig {
   readonly uiCapabilities: readonly string[];
   readonly maxReadingBand: string | null;
   readonly allowSyntheticItems: boolean;
+  /**
+   * Individual items this app will not serve, whatever their type says.
+   *
+   * The escape hatch for a type that is right in general and wrong in particular. `VER-SORTBOT-01` forced it:
+   * 83 of its 100 items are sound categorical reasoning, 15 are synonym items with more than one defensible
+   * answer, and 2 key on rhyme rather than on category. Before this existed the only lever was unapproving the
+   * type, which throws away the 83 to be rid of the 17.
+   *
+   * A per-app list rather than a flag on the item, because that is the honest claim: an item defect a reviewer
+   * has confirmed belongs on the item and `RegistryItem.validated` is where it will live, whereas "this
+   * surface cannot present this item well" is a fact about the surface. A game that draws pictures and a
+   * worksheet that prints words disagree about the same item, and both are right.
+   */
+  readonly withheldItemIds: readonly string[];
   /** Null means follow the latest published snapshot. */
   readonly pinnedSnapshotId: string | null;
   readonly variety: VarietyConfig;

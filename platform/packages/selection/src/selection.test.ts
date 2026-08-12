@@ -350,3 +350,32 @@ describe('type codes in the fixture', () => {
     expect(allTypeCodesOf(makeIndex()).size).toBe(12);
   });
 });
+
+describe('withholding individual items', () => {
+  it('never serves an item the app has withheld, however good it is', () => {
+    /**
+     * The escape hatch for a type that is right in general and wrong in particular. `VER-SORTBOT-01` forced it:
+     * 15 of its items are synonym questions with more than one defensible answer and 2 key on rhyme rather than
+     * category, while the other 83 are sound. Before this the only lever was unapproving the type, which throws
+     * away the 83 to be rid of the 17.
+     *
+     * Withholding the single most informative item is the sharp version of the test: selection wants it most, so
+     * anything less than an absolute filter would still hand it over.
+     */
+    const index = makeIndex();
+    const wanted = [...index.items].sort(
+      (a, b) => Math.abs(a.params.b - 1.0) - Math.abs(b.params.b - 1.0),
+    )[0];
+    expect(wanted).toBeDefined();
+
+    const withheld = selectNext({
+      ...makeRequest(index),
+      withheldItemIds: new Set([wanted!.itemId]),
+    });
+    expect(withheld?.candidate.itemId).not.toBe(wanted!.itemId);
+
+    // And it is the withholding doing it, not the pool being thin: unwithheld, that item is the one chosen.
+    const open = selectNext({ ...makeRequest(index), withheldItemIds: new Set<string>() });
+    expect(open?.candidate.itemId).toBe(wanted!.itemId);
+  });
+});

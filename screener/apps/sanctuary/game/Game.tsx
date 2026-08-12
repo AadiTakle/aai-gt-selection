@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 import { toRef } from '../shared/ItemStage';
 import { VERBS, typesFor, verbFor, type Battery } from '../shared/batteries';
-import { useSortie } from '../shared/useSortie';
+import { canShowWords, readingBand, useSortie } from '../shared/useSortie';
 import { FAMILIES, LS_KEEPER, type Family } from './contract';
 import { PodWall } from './screener/PodWall';
 import { TideLine } from './screener/TideLine';
@@ -260,10 +260,33 @@ function Keeper({ locked }: { locked: boolean }) {
  */
 export { IN_WORLD } from './screener/inWorld';
 
+/**
+ * The one sentence telling a child what this question wants.
+ *
+ * Prefers the bank's own `content.prompt`, because an authored instruction is written against the item and a
+ * generic one is written against a guess. Where none exists, the fallback is per battery rather than per type:
+ * `FLU-MATRIX-01` and `FLU-CARPET-01` both ask which piece completes a pattern, and inventing two different
+ * sentences for one task would be a difference a child has to resolve for no reason.
+ *
+ * Deliberately never names the battery, the type, a score, or a number of questions. See the note at the call
+ * site: the stealth framing is about not telling a child their mind is being sorted, not about withholding what
+ * the task is.
+ */
+function instructionFor(typeCode: string, content: Record<string, unknown>): string {
+  const authored = typeof content.prompt === 'string' ? content.prompt.trim() : '';
+  if (authored.length > 0) return authored;
+  if (typeCode.startsWith('FLU-')) return 'Which piece finishes the pattern?';
+  if (typeCode.startsWith('VER-')) return 'Which one belongs with them?';
+  if (typeCode.startsWith('QUANT-')) return 'Which one comes next?';
+  return 'Pick the one that fits.';
+}
+
 export interface LiveItem {
   serve: NonNullable<ReturnType<typeof useSortie>['serve']>;
   asking: boolean;
   answer: ReturnType<typeof useSortie>['answer'];
+  /** Whether this app may set words as words. From the platform's app registration, not from a constant. */
+  showWords: boolean;
 }
 
 function Beat({
@@ -359,6 +382,23 @@ function Beat({
     roundLength,
   });
 
+  /**
+   * Whether words may be set as words, asked of the platform rather than decided here.
+   *
+   * Starts `false` and flips once the app registration answers, so the first frame of a station never puts text
+   * in front of a child whose app said 'none'. `readingBand()` memoises, so this costs one request per page.
+   */
+  const [showWords, setShowWords] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void readingBand().then((band) => {
+      if (alive) setShowWords(canShowWords(band));
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   useEffect(() => {
     void s.open();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -378,7 +418,9 @@ function Beat({
   }, [s.answered]);
 
   useEffect(() => {
-    report(s.serve ? { serve: s.serve, asking: s.phase === 'asking', answer: s.answer } : null);
+    report(
+      s.serve ? { serve: s.serve, asking: s.phase === 'asking', answer: s.answer, showWords } : null,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.serve, s.phase]);
 
@@ -406,6 +448,24 @@ function Beat({
         * the whole point: a child is doing a thing the ranch needs, not sitting a section.
         */}
       <p className="bh-beat-title">{verbFor(s.serve.typeCode)?.title ?? verb?.title ?? 'Something to do'}</p>
+      {/*
+        * WHAT TO DO, which five of the seven types previously never said.
+        *
+        * The line above is a job on a ranch — "Coaxing a coat", "The Sprouter" — and it does no instructional
+        * work at all, so a child met a glowing gap and a shelf of tiles and had to infer the task. For a matrix
+        * that is arguably discoverable; for the Sprouter, a stump that turns seed clusters into shoot clusters,
+        * it is not. Meanwhile the quantitative banks CARRY the sentence that resolves it and the game was
+        * dropping it on the floor.
+        *
+        * This does not undo the stealth framing, and the distinction is the whole reason it is safe. What was
+        * removed from this panel was the BATTERY NAME — "Quantitative" over a child's head is the one piece of
+        * vocabulary that tells them their answers are being sorted into abilities. "Choose the step that comes
+        * next" discloses nothing about being measured. The two were removed together and only one had to be.
+        *
+        * `instructionFor` falls back to a phrasing per battery where the bank has no prompt, because two of the
+        * seven types have none authored and a child at those stations was the worst served of all.
+        */}
+      <p className="bh-beat-ask">{instructionFor(s.serve.typeCode, content)}</p>
       {/*
         * The verdict, shown only while the pick is settling and only when the platform actually marked it.
         *

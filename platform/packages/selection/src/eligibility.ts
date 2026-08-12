@@ -14,11 +14,16 @@ import type { SelectionRequest } from './request.js';
  *
  * The persona filter is what stops a returning child sitting the same test twice. It costs one
  * indexed query per session and is the only part of eligibility that reaches outside the snapshot.
+ *
+ * The withheld filter is per-item rather than per-type, and it is checked first because it is the cheapest
+ * and the most absolute: an item a reviewer has ruled out for this surface should not be reasoned about
+ * further.
  */
 export function eligible(req: SelectionRequest): readonly SelectionCandidate[] {
   const out: SelectionCandidate[] = [];
 
   for (const candidate of req.index.items) {
+    if (req.withheldItemIds.has(candidate.itemId)) continue;
     if (!req.approvedTypes.has(candidate.typeCode)) continue;
     // The loader's decision, not an inference from the mode. Testing `scoringMode` here excluded
     // `SPA-PUNCH-01` the moment the registry started reporting its mode truthfully, even though its

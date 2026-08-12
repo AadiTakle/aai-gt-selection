@@ -78,6 +78,34 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   return data as T;
 }
 
+/**
+ * The app's own reading ceiling, read from the platform rather than assumed here.
+ *
+ * Presentation cannot be correct without it. `VER-SORTBOT-01`'s items are single words, and whether to draw
+ * them as pictures or set them as text is not a style choice: the pictorial path is unanswerable on 73 of its
+ * 100 items, and the text path is unreadable to a pre-reader. Both are right for some audience, so the only
+ * safe source is the app registration the platform is also selecting items against — a client that decided for
+ * itself would eventually disagree with the pool it is being served from, and nothing would say so.
+ *
+ * Fetched once per page and memoised. `/v1/catalog/app` is the platform's own route, so this needs no change to
+ * the shared `/api/bank/*` contract.
+ */
+let readingBandOnce: Promise<string | null> | null = null;
+
+export function readingBand(): Promise<string | null> {
+  readingBandOnce ??= api<{ app?: { maxReadingBand?: string | null } }>('/v1/catalog/app')
+    .then((r) => r.app?.maxReadingBand ?? null)
+    // A failure here must not decide the presentation by accident. 'none' is the cautious answer: pictures are
+    // answerable by more children than text is, even where they are answerable by fewer items.
+    .catch(() => 'none');
+  return readingBandOnce;
+}
+
+/** Whether this app may set words as words. `'none'` and an unknown ceiling both mean no. */
+export function canShowWords(band: string | null): boolean {
+  return band !== null && band !== 'none';
+}
+
 export type Phase = 'idle' | 'opening' | 'asking' | 'settling' | 'closed' | 'error';
 
 /**
@@ -112,7 +140,11 @@ export interface Sortie {
   lastCorrect: boolean | null;
   sessionId: string | null;
   open: () => Promise<void>;
-  answer: (option: OptionRef) => Promise<void>;
+  /**
+   * `flags` are markers the presentation attached, e.g. `no-audio` when a spoken item had no voice. The
+   * platform honours an allowlist of them and records such a response as unscorable rather than wrong.
+   */
+  answer: (option: OptionRef, flags?: readonly string[]) => Promise<void>;
 }
 
 export function useSortie(opts: {
@@ -234,7 +266,7 @@ export function useSortie(opts: {
   }, [types, keeperId, loadNext]);
 
   const answer = useCallback(
-    async (option: OptionRef) => {
+    async (option: OptionRef, flags?: readonly string[]) => {
       const sid = id.current;
       // Guarded because a child taps twice, and the second tap would otherwise answer the next item
       // with the previous item's choice.
@@ -247,6 +279,7 @@ export function useSortie(opts: {
           // key against key, and the two never meet. Sending one loses a whole family of types.
           response: { key: option.key, selectedKey: option.key, selectedIndex: option.index },
           latencyMs: Date.now() - shownAt.current,
+          ...(flags && flags.length > 0 ? { flags } : {}),
         });
         if (!alive.current) return;
 

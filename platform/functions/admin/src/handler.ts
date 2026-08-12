@@ -62,6 +62,7 @@ interface CreateAppBody {
   readonly uiCapabilities?: readonly string[];
   readonly maxReadingBand?: string | null;
   readonly allowSyntheticItems?: boolean;
+  readonly withheldItemIds?: readonly string[];
   readonly variety?: Partial<VarietyConfig>;
   readonly piiPolicy?: 'none' | 'guardian_email';
   readonly retentionDays?: number;
@@ -93,6 +94,8 @@ async function createApp(request: ApiRequest): Promise<ApiResponse> {
     uiCapabilities: body.uiCapabilities ?? [],
     maxReadingBand: body.maxReadingBand ?? null,
     allowSyntheticItems: body.allowSyntheticItems ?? true,
+    // Empty by default: withholding an item is a reviewer's decision and never a silent one.
+    withheldItemIds: body.withheldItemIds ?? [],
     pinnedSnapshotId: null,
     variety: { ...DEFAULT_VARIETY_CONFIG, ...(body.variety ?? {}) },
     piiPolicy: body.piiPolicy ?? 'none',

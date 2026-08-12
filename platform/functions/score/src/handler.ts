@@ -78,7 +78,12 @@ async function answer(request: ApiRequest): Promise<ApiResponse> {
   const appId = requireAppId(request);
   const sessionId = requirePathParam(request, 'sessionId');
   const d = deps();
-  const body = parseJsonBody<AnswerRequest>(request);
+  /**
+   * `flags` is read here rather than added to `AnswerRequest`, which is the shared `@gt/qbank/wire` contract
+   * and is not this workstream's to widen. An extra field on a JSON body is ignored by a typed client that
+   * does not know about it, so the two can coexist until the contract's owners agree on one.
+   */
+  const body = parseJsonBody<AnswerRequest & { readonly flags?: readonly unknown[] }>(request);
 
   const loaded = await loadSession(d, sessionId, appId);
   const served = loaded.pending;
@@ -124,6 +129,10 @@ async function answer(request: ApiRequest): Promise<ApiResponse> {
     key,
     response: body.response,
     latencyMs,
+    // Declared by the presentation. Only an allowlist is honoured; see `UNPERCEIVED_FLAGS`.
+    clientFlags: Array.isArray(body.flags)
+      ? body.flags.filter((f): f is string => typeof f === 'string')
+      : [],
     difficulty: served.difficulty,
     content: item?.content ?? {},
   });

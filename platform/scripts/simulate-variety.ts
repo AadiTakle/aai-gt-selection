@@ -122,6 +122,7 @@ function runSession(
       ordinal,
       rngSeed: seed,
       approvedTypes,
+      withheldItemIds: new Set<string>(),
       ageBand: null,
       maxReadingBand: null,
       allowSynthetic: true,

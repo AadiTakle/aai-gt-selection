@@ -81,6 +81,7 @@ export function makeRequest(
     ordinal: 1,
     rngSeed: 'seed-a',
     approvedTypes: allTypeCodesOf(index),
+    withheldItemIds: new Set<string>(),
     ageBand: null,
     maxReadingBand: null,
     allowSynthetic: true,

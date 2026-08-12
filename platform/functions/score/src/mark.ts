@@ -47,6 +47,21 @@ export interface MarkOutcome {
  * would introduce a second path that could disagree. What is reused is the floor and the flag, which is the
  * part with the knowledge in it.
  */
+/**
+ * Client-declared reasons a response carries no evidence about ability.
+ *
+ * A presentation is the only thing that knows it failed. `VER-RELPAIR-01` is spoken and draws empty bowls; on a
+ * machine with no speech synthesis — absent on some embeddings, permanently silent on a school image with no
+ * voice packages — the item contains nothing, and the renderer detects exactly this and previously told nobody.
+ * The child's guess was then scored as ordinary evidence against an item they could not perceive.
+ *
+ * Trusting the caller here is consistent with what is already trusted: `latencyMs` comes from the client and
+ * drives rapid-guess detection, so a client that wanted to dodge a marking could already do so by not answering.
+ * The key is never sent, so this cannot manufacture a correct answer — only decline to be marked, which is the
+ * honest outcome when the question was never presented.
+ */
+const UNPERCEIVED_FLAGS: readonly string[] = ['no-audio'];
+
 export function markResponse(input: {
   readonly key: AnswerKeyRecord | null;
   readonly response: unknown;
@@ -54,7 +69,19 @@ export function markResponse(input: {
   readonly difficulty: number;
   readonly content: Record<string, unknown>;
   readonly floorScale?: number;
+  /** Markers the presentation attached, e.g. `no-audio` when a spoken item had no voice to speak with. */
+  readonly clientFlags?: readonly string[];
 }): MarkOutcome {
+  const declared = (input.clientFlags ?? []).filter((f) => UNPERCEIVED_FLAGS.includes(f));
+  if (declared.length > 0) {
+    /**
+     * Unscorable rather than wrong, which is the same treatment a rapid guess gets and for the same reason: it
+     * is evidence about the interface and not about the child. Returning early also skips `grade`, because
+     * there is nothing to grade — the question was never asked in a form the child could answer.
+     */
+    return { correct: null, flags: declared };
+  }
+
   const record = {
     typeCode: input.key?.typeCode ?? '',
     difficulty: input.difficulty,

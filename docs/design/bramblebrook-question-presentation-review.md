@@ -1,5 +1,10 @@
 # How Bramblebrook presents its questions: a UX review
 
+> **Status, 12 Aug 2026.** Five of the six findings below are fixed on `feat/sanctuary-question-quality`. Each
+> section carries a **FIXED** or **LEFT** note saying what happened and why. The two deliberately left are
+> recorded at the end with the argument for leaving them.
+
+
 12 Aug 2026. Scope: what a child actually sees, hears and does when answering one of the seven approved types.
 Read against the live code path, which is the in-world 3D renderers in `game/screener/` registered by
 `inWorld.ts` — not the 2D `lab-character` renderers, which are fallback infrastructure these seven never reach.
@@ -9,7 +14,13 @@ understand the task, could not perceive the item, or could not work the controls
 something other than reasoning. In an instrument whose whole purpose is a decision at the 95th percentile,
 that variance is not a polish problem — it is measurement error with a child's name on it.
 
-## Severity 1 — a silent machine still scores the child
+## Severity 1 — a silent machine still scores the child  ·  **FIXED**
+
+> `onPick` now takes optional flags, `KinshipStone` passes `no-audio` when `narration === 'unavailable'`, and
+> `markResponse` returns `correct: null` for it — unscorable rather than wrong, the same treatment a rapid guess
+> gets. Only an allowlist is honoured, so a caller cannot decline to be scored by inventing a reason, and a test
+> asserts that. The shared `AnswerRequest` contract was not widened; the field is read off the body locally.
+
 
 `VER-RELPAIR-01` is spoken. The stone draws empty bowls; the words exist only in audio. Where speech
 synthesis is missing — absent on some embeddings, present but permanently silent on a school image with no
@@ -41,7 +52,13 @@ client currently sends only `latencyMs` (`shared/useSortie.ts:186`) and no flags
 addition to an existing path rather than a new mechanism. Until then, every silent verbal item is noise the
 ability estimate absorbs as though it were signal.
 
-## Severity 2 — five of the seven types never tell the child what to do
+## Severity 2 — five of the seven types never tell the child what to do  ·  **FIXED**
+
+> The beat overlay now renders an instruction under the job title, preferring the bank's own `content.prompt`
+> and falling back per battery for the two types that have none authored. The stealth framing is intact: what
+> was removed from that panel was the battery *name*, and "Choose the step that comes next" discloses nothing
+> about being measured.
+
 
 When a type has an in-world presentation, the 2D overlay renders **one line: a job title**, and nothing else.
 
@@ -83,7 +100,11 @@ being measured. The two were removed together and only one of them had to be.
 two FLU types need a prompt authored, since none exists. Nan is the natural voice for it — an instruction from
 the rancher who asked for help is not a test rubric.
 
-## Severity 3 — the one spoken instruction contradicts its own presentation, twice
+## Severity 3 — the one spoken instruction contradicts its own presentation, twice  ·  **FIXED**
+
+> `SortingGate` no longer speaks the bank's prompt. It says "The robot sorted these. Point at the one that also
+> goes in." — naming the gesture this surface actually has, and true whether the cards show words or pictures.
+
 
 `SortingGate` speaks `content.prompt` verbatim (`SortingGate.tsx:446–449`). For the first bank item that is:
 
@@ -104,7 +125,13 @@ instruction, because a child who trusts it looks for something to tap.
 **Fix:** the prompt a type speaks should belong to the presentation, not the bank, or the bank's prompt needs a
 per-surface variant. "Point at the one that also goes in" is true here and false nowhere.
 
-## Severity 4 — `maxReadingBand: 'none'` is true of the items and false of the game
+## Severity 4 — `maxReadingBand: 'none'` is true of the items and false of the game  ·  **FIXED**
+
+> The app now declares `'2-3'`, which is honest, and that declaration does real work rather than merely being
+> accurate: `SortingGate` reads it from `/v1/catalog/app` and sets words as words when it allows, which is what
+> rescued 73 of that type's 100 items. See `sortbot-for-grades-3-5.md`. The HUD's movement instructions are
+> still English text, which `'2-3'` now covers truthfully.
+
 
 The app declares that it requires no reading, and the item presentations genuinely honour it — the non-verbal
 five draw no words and refuse numerals outright. But to *reach* an item a child must read:
@@ -129,7 +156,14 @@ trusted by something.
 an adult present), or carry the movement instructions in Nan's voice and glyphs, which the intro already does
 well — `Glyphs.tsx` draws keycaps with `aria-label`s like "Press W, A, S and D to walk".
 
-## Severity 5 — a pick cannot be undone
+## Severity 5 — a pick cannot be undone  ·  **LEFT**
+
+> Left deliberately. Hit volumes are already generous, so this is a changed mind rather than a misaim, and the
+> counter-argument is real: a withdraw window invites dithering and a settled answer is cleaner evidence. It
+> also interacts badly with the new correctness feedback — a child who sees "Not that one" and can still change
+> their answer is being scored on their second thought, which is a different measurement. Worth revisiting only
+> with a decision about which of those to measure.
+
 
 First touch is final. Every renderer latches on the first click (`if (disabled || picked) return;`,
 `PodWall.tsx:288–290`), there is no confirm step, and the item remounts only when the next `itemId` arrives.
@@ -149,7 +183,12 @@ Worth weighing against the counter-argument: allowing changes invites dithering,
 cleaner evidence. A middle option is a brief window — the pick animates into place over a beat, and a second
 click during that beat withdraws it.
 
-## Severity 6 — nothing tells a child how much is left
+## Severity 6 — nothing tells a child how much is left  ·  **FIXED**
+
+> A visit now asks exactly as many questions as the cradle post has pips, so the lights fill and the round ends.
+> `PIPS` is the round length, exported so the two cannot drift, and `visitOver()` keeps "the platform has
+> finished measuring" distinct from "this visit asked what it came to ask".
+
 
 The counter was removed deliberately, and for two good reasons: it announced a section length, and a visible
 progress bar makes a child rush the last one, "which corrupts the estimate this exists to produce"
@@ -162,6 +201,19 @@ adaptive engine chose most carefully.
 **Fix, if any:** an in-world completion signal that is not a test length. The cradle pips already count picks
 (`Stations.tsx:338–347`); a round that visibly *fills* something on the ranch would pace without ever naming
 a quantity of questions.
+
+## Still outstanding, and why
+
+- **No keyboard route to an answer.** Enter dispatches a click at the crosshair, so aiming is still required,
+  and 3D picks are invisible meshes rather than focusable DOM. A real fix is a candidate-cycling mode, which is
+  a feature rather than a correction, and it would need its own design pass on how selection is shown.
+- **The nonverbal bay is too small.** Width is capped by the barn wall it is bolted to; the three ways out are
+  named in `sites.ts` and all of them move a building.
+- **`E` means four things.** Contextual and probably fine; recorded because it is the one key a child must
+  understand.
+- **A second screening begins silently** once a decision is reached and the child keeps playing. That is a
+  product decision — stop offering questions, keep serving without scoring, or treat it as legitimately new —
+  and it should be chosen rather than inherited.
 
 ## Smaller notes
 

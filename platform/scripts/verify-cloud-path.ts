@@ -127,6 +127,7 @@ async function main(): Promise<void> {
     uiCapabilities: [],
     maxReadingBand: 'none',
     allowSyntheticItems: true,
+    withheldItemIds: [],
     pinnedSnapshotId: null,
     variety: DEFAULT_VARIETY_CONFIG,
     piiPolicy: 'none',

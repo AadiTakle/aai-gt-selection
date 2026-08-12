@@ -1,8 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { loadBanks } from '@gt/qbank/server';
 import { planFor } from '@gt/ui-contract';
-import { DEFAULT_VARIETY_CONFIG, type AppConfig } from '@platform/domain';
+import { CRITERIA_V1, DEFAULT_VARIETY_CONFIG, type AppConfig } from '@platform/domain';
 import { deps, resetDeps } from '@platform/shared';
 import { createRawClient, createTables } from '@platform/store';
 import { publishCatalog } from '../functions/admin/src/publish.js';
@@ -64,6 +65,41 @@ const config = {
   endpoint: env('GT_DDB_ENDPOINT', 'http://127.0.0.1:8456'),
   region: env('AWS_REGION', 'us-east-1'),
 };
+
+/**
+ * Items whose defect survives any presentation, and which this surface therefore will not serve.
+ *
+ * Only `VER-SORTBOT-01` contributes today, and the split is worth being exact about, because the pictorial
+ * failure and this are two different problems that looked like one:
+ *
+ *   - **Synonym rules** ("words meaning truthful") frequently have more than one defensible answer. One item
+ *     keys `veracious` while `honest` sits in the options and also means truthful; another keys `mitigate`
+ *     while `soften` and `reduce` are both there. Rendering them as text does not help, because "honest is
+ *     also truthful" is true in every medium. All of them are 6-8 band, so holding them back costs the pool
+ *     nothing at grade level.
+ *   - **Phonological rules** (rhyme, initial sound) are legible as text, so the presentation objection goes
+ *     away — but rhyming is not categorical reasoning and does not belong in Verbal Classification. Withheld
+ *     on construct grounds rather than on rendering.
+ *
+ * What is deliberately NOT withheld: the 73 items the glyph gate rejected. Those were unanswerable *as
+ * pictures*, and this app now presents words, which is the whole point of the reading-band change above.
+ * Withholding them too would keep the pool at 27 and leave the actual fix doing nothing.
+ *
+ * Derived rather than hardcoded, so authoring a new synonym item cannot quietly add a broken question.
+ */
+function withheldItems(): readonly string[] {
+  const out: string[] = [];
+  const bank = loadBanks().get('VER-SORTBOT-01');
+  for (const record of bank?.scorable ?? []) {
+    const rule = String(
+      (record as { provenance?: { derivation?: { rule?: unknown } } }).provenance?.derivation?.rule ?? '',
+    ).toLowerCase();
+    const phonological = rule.includes('rhyme') || rule.includes('start') || rule.includes('sound');
+    const synonym = rule.startsWith('words that mean') || rule.startsWith('words meaning');
+    if (phonological || synonym) out.push(record.itemId);
+  }
+  return out;
+}
 
 async function main(): Promise<void> {
   process.env.AWS_ACCESS_KEY_ID ??= 'local';
@@ -132,6 +168,7 @@ async function main(): Promise<void> {
     : {};
   const existing = existingKey.appId ? await d.store.getApp(existingKey.appId) : null;
 
+  const withheld = withheldItems();
   const app: AppConfig = existing ?? {
     appId: 'app-bramblebrook',
     name: 'Bramblebrook',
@@ -175,10 +212,25 @@ async function main(): Promise<void> {
      */
     ageBands: [],
     uiCapabilities: [...required.elements],
-    // Every one of the seven demands no reading, which is what makes the game usable by a child who cannot
-    // yet read reliably. Stating 'none' keeps it that way as types are added.
-    maxReadingBand: 'none',
+    /**
+     * '2-3', not 'none', and this is a deliberate reversal.
+     *
+     * 'none' was right when the audience was pre-readers, and it is what pushed `VER-SORTBOT-01` into drawing
+     * its words as pictures — which broke it: the drawability gate passes only 27 of its 100 items, and in 8 of
+     * them the keyed answer draws as the same shape as the OUT counter-example, so the visible evidence points
+     * away from the right answer. See `docs/design/sortbot-for-grades-3-5.md`.
+     *
+     * This app targets third to fifth graders, who read fluently, and real CogAT presents Verbal Classification
+     * as words from grade 3 upward. '2-3' is the honest ceiling: single common words, well inside third-grade
+     * reading, and it stops well short of sentences.
+     *
+     * The cost is stated rather than hidden. A child who reads late now scores lower on the verbal battery for
+     * a reason that is not reasoning. That is an argument for the disjunctive pass route — which lets a child
+     * clear on quantitative or fluid alone — and not an argument for pictures that cannot be answered.
+     */
+    maxReadingBand: '2-3',
     allowSyntheticItems: true,
+    withheldItemIds: withheld,
     pinnedSnapshotId: null,
     variety: DEFAULT_VARIETY_CONFIG,
     // Pseudonymous keepers. A persona carries ability between visits and needs no contact details.
@@ -188,13 +240,33 @@ async function main(): Promise<void> {
     ownerContact: '',
     createdAt: new Date().toISOString(),
   };
-  await d.store.putApp(app);
-  console.log(`app ${app.appId} (${app.name}), budget ${app.precision.maxItems} items per keeper`);
+
+  /**
+   * Re-seeding must actually apply the current policy, which `existing ?? {…}` on its own does not.
+   *
+   * Reusing a stored app wholesale was right while the only thing the seed created was an app that did not
+   * exist yet. It is wrong the moment a policy changes: an app seeded before the reading band moved to '2-3'
+   * would keep 'none' forever, and the sortbot fix would appear to do nothing for the one reader most likely
+   * to test it — someone who had already run the seed once.
+   *
+   * `createdAt` and the api key are deliberately not touched: those identify the app rather than configure it.
+   */
+  const policied: AppConfig = {
+    ...app,
+    abilityThreshold: CRITERIA_V1.abilityThreshold,
+    maxReadingBand: '2-3',
+    withheldItemIds: withheld,
+    uiCapabilities: [...required.elements],
+  };
+  await d.store.putApp(policied);
+  console.log(`app ${policied.appId} (${policied.name}), budget ${policied.precision.maxItems} items per keeper`);
+  console.log(`reading band ${policied.maxReadingBand} — words are shown as words for this audience`);
+  console.log(`withholding ${withheld.length} item(s) whose defects survive any presentation`);
 
   for (const typeCode of BRAMBLEBROOK_TYPES) {
-    await d.store.setApprovedType(app.appId, typeCode, true, 'seed-bramblebrook');
+    await d.store.setApprovedType(policied.appId, typeCode, true, 'seed-bramblebrook');
   }
-  const approved = await d.store.listApprovedTypes(app.appId);
+  const approved = await d.store.listApprovedTypes(policied.appId);
   console.log(`approved ${approved.length} types: ${approved.join(', ')}`);
 
   const apiKey = `gtk_${randomBytes(24).toString('base64url')}`;

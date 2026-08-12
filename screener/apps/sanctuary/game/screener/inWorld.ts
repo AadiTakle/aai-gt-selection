@@ -58,8 +58,19 @@ export const IN_WORLD: Record<
   string,
   ComponentType<{
     content: Record<string, unknown>;
-    onPick: (handed: string) => void;
+    /**
+     * `flags` lets a presentation declare that the question was never really asked — see `KinshipStone`'s
+     * `no-audio`. The platform marks such a response unscorable rather than wrong.
+     */
+    onPick: (handed: string, flags?: readonly string[]) => void;
     disabled?: boolean;
+    /**
+     * Whether this app may set words as words, from its registered reading band.
+     *
+     * Optional because only `SortingGate` has a word to set; every other presentation here draws shapes whose
+     * meaning does not depend on reading, and passing it to them would imply a choice they do not have.
+     */
+    showWords?: boolean;
   }>
 > = {
   'FLU-MATRIX-01': PodWall,

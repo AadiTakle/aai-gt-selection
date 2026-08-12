@@ -96,9 +96,12 @@ export { kinshipStoneDraws, kinshipStoneServes, pairWords };
  * enumerates them, and `DayLog` survives all of it because its pictures carry the story on their own. HERE
  * THEY DO NOT, because today there are none. On a voiceless machine this item has nothing in it.
  *
- * That cannot be decided when the pool is built, so it is not gated; it is detected (`voiceless` below),
- * the horn goes visibly dull so nobody spends the round pressing it, and it is reported. It is the single
- * biggest operational risk this type carries and it is a deployment question, not a rendering one.
+ * That cannot be decided when the pool is built, so it is not gated; it is detected (`voiceless` below) and
+ * now ACTED ON in three ways: the horn goes visibly dull so nobody spends the round pressing it, the fact is
+ * reported, and — the part that was missing — a pick made while voiceless is handed to `onPick` with a
+ * `no-audio` flag, so the platform records it as UNSCORABLE rather than scoring a guess at a question the child
+ * could not perceive. Until that flag existed, `voiceless` reached the horn's appearance and nothing else, and
+ * a silent machine quietly fed noise into the ability estimate as though it were evidence.
  *
  * ══ THE THINGS EVERY PRESENTATION HERE HAS LEARNED THE HARD WAY ═══════════════════════════════════
  *
@@ -604,7 +607,7 @@ export function KinshipStone({
   disabled = false,
 }: {
   content: Record<string, unknown>;
-  onPick: (handed: string) => void;
+  onPick: (handed: string, flags?: readonly string[]) => void;
   disabled?: boolean;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
@@ -787,7 +790,15 @@ export function KinshipStone({
                   return;
                 }
                 setPicked(o.index);
-                onPick(o.handed);
+                /**
+                 * `no-audio` when this machine has no voice, which is the one failure this item cannot survive.
+                 *
+                 * The words exist only in speech and the bowls are empty, so on a silent machine the child is
+                 * choosing between four indistinguishable cradles. Declaring it makes the platform record the
+                 * response as unscorable instead of scoring a guess at a question that was never presented —
+                 * previously `voiceless` reached only the horn's appearance and nothing downstream knew.
+                 */
+                onPick(o.handed, voiceless ? ['no-audio'] : undefined);
               }}
             >
               <boxGeometry args={[OPT_PITCH, 2.3, 1.7]} />

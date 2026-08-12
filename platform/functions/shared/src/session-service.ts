@@ -191,6 +191,13 @@ export function selectionRequestFor(
     ordinal,
     rngSeed: session.rngSeed,
     approvedTypes,
+    /**
+     * Read live from the app, like approvals rather than like the frozen config.
+     *
+     * Withdrawing an item is what you do when it turns out to be broken, and it has to take effect on the
+     * next question rather than after every open session has drained.
+     */
+    withheldItemIds: new Set(config.withheldItemIds ?? []),
     ageBand: session.ageBand,
     maxReadingBand: config.maxReadingBand,
     allowSynthetic: config.allowSyntheticItems,

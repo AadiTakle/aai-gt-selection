@@ -193,6 +193,20 @@
  * separate these two hues and this is the one moment in the game where the meaning is the difference between
  * them. Weight differs too, so the two read apart in greyscale.
  */
+/*
+ * The instruction. Sits under the job title and above the verdict.
+ *
+ * Quieter than the title on purpose: the title is the fiction a child is inside, and this is the practical line
+ * they need once. Same size as the verdict so the panel does not change height when a pick settles — the panel
+ * is at the top of the screen and a jump would move the one thing on screen they are looking at.
+ */
+.bh-beat-ask {
+  margin: -0.7rem 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #5c4630;
+}
+
 .bh-verdict {
   margin: -0.5rem 0 0.15rem;
   font-size: 1.05rem;

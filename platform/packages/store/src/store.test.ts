@@ -202,6 +202,7 @@ function makeApp(appId: string): AppConfig {
     uiCapabilities: ['grid', 'optionRow'],
     maxReadingBand: null,
     allowSyntheticItems: true,
+    withheldItemIds: [],
     pinnedSnapshotId: null,
     variety: DEFAULT_VARIETY_CONFIG,
     piiPolicy: 'guardian_email',

@@ -341,10 +341,15 @@ export function Stations({
    * knows or cares what it was. `useSortie` deletes correctness before returning, so there is nothing
    * here to branch on even if this file wanted to.
    */
-  const handlePick = useCallback((item: LiveItem, content: Record<string, unknown>, handed: string): void => {
+  const handlePick = useCallback((
+    item: LiveItem,
+    content: Record<string, unknown>,
+    handed: string,
+    flags?: readonly string[],
+  ): void => {
     picks.current += 1;
     setPips(picks.current);
-    void item.answer(toRef(content, handed));
+    void item.answer(toRef(content, handed), flags);
   }, []);
 
   const begin = useCallback(
@@ -414,6 +419,7 @@ export function Stations({
       content,
       scale: fitScale(live.serve.typeCode, content),
       itemId: live.serve.served.itemId,
+      showWords: live.showWords,
     };
   }, [live]);
 
@@ -476,7 +482,10 @@ export function Stations({
                     key={mounted.itemId}
                     content={mounted.content}
                     disabled={!live.asking}
-                    onPick={(handed: string) => handlePick(live, mounted.content, handed)}
+                    showWords={mounted.showWords}
+                    onPick={(handed: string, flags?: readonly string[]) =>
+                      handlePick(live, mounted.content, handed, flags)
+                    }
                   />
                 </group>
               </>

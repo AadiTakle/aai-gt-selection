@@ -124,6 +124,7 @@ function runSession(
       ordinal,
       rngSeed: seed,
       approvedTypes: new Set(BRAMBLEBROOK_TYPES),
+      withheldItemIds: new Set<string>(),
       ageBand: null,
       maxReadingBand: 'none',
       allowSynthetic: true,
@@ -229,7 +230,8 @@ function runSessionWith(
     }
     const chosen = selectNext({
       index, threshold: CUT, ordinal, rngSeed: seed,
-      approvedTypes: new Set(BRAMBLEBROOK_TYPES), ageBand: null, maxReadingBand: 'none',
+      approvedTypes: new Set(BRAMBLEBROOK_TYPES),
+      withheldItemIds: new Set<string>(), ageBand: null, maxReadingBand: 'none',
       allowSynthetic: true, usedItemIds: used, personaRecentItemIds: new Set(),
       typeServedCounts: typeCounts, domainServedCounts: domainCounts, lastDomain,
       perDomainMinimum: PER_DOMAIN_MINIMUM, variety: DEFAULT_VARIETY_CONFIG, exposure,

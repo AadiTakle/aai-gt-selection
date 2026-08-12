@@ -1,5 +1,6 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Text } from '@react-three/drei';
 import type * as THREE from 'three';
 
 import { handedFor } from './address';
@@ -201,7 +202,7 @@ function slotX(i: number, count: number, pitch: number): number {
  * coloured rim would be an attribute this item is not asking about, and `farm animals` items would start
  * looking like they had been grouped by trim.
  */
-function Card({ mark }: { mark: EventMark }) {
+function Card({ mark, word }: { mark: EventMark; word?: string | undefined }) {
   const face = useSlab(CARD, CARD, 0.16, 0.09);
   const rim = useSlab(CARD + 0.1, CARD + 0.1, 0.11, 0.1);
   return (
@@ -212,9 +213,42 @@ function Card({ mark }: { mark: EventMark }) {
       <mesh geometry={face}>
         <meshStandardMaterial color={FACE} roughness={0.88} metalness={0} />
       </mesh>
-      <group position={[0, 0.02, 0.12]} scale={GLYPH}>
-        <EventGlyph glyph={mark.glyph} state={mark.state} bg={FACE} />
-      </group>
+      {/*
+        * THE WORD, when the app's reading band allows one, and the picture otherwise.
+        *
+        * Not a style toggle. The glyph table matches 27 of this bank's 100 items; on the other 73 it either
+        * cannot draw a word at all or draws two different words identically, and on 8 of those it draws the
+        * KEYED ANSWER as the same shape as the OUT counter-example — so the only visible evidence points away
+        * from the right answer. No glyph table can be completed out of that, because one whole family keys on
+        * rhyme and another on abstract adjectives, and neither has a picture.
+        *
+        * The word is the bank's own intent: every item declares `presentation: "word"`. Third to fifth graders
+        * read fluently and real CogAT sets Verbal Classification as words from grade 3 up. `showWords` comes
+        * from the platform's app registration rather than from a constant here, so the presentation and the pool
+        * the platform is selecting from cannot disagree.
+        *
+        * Sized off `CARD` rather than chosen: the longest word in the servable pool is nine characters, and at
+        * 0.26 of the card width a nine-character word sits inside the face with a margin at every scale the
+        * shelf takes.
+        */}
+      {word ? (
+        <Text
+          position={[0, 0.02, 0.13]}
+          fontSize={CARD * 0.26}
+          maxWidth={CARD * 0.92}
+          textAlign="center"
+          anchorX="center"
+          anchorY="middle"
+          color={shade(HUE.stoneDeep, -0.45)}
+          outlineWidth={0}
+        >
+          {word}
+        </Text>
+      ) : (
+        <group position={[0, 0.02, 0.12]} scale={GLYPH}>
+          <EventGlyph glyph={mark.glyph} state={mark.state} bg={FACE} />
+        </group>
+      )}
     </group>
   );
 }
@@ -402,14 +436,32 @@ function Hopper() {
    the gate
    ========================================================================== */
 
+/**
+ * What the gate says on arrival, in place of the bank's prompt.
+ *
+ * "Point at" rather than "tap", because that is the gesture; "the one" rather than "the word", because the
+ * cards are pictures whenever the app's reading band forbids text. Short enough to finish before a child has
+ * chosen, which is the constraint that rules out explaining the rule — and the rule must not be explained
+ * anyway, since inferring it is the item.
+ */
+const POINT_AND_PICK = 'The robot sorted these. Point at the one that also goes in.';
+
 export function SortingGate({
   content,
   onPick,
   disabled = false,
+  showWords = false,
 }: {
   content: Record<string, unknown>;
   onPick: (handed: string) => void;
   disabled?: boolean;
+  /**
+   * Set the words as words rather than drawing them. Comes from the app's registered reading band.
+   *
+   * Defaults to `false` so a caller that has not thought about it gets the old behaviour rather than
+   * accidentally putting text in front of a pre-reader.
+   */
+  showWords?: boolean;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -417,6 +469,14 @@ export function SortingGate({
 
   const examplesIn = useMemo(() => marksOf(content.examplesIn, (o) => o.text), [content]);
   const examplesOut = useMemo(() => marksOf(content.examplesOut, (o) => o.text), [content]);
+  /**
+   * The words themselves, kept beside the marks rather than instead of them.
+   *
+   * Both are needed at once: `showWords` decides per render which face a card shows, and the marks stay live so
+   * that turning reading off does not require re-deriving anything.
+   */
+  const wordsIn = useMemo(() => wordsOf(content.examplesIn), [content]);
+  const wordsOut = useMemo(() => wordsOf(content.examplesOut), [content]);
 
   /**
    * The candidates.
@@ -429,8 +489,8 @@ export function SortingGate({
     const raw = Array.isArray(content.options) ? (content.options as Record<string, unknown>[]) : [];
     return raw.map((o, i) => {
       const token = (o?.token ?? {}) as Record<string, unknown>;
-      const text = typeof token.text === 'string' ? token.text : '';
-      return { index: i, handed: handedFor(o, i), mark: tokenGlyph(text) };
+      const text = typeof token.text === 'string' ? token.text.trim() : '';
+      return { index: i, handed: handedFor(o, i), mark: tokenGlyph(text), word: text };
     });
   }, [content]);
 
@@ -444,9 +504,20 @@ export function SortingGate({
    * the pictures had to carry it in the first place.
    */
   useEffect(() => {
-    const prompt = typeof content.prompt === 'string' ? content.prompt.trim() : '';
-    if (prompt.length === 0 || !canSpeak()) return;
-    const t = setTimeout(() => narrate([prompt]), ARRIVAL_BEAT_MS);
+    /**
+     * THE BANK'S PROMPT IS NOT SPOKEN VERBATIM, because on this surface it is twice wrong.
+     *
+     * Every item's `content.prompt` reads "The robot sorted these words. Tap the new word that also goes IN."
+     * Both halves describe a different interface: nothing here TAPS — a child aims a crosshair under pointer
+     * lock and clicks, or presses Enter — and when `showWords` is false the cards are not WORDS but pictures,
+     * deliberately, so that the rule can be shown rather than stated. A child who trusts the sentence goes
+     * looking for something to tap and for words that are not there.
+     *
+     * So the presentation owns its own wording. `POINT_AND_PICK` names the gesture this surface actually has
+     * and stays true whichever face the cards are showing.
+     */
+    if (!canSpeak()) return;
+    const t = setTimeout(() => narrate([POINT_AND_PICK]), ARRIVAL_BEAT_MS);
     return () => {
       clearTimeout(t);
       hushSpeech();
@@ -474,6 +545,7 @@ export function SortingGate({
   const rest = [-binX + slotX(examplesIn.length, slots, SLOT_PITCH), BIN_Y, 0.02] as const;
 
   const pickedMark = picked === null ? null : (options.find((o) => o.index === picked)?.mark ?? null);
+  const pickedWord = picked === null ? undefined : options.find((o) => o.index === picked)?.word;
 
   return (
     <group>
@@ -508,7 +580,7 @@ export function SortingGate({
         <Bin w={binW} />
         {examplesIn.map((mark, i) => (
           <group key={i} position={[slotX(i, slots, SLOT_PITCH), 0, 0.02]}>
-            <Card mark={mark} />
+            <Card mark={mark} word={showWords ? wordsIn[i] : undefined} />
           </group>
         ))}
         <group position={[slotX(examplesIn.length, slots, SLOT_PITCH), 0, 0.02]}>
@@ -521,13 +593,21 @@ export function SortingGate({
         <Bin w={binW} />
         {examplesOut.map((mark, i) => (
           <group key={i} position={[slotX(i, slots, SLOT_PITCH), 0, 0.02]}>
-            <Card mark={mark} />
+            <Card mark={mark} word={showWords ? wordsOut[i] : undefined} />
           </group>
         ))}
       </group>
 
       {/* The posted card, riding from the lip down into the bin. See `PostedCard`. */}
-      {pickedMark ? <PostedCard mark={pickedMark} from={lip} to={rest} reduced={reduced} /> : null}
+      {pickedMark ? (
+        <PostedCard
+          mark={pickedMark}
+          word={showWords ? pickedWord : undefined}
+          from={lip}
+          to={rest}
+          reduced={reduced}
+        />
+      ) : null}
 
       {/* The shelf of words to choose from. */}
       <group position={[0, SHELF_Y, 0]}>
@@ -566,7 +646,7 @@ export function SortingGate({
                   and nothing else. Its plinth stays, so the empty place still reads as a place. */}
               {taken ? null : (
                 <group position={[0, lit ? 0.14 : 0, 0.02]} scale={lit ? 1.05 : 1}>
-                  <Card mark={o.mark} />
+                  <Card mark={o.mark} word={showWords ? o.word : undefined} />
                 </group>
               )}
               {/* The plinth is the hover tell: a whole lit block under the card, which is unmissable to a
@@ -605,11 +685,13 @@ export function SortingGate({
  */
 function PostedCard({
   mark,
+  word,
   from,
   to,
   reduced,
 }: {
   mark: EventMark;
+  word?: string | undefined;
   from: readonly [number, number, number];
   to: readonly [number, number, number];
   reduced: boolean;
@@ -631,12 +713,25 @@ function PostedCard({
 
   return (
     <group ref={group} position={[from[0], from[1], from[2]]}>
-      <Card mark={mark} />
+      <Card mark={mark} word={word} />
     </group>
   );
 }
 
 /** Every `{text}` in a list, turned into the picture that stands for it. */
+/**
+ * The words in the same order `marksOf` produces marks, so index `i` of one is index `i` of the other.
+ *
+ * Sharing the trim-and-drop-empties rule with `marksOf` is what keeps them aligned; a word list filtered by a
+ * different predicate would silently put the wrong label on a card.
+ */
+function wordsOf(value: unknown): string[] {
+  return (Array.isArray(value) ? (value as Record<string, unknown>[]) : [])
+    .map((o) => (o ?? {}).text)
+    .map((t) => (typeof t === 'string' ? t.trim() : ''))
+    .filter((t) => t.length > 0);
+}
+
 function marksOf(value: unknown, dig: (o: Record<string, unknown>) => unknown): EventMark[] {
   return (Array.isArray(value) ? (value as Record<string, unknown>[]) : [])
     .map((o) => dig(o ?? {}))

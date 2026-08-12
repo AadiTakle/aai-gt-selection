@@ -171,3 +171,47 @@ describe('a response too fast to be an attempt', () => {
     expect(outcome.correct).toBe(true);
   });
 });
+
+describe('a question that was never really asked', () => {
+  it('marks a no-audio response unscorable rather than wrong', () => {
+    /**
+     * `VER-RELPAIR-01` is spoken and draws empty bowls. On a machine with no speech synthesis the item contains
+     * nothing, and the child is choosing between four indistinguishable cradles. Scoring that guess put noise
+     * into the ability estimate as though it were evidence about the child.
+     */
+    const outcome = markResponse({
+      key: key('A'),
+      response: { key: 'A', selectedKey: 'A', selectedIndex: 0 },
+      latencyMs: 8000,
+      difficulty: 10,
+      content: {},
+      clientFlags: ['no-audio'],
+    });
+    expect(outcome.correct).toBeNull();
+    expect(outcome.flags).toContain('no-audio');
+  });
+
+  it('does not let a made-up flag dodge marking', () => {
+    // Only an allowlist is honoured, so a caller cannot decline to be scored by inventing a reason.
+    const outcome = markResponse({
+      key: key('A'),
+      response: { key: 'A', selectedKey: 'A', selectedIndex: 0 },
+      latencyMs: 8000,
+      difficulty: 10,
+      content: {},
+      clientFlags: ['too-hard', 'i-was-not-ready'],
+    });
+    expect(outcome.correct).not.toBeNull();
+  });
+
+  it('still marks normally when no flags are sent', () => {
+    const outcome = markResponse({
+      key: key('A'),
+      response: { key: 'A', selectedKey: 'A', selectedIndex: 0 },
+      latencyMs: 8000,
+      difficulty: 10,
+      content: {},
+    });
+    expect(outcome.correct).not.toBeNull();
+  });
+});

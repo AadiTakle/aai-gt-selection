@@ -93,6 +93,7 @@ export function runCohort(options: CohortOptions): CohortReport {
         ordinal,
         rngSeed: seed,
         approvedTypes: new Set(index.items.map((c) => c.typeCode)),
+        withheldItemIds: new Set<string>(),
         ageBand: null,
         maxReadingBand: null,
         allowSynthetic: true,
