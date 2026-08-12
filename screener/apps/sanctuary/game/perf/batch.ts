@@ -33,11 +33,18 @@ import { castSignature, materialSignature } from './signature';
  *
  *   3. THE SUBTREE IS UNMOUNTED. The owner dissolves on unmount.
  *
- * ══ THE REBUILD CAP ═══════════════════════════════════════════════════════════════════════════════
+ * ══ THE THRASH GUARD, AND WHY IT COUNTS RATE RATHER THAN TOTAL ════════════════════════════════════
  *
  * A subtree that changes constantly would dissolve and rebuild constantly, and rebuilding costs more
- * than the batch saves. After `maxRebuilds` the batch gives up on that subtree for the rest of the
- * session and leaves it unmerged, which is exactly the behaviour it had before any of this existed.
+ * than the batch saves. The first version simply gave up after three rebuilds ever — which was wrong
+ * for a reason that only showed up when the staleness path was driven against the running game: a
+ * station legitimately changes its meshes EVERY TIME THE QUESTION CHANGES. A child answers a dozen
+ * items in a visit, so a total cap of three meant the stations un-batched themselves after the third
+ * question and handed back most of the win, silently, in the middle of play.
+ *
+ * What actually needs bounding is rebuilds arriving faster than they can pay for themselves. So
+ * rebuilds spaced further apart than `patience` frames are free and unlimited — that is a child
+ * answering questions — and only a run of rebuilds closer together than that counts as thrash.
  */
 export interface BatchStats {
   /** Meshes folded away. */
@@ -173,5 +180,31 @@ export class Batch {
     sink.clear();
     this.built = false;
     this.invalidated = false;
+  }
+}
+
+/**
+ * Is this subtree rebuilding faster than the batch can pay for itself?
+ *
+ * Rebuilds spaced further apart than `patience` frames cost nothing worth counting — that is a child
+ * answering a question every few seconds, and re-merging the station's structures afterwards is a
+ * few milliseconds once. A RUN of rebuilds closer together than that is a subtree changing every
+ * frame, where merging will never come out ahead and the honest answer is to stop trying.
+ */
+export class ThrashGuard {
+  private lastRebuildFrame = -Infinity;
+  private consecutive = 0;
+
+  constructor(
+    private readonly patience = 180,
+    private readonly limit = 3,
+  ) {}
+
+  /** Call on every rebuild. Returns true when the subtree should be left alone from now on. */
+  rebuilt(frame: number): boolean {
+    if (frame - this.lastRebuildFrame < this.patience) this.consecutive += 1;
+    else this.consecutive = 1;
+    this.lastRebuildFrame = frame;
+    return this.consecutive > this.limit;
   }
 }

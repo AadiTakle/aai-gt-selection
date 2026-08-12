@@ -2,7 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef, type JSX, type ReactNode } from 'react';
 import type { Group } from 'three';
 
-import { Batch } from './batch';
+import { Batch, ThrashGuard } from './batch';
 import { batchingEnabled, perfEnabled } from './enabled';
 import { StillWatch } from './still';
 
@@ -37,13 +37,11 @@ const HOLD = 20;
 /** How often to ask whether the merge is still true. Every frame would spend the win on checking. */
 const CHECK_EVERY = 15;
 /**
- * Give up after this many rebuilds.
- *
- * A subtree that changes constantly costs more to re-merge than the merge saves, and the right
- * behaviour then is the behaviour it had before any of this existed. Three is enough to absorb a
- * station changing its question a couple of times and few enough that nothing can thrash.
+ * How far apart two rebuilds must be to count as unrelated rather than as thrash. Three seconds at
+ * 60fps — comfortably longer than a station takes to swap a question, comfortably shorter than a
+ * child takes to answer one. See `ThrashGuard`.
  */
-const MAX_REBUILDS = 3;
+const PATIENCE_FRAMES = 180;
 
 interface Props {
   children: ReactNode;
@@ -59,7 +57,7 @@ export function Batched({ children, label = 'subtree', enabled = batchingEnabled
   const watch = useRef(new StillWatch(WINDOW, HOLD));
   const batch = useRef(new Batch());
   const merged = useRef(false);
-  const rebuilds = useRef(0);
+  const thrash = useRef(new ThrashGuard(PATIENCE_FRAMES));
   const abandoned = useRef(false);
   const ticks = useRef(0);
 
@@ -89,8 +87,7 @@ export function Batched({ children, label = 'subtree', enabled = batchingEnabled
 
     batch.current.dissolve(target);
     merged.current = false;
-    rebuilds.current += 1;
-    if (rebuilds.current > MAX_REBUILDS) {
+    if (thrash.current.rebuilt(ticks.current)) {
       abandoned.current = true;
       if (perfEnabled()) {
         console.info(`[batch:${label}] changes too often to be worth batching — left alone`);

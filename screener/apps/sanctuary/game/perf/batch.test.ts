@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial } from 'three';
 
-import { Batch, meshCount } from './batch';
+import { Batch, ThrashGuard, meshCount } from './batch';
 
 const prop = (x: number, color = '#886644'): Mesh => {
   const m = new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial({ color }));
@@ -143,5 +143,34 @@ describe('meshCount', () => {
     inner.add(prop(0), prop(1));
     root.add(inner, prop(2));
     expect(meshCount(root)).toBe(3);
+  });
+});
+
+describe('the thrash guard', () => {
+  it('allows unlimited well-spaced rebuilds — a child answering questions', () => {
+    const guard = new ThrashGuard(180, 3);
+    /* REGRESSION. A flat cap of three total rebuilds un-batched the stations after the third
+       question of a visit and gave back most of the win, silently, mid-play. */
+    let abandon = false;
+    for (let q = 1; q <= 20; q += 1) abandon = guard.rebuilt(q * 600) || abandon;
+    expect(abandon).toBe(false);
+  });
+
+  it('gives up on a subtree that rebuilds every few frames', () => {
+    const guard = new ThrashGuard(180, 3);
+    expect(guard.rebuilt(10)).toBe(false);
+    expect(guard.rebuilt(20)).toBe(false);
+    expect(guard.rebuilt(30)).toBe(false);
+    expect(guard.rebuilt(40)).toBe(true);
+  });
+
+  it('forgives a burst once the subtree settles again', () => {
+    const guard = new ThrashGuard(180, 3);
+    guard.rebuilt(10);
+    guard.rebuilt(20);
+    expect(guard.rebuilt(1000)).toBe(false); // far apart: the run resets
+    expect(guard.rebuilt(1010)).toBe(false);
+    expect(guard.rebuilt(1020)).toBe(false);
+    expect(guard.rebuilt(1030)).toBe(true);
   });
 });
