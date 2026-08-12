@@ -5,7 +5,7 @@ import { castSignature, materialSignature } from './signature';
 import { materialState } from './still';
 
 /**
- * ONE BATCH OF A SUBTREE, AND THE FOUR WAYS IT CAN GO STALE.
+ * ONE BATCH OF A SUBTREE, AND THE SIX WAYS IT CAN GO STALE.
  *
  * ══ WHY STALENESS IS THE HARD PART ════════════════════════════════════════════════════════════════
  *
@@ -20,19 +20,29 @@ import { materialState } from './still';
  * only safe for a subtree that never changes, and the only such subtree here, `Buildings`, has almost
  * nothing left to merge because it already instances everything that repeats.
  *
- * So a batch watches for its own invalidation, and there are exactly three ways it happens:
+ * So a batch watches for its own invalidation. Every one of these was a shipped bug before it was a
+ * check, which is the honest way to read the list:
  *
- *   1. A MESH APPEARS OR DISAPPEARS. Caught by counting the meshes in the subtree and comparing with
- *      the count at merge time.
+ *   1. A MESH APPEARS OR DISAPPEARS. Caught by counting the meshes in the subtree.
  *
- *   2. SOMETHING TRIES TO HIDE OR SHOW A SOURCE. A source is hidden by setting `visible = false`, but
+ *   2. A MERGED SOURCE IS DETACHED. Caught by `parent === null`, and necessary because a count cannot
+ *      see a SWAP: a station replacing four meshes with four others leaves the count identical.
+ *
+ *   3. SOMETHING TRIES TO HIDE OR SHOW A SOURCE. A source is hidden by setting `visible = false`, but
  *      React may later want to hide or show that same mesh itself — and its write would be lost,
- *      because the mesh is already hidden. That is a silent wrong picture: a part that should have
- *      disappeared stays baked into the merge. So `visible` is replaced with an accessor that keeps
- *      reporting false while recording what was actually wanted, and any change to the wanted value
- *      invalidates the batch.
+ *      because the mesh is already hidden. So `visible` is replaced with an accessor that keeps
+ *      reporting false while recording what was actually wanted.
  *
- *   3. THE SUBTREE IS UNMOUNTED. The owner dissolves on unmount.
+ *   4. AN ANCESTOR IS HIDDEN OR SHOWN. `visible` is not inherited, so this is a different question
+ *      from 3 and the accessor cannot see it. See `ancestorVisibility`.
+ *
+ *   5. A MERGED SOURCE MOVES. The merge baked one transform; most of this game's motion is triggered
+ *      rather than continuous, and is written to a parent GROUP. See `HiddenSource.matrix`.
+ *
+ *   6. A MERGED SOURCE'S MATERIAL CHANGES. The merged mesh holds a clone, so the change reaches
+ *      nothing. See `HiddenSource.material`.
+ *
+ * The subtree being unmounted is handled separately: the owner dissolves on unmount.
  *
  * ══ THE THRASH GUARD, AND WHY IT COUNTS RATE RATHER THAN TOTAL ════════════════════════════════════
  *
@@ -52,7 +62,14 @@ export interface BatchStats {
   merged: number;
   /** Draw calls they were replaced by. */
   draws: number;
-  skipped: { moved: number; instanced: number; multiMaterial: number; interactive: number; material: number };
+  skipped: {
+    moved: number;
+    instanced: number;
+    multiMaterial: number;
+    interactive: number;
+    material: number;
+    hiddenAncestor: number;
+  };
   candidates: number;
 }
 
@@ -60,6 +77,28 @@ interface HiddenSource {
   mesh: Mesh;
   /** What the owner last asked `visible` to be. Starts true — it was visible when it was merged. */
   wanted: boolean;
+  /**
+   * The source's world matrix as it was when its geometry was baked.
+   *
+   * A merged mesh has ONE baked transform, so a source that starts moving after the merge is frozen.
+   * `still.ts` refuses to merge anything moving during its window, but a great deal of this game's
+   * motion is triggered rather than continuous: the shop's coin pile bobs when a child presses a
+   * cubby they cannot afford, the cradle's egg rocks once per thing handed over. Both are transforms
+   * written to a PARENT GROUP, which is why the `visible` accessor never sees them and why watching
+   * the material was not enough. Without this the acknowledgement a child gets for acting is simply
+   * dead, and `Shop.tsx` says that bob is the entire affordance — "nothing is refused, nothing is
+   * said".
+   */
+  matrix: number[];
+  /** The layer mask the source had before it was taken out of rendering. */
+  layers: number;
+  /**
+   * Whether every ancestor up to the batch root was visible when this was merged.
+   *
+   * See `ancestorVisibility`. A group hidden AFTER the merge must dissolve it, or the merged copy
+   * keeps drawing what the owner has just taken out of the world.
+   */
+  ancestors: string;
   /**
    * The source material's animatable channels as they were when it was merged.
    *
@@ -76,9 +115,51 @@ interface HiddenSource {
 const EMPTY_STATS: BatchStats = {
   merged: 0,
   draws: 0,
-  skipped: { moved: 0, instanced: 0, multiMaterial: 0, interactive: 0, material: 0 },
+  skipped: { moved: 0, instanced: 0, multiMaterial: 0, interactive: 0, material: 0, hiddenAncestor: 0 },
   candidates: 0,
 };
+
+/**
+ * WHETHER EVERY ANCESTOR UP TO THE BATCH ROOT IS VISIBLE, as a string that changes when any of them
+ * does.
+ *
+ * `Object3D.visible` IS NOT INHERITED — it is consulted per object as the renderer walks down, so a
+ * mesh inside `<group visible={false}>` still has `mesh.visible === true`. `Object3D.traverse` visits
+ * it too; only `traverseVisible` short-circuits. The first version of this file tested the mesh's own
+ * flag and nothing else, which meant it happily merged geometry the owner had deliberately taken out
+ * of the world — and the merged copy went into a group that IS visible.
+ *
+ * `stations/Cradle.tsx` is the case that makes it concrete: the two egg-shell halves live under
+ * `<group visible={false}>` until a hatch, so they passed every other gate — opaque, single material,
+ * no handler, never moving — and merging them drew two cracked shell halves permanently inside the
+ * whole egg, `side: DoubleSide` so nothing culled them. The same shape of bug sits on the hatchling
+ * body and on `screener/DayLog.tsx`'s dormant rings.
+ */
+function ancestorVisibility(mesh: Object3D, host: Object3D): string {
+  let out = '';
+  let node: Object3D | null = mesh.parent;
+  while (node) {
+    out += node.visible ? '1' : '0';
+    if (node === host) break;
+    node = node.parent;
+  }
+  return out;
+}
+
+const allVisible = (chain: string): boolean => !chain.includes('0');
+
+/** Does this object, or anything between it and the batch root, carry an r3f pointer handler? */
+function interactiveChain(mesh: Object3D, host: Object3D): boolean {
+  let node: Object3D | null = mesh;
+  while (node) {
+    const handlers = (node as unknown as { __r3f?: { handlers?: Record<string, unknown> } }).__r3f
+      ?.handlers;
+    if (handlers && Object.keys(handlers).length > 0) return true;
+    if (node === host) return false;
+    node = node.parent;
+  }
+  return false;
+}
 
 /** Count of meshes in a subtree — the cheap fingerprint that catches an add or a remove. */
 export function meshCount(root: Object3D): number {
@@ -103,6 +184,11 @@ export class Batch {
       const mesh = o as Mesh;
       if (!mesh.isMesh || !mesh.visible) return;
       stats.candidates += 1;
+      /* Not `mesh.visible` — that is only this object's own flag. See `ancestorVisibility`. */
+      if (!allVisible(ancestorVisibility(mesh, host))) {
+        stats.skipped.hiddenAncestor += 1;
+        return;
+      }
       /* An `InstancedMesh` is already one draw call for all of its copies, and it IS an `isMesh`.
          Merging one would bake only its base geometry and delete every instance but the first. */
       if ((mesh as unknown as { isInstancedMesh?: boolean }).isInstancedMesh) {
@@ -117,11 +203,18 @@ export class Batch {
         stats.skipped.multiMaterial += 1;
         return;
       }
-      /* r3f hangs pointer handlers off the object; anything carrying one is raycast against, and a
-         merged mesh is a different object that the raycast would never find. */
-      const handlers = (mesh as unknown as { __r3f?: { handlers?: Record<string, unknown> } }).__r3f
-        ?.handlers;
-      if (handlers && Object.keys(handlers).length > 0) {
+      /**
+       * ANYTHING INSIDE AN INTERACTIVE SUBTREE, not just anything carrying a handler.
+       *
+       * react-three-fiber BUBBLES: it raycasts from each interaction root and then walks UP from the
+       * object it hit looking for ancestors with handlers. So a handler-less mesh under an
+       * interactive group is a legitimate hit target — it is how the click reaches the group. Taking
+       * it out of raycasting would make that group unclickable, so the whole subtree is left alone.
+       *
+       * `handlers` is r3f 9's own store: `instance.eventCount = Object.keys(instance.handlers).length`
+       * in its reconciler, so this is the same test r3f applies to decide what is interactive.
+       */
+      if (interactiveChain(mesh, host)) {
         stats.skipped.interactive += 1;
         return;
       }
@@ -142,7 +235,7 @@ export class Batch {
       sink.add(merged);
       stats.merged += bucket.length;
       stats.draws += 1;
-      for (const mesh of bucket) this.hide(mesh);
+      for (const mesh of bucket) this.hide(mesh, host);
     }
 
     this.countAtMerge = meshCount(host);
@@ -156,17 +249,49 @@ export class Batch {
    *
    * The accessor is `configurable` so `dissolve` can delete it and hand the plain property back.
    */
-  private hide(mesh: Mesh): void {
-    const record: HiddenSource = { mesh, wanted: true, material: materialState(mesh) };
+  private hide(mesh: Mesh, host: Object3D): void {
+    const record: HiddenSource = {
+      mesh,
+      wanted: mesh.visible,
+      layers: mesh.layers.mask,
+      material: materialState(mesh),
+      /* A plain copy, NOT a Float32Array: `Matrix4.elements` holds doubles, and rounding them to
+         float32 made every later comparison mismatch — which read as the subtree changing every
+         frame, tripped the thrash guard, and silently abandoned both batches. */
+      matrix: mesh.matrixWorld.elements.slice(),
+      ancestors: ancestorVisibility(mesh, host),
+    };
     this.hidden.push(record);
+    /**
+     * TAKEN OUT OF RENDERING BY ITS LAYER MASK, NOT BY LYING ABOUT `visible`.
+     *
+     * The first version replaced `visible` with an accessor that always answered false. That broke
+     * the shop. `economy/Shop.tsx` picks the cubby a child is aiming at with
+     *
+     *     const pick = hits.find((h) => h.object.visible === false);
+     *
+     * — invisibility is its SENTINEL for the deliberately-invisible hit volume. Hiding 294 shelf
+     * meshes behind an accessor meant the first "invisible" hit was a shelf plank, `userData.family`
+     * came back undefined, and the highlight that tells a child which slime they are pointing at died
+     * for the rest of the session. An optimisation must not tell the game things that are not true.
+     *
+     * A zero layer mask is the honest way to say the same thing. `WebGLRenderer.projectObject`,
+     * `WebGLShadowMap.renderObject` and `Raycaster.intersect` all gate on
+     * `object.layers.test(camera.layers)`, so the source stops rendering, stops casting and stops
+     * being picked — which is correct, because the merged mesh is what draws it now — while `visible`
+     * keeps answering what the owner set.
+     *
+     * The accessor stays, purely as an OBSERVER: it reports the true value and notices writes, which
+     * is how case 3 in this file's header is detected.
+     */
+    mesh.layers.mask = 0;
     Object.defineProperty(mesh, 'visible', {
       configurable: true,
       enumerable: true,
-      get: () => false,
+      get: () => record.wanted,
       set: (next: boolean) => {
         if (next === record.wanted) return;
         record.wanted = next;
-        /* Somebody wants this mesh's visibility to be something the merge cannot represent. */
         this.invalidated = true;
       },
     });
@@ -176,16 +301,28 @@ export class Batch {
     if (!this.built) return false;
     if (this.invalidated || meshCount(host) !== this.countAtMerge) return true;
     for (const source of this.hidden) {
+      /* Detached. Catches the swap a count cannot: a station replacing four meshes with four others
+         leaves `meshCount` identical, writes no `visible`, and changes no material — and the old
+         geometry would keep drawing behind the new question, which is the ghost this file exists to
+         prevent. */
+      if (source.mesh.parent === null) return true;
       if (materialState(source.mesh) !== source.material) return true;
+      if (ancestorVisibility(source.mesh, host) !== source.ancestors) return true;
+      /* Element-wise rather than joining to a string: this runs over every merged source and a
+         string per matrix would allocate several hundred times a second for nothing. */
+      const now = source.mesh.matrixWorld.elements;
+      const then = source.matrix;
+      for (let i = 0; i < 16; i += 1) if (now[i] !== then[i]) return true;
     }
     return false;
   }
 
   /** Un-hide every source, dispose everything this batch created, and empty the sink. */
   dissolve(sink: Group): void {
-    for (const { mesh, wanted } of this.hidden) {
+    for (const { mesh, wanted, layers } of this.hidden) {
       delete (mesh as unknown as Record<string, unknown>).visible;
       mesh.visible = wanted;
+      mesh.layers.mask = layers;
     }
     this.hidden = [];
     for (const child of [...sink.children]) {

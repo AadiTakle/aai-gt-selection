@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BoxGeometry, Group, Mesh, MeshStandardMaterial } from 'three';
+import { BoxGeometry, Group, Mesh, MeshStandardMaterial, Raycaster, Vector3 } from 'three';
 
 import { Batch, ThrashGuard, meshCount } from './batch';
 
@@ -26,7 +26,10 @@ describe('a batch', () => {
     expect(stats.merged).toBe(6);
     expect(stats.draws).toBe(1); // same material signature, colour baked per vertex
     expect(sink.children).toHaveLength(1);
-    expect(props.every((p) => p.visible === false)).toBe(true);
+    /* Taken out of rendering by their layer mask, NOT by lying about `visible` — the shop reads
+       `visible === false` as its own sentinel for a hit volume. */
+    expect(props.every((p) => p.layers.mask === 0)).toBe(true);
+    expect(props.every((p) => p.visible === true)).toBe(true);
   });
 
   it('leaves a mesh that never settled alone', () => {
@@ -89,11 +92,18 @@ describe('a batch', () => {
     expect(batch.isStale(host)).toBe(false);
   });
 
-  it('reports a merged source as hidden however the owner asks', () => {
+  it('tells the truth about `visible`, because the shop uses it as a sentinel', () => {
+    /* REGRESSION. `economy/Shop.tsx` picks the aimed cubby with
+         hits.find((h) => h.object.visible === false)
+       — invisibility is how it recognises its deliberately-invisible hit volume. A batcher that made
+       294 shelf meshes answer `false` killed the highlight that tells a child what they are pointing
+       at. The merged source is removed from rendering by its layer mask instead. */
     const { host, sink, still, props } = world(4);
     new Batch().build(host, sink, still);
-    props[0]!.visible = true;
-    expect(props[0]!.visible).toBe(false); // still hidden: the merge is what is drawing it
+    expect(props[0]!.visible).toBe(true);
+    expect(props[0]!.layers.mask).toBe(0);
+    props[0]!.visible = false;
+    expect(props[0]!.visible).toBe(false);
   });
 
   it('restores every source and empties the sink when dissolved', () => {
@@ -184,5 +194,121 @@ describe('the thrash guard', () => {
     expect(guard.rebuilt(1010)).toBe(false);
     expect(guard.rebuilt(1020)).toBe(false);
     expect(guard.rebuilt(1030)).toBe(true);
+  });
+});
+
+describe('a batch and the scene graph around it', () => {
+  it('refuses a mesh whose ANCESTOR group is hidden, however visible the mesh itself is', () => {
+    /* REGRESSION. `Object3D.visible` is not inherited: a mesh inside <group visible={false}> still
+       has mesh.visible === true, and `traverse` visits it. Merging it drew geometry the owner had
+       deliberately taken out of the world — `Cradle.tsx`'s egg-shell halves, permanently inside the
+       whole egg, DoubleSide so nothing culled them. */
+    const host = new Group();
+    const sink = new Group();
+    const shown = prop(0);
+    const shown2 = prop(2);
+    const hiddenGroup = new Group();
+    hiddenGroup.visible = false;
+    const shell = prop(4);
+    const shell2 = prop(6);
+    hiddenGroup.add(shell, shell2);
+    host.add(shown, shown2, hiddenGroup);
+    host.updateMatrixWorld(true);
+    const still = new Set([shown, shown2, shell, shell2].map((m) => m.uuid));
+
+    const stats = new Batch().build(host, sink, still);
+    expect(stats.skipped.hiddenAncestor).toBe(2);
+    expect(stats.merged).toBe(2); // only the two genuinely visible props
+  });
+
+  it('goes stale when an ancestor group is hidden after the merge', () => {
+    const host = new Group();
+    const sink = new Group();
+    const inner = new Group();
+    const a = prop(0);
+    const b = prop(2);
+    inner.add(a, b);
+    host.add(inner);
+    host.updateMatrixWorld(true);
+    const batch = new Batch();
+    batch.build(host, sink, new Set([a.uuid, b.uuid]));
+    expect(batch.isStale(host)).toBe(false);
+    inner.visible = false; // the owner takes the whole assembly out of the world
+    expect(batch.isStale(host)).toBe(true);
+  });
+
+  it('goes stale when a merged source is moved by its parent group', () => {
+    /* REGRESSION. The shop's coin pile bobs when a child presses a cubby they cannot afford, and the
+       cradle's egg rocks once per thing handed over — both are transforms written to a parent GROUP,
+       which no accessor on the mesh can see. Frozen merges made both acknowledgements dead. */
+    const host = new Group();
+    const sink = new Group();
+    const pile = new Group();
+    const a = prop(0);
+    const b = prop(2);
+    pile.add(a, b);
+    host.add(pile);
+    host.updateMatrixWorld(true);
+    const batch = new Batch();
+    batch.build(host, sink, new Set([a.uuid, b.uuid]));
+    expect(batch.isStale(host)).toBe(false);
+
+    pile.position.y = 0.08; // the nudge
+    host.updateMatrixWorld(true);
+    expect(batch.isStale(host)).toBe(true);
+  });
+
+  it('goes stale when a merged source is detached even though the mesh count is unchanged', () => {
+    /* A station swapping one question's meshes for another's leaves `meshCount` identical. */
+    const { host, sink, still, props } = world(4);
+    const batch = new Batch();
+    batch.build(host, sink, still);
+    host.remove(props[0]!);
+    host.add(prop(80)); // count restored
+    expect(batch.isStale(host)).toBe(true);
+  });
+
+  it('takes a merged source out of raycasting too, so pickers see only what is drawn', () => {
+    /* Three's Raycaster gates on `object.layers.test(raycaster.layers)`, so zeroing the mask removes
+       the source from picking as well as from rendering. That is the correct meaning of "the merged
+       mesh draws this now", and it is what restores the shop's `visible === false` sentinel to
+       finding its hit volume rather than a shelf plank. Safe only because `interactiveChain` refuses
+       to merge anything inside a subtree r3f raycasts for events. */
+    const { host, sink, still, props } = world(4);
+    new Batch().build(host, sink, still);
+
+    host.updateMatrixWorld(true);
+    const ray = new Raycaster(new Vector3(0, 0, 10), new Vector3(0, 0, -1));
+    expect(ray.intersectObject(host, true).some((h) => h.object === props[0])).toBe(false);
+  });
+
+  it('refuses a mesh whose ANCESTOR carries a pointer handler, because r3f bubbles', () => {
+    /* r3f raycasts from each interaction root and walks UP from the hit object looking for handlers.
+       A handler-less mesh under an interactive group is how the click reaches that group, so taking
+       it out of raycasting would make the group unclickable. */
+    const host = new Group();
+    const sink = new Group();
+    const clickable = new Group();
+    (clickable as unknown as { __r3f: { handlers: Record<string, unknown> } }).__r3f = {
+      handlers: { onClick: () => {} },
+    };
+    const a = prop(0);
+    const b = prop(2);
+    clickable.add(a, b);
+    host.add(clickable);
+    host.updateMatrixWorld(true);
+
+    const stats = new Batch().build(host, sink, new Set([a.uuid, b.uuid]));
+    expect(stats.skipped.interactive).toBe(2);
+    expect(stats.merged).toBe(0);
+  });
+
+  it('restores the layer mask when dissolved', () => {
+    const { host, sink, still, props } = world(4);
+    const before = props[0]!.layers.mask;
+    const batch = new Batch();
+    batch.build(host, sink, still);
+    batch.dissolve(sink);
+    expect(props[0]!.layers.mask).toBe(before);
   });
 });

@@ -62,11 +62,30 @@ export function Batched({ children, label = 'subtree', enabled }: Props): JSX.El
   const abandoned = useRef(false);
   const ticks = useRef(0);
 
-  useFrame(() => {
+  /**
+   * EVERY FRAME'S WORK IS WRAPPED, and this is the most important line in the file.
+   *
+   * react-three-fiber runs `useFrame` subscribers in a bare loop and calls `gl.render` only AFTER
+   * them, so an exception thrown here does not merely skip the batcher: it skips every subscriber
+   * registered after it — the keeper's camera among them — and skips the render itself. The canvas
+   * freezes on its last good image, and it repeats every frame because nothing clears the condition.
+   * r3f's own ErrorBoundary cannot catch it; an uncaught rAF error is not a React render error.
+   *
+   * This code merges geometry built by files another author is actively editing. It WILL meet
+   * something it did not expect. When it does, the correct outcome is the behaviour the game had
+   * before any of this existed, so a failure dissolves the batch and stands down for good.
+   */
+  const runFrame = (): void => {
     if (!on || abandoned.current) return;
     const root = host.current;
     const target = sink.current;
     if (!root || !target) return;
+
+    /* Advanced on EVERY frame, not only merged ones. `ThrashGuard` reads it as a wall clock, and a
+       counter that stops during each 30-frame re-observation reported gaps about half their true
+       length — which would abandon the stations after four questions, the same silent regression the
+       rate-based guard was written to remove. */
+    ticks.current += 1;
 
     if (!merged.current) {
       watch.current.observe(root);
@@ -82,7 +101,6 @@ export function Batched({ children, label = 'subtree', enabled }: Props): JSX.El
       return;
     }
 
-    ticks.current += 1;
     if (ticks.current % CHECK_EVERY !== 0) return;
     if (!batch.current.isStale(root)) return;
 
@@ -97,6 +115,21 @@ export function Batched({ children, label = 'subtree', enabled }: Props): JSX.El
     }
     /* A fresh watch: the subtree is different now, so what is still in it is an open question. */
     watch.current = new StillWatch(WINDOW, HOLD);
+  };
+
+  useFrame(() => {
+    try {
+      runFrame();
+    } catch (error) {
+      abandoned.current = true;
+      try {
+        if (sink.current) batch.current.dissolve(sink.current);
+      } catch {
+        /* Dissolving is best-effort: if it also throws there is nothing further to try, and standing
+           down still beats taking the render loop with us. */
+      }
+      console.error(`[batch:${label}] stood down after an error; the subtree is unbatched`, error);
+    }
   });
 
   useEffect(() => {
@@ -104,6 +137,13 @@ export function Batched({ children, label = 'subtree', enabled }: Props): JSX.El
     const owned = batch.current;
     return () => {
       if (target) owned.dissolve(target);
+      /* Refs survive an unmount/remount but the batch does not, and `isStale` answers false once
+         dissolved — so without resetting these the subtree would come back permanently unbatched,
+         silently, with only the draw-call count to show for it. React 19 destroys effects for a
+         Suspense-hidden tree and r3f wraps every Canvas child in its own Suspense, so this is
+         reachable in play and not only under Fast Refresh. */
+      merged.current = false;
+      watch.current = new StillWatch(WINDOW, HOLD);
     };
   }, []);
 
