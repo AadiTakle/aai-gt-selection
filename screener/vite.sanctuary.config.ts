@@ -23,6 +23,17 @@ const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
  */
 export default defineConfig({
   root: r('./apps/sanctuary'),
+  /**
+   * `.env.local` lives at the screener root, not next to this app.
+   *
+   * `envDir` defaults to `root`, which here is `apps/sanctuary/` — so without this line Vite silently looks
+   * for env files inside the app directory, finds none, and `import.meta.env.VITE_GT_APP_KEY` is undefined.
+   * The failure is a long way from the cause: the game loads, walks, and draws a station, and only when it
+   * asks for a question does the platform refuse an unkeyed request. Every sibling app config has the same
+   * `root`-is-a-subdirectory shape and no `envDir`; this is the first app to need an env var at all, which is
+   * why the trap was never sprung before.
+   */
+  envDir: r('.'),
   /* `sanctuaryPlugin` no longer steers difficulty or holds an ability number — the platform is
      server-authoritative on both. What it still owns is the adult-facing `/sanctuary/*` routes, which read
      the platform rather than a local ledger. */

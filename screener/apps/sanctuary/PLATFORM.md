@@ -25,6 +25,14 @@ VITE_GT_PLATFORM_URL=/platform
 VITE_GT_APP_KEY=<the apiKey from screener/data/sanctuary/platform-app.json>
 ```
 
+`screener/.env.local` and not `apps/sanctuary/.env.local`, which needs saying because Vite's `envDir` defaults
+to `root` and this config's root is the app directory. `vite.sanctuary.config.ts` sets `envDir` back to the
+screener root to make the path above the true one. If you move the file, the game will load, walk and draw a
+station perfectly well, and then be refused for a missing `x-api-key` the moment it asks for a question —
+the failure lands a long way from the cause.
+
+Vite reads env files once at startup, so **restart the game after writing the file**, not just reload.
+
 `/platform` is proxied to `http://127.0.0.1:5210` by `vite.sanctuary.config.ts`, which strips the prefix. The
 client's paths are therefore exactly the wire contract's, and pointing at a deployed stack means changing
 `VITE_GT_PLATFORM_URL` to its base URL and nothing else.
