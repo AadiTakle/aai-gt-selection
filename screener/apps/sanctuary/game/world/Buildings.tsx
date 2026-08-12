@@ -19,6 +19,8 @@ import {
 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 
+import { SITES } from '../stations/sites';
+
 import {
   BARN,
   BARN_D,
@@ -160,6 +162,30 @@ function hutSkinY(localX: number): number {
  */
 const WINDMILL = { x: 19.5, z: 6.0, rot: -1.9 } satisfies Placed;
 const TOWER_H = 6.6;
+
+/**
+ * The blade wheel's radius, and how high its axle has to sit to clear the tower it stands on.
+ *
+ * WHAT WAS WRONG. The head hung at `TOWER_H + 0.4`, which put the axle 7.0m up and a 2.175m wheel
+ * reaching down to 4.83 — while the legs top out at 6.61 and the platform occupies 6.52 to 6.68. So
+ * the bottom 2.3m of the wheel shared its band of height with the top 2.3m of the tower: two legs ran
+ * up ACROSS the pale blades, three blades were interrupted, the rim ring was broken in four places,
+ * the leg tops ended in mid-air inside the wheel with no headstock, and the tail vane sat dead centre
+ * behind the blades and never read as a vane at all.
+ *
+ * This is the tallest thing on the ranch and the file below says it is deliberately silhouetted
+ * against the brightest part of the sky; it is in frame from the spawn and from two of the three pens,
+ * so it was also the most-seen defect on it.
+ *
+ * DERIVED, not nudged. The axle sits a clear margin above the platform's top face, so the wheel's
+ * lowest point cannot touch the tower whatever anyone does to the tower's height, the platform or the
+ * rim. A real mill puts its wheel above its cap for the same reason: the blades have to pass.
+ */
+const MILL_RIM_R = 2.12;
+/** Platform half-thickness above `TOWER_H`, from its own `CylinderGeometry(0.46, 0.5, 0.16, 12)`. */
+const MILL_PLATFORM_TOP = TOWER_H + 0.08;
+/** Rim tube included, plus a hand's breadth so the gap reads as clearance rather than as a near miss. */
+const MILL_HEAD_Y = MILL_PLATFORM_TOP + MILL_RIM_R + 0.055 + 0.28;
 const LEG_BASE_R = 1.05;
 const LEG_TOP_R = 0.34;
 
@@ -411,13 +437,39 @@ function insideOrientedRect(
 }
 
 /**
+ * How far from a station's panel nothing may grow.
+ *
+ * Enough to cover the panel AND the corridor a child stands in to read it: the docks sit about 4.6m out,
+ * so a 5m circle keeps the whole approach clear.
+ */
+const STATION_CLEAR = 5;
+
+/**
  * True where nothing may be planted or dropped.
  *
  * One predicate, used both to reject scattered trees and to reason about the fixed layout above. The two
  * hard rules are the approach corridor to the pod wall and the apron in front of it — a tree that grows
  * between a child and the question they are being asked is not a cosmetic problem.
+ *
+ * THAT RULE WAS BEING KEPT FOR A WALL THAT MOVED. The first clause below protects `|x| < 5.5`, which is
+ * where the pod wall USED to stand; `stations/sites.ts` says as much in its own comment. The three
+ * stations that exist now were protected by nothing, and two bushes duly grew 3.0m and 3.3m from the
+ * coat wall's panel — from its own dock they flank the sightline, clip the bottom corners of the answer
+ * panel and hide most of the sill. A bush between a child and the question is the same defect as a tree,
+ * and this file already says so.
+ *
+ * The sites are imported rather than re-typed. `sites.ts` mirrors ITS constants from this file by hand,
+ * so a second hand-typed copy going the other way is how the two drift apart.
  */
 function blocked(x: number, z: number, pad = 0): boolean {
+  /**
+   * Never shrunk by a negative pad, which is the other half of the bug. The scrub below deliberately
+   * passes -0.4 so it can hug fences and walls the way scrub does — a good rule for a barn and a
+   * disastrous one for a sightline, because it let the bushes creep IN toward the panel.
+   */
+  for (const site of SITES) {
+    if (Math.hypot(x - site.at[0], z - site.at[2]) < STATION_CLEAR + Math.max(pad, 0)) return true;
+  }
   if (Math.abs(x) < 5.5 + pad && z < 9.5 && z > -9.5) return true;
   if (Math.hypot(x, z + 13) < 9 + pad) return true;
   if (insideOrientedRect(BARN, BARN_W / 2, BARN_D / 2, x, z, 1.6 + pad)) return true;
@@ -2056,11 +2108,13 @@ function Windmill({ reduced }: { reduced: boolean }): JSX.Element {
       // Unit radius, scaled per collar. One geometry for all three.
       collar: new CylinderGeometry(1, 1, 0.09, 16, 1, true),
       platform: new CylinderGeometry(0.46, 0.5, 0.16, 12),
+      /* The mast the head rides on. Unit height, scaled to whatever gap the clearance leaves. */
+      mast: new CylinderGeometry(0.115, 0.145, 1, 10),
       base: new CylinderGeometry(1.32, 1.5, 0.42, 16),
       hub: new SphereGeometry(0.3, 14, 10),
       vane: new RoundedBoxGeometry(1.6, 0.52, 0.05, 1, 0.025),
       // The rim is what makes a wheel of blades read instantly as a windmill rather than as a propeller.
-      rim: new TorusGeometry(2.12, 0.055, 5, 30),
+      rim: new TorusGeometry(MILL_RIM_R, 0.055, 5, 30),
       tail: new RoundedBoxGeometry(1.35, 0.86, 0.05, 1, 0.04),
       boom: new RoundedBoxGeometry(1.6, 0.12, 0.12, 1, 0.04),
     };
@@ -2125,7 +2179,24 @@ function Windmill({ reduced }: { reduced: boolean }): JSX.Element {
       })}
       <mesh geometry={g.platform} material={m.timberDeep} position={[0, TOWER_H, 0]} castShadow receiveShadow />
 
-      <group position={[0, TOWER_H + 0.4, 0]}>
+      {/*
+        THE MAST, and it is not decoration — it is what raising the head made necessary.
+
+        The wheel has to clear the platform, and a 2.12m wheel clearing a 6.68m platform puts its axle
+        2.46m higher. Without something in that gap the wheel hangs in the sky and the legs stop in
+        mid-air beneath it, which is a worse read than the overlap it replaced. A real mill carries its
+        wheel on a mast above the cap for exactly the same reason: the blades have to pass the tower.
+      */}
+      <mesh
+        geometry={g.mast}
+        material={m.timberDeep}
+        position={[0, (MILL_PLATFORM_TOP + MILL_HEAD_Y) / 2, 0]}
+        scale={[1, MILL_HEAD_Y - MILL_PLATFORM_TOP, 1]}
+        castShadow
+        receiveShadow
+      />
+
+      <group position={[0, MILL_HEAD_Y, 0]}>
         <mesh geometry={g.hub} material={m.timberDeep} position={[0, 0, 0.44]} castShadow />
         <group ref={wheel} position={[0, 0, 0.52]}>
           <Instanced geometry={g.vane} material={m.painted} items={vanes} receiveShadow={false} />
