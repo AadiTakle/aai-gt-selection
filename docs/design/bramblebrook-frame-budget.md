@@ -176,13 +176,25 @@ This lands **before** any fix. Without it every later claim is an argument.
 | draw calls / frame | 1139 | ≤ 450 |
 | median @ 4× CPU throttle | 14.1 ms | ≤ 8 ms |
 | median @ 6× CPU throttle | 21.8 ms | ≤ 12 ms |
-| pixel diff, §4.1–4.3 | — | zero |
+| pixel diff, §4.1 | — | zero |
 | `npm test` | green | green |
 
-The pixel-diff gate is the one that enforces "no art changes". §4.1–4.3 alter *what is submitted*, never
-what is drawn, so screenshots from fixed camera poses must come back byte-comparable within a small
-epsilon. A diff is a bug in the batcher, not a matter of taste. §4.4 is the single step where the image
-is expected to change, which is why it is sequenced alone and last.
+The pixel-diff gate is the one that enforces "no art changes", and it applies in full force to §4.1:
+batching alters *what is submitted*, never what is drawn, so screenshots from fixed camera poses must
+come back byte-comparable within a small epsilon. A diff there is a bug in the batcher — a dropped
+attribute, a wrong colour space, a lost shadow flag — not a matter of taste.
+
+The other three cannot honestly claim it, and should not pretend to:
+
+- **§4.2 removes shadows on purpose.** A pebble stops casting. That is a visible change, however small,
+  so it is gated by a screenshot put in front of the owner rather than by a diff — and it is
+  conditional in the first place, because most small props share a material and will already have been
+  merged by §4.1, which removes their shadow calls as a side effect. If the win is small after
+  measuring, it should be skipped.
+- **§4.3 changes only moving shadows**, at 30 Hz instead of 60. Static frames are identical; the check
+  is by eye, against a wandering slime.
+- **§4.4 is expected to change the image**, in sharpness only, which is why it is sequenced alone and
+  last and can be dropped with one revert.
 
 ## 7. Order of work
 
