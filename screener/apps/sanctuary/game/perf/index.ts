@@ -12,4 +12,5 @@
 export { Batched } from './Batched';
 export { Hud } from './Hud';
 export { Probe } from './Probe';
-export { perfEnabled } from './enabled';
+export { batchingEnabled, perfEnabled } from './enabled';
+export { useShadowCadence } from './cadence';

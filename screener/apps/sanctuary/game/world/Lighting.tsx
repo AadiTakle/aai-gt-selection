@@ -12,6 +12,7 @@ import {
   Vector3,
 } from 'three';
 
+import { useShadowCadence } from '../perf/cadence';
 import { usePrefersReducedMotion } from './motion';
 import { glowTexture, puffTexture } from './textures';
 
@@ -253,6 +254,10 @@ export function Lighting(): JSX.Element {
     light.shadow.blurSamples = 10;
     light.shadow.needsUpdate = true;
   }, []);
+
+  /* The sun is a constant, so its shadow map is rebuilt at half the frame rate rather than every
+     frame — 44% of the frame's draw calls were the shadow pass. See `perf/cadence.ts`. */
+  useShadowCadence(sun);
 
   // The one piece of ambient motion in the sky. Slow enough to be noticed only on a second look, and
   // off entirely for a child who asked for less movement.
