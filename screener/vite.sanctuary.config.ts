@@ -13,18 +13,19 @@ const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
  * Host pinned to 127.0.0.1 because Vite otherwise binds IPv6 localhost and anything probing
  * 127.0.0.1 is refused while the browser works, which is a confusing hour to lose.
  *
- * The API on 5203 must be started with GT_QBANK_BANKS pointed at `data/sanctuary/banks`, which
- * `apps/sanctuary/curate-banks.ts` writes. Without it the API loads all 53 banks and the engine will
- * serve types this app cannot draw, because `QbankSessionConfig` has no type allow-list.
+ * Questions come from the platform on 5210, not from the prototype API. What the API on 5203 is still
+ * needed for is narrow: the `/qbank` proxy below, which serves the catalogue's own static HTML renderers.
+ * It no longer needs `GT_QBANK_BANKS` curated, because the type allow-list `QbankSessionConfig` lacks is
+ * now per-app approved types on the platform, which is what retired `curate-banks.ts`.
  *
  * `fs.allow` is widened to the screener root on purpose: this app reuses the eight item renderers and
  * the drawing vocabulary that live under `apps/lab-character/`, rather than copying them.
  */
 export default defineConfig({
   root: r('./apps/sanctuary'),
-  /* `sanctuaryPlugin` owns difficulty steering and keeps every ability number server-side. See its
-     header: the engine's selection does not adapt on its own, and handing the browser an estimate
-     would hand it correctness by subtraction. */
+  /* `sanctuaryPlugin` no longer steers difficulty or holds an ability number — the platform is
+     server-authoritative on both. What it still owns is the adult-facing `/sanctuary/*` routes, which read
+     the platform rather than a local ledger. */
   plugins: [react(), sanctuaryPlugin()],
   resolve: {
     alias: {
