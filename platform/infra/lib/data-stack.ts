@@ -1,4 +1,4 @@
-import { Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
 import {
   AttributeType,
   Billing,
@@ -142,6 +142,35 @@ export class DataStack extends Stack {
       retentionPeriod: Duration.days(14),
       enforceSSL: true,
       deadLetterQueue: { queue: this.notificationDlq, maxReceiveCount: 3 },
+    });
+
+    /**
+     * Everything the provisioning step needs, so nothing has to be hunted in a console.
+     *
+     * CloudFormation generates the physical table names, which is right — a fixed name makes a stack
+     * un-redeployable alongside itself — but it means the names are unknowable until after a deploy. Without
+     * these outputs, provisioning starts with a person reading three names off a web page and retyping them,
+     * which is the step that gets one character wrong at midnight.
+     */
+    new CfnOutput(this, 'MainTableName', {
+      value: this.mainTable.tableName,
+      description: 'GT_TABLE_NAME',
+    });
+    new CfnOutput(this, 'AnswerKeyTableName', {
+      value: this.answerKeyTable.tableName,
+      description: 'GT_ANSWER_KEY_TABLE_NAME',
+    });
+    new CfnOutput(this, 'PersonaTableName', {
+      value: this.personaTable.tableName,
+      description: 'GT_PERSONA_TABLE_NAME',
+    });
+    new CfnOutput(this, 'SnapshotBucketName', {
+      value: this.snapshotBucket.bucketName,
+      description: 'GT_SNAPSHOT_BUCKET',
+    });
+    new CfnOutput(this, 'TokenSecretArn', {
+      value: this.tokenSecret.secretArn,
+      description: 'GT_TOKEN_SECRET_ARN',
     });
   }
 }

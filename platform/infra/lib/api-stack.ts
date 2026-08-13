@@ -1,5 +1,5 @@
-import { Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
-import { HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
+import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import { CorsHttpMethod, HttpApi, HttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import {
   HttpIamAuthorizer,
   HttpLambdaAuthorizer,
@@ -156,9 +156,39 @@ export class ApiStack extends Stack {
       resultsCacheTtl: Duration.minutes(5),
     });
 
+    /**
+     * Allowed browser origins, from context, defaulting to none.
+     *
+     * A game served from its own hosting calls this API cross-origin, and without a preflight answer the
+     * browser refuses before a request ever reaches the authorizer — which looks like the platform being down
+     * rather than like a missing header. So CORS is not optional for a hosted surface.
+     *
+     * Deliberately NOT `*`. The api key is embedded in the client and identifies the app rather than a person,
+     * so it is not a secret worth protecting with CORS — but a wildcard would also let any page on the internet
+     * drive the scoring endpoints with a key lifted from the bundle, and there is no reason to make that easy.
+     * Pass the real origins at deploy time:
+     *
+     *   cdk deploy -c origins=https://bramblebrook.example,https://staging.example
+     *
+     * `http://localhost:5230` is included by default because the dev proxy makes local play same-origin, and a
+     * developer pointing a local game at a deployed stack is a normal thing to want.
+     */
+    const origins = String(this.node.tryGetContext('origins') ?? 'http://localhost:5230,http://127.0.0.1:5230')
+      .split(',')
+      .map((o) => o.trim())
+      .filter((o) => o.length > 0);
+
     this.api = new HttpApi(this, 'PlatformApi', {
       description: 'GT question platform: catalog, serving and scoring.',
       defaultAuthorizer: authorizer,
+      corsPreflight: {
+        allowOrigins: origins,
+        allowMethods: [CorsHttpMethod.GET, CorsHttpMethod.POST, CorsHttpMethod.PUT, CorsHttpMethod.OPTIONS],
+        // `x-api-key` is the one that matters: it is not a CORS-safelisted header, so without it every
+        // authenticated request fails preflight while unauthenticated ones appear to work.
+        allowHeaders: ['content-type', 'x-api-key', 'idempotency-key'],
+        maxAge: Duration.hours(1),
+      },
     });
 
     /**
@@ -187,6 +217,17 @@ export class ApiStack extends Stack {
         ...(definition.auth === 'iam' ? { authorizer: adminAuthorizer } : {}),
       });
     }
+
+    /**
+     * The base URL a game points at. This is `VITE_GT_PLATFORM_URL` for a deployed build.
+     *
+     * `apiEndpoint` rather than `url` because the default stage is `$default`, so the endpoint already IS the
+     * base — appending a stage name here would produce a URL that 404s every route.
+     */
+    new CfnOutput(this, 'ApiBaseUrl', {
+      value: this.api.apiEndpoint,
+      description: 'VITE_GT_PLATFORM_URL for a deployed game',
+    });
   }
 }
 

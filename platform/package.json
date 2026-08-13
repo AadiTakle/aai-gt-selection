@@ -27,6 +27,9 @@
     "measure:live": "tsx scripts/measure-live-path.ts",
     "measure:live": "tsx scripts/measure-live-path.ts",
     "measure:bramblebrook": "tsx scripts/measure-bramblebrook.ts",
+    "provision:aws": "tsx scripts/provision-aws.ts",
+    "deploy": "cdk deploy --app \"tsx infra/bin/platform.ts\" --all",
+    "bootstrap": "cdk bootstrap --app \"tsx infra/bin/platform.ts\"",
     "build:demo-bank": "tsx scripts/build-demo-bank.ts",
     "seed:bramblebrook": "tsx scripts/seed-bramblebrook.ts",
     "dev:local": "tsx local/src/dev-server.ts"
