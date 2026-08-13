@@ -6,6 +6,7 @@ import { toRef } from '../shared/ItemStage';
 import { VERBS, typesFor, verbFor, type Battery } from '../shared/batteries';
 import { canShowWords, readingBand, useSortie } from '../shared/useSortie';
 import { FAMILIES, LS_KEEPER, type Family } from './contract';
+import { usePrefersReducedMotion } from './world/motion';
 import { PodWall } from './screener/PodWall';
 import { TideLine } from './screener/TideLine';
 import { DayLog } from './screener/DayLog';
@@ -409,9 +410,13 @@ function Beat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.phase]);
 
-  // Paid per question ANSWERED, never per question answered correctly. Correctness is deleted before
-  // it reaches this layer, and a payout on accuracy would teach a child to guess fast for coins,
-  // which is exactly the behaviour the ability estimate depends on not happening.
+  /**
+   * Every answer pays; a correct one pays double. See `EARN` and the header of `shared/useSortie.ts` for what
+   * surfacing correctness costs and why the owner asked for it anyway.
+   *
+   * The floor is the part that must not move: a miss still pays, because an economy that promises nothing can
+   * ever be lost cannot start charging for being wrong.
+   */
   useEffect(() => {
     onAnswered(s.answered, s.lastCorrect);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -522,12 +527,55 @@ function Beat({
   );
 }
 
+/**
+ * A brief mark at the centre of the screen saying what the last answer was and what it paid.
+ *
+ * AT THE CROSSHAIR, because that is the only place a child is looking while a station is engaged: the card is
+ * there, the reticle is there, and the panel that used to carry this is in the corner of the eye at best.
+ *
+ * `pointer-events: none` throughout — this must never intercept the click that answers the next question, and it
+ * overlaps the exact spot those clicks land.
+ *
+ * Unmarked answers show nothing at all. A response the platform could not score — a tap too fast to be an
+ * attempt, or a spoken item on a machine with no voice — is not a miss and must not be shown as one.
+ */
+function VerdictFlash({
+  flash,
+  onDone,
+}: {
+  flash: { id: number; correct: boolean | null; paid: number } | null;
+  onDone: () => void;
+}) {
+  const reduced = usePrefersReducedMotion();
+  useEffect(() => {
+    if (!flash) return;
+    // Long enough to read at a glance, short enough to be gone before the next question is drawn.
+    const t = window.setTimeout(onDone, reduced ? 1400 : 1050);
+    return () => window.clearTimeout(t);
+  }, [flash, onDone, reduced]);
+
+  if (!flash || flash.correct === null) return null;
+  return (
+    <div className={flash.correct ? 'bh-flash bh-flash-yes' : 'bh-flash bh-flash-no'} key={flash.id}>
+      <span className="bh-flash-mark">{flash.correct ? '\u2713' : '\u00b7'}</span>
+      <span className="bh-flash-paid">+{flash.paid}</span>
+    </div>
+  );
+}
+
 export function Game() {
   const [locked, setLocked] = useState(false);
   const [engaged, setEngaged] = useState<string | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
   const { coins, earn, spend } = useCoins();
   const [flight, setFlight] = useState(0);
+  /**
+   * The verdict flash at the crosshair: which answer it was, and what it paid.
+   *
+   * Keyed by the answer ordinal rather than a boolean, so two consecutive answers of the same kind still
+   * retrigger it — a second correct answer must flash again, and `correct === correct` would swallow it.
+   */
+  const [flash, setFlash] = useState<{ id: number; correct: boolean | null; paid: number } | null>(null);
   const paidFor = useRef(0);
   const audio = useAudio();
   const { held } = useVacpackTank();
@@ -743,11 +791,24 @@ export function Game() {
               if (n <= paidFor.current) return;
               paidFor.current = n;
               /**
+               * The signal goes WHERE THE CHILD IS LOOKING, which the first version did not.
+               *
+               * The verdict was a line in the slim panel at the top of the screen while the crosshair, the card
+               * and the child's whole attention were in the middle of it. The owner's report — "I cannot tell
+               * between right and wrong, there is no indication" — was not that the feedback was missing but that
+               * it was somewhere nobody looks. This flashes at the crosshair instead.
+               *
+               * It carries the amount because the reward difference was invisible too: one coin against two,
+               * fanned out of mid-screen, is not a difference anybody notices. "+2" is.
+               */
+              const paid = correct === true ? EARN.perAnswer + EARN.correctBonus : EARN.perAnswer;
+              setFlash({ id: n, correct, paid });
+              /**
                * Every answer pays; a correct one pays double. An unmarked response pays the base rate rather
                * than nothing, because the child took their turn and the platform's inability to score it is
                * not theirs to be charged for.
                */
-              earn(correct === true ? EARN.perAnswer + EARN.correctBonus : EARN.perAnswer);
+              earn(paid);
               if (correct === true) audio.right?.();
               else if (correct === false) audio.wrong?.();
               else audio.coin?.();
@@ -772,6 +833,7 @@ export function Game() {
         </div>
       )}
 
+      <VerdictFlash flash={flash} onDone={() => setFlash(null)} />
       <CoinFlight trigger={flight} />
       {/* Nan, who is selling the ranch. Portrait and a line; never pauses the game. */}
       <IntroPortrait />

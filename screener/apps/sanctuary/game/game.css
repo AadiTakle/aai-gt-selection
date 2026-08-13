@@ -252,3 +252,90 @@
     transition-duration: 1ms !important;
   }
 }
+
+/*
+ * The verdict flash, at the crosshair.
+ *
+ * Centred on the reticle rather than on the screen: the reticle is where the child's eye is, and a mark in the
+ * corner is a mark nobody sees — which is exactly what the panel line above turned out to be.
+ *
+ * `pointer-events: none` is load-bearing rather than tidy. This sits over the precise spot the next question's
+ * cards are clicked, and an overlay that swallowed one click in five would look like the game ignoring a child.
+ *
+ * Colour is never the only carrier: the mark differs, the weight differs, and the amount differs.
+ */
+.bh-flash {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  pointer-events: none;
+  z-index: 6;
+  animation: bh-flash-in 1.05s ease-out forwards;
+}
+
+.bh-flash-mark {
+  font-size: 3.4rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.bh-flash-paid {
+  font-size: 1.9rem;
+  font-weight: 800;
+}
+
+.bh-flash-yes {
+  color: #2f6b3d;
+  text-shadow: 0 2px 0 rgb(255 255 255 / 0.85);
+}
+
+/* Softer than the affirmative, and a neutral mark rather than a cross: a child meeting deliberately
+   above-grade items sees this more often than the other one. */
+.bh-flash-no {
+  color: #7c6248;
+  text-shadow: 0 2px 0 rgb(255 255 255 / 0.8);
+}
+
+.bh-flash-no .bh-flash-mark {
+  font-weight: 600;
+}
+
+@keyframes bh-flash-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -38%) scale(0.85);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -54%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -62%) scale(1);
+  }
+}
+
+/* Reduced motion: it still appears and still fades, it simply does not travel or scale. */
+@media (prefers-reduced-motion: reduce) {
+  .bh-flash {
+    animation: bh-flash-still 1.4s ease-out forwards;
+  }
+
+  @keyframes bh-flash-still {
+    0%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}

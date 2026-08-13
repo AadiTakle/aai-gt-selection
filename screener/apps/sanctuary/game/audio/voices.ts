@@ -783,11 +783,10 @@ export interface Voices {
  * and quieter and thinner than the hatch's triad. Rising, because the one thing every listener reads as
  * "yes" regardless of musical training is a rising line.
  *
- * WRONG: two soft sines a whole tone apart, the lower entering 90 ms later, at a third of the right-answer
- * gain and with a 25 ms attack so it has no click on it. Deliberately NOT a buzzer, NOT dissonant and NOT
- * low: it is an acknowledgement that a turn was taken, pitched so it cannot be mistaken for the rising one.
- * A five-year-old meeting deliberately above-grade material will hear this more often than the other, and a
- * sound that punishes would be teaching them something false about themselves five times a visit.
+ * WRONG: two sines a minor third apart, FALLING, at the same order of gain as `right` rather than quieter.
+ * Told apart by shape, because a quiet version of the same rising phrase is the same message played timidly and
+ * a child in a noisy room hears nothing at all. Falling is what every listener reads as "not that", and it needs
+ * no volume to say so — which is what lets it stay an acknowledgement rather than a buzzer.
  */
 export function createVoices(rand: Rand = Math.random): Voices {
   const squishPick = createChooser(VARIANTS.length, rand);
@@ -820,18 +819,39 @@ export function createVoices(rand: Rand = Math.random): Voices {
     },
     right(ctx, out, at) {
       const j = jitter(rand, 0.01);
-      // C5 E5 G5 C6, 70 ms apart, each with a quiet fifth above it for body.
-      partial(ctx, out, at, 523.25 * j, 0.2, 0.005, 0.34);
-      partial(ctx, out, at, 784 * j, 0.055, 0.005, 0.26);
-      partial(ctx, out, at + 0.07, 659.25 * j, 0.2, 0.005, 0.34);
-      partial(ctx, out, at + 0.14, 784 * j, 0.2, 0.005, 0.38);
-      partial(ctx, out, at + 0.21, 1046.5 * j, 0.22, 0.006, 0.62);
-      partial(ctx, out, at + 0.21, 1568 * j, 0.05, 0.006, 0.5);
+      /**
+       * LOUDER THAN THE COIN IT REPLACED, which the first version was not.
+       *
+       * A correct answer used to play `coin` at 0.3 peak gain; this arrived at 0.22 and so made the game
+       * QUIETER at the exact moment it was meant to celebrate. The owner's report was that they could not tell
+       * right from wrong, and half of that was here: two sounds nobody could hear the difference between.
+       *
+       * C5 E5 G5 C6 climbing, 70 ms apart, each with a fifth above it for body, and the closing octave carries
+       * the most gain so the phrase lands rather than tails off.
+       */
+      partial(ctx, out, at, 523.25 * j, 0.34, 0.005, 0.34);
+      partial(ctx, out, at, 784 * j, 0.1, 0.005, 0.26);
+      partial(ctx, out, at + 0.07, 659.25 * j, 0.36, 0.005, 0.34);
+      partial(ctx, out, at + 0.14, 784 * j, 0.38, 0.005, 0.38);
+      partial(ctx, out, at + 0.21, 1046.5 * j, 0.44, 0.006, 0.66);
+      partial(ctx, out, at + 0.21, 1568 * j, 0.12, 0.006, 0.52);
     },
     wrong(ctx, out, at) {
       const j = jitter(rand, 0.01);
-      partial(ctx, out, at, 587.33 * j, 0.075, 0.025, 0.34);
-      partial(ctx, out, at + 0.09, 523.25 * j, 0.065, 0.025, 0.42);
+      /**
+       * Told apart by SHAPE, not by being quiet, which is what the first version got wrong.
+       *
+       * A softer version of the same rising chime is not a different message, it is the same message played
+       * timidly — and at a third of the gain a child in a noisy room hears nothing at all and concludes the game
+       * did not respond. So this falls instead of rising, on two notes a minor third apart, at a gain that is
+       * plainly audible. Falling is what every listener reads as "not that", and it needs no volume to say so.
+       *
+       * Still not a buzzer, and still not dissonant: a child meeting deliberately above-grade items will hear
+       * this more often than the other one, and a sound that punishes would be teaching them something false
+       * about themselves several times a visit.
+       */
+      partial(ctx, out, at, 523.25 * j, 0.3, 0.012, 0.2);
+      partial(ctx, out, at + 0.1, 440 * j, 0.32, 0.012, 0.42);
     },
   };
 }

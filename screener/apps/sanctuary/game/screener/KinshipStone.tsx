@@ -14,7 +14,7 @@ import { tokenGlyph, type EventMark } from './eventMeaning';
 import { kinshipStoneDraws, kinshipStoneServes, pairsOf, pairWords } from './kinshipGate';
 import { Text } from '@react-three/drei';
 import { canSpeak, hushSpeech, narrate, speak, type NarrationState, type StoryLine } from './speak';
-import { bankColor, breath, HUE, MAT, shade, useReducedMotion, useSlab } from './theme';
+import { HUE, MAT, bankColor, breath, shade, useReducedMotion, useSlab, wordFontSize } from './theme';
 
 export { kinshipStoneDraws, kinshipStoneServes, pairWords };
 
@@ -351,7 +351,7 @@ function Card({ mark, word }: { mark: EventMark | null; word?: string | undefine
           */
         <Text
           position={[0, 0.02, 0.13]}
-          fontSize={CARD * 0.26}
+          fontSize={wordFontSize(word, CARD)}
           maxWidth={CARD * 0.92}
           textAlign="center"
           anchorX="center"

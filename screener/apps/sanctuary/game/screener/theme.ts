@@ -295,3 +295,25 @@ export function useStableId(prefix: string): string {
   if (!ref.current) ref.current = `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
   return ref.current;
 }
+
+/**
+ * A font size that makes a word fit its card, however long the word is.
+ *
+ * The two verbal presentations set single words on a square card, and a fixed size cannot work: this pool runs
+ * from `cat` to `intransigent`, and at the size that suits three letters a twelve-letter word is nearly twice
+ * the width of the card it is on. `maxWidth` does not rescue it either, because troika wraps at word boundaries
+ * and a single word has none — it simply overflows, which is what "sunflower doesn't fit" was.
+ *
+ * `0.58` is the advance width of an average glyph as a fraction of the font size, measured across the mixed-case
+ * words this pool actually contains rather than taken from a table: lowercase latin runs nearer 0.5, but capitals
+ * and the wide letters (m, w) pull the average up, and under-estimating here is what puts a word over the edge.
+ * The `cap` keeps short words from becoming absurdly large on the card rather than merely legible.
+ *
+ * Returns a size in the same units as `width`, so callers pass their own card width and get back something they
+ * can hand straight to `fontSize`.
+ */
+export function wordFontSize(word: string, width: number, cap = 0.26): number {
+  const glyphs = Math.max(1, word.trim().length);
+  const fits = (width * 0.9) / (glyphs * 0.58);
+  return Math.min(width * cap, fits);
+}

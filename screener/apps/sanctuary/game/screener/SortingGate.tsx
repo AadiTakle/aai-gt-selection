@@ -16,7 +16,7 @@ import { canSpeak, hushSpeech, narrate, speak } from './speak';
 import { SORTING_GATE_BANDS, sortingGateServes, tokenWords } from './sortbotGate';
 
 export { SORTING_GATE_BANDS, sortingGateServes };
-import { HUE, MAT, breath, shade, useReducedMotion, useSlab } from './theme';
+import { HUE, MAT, breath, shade, useReducedMotion, useSlab, wordFontSize } from './theme';
 
 /**
  * `VER-SORTBOT-01` as a thing in the hollow: the sorting gate, a hopper with two chutes running off it,
@@ -234,7 +234,7 @@ function Card({ mark, word }: { mark: EventMark; word?: string | undefined }) {
       {word ? (
         <Text
           position={[0, 0.02, 0.13]}
-          fontSize={CARD * 0.26}
+          fontSize={wordFontSize(word, CARD)}
           maxWidth={CARD * 0.92}
           textAlign="center"
           anchorX="center"
