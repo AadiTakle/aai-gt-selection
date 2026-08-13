@@ -73,7 +73,6 @@ suite('Bramblebrook on the platform', () => {
     process.env.GT_ANSWER_KEY_TABLE_NAME = cfg.answerKeyTableName;
     process.env.GT_PERSONA_TABLE_NAME = cfg.personaTableName;
     process.env.GT_SNAPSHOT_BUCKET = 'test';
-    process.env.GT_TOKEN_SECRET = 'test';
     process.env.GT_DDB_ENDPOINT = ENDPOINT as string;
     resetDeps();
     clearSnapshotCache();

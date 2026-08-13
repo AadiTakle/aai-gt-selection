@@ -52,7 +52,6 @@ suite('the request path, end to end', () => {
     process.env.GT_ANSWER_KEY_TABLE_NAME = cfg.answerKeyTableName;
     process.env.GT_PERSONA_TABLE_NAME = cfg.personaTableName;
     process.env.GT_SNAPSHOT_BUCKET = 'test-bucket';
-    process.env.GT_TOKEN_SECRET = 'test-secret-for-served-tokens';
     process.env.GT_DDB_ENDPOINT = ENDPOINT as string;
     delete process.env.GT_RESCORE_QUEUE_URL;
 

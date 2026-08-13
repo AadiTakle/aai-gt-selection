@@ -8,7 +8,6 @@ import {
 } from 'aws-cdk-lib/aws-dynamodb';
 import { Key } from 'aws-cdk-lib/aws-kms';
 import { BlockPublicAccess, Bucket, BucketEncryption } from 'aws-cdk-lib/aws-s3';
-import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import type { Construct } from 'constructs';
 import { tagPlatform } from './tags.js';
@@ -31,7 +30,6 @@ export class DataStack extends Stack {
   readonly personaTable: TableV2;
   readonly personaKey: Key;
   readonly snapshotBucket: Bucket;
-  readonly tokenSecret: Secret;
   readonly rescoreQueue: Queue;
   readonly rescoreDlq: Queue;
   readonly notificationQueue: Queue;
@@ -107,11 +105,6 @@ export class DataStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     });
 
-    this.tokenSecret = new Secret(this, 'ServedTokenSecret', {
-      description: 'HMAC key binding a response to the item that was actually served.',
-      generateSecretString: { passwordLength: 48, excludePunctuation: true },
-      removalPolicy: RemovalPolicy.RETAIN,
-    });
 
     this.rescoreDlq = new Queue(this, 'RescoreDlq', {
       retentionPeriod: Duration.days(14),
@@ -174,10 +167,6 @@ export class DataStack extends Stack {
     new CfnOutput(this, 'SnapshotBucketName', {
       value: this.snapshotBucket.bucketName,
       description: 'GT_SNAPSHOT_BUCKET',
-    });
-    new CfnOutput(this, 'TokenSecretArn', {
-      value: this.tokenSecret.secretArn,
-      description: 'GT_TOKEN_SECRET_ARN',
     });
   }
 }

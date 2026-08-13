@@ -57,7 +57,6 @@ export class ApiStack extends Stack {
       GT_ANSWER_KEY_TABLE_NAME: data.answerKeyTable.tableName,
       GT_PERSONA_TABLE_NAME: data.personaTable.tableName,
       GT_SNAPSHOT_BUCKET: data.snapshotBucket.bucketName,
-      GT_TOKEN_SECRET_ARN: data.tokenSecret.secretArn,
       NODE_OPTIONS: '--enable-source-maps',
     };
 
@@ -122,13 +121,25 @@ export class ApiStack extends Stack {
     // --- Permissions. Each grant below is deliberate; read the absences as carefully as the grants.
 
     data.mainTable.grantReadData(this.authorizerFn);
-    data.tokenSecret.grantRead(this.authorizerFn);
 
     data.mainTable.grantReadData(this.catalogFn);
 
     data.mainTable.grantReadWriteData(this.serveFn);
+    /**
+     * Serve writes personas, and the missing grant here was the second thing only a real deployment could find.
+     *
+     * `serve` creates a pseudonymous persona when an app supplies one, because that is what carries ability
+     * between visits and stops a returning child re-answering yesterday's items. It has done so since the
+     * `piiPolicy` correction, and this grant did not follow — so every deployed session creation failed with
+     * `dynamodb:PutItem` denied on the persona table while every local session worked, because DynamoDB Local
+     * enforces no IAM at all.
+     *
+     * Read as well as write: nothing reads the persona table from here today, but `personaRecentItemIds` is
+     * meant to and the read is not the part worth being stingy about. The boundary that matters is the answer
+     * key table, which `serve` still has no access to whatsoever — asserted in `infra.test.ts`.
+     */
+    data.personaTable.grantReadWriteData(this.serveFn);
     data.snapshotBucket.grantRead(this.serveFn);
-    data.tokenSecret.grantRead(this.serveFn);
     // No grant on data.answerKeyTable, and no grant on data.personaTable. This is the boundary the
     // infrastructure test asserts.
 
@@ -137,13 +148,11 @@ export class ApiStack extends Stack {
     data.personaTable.grantReadWriteData(this.scoreFn);
     data.personaKey.grantEncryptDecrypt(this.scoreFn);
     data.snapshotBucket.grantRead(this.scoreFn);
-    data.tokenSecret.grantRead(this.scoreFn);
 
     data.mainTable.grantReadWriteData(this.adminFn);
     data.answerKeyTable.grantReadWriteData(this.adminFn);
     data.snapshotBucket.grantReadWrite(this.adminFn);
     data.rescoreQueue.grantSendMessages(this.adminFn);
-    data.tokenSecret.grantRead(this.adminFn);
 
     data.mainTable.grantReadWriteData(this.rescoreFn);
     data.answerKeyTable.grantReadData(this.rescoreFn);

@@ -67,9 +67,21 @@ describe('the answer-key boundary', () => {
     const documents = statementsForRole(serveRole);
     expect(documents.length).toBeGreaterThan(0);
 
+    /**
+     * The answer-key table, and only that.
+     *
+     * `PersonaTable` used to be asserted here too, on the reasoning that the serving function is the most
+     * exposed surface in the system and personas are the only PII-adjacent store. That boundary was given up
+     * deliberately, not eroded: `serve` creates the pseudonymous persona that carries ability between visits,
+     * and it is the only place that has the `locale` from the session-creation request to record on it. Moving
+     * the write to `score` would preserve the tighter boundary and lose that field.
+     *
+     * What is NOT given up is the boundary that protects a child: a serving function that could read an answer
+     * key could leak one, and this asserts it cannot. A persona row here is pseudonymous by construction —
+     * contact details live on a separate row under a separate key that nothing in this function writes.
+     */
     for (const document of documents) {
       expect(document).not.toContain('AnswerKeyTable');
-      expect(document).not.toContain('PersonaTable');
     }
   });
 
@@ -87,10 +99,15 @@ describe('the answer-key boundary', () => {
     expect(documents).not.toContain('AnswerKeyTable');
   });
 
-  it('grants only score and rescore access to the persona key', () => {
+  it('grants the persona key to the two functions that write personas, and nothing else', () => {
+    /**
+     * `serve` is here now because it creates the persona; see the note on the answer-key test. `catalog` is the
+     * one that matters: it is the only function a browser can reach without a session, and it has no business
+     * with a persona or the key that encrypts one.
+     */
     for (const [fragment, expected] of [
       ['ScoreFnServiceRole', true],
-      ['ServeFnServiceRole', false],
+      ['ServeFnServiceRole', true],
       ['CatalogFnServiceRole', false],
     ] as const) {
       const documents = statementsForRole(roleLogicalId(fragment)).join('|');
@@ -368,5 +385,34 @@ describe('SEC-05 required tags', () => {
 
   it('refuses an empty owner', () => {
     expect(() => tagPlatform(new Stack(new App(), 'T2'), { owner: '  ' })).toThrow(/unowned/);
+  });
+});
+
+describe('the grants each function actually needs', () => {
+  /**
+   * Serve must be able to write a persona, and must still not be able to read an answer key.
+   *
+   * The first half is here because its absence cost a deployment: serve creates a pseudonymous persona to carry
+   * ability between visits, and the grant did not follow the code change. Nothing local could catch it, because
+   * DynamoDB Local enforces no IAM — so the assertion has to live against the template.
+   */
+  it('lets serve write personas', () => {
+    const policies = apiTemplate.findResources('AWS::IAM::Policy');
+    const serveGrants = Object.values(policies)
+      .filter((p) => JSON.stringify(p).includes('ServeFnServiceRole'))
+      .map((p) => JSON.stringify(p.Properties?.PolicyDocument ?? {}))
+      .join(' ');
+    expect(serveGrants).toContain('PersonaTable');
+    expect(serveGrants).toContain('dynamodb:PutItem');
+  });
+
+  it('still keeps serve away from the answer keys', () => {
+    // The load-bearing boundary. A serving function that can read a key can leak one.
+    const policies = apiTemplate.findResources('AWS::IAM::Policy');
+    const serveGrants = Object.values(policies)
+      .filter((p) => JSON.stringify(p).includes('ServeFnServiceRole'))
+      .map((p) => JSON.stringify(p.Properties?.PolicyDocument ?? {}))
+      .join(' ');
+    expect(serveGrants).not.toContain('AnswerKeyTable');
   });
 });

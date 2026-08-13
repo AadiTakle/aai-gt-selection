@@ -25,7 +25,6 @@ process.env.GT_TABLE_NAME ??= 'gt-platform-local';
 process.env.GT_ANSWER_KEY_TABLE_NAME ??= 'gt-answer-keys-local';
 process.env.GT_PERSONA_TABLE_NAME ??= 'gt-personas-local';
 process.env.GT_DDB_ENDPOINT ??= 'http://127.0.0.1:8456';
-process.env.GT_TOKEN_SECRET ??= 'local-development-only';
 process.env.GT_SNAPSHOT_BUCKET ??= 'local';
 resetDeps();
 

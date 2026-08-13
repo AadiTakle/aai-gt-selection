@@ -54,7 +54,6 @@ describe('the local router', () => {
     process.env.GT_TABLE_NAME ??= 'router-test-main';
     process.env.GT_ANSWER_KEY_TABLE_NAME ??= 'router-test-keys';
     process.env.GT_PERSONA_TABLE_NAME ??= 'router-test-personas';
-    process.env.GT_TOKEN_SECRET ??= 'router-test-secret';
     process.env.AWS_ACCESS_KEY_ID ??= 'local';
     process.env.AWS_SECRET_ACCESS_KEY ??= 'local';
     process.env.AWS_REGION ??= 'us-east-1';

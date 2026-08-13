@@ -71,7 +71,6 @@ async function main(): Promise<void> {
   process.env.GT_ANSWER_KEY_TABLE_NAME = cfg.answerKeyTableName;
   process.env.GT_PERSONA_TABLE_NAME = cfg.personaTableName;
   process.env.GT_SNAPSHOT_BUCKET = 'live';
-  process.env.GT_TOKEN_SECRET = 'live';
   process.env.GT_DDB_ENDPOINT = endpoint;
   resetDeps();
   clearSnapshotCache();

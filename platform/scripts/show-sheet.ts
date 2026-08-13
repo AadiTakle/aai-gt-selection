@@ -25,7 +25,6 @@ async function main(): Promise<void> {
   process.env.GT_ANSWER_KEY_TABLE_NAME ??= 'gt-answer-keys-local';
   process.env.GT_PERSONA_TABLE_NAME ??= 'gt-personas-local';
   process.env.GT_SNAPSHOT_BUCKET ??= 'local';
-  process.env.GT_TOKEN_SECRET ??= 'local';
   clearSnapshotCache();
   configureSnapshotSource(async (_bucket, key) =>
     readFileSync(join(SNAPSHOT_DIR, key.replace(/\//g, '_'))),

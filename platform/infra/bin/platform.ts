@@ -15,14 +15,28 @@ import { DataStack } from '../lib/data-stack.js';
  * the better outcome anyway, since it turns "which region" from an unstated assumption into a value in
  * one place.
  *
- * The default is deliberately **not** us-east-1. The archive's live App Runner service runs there, and
- * a different region costs nothing while adding one more layer between this platform and a deployment
- * that is currently in use. Override with `cdk synth -c region=...`.
+ * The default is us-east-1, and it took a failed deployment to establish that it has to be.
+ *
+ * This said us-east-2 for a reason that sounded good and was wrong: the archive's live App Runner service runs
+ * in us-east-1, so a different region seemed like a free layer of separation. It is not free and it was not
+ * separation. The archive lives in the LEGACY account and this deploys to SANDBOX — two different accounts, so
+ * the isolation was already total and the region bought nothing.
+ *
+ * What it cost: an organisation service control policy on the sandbox account
+ * (`p-puijrmvl`) denies actions outside us-east-1 outright. `dynamodb:CreateTable` in us-east-2 came back as an
+ * explicit SCP deny, the data stack rolled back, and no amount of IAM in this repository could have helped —
+ * an SCP sits above the account. Confirmed by creating the same table by hand: denied in us-east-2, created in
+ * us-east-1.
+ *
+ * Which is also the answer to why emulation could not have caught this. DynamoDB Local has no notion of an
+ * organisation, so every local run was correct and every local run was silent about the one thing that mattered.
+ *
+ * Override with `-c region=...` if a future account allows more.
  */
 const app = new App();
 
 const prefix = app.node.tryGetContext('prefix') ?? 'GtQuestionPlatform';
-const region = app.node.tryGetContext('region') ?? 'us-east-2';
+const region = app.node.tryGetContext('region') ?? 'us-east-1';
 const env = { region };
 
 const data = new DataStack(app, `${prefix}Data`, {

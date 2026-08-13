@@ -109,7 +109,6 @@ async function main(): Promise<void> {
   process.env.GT_ANSWER_KEY_TABLE_NAME = config.answerKeyTableName;
   process.env.GT_PERSONA_TABLE_NAME = config.personaTableName;
   process.env.GT_DDB_ENDPOINT = config.endpoint;
-  process.env.GT_TOKEN_SECRET ??= 'local-development-only';
   process.env.GT_SNAPSHOT_BUCKET = 'local';
   resetDeps();
 

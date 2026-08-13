@@ -130,7 +130,6 @@ async function main(): Promise<void> {
   process.env.GT_PERSONA_TABLE_NAME = data.PersonaTableName;
   process.env.GT_SNAPSHOT_BUCKET = data.SnapshotBucketName;
   // Only the api key path needs it locally, and it is never read for anything this script does.
-  process.env.GT_TOKEN_SECRET ??= 'provisioning';
   resetDeps();
 
   console.log(`tables   ${data.MainTableName}`);
