@@ -11,6 +11,6 @@
  * `Stations.tsx` carries the design notes — what these replace, why pointer lock is never released, and
  * the two things the keeper controller has to do while a station is engaged.
  */
-export { Stations, OPEN_FOV, ENGAGED_FOV } from './Stations';
+export { Stations } from './Stations';
 export { PIPS } from './Cradle';
 export { STATION_SOLIDS, SITES, dockPoint, siteFor, type StationSite } from './sites';

@@ -202,31 +202,6 @@ function slotX(i: number, count: number, pitch: number): number {
  * coloured rim would be an attribute this item is not asking about, and `farm animals` items would start
  * looking like they had been grouped by trim.
  */
-/**
- * A card that can be HEARD but not chosen: the two already sorted in, and the one sorted out.
- *
- * The examples are the rule. A child who cannot read them cannot infer anything, so making only the shelf
- * speakable left the weakest reader with the one thing they could not use — four pronounceable options and a
- * premise they had no way into. This adds an invisible volume over each example that says its word on hover and
- * does nothing on click, because these are not answers and a click on one must not be mistaken for a choice.
- *
- * Sized like the shelf's own volume so that pointing at an example feels exactly like pointing at a candidate.
- */
-function Sayable({ word, size }: { word: string; size: number }) {
-  return (
-    <mesh
-      visible={false}
-      position={[0, 0, 0.22]}
-      onPointerOver={(e) => {
-        e.stopPropagation();
-        if (word) speak(word);
-      }}
-    >
-      <boxGeometry args={[size, size, 0.5]} />
-    </mesh>
-  );
-}
-
 function Card({ mark, word }: { mark: EventMark; word?: string | undefined }) {
   const face = useSlab(CARD, CARD, 0.16, 0.09);
   const rim = useSlab(CARD + 0.1, CARD + 0.1, 0.11, 0.1);
@@ -623,7 +598,6 @@ export function SortingGate({
         {examplesIn.map((mark, i) => (
           <group key={i} position={[slotX(i, slots, SLOT_PITCH), 0, 0.02]}>
             <Card mark={mark} word={showWords ? wordsIn[i] : undefined} />
-            <Sayable word={wordsIn[i] ?? ''} size={CARD + 0.3} />
           </group>
         ))}
         <group position={[slotX(examplesIn.length, slots, SLOT_PITCH), 0, 0.02]}>
@@ -637,7 +611,6 @@ export function SortingGate({
         {examplesOut.map((mark, i) => (
           <group key={i} position={[slotX(i, slots, SLOT_PITCH), 0, 0.02]}>
             <Card mark={mark} word={showWords ? wordsOut[i] : undefined} />
-            <Sayable word={wordsOut[i] ?? ''} size={CARD + 0.3} />
           </group>
         ))}
       </group>
