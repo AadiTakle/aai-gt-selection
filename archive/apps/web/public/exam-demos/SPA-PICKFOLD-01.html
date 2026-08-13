@@ -28,7 +28,13 @@
 .face{position:absolute;inset:0;border:3px solid var(--edge);border-radius:5px;backface-visibility:hidden}
 .face.front{background:var(--paper)}
 .face.back{background:#f5ddcd}
-#punch{position:absolute;display:none;border-radius:50%;background:#002a3a;box-shadow:inset 0 2px 3px #001117;z-index:4}
+/* Holes on the folded stack wear the same mark they wear in the target pattern —
+   coral circle for the first punch, violet diamond for the second — so a child
+   comparing stack with pattern can see which punch made which holes. */
+#punch{position:absolute;inset:0;display:none;z-index:4;pointer-events:none}
+.punchDot{position:absolute;display:grid;place-items:center}
+.punchDot:after{content:"";width:100%;height:100%;border-radius:50%;background:var(--coral);box-shadow:0 0 0 1.5px #ffffff}
+.punchDot.alt:after{border-radius:0;background:var(--violet);transform:rotate(45deg);box-shadow:0 0 0 1.5px #ffffff}
 #layerBadge{position:absolute;right:12px;bottom:10px;color:#4a6470;font:700 12px ui-monospace,monospace}
 #options{display:grid;grid-template-columns:1fr 1fr;gap:10px}.option{border:3px solid #f8e8de;border-radius:16px;background:#ffffff;min-height:88px;padding:8px;cursor:pointer;display:grid;grid-template-columns:34px 1fr;align-items:center;gap:8px;transition:.15s}.option:hover,.option:focus-visible{transform:translateY(-2px);border-color:#ebba9b;outline:none}.option.sel{border-color:var(--blue);box-shadow:0 0 0 4px #f8e8de}.option[disabled]{cursor:default;opacity:.9}.key{width:28px;height:28px;border-radius:9px;background:#004f71;color:#ffffff;display:grid;place-items:center;font-weight:900;box-shadow:0 3px 0 #002a3a}.seq{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}.foldchip{width:31px;height:31px;border-radius:9px;display:grid;place-items:center;color:#ffffff;font-size:16px;font-weight:900}.opL{background:var(--coral)}.opR{background:var(--blue)}.opT{background:var(--mint)}.opB{background:var(--violet)}
 #controls{display:flex;justify-content:center;align-items:center;gap:12px}.roundBtn{border:0;border-radius:50%;cursor:pointer;font:700 24px system-ui}.roundBtn:focus-visible{outline:4px solid #ebba9b;outline-offset:2px}#replay{width:50px;height:50px;background:#f8e8de;color:#6f4526}#lock{width:66px;height:66px;background:var(--blue);color:#ffffff;box-shadow:0 10px 24px -10px var(--blue)}#lock:disabled{opacity:.28;cursor:not-allowed}#hotkeys{text-align:center;color:#6f4526;font:700 12px ui-monospace,monospace}.kbd{display:inline-grid;place-items:center;min-width:23px;height:22px;padding:0 5px;border:1px solid #ecd9cb;border-bottom-width:3px;border-radius:6px;background:#ffffff;color:#33505c;margin:0 2px}
@@ -157,7 +163,7 @@ function centreStage(){
 function resetGeometry(){
   rect={x:0,y:0,w:STAGE,h:STAGE};setBox($('#sheet'),rect);centreStage();
   const flap=$('#flap');flap.getAnimations().forEach(a=>a.cancel());flap.style.display='none';
-  $('#punch').style.display='none';$('#layerBadge').textContent='1\u00d7';
+  const pl=$('#punch');pl.style.display='none';pl.innerHTML='';$('#layerBadge').textContent='1\u00d7';
 }
 function resetPaper(){animToken++;resetGeometry();}
 /** Which half hinges, which half stays, and the crease it turns about.
@@ -198,12 +204,28 @@ async function animateSequence(seq){
     await pause(120);
   }
   if(token!==animToken)return;
-  // The cut goes through the whole folded stack: one hole in the middle of what is left.
-  const d=Math.max(10,Math.min(rect.w,rect.h)*0.3);
-  setBox(punch,{x:rect.x+rect.w/2-d/2,y:rect.y+rect.h/2-d/2,w:d,h:d});
+  /* The cut goes through the whole stack at the cells the item actually names.
+     This used to draw a single hole in the middle of whatever was left, which
+     contradicted the pattern the child is matching against: content.punches puts
+     it in a corner, and a centre hole unfolds to a different pattern entirely.
+     Coordinates are cells of the folded stack, so they are measured from the
+     stack's own corner. A punch can fall outside the stack when the child is
+     previewing a WRONG fold order, which leaves a smaller stack than the item
+     was built for; clamping keeps that preview on the paper instead of dropping
+     a hole into space. */
+  const cell=STAGE/gridN,d=Math.max(6,cell*0.46);
+  const cols=Math.max(1,Math.round(rect.w/cell)),rows=Math.max(1,Math.round(rect.h/cell));
+  punch.innerHTML='';
+  punches.forEach(([px,py],i)=>{
+    const cx=Math.min(Math.max(px,0),cols-1),cy=Math.min(Math.max(py,0),rows-1);
+    const dot=document.createElement('span');
+    dot.className='punchDot'+(i>=1?' alt':'');
+    setBox(dot,{x:rect.x+(cx+0.5)*cell-d/2,y:rect.y+(cy+0.5)*cell-d/2,w:d,h:d});
+    punch.appendChild(dot);
+    dot.animate([{transform:'scale(.15)',opacity:.2},{transform:'scale(1)',opacity:1}],
+      {duration:dur(280),easing:'ease-out',fill:'forwards'});
+  });
   punch.style.display='block';
-  punch.animate([{transform:'scale(.15)',opacity:.2},{transform:'scale(1)',opacity:1}],
-    {duration:dur(280),easing:'ease-out',fill:'forwards'});
   await pause(460);
 }
 
@@ -236,6 +258,12 @@ function openGate(){
   document.documentElement.setAttribute('data-gt-gate','closed');
   setCue('ready');setStatus('neutral','Press play when you are ready.');
 }
+/* The play gate is armed as always, then released immediately: this type has no
+   transient stimulus, so arming it buys the child nothing and costs a click.
+   Reading time is separated from thinking time by first-action latency
+   (M-RTFIRST), not by a play press. #play is used rather than the begin
+   function directly because each demo names that function differently. */
+function releaseGate(){const p=document.querySelector('#play');if(p)p.click();}
 function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 /* Every route through this item is keyboard-reachable, so the gate is too. Behind a closed
    gate the item's own shortcuts do nothing, so any key the child presses means "I am ready":
@@ -282,7 +310,7 @@ addEventListener('keydown',e=>{if(e.repeat)return;if(gateKey(e))return;if(/^[1-9
 let gotInit=false;
 addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
  if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');openGate();}
- else if(d.type==='start'){openGate();}
+ else if(d.type==='start'){openGate();releaseGate();}
 });
 
 /* ---------- standalone fallback (opens by double-click; no host present) ----------

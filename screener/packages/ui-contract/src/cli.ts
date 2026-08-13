@@ -98,7 +98,13 @@ if (has('help') || has('h')) {
 if (has('list')) {
   for (const code of allTypeCodes()) {
     const mapping = COGAT_MAP[code];
-    const tag = mapping ? `  ${mapping.subtest} (${mapping.strength})` : '';
+    // Every type has an entry since 2.2, so a missing one is a real fault and says so rather than
+    // printing blank the way an unmapped type used to.
+    const tag = !mapping
+      ? '  MISSING FROM COGAT_MAP'
+      : mapping.subtest === 'none'
+        ? '  none'
+        : `  ${mapping.subtest} (${mapping.strength})`;
     console.log(`  ${code}${tag}`);
   }
   process.exit(0);

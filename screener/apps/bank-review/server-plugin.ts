@@ -131,7 +131,9 @@ function summarise(): TypeSummary[] {
       },
       ageBands: bands,
       bandSpan: present.length === 0 ? 'none' : `${present[0]!}..${present[present.length - 1]!}`,
-      cogat: mapping ? { subtest: mapping.subtest, strength: mapping.strength } : null,
+      // `subtest: 'none'` now carries what an absent entry used to, so null still means "not CogAT"
+      // to every existing consumer of this payload.
+      cogat: mapping && mapping.subtest !== 'none' ? { subtest: mapping.subtest, strength: mapping.strength } : null,
       contextCost: contextProfileFor(typeCode).cost,
       readingBand: requirement.readingBand,
       uiElements: [...requirement.elements],

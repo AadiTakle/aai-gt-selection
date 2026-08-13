@@ -8,6 +8,18 @@ import { ScreenerSession, defaultScreenerConfig, prototypeSurfaces } from '@gt/e
 import { bySurface, effectivenessStats, generatorStats, screenerStats } from '@gt/stats';
 import { PracticeSession, defaultPracticeConfig } from '@gt/practice';
 import { QbankSession, loadBanks, precisionAt, PRECISION_STEPS } from '@gt/qbank/server';
+/**
+ * The wire contract, from the browser-safe entry so the same declarations serve the server and every client.
+ * These annotations are what make the contract enforced rather than described: a handler whose response stops
+ * matching stops compiling, which is the only kind of spec that does not drift.
+ */
+import type {
+  AnswerResponse,
+  BankCatalogueResponse,
+  CreateSessionResponse,
+  DebugResponse,
+  NextResponse,
+} from '@gt/qbank';
 import { Store } from './store.js';
 
 const PORT = Number(process.env.PORT ?? 5181);
@@ -158,7 +170,8 @@ const bankSessions = new Map<string, QbankSession>();
 // The screener never reads this, which is the difference between the two products.
 const keyIndex = new Map<string, string>();
 for (const bank of banks.values()) {
-  for (const record of bank.scorable) keyIndex.set(record.itemId, record.answer.correctKey);
+  // Stringified because this is only ever shown to a person. An index-keyed type reads as its position.
+  for (const record of bank.scorable) keyIndex.set(record.itemId, String(record.answer.correctKey));
 }
 {
   const scorable = [...banks.values()].reduce((n, b) => n + b.scorable.length, 0);
@@ -176,7 +189,7 @@ app.get('/api/bank', (_req, res) => {
     difficultyRange: b.difficultyRange,
     ageBands: b.ageBands,
   }));
-  res.json({
+  const catalogue: BankCatalogueResponse = {
     types: types.sort((a, b) => a.typeCode.localeCompare(b.typeCode)),
     typeCount: types.length,
     scorable: types.reduce((n, t) => n + t.scorable, 0),
@@ -184,7 +197,8 @@ app.get('/api/bank', (_req, res) => {
     precisionSteps: PRECISION_STEPS,
     // Stated so nobody has to read source to find out how the bank scale became logits.
     difficultyMapping: { midpoint: 10.5, divisor: 3, note: 'a rescaling of the bank 1-20 scale, not a calibration' },
-  });
+  };
+  res.json(catalogue);
 });
 
 app.post('/api/bank/sessions', (req, res) => {
@@ -196,25 +210,54 @@ app.post('/api/bank/sessions', (req, res) => {
     ageBand,
     perDomainMinimum: Number(req.body?.perDomainMinimum ?? 1),
     recommendProbability: Number(req.body?.recommendProbability ?? 0.35),
+    // Advisory until 2.3. An instrument claiming CogAT alignment has to ask for it, and asking is now enough:
+    // the pool is filtered at construction, so selection can no longer reach an unmapped type.
+    cogatAlignment: ((): 'any' | 'direct' | 'direct-or-loose' => {
+      const asked = String(req.body?.cogatAlignment ?? 'any');
+      return asked === 'direct' || asked === 'direct-or-loose' ? asked : 'any';
+    })(),
   };
   const seed = Number(req.body?.seed ?? Math.floor(Math.random() * 1_000_000));
-  const session = new QbankSession(config, banks, seed);
+
+  // A caller may restrict the pool to certain types. Restricting here rather than at the point of
+  // drawing means the engine only ever selects items that will actually be shown, so it does not spend
+  // a session serving things the surface declines and then build an estimate out of unscorable
+  // attempts. Unknown codes are reported rather than ignored, since a typo would otherwise silently
+  // narrow the pool.
+  const requested: unknown = req.body?.types;
+  let pool = banks;
+  if (Array.isArray(requested) && requested.length > 0) {
+    const wanted = new Set(requested.map(String));
+    const unknown = [...wanted].filter((t) => !banks.has(t));
+    if (unknown.length > 0) {
+      return res.status(400).json({ error: `unknown type codes: ${unknown.sort().join(', ')}` });
+    }
+    pool = new Map([...banks].filter(([typeCode]) => wanted.has(typeCode)));
+  }
+
+  const session = new QbankSession(config, pool, seed);
   if (session.poolSize === 0) {
-    return res.status(400).json({ error: `no scorable bank items match age band ${ageBand ?? 'any'}` });
+    const scope = pool === banks ? '' : ` among the ${String(pool.size)} requested types`;
+    return res
+      .status(400)
+      .json({ error: `no scorable bank items match age band ${ageBand ?? 'any'}${scope}` });
   }
   const id = `bank-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
   bankSessions.set(id, session);
-  return res.json({ sessionId: id, poolSize: session.poolSize, config, state: session.state() });
+  const created: CreateSessionResponse = { sessionId: id, poolSize: session.poolSize, config, state: session.state() };
+  return res.json(created);
 });
 
 app.get('/api/bank/sessions/:id/next', (req, res) => {
   const session = bankSessions.get(req.params.id);
   if (!session) return res.status(404).json({ error: 'unknown bank session' });
-  if (session.state().stopped) return res.json({ done: true, state: session.state() });
+  const finished = (): NextResponse => ({ done: true, state: session.state() });
+  if (session.state().stopped) return res.json(finished());
   const serve = session.nextItem();
-  if (!serve) return res.json({ done: true, state: session.state() });
+  if (!serve) return res.json(finished());
   // `served` has had answer, scoring and provenance removed by toServed before reaching here.
-  return res.json({ done: false, ...serve, state: session.state() });
+  const next: NextResponse = { done: false, ...serve, state: session.state() };
+  return res.json(next);
 });
 
 app.post('/api/bank/sessions/:id/answer', (req, res) => {
@@ -223,7 +266,8 @@ app.post('/api/bank/sessions/:id/answer', (req, res) => {
   try {
     const state = session.submit(req.body?.response, Number(req.body?.latencyMs ?? 0));
     const last = session.getAttempts().at(-1);
-    return res.json({ state, correct: last?.correct ?? null, difficulty: last?.difficulty ?? null });
+    const answered: AnswerResponse = { state, correct: last?.correct ?? null, difficulty: last?.difficulty ?? null };
+    return res.json(answered);
   } catch (err) {
     return res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
   }
@@ -290,7 +334,12 @@ app.post('/api/bank/practice/:id/answer', (req, res) => {
 app.get('/api/bank/sessions/:id/debug', (req, res) => {
   const session = bankSessions.get(req.params.id);
   if (!session) return res.status(404).json({ error: 'unknown bank session' });
-  return res.json({ ...session.debug(), state: session.state(), thresholdInBankScale: (session.debug().threshold * 3) + 10.5 });
+  const debug: DebugResponse = {
+    ...session.debug(),
+    state: session.state(),
+    thresholdInBankScale: session.debug().threshold * 3 + 10.5,
+  };
+  return res.json(debug);
 });
 
 // --- practice: a second consumer of the same library -------------------------

@@ -1,0 +1,546 @@
+/* The archive's own visual language, reproduced.
+ *
+ * Every value here is lifted from the catalogue rather than invented: the palette is the "Catalogue
+ * original" theme from `packages/qbank/src/index.ts`, and the option, cell and tray geometry is from the
+ * renderers' own stylesheets (`qbank-library/items/*.html`). The point of the default theme is that it
+ * looks like the thing the items were drawn for, so anything stylistic I preferred would be wrong.
+ */
+
+.du {
+  /* Catalogue original. */
+  --ink: #001117;
+  --good: #146c43;
+  --accent: #004f71;
+  --card: #ffffff;
+  --bg1: #fcf4ef;
+  --bg2: #f8e8de;
+  --bad: #a4442f;
+  --socket: #ebba9b;
+  --paper: #fffdf9;
+  --line: #ecd9cb;
+  --key-ink: #4a6470;
+  --focus: #e48b53;
+
+  min-height: calc(100vh - 48px);
+  padding: 24px 20px 70px;
+  background: linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 100%);
+  color: var(--ink);
+  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.du-inner {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ---- header ---- */
+
+.du-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.du-head h2 {
+  margin: 0 0 4px;
+  font-size: 1.24rem;
+  letter-spacing: -0.01em;
+}
+
+.du-head p {
+  margin: 0;
+  color: #4a5b63;
+  font-size: 0.86rem;
+  max-width: 52ch;
+}
+
+.du-controls {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.du-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.76rem;
+  color: #4a5b63;
+}
+
+.du-toggle {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.du-controls select {
+  padding: 6px 9px;
+  border: 2px solid var(--line);
+  border-radius: 9px;
+  background: var(--card);
+  font: inherit;
+  color: inherit;
+}
+
+.du-primary {
+  padding: 9px 18px;
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 11px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -10px var(--accent);
+}
+
+.du-error {
+  background: #f6e2dc;
+  color: var(--bad);
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+/* ---- the item card. The archive puts the whole question on one raised card. ---- */
+
+.du-stagecard {
+  background: var(--paper);
+  border-radius: 20px;
+  padding: 22px;
+  box-shadow: 0 18px 40px -26px rgba(0, 17, 23, 0.45);
+}
+
+.du-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  font: 0.72rem/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--key-ink);
+  margin-bottom: 14px;
+}
+
+.du-tag {
+  background: var(--bg2);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.du-manifest.warn {
+  color: var(--bad);
+}
+
+.du-howto {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  background: var(--bg1);
+  border-left: 4px solid var(--socket);
+  border-radius: 0 10px 10px 0;
+  font-size: 0.9rem;
+}
+
+/* ---- stems ---- */
+
+.du-stem {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+/* The matrix sits on a warm tray, exactly as the renderers draw it. */
+.du-grid {
+  display: grid;
+  gap: 8px;
+  background: var(--line);
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.du-cell {
+  width: 92px;
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border-radius: 10px;
+}
+
+/* The missing cell is striped and dashed, which is the archive's socket treatment. */
+.du-cell.blank {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bg2),
+    var(--bg2) 8px,
+    var(--bg1) 8px,
+    var(--bg1) 16px
+  );
+  border: 3px dashed var(--socket);
+}
+
+.du-q {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--socket);
+}
+
+.du-compare {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.du-side {
+  max-width: 200px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+  padding: 12px;
+  background: var(--card);
+  border: 3px solid var(--line);
+  border-radius: 14px;
+  min-height: 92px;
+  align-content: center;
+}
+
+.du-vs {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.du-transform {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--line);
+  padding: 12px 16px;
+  border-radius: 14px;
+}
+
+.du-transform > .dg,
+.du-transform > .du-q {
+  background: var(--card);
+  border-radius: 10px;
+  min-width: 76px;
+  min-height: 76px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.du-ops {
+  display: flex;
+  gap: 6px;
+}
+
+.du-op {
+  font: 700 0.7rem/1 ui-monospace, Menlo, monospace;
+  padding: 5px 9px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+}
+
+.du-clues {
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  min-width: 22ch;
+  max-width: 46ch;
+}
+
+.du-clues li {
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  background: var(--card);
+  border-left: 4px solid var(--socket);
+  border-radius: 0 10px 10px 0;
+  font-size: 0.9rem;
+}
+
+.du-passage {
+  font-size: 0.92rem;
+  max-width: 56ch;
+  background: var(--card);
+  padding: 14px 18px;
+  border-radius: 12px;
+}
+
+.du-passage h4 {
+  margin: 0 0 6px;
+}
+
+.du-passage p {
+  margin: 0 0 6px;
+}
+
+.du-ask {
+  font-weight: 700;
+  margin-top: 10px !important;
+  color: var(--accent);
+}
+
+.du-target,
+.du-pairs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.du-target > .dg,
+.du-pair {
+  background: var(--card);
+  border: 3px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.du-arrow {
+  color: var(--socket);
+  font-weight: 700;
+}
+
+/* ---- the option tray. This is the archive's `.opt`, faithfully. ---- */
+
+.du-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.du-choice {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  border: 3px solid var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The key letter in the bottom-right corner is part of the archive's option design. */
+.du-choice::after {
+  content: attr(data-key);
+  position: absolute;
+  right: 5px;
+  bottom: 3px;
+  font: 700 11px/1 ui-monospace, Menlo, monospace;
+  color: var(--key-ink);
+}
+
+.du-choice:hover:not(:disabled) {
+  transform: translateY(-3px);
+}
+
+.du-choice.sel {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--line);
+  transform: translateY(-3px);
+}
+
+.du-choice:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.du-choice:focus-visible,
+.du-go:focus-visible,
+.du-primary:focus-visible {
+  outline: 4px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* ---- confirm. The archive selects, then commits with a round accent button. ---- */
+
+.du-commit {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.du-go {
+  width: 76px;
+  height: 76px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 30px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px -8px var(--accent);
+  opacity: 0.35;
+  pointer-events: none;
+  transition: 0.2s;
+}
+
+.du-go.ready {
+  opacity: 1;
+  pointer-events: auto;
+  animation: du-pulse 1.1s infinite;
+}
+
+@keyframes du-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.du-commit-hint {
+  font-size: 0.82rem;
+  color: var(--key-ink);
+}
+
+/* ---- abstract-value readout, the only thing here that is not the archive ---- */
+
+ /* The abstract readout is a table below the tray, not a caption under each tile: at 84px wide the
+    captions collided into each other and became unreadable. */
+.du-readout {
+  margin-top: 22px;
+  padding: 14px 16px;
+  background: var(--bg1);
+  border-radius: 12px;
+}
+
+.du-readout-head {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  color: #4a5b63;
+}
+
+.du-readout table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.du-readout th {
+  text-align: left;
+  width: 2.2rem;
+  padding: 3px 8px 3px 0;
+  font: 700 0.76rem/1.5 ui-monospace, Menlo, monospace;
+  color: var(--accent);
+  vertical-align: top;
+}
+
+.du-readout td {
+  padding: 3px 0;
+  font: 0.72rem/1.5 ui-monospace, Menlo, monospace;
+  color: var(--key-ink);
+}
+
+.du-note {
+  font-size: 0.8rem;
+  color: #4a5b63;
+  margin-top: 18px;
+  text-align: center;
+}
+
+.du-result {
+  margin-top: 20px;
+  padding: 20px;
+  background: var(--paper);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px -28px rgba(0, 17, 23, 0.4);
+}
+
+.du-result h3 {
+  margin: 0 0 6px;
+  color: var(--accent);
+}
+
+/* ---- the glyphs ---- */
+
+.dg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: center;
+  justify-content: center;
+}
+
+.dg-svg {
+  display: block;
+  overflow: visible;
+}
+
+.dg-token {
+  display: grid;
+  place-items: center;
+  border: 3px solid;
+  border-radius: 8px;
+  font: 700 0.6rem/1 ui-monospace, Menlo, monospace;
+}
+
+.dg-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.dg-pos {
+  font: 0.58rem/1 ui-monospace, Menlo, monospace;
+  color: var(--key-ink);
+}
+
+.dg-border {
+  width: 90%;
+  height: 3px;
+  background: var(--ink);
+  border-radius: 2px;
+}
+
+@media (max-width: 560px) {
+  .du-cell {
+    width: 68px;
+    height: 68px;
+  }
+  .du-choice {
+    width: 68px;
+    height: 68px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .du *,
+  .du *::before,
+  .du *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The catalogue renderer, given room. Its own stylesheet handles everything inside. */
+.du-frame {
+  width: 100%;
+  height: min(74vh, 700px);
+  border: 0;
+  border-radius: 14px;
+  background: var(--paper);
+  display: block;
+}

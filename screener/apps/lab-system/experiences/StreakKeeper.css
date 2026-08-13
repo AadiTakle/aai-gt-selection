@@ -1,0 +1,781 @@
+/* Streak Keeper only. Duolingo's own vocabulary: Feather Green, chunky 16px radii, two-pixel Swan
+   borders, and buttons that sit on a solid bottom edge and compress into it when pressed.
+
+   Two notes on the type. The stack leads with `ui-rounded`, which resolves to SF Pro Rounded on Apple
+   platforms and is the closest thing to Duolingo's Feather without shipping a webfont; everything
+   downstream degrades to a rounded grotesque. Every counter is `tabular-nums` so a streak going 9 to
+   10, or gems ticking up, does not shuffle the digits sideways.
+
+   ONE RULE RUNS THROUGH THE WHOLE FILE: colour lives in the shape, the mark on top of it is dark.
+   Duolingo sets white numerals on Fox Orange and white labels on Feather Green, both of which land
+   near 2.2:1 and are under the bar at any size. So the flame's numeral is Eel with a letterpress
+   highlight, the tick inside a completed day is burnt orange, and tier names are Eel next to a
+   coloured flame rather than being coloured themselves. The palette stays Duolingo's; only the ink
+   moves. Everything here clears AA for its own size, and the motif turns out to read chunkier than
+   the original anyway. The one place white survives is the call to action, on a green deep enough
+   (#4e9c00) to carry it at display weight. */
+
+.streak {
+  --duo-green: #58cc02;
+  --duo-green-dark: #3d7a00;
+  --duo-cta: #4e9c00;
+  --duo-cta-edge: #3a7300;
+  --duo-eel: #4b4b4b;
+  --duo-wolf: #6e6e6e;
+  --duo-hare: #afafaf;
+  --duo-swan: #e5e5e5;
+  --duo-polar: #f7f7f7;
+  --duo-fox: #ff9600;
+  --duo-bee: #ffc800;
+  --duo-cardinal: #ff4b4b;
+  --duo-macaw: #1cb0f6;
+  --duo-round: ui-rounded, 'SF Pro Rounded', 'Nunito', 'Varela Round', 'Trebuchet MS', system-ui,
+    sans-serif;
+
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  color: var(--duo-eel);
+  font-family: var(--duo-round);
+}
+
+/* ---------- persistent chrome ---------- */
+
+.streak-hud {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 12px 18px;
+  border-bottom: 2px solid var(--duo-swan);
+}
+
+.streak-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.06rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--duo-eel);
+}
+
+.streak-chip-flame {
+  width: 18px;
+  height: 22px;
+}
+
+.streak-chip-gem {
+  width: 20px;
+  height: 20px;
+}
+
+.streak-stage {
+  width: min(460px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22px 18px 30px;
+  gap: 14px;
+}
+
+/* ---------- the flame ---------- */
+
+.streak-hero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin-bottom: -6px;
+}
+
+.streak-flame {
+  width: auto;
+  height: clamp(148px, 30vw, 202px);
+  /* Stated rather than left to the viewBox, so `width: auto` cannot resolve to the SVG default. */
+  aspect-ratio: 120 / 150;
+  filter: drop-shadow(0 12px 22px var(--flame-glow));
+  transition: filter 400ms ease;
+}
+
+.streak-hero.is-lit .streak-flame {
+  animation: streak-flicker 3.4s ease-in-out infinite alternate;
+  transform-origin: 50% 100%;
+}
+
+@keyframes streak-flicker {
+  0% {
+    transform: scale(1) skewX(0deg);
+  }
+  40% {
+    transform: scale(1.025, 0.985) skewX(1.4deg);
+  }
+  70% {
+    transform: scale(0.99, 1.02) skewX(-1deg);
+  }
+  100% {
+    transform: scale(1.015, 1.005) skewX(0.5deg);
+  }
+}
+
+.streak-hero.just-lit {
+  animation: streak-ignite 720ms cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+
+@keyframes streak-ignite {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.14);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.streak-flame-num {
+  position: absolute;
+  /* The optical centre of the lower bulb, not of the whole flame. */
+  top: 67%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(3rem, 11vw, 4.3rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  color: var(--duo-eel);
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+/* Sparks leaving the tip, not passing through the body: the strip is anchored just above the flame so
+   an ember is only ever seen against white. */
+.streak-embers {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 90%;
+  height: 78px;
+  pointer-events: none;
+}
+
+.streak-embers span {
+  position: absolute;
+  bottom: 0;
+  left: calc(38% + var(--i) * 6.5%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--flame-outer);
+  opacity: 0;
+  animation: streak-ember 2.8s ease-out infinite;
+  animation-delay: calc(var(--i) * 520ms);
+}
+
+@keyframes streak-ember {
+  0% {
+    transform: translateY(0) scale(0.5);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-72px) translateX(calc(var(--i) * 3px - 6px)) scale(0.1);
+    opacity: 0;
+  }
+}
+
+.streak-hero-label {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--duo-wolf);
+}
+
+.streak-sub {
+  /* Pulled back against the stage gap so the flame, its label and this line read as one block, and the
+     full gap is spent separating that block from the cards below. */
+  margin: -7px 0 0;
+  max-width: 30ch;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--duo-wolf);
+}
+
+/* ---------- cards ---------- */
+
+.streak-card {
+  width: 100%;
+  border: 2px solid var(--duo-swan);
+  border-radius: 16px;
+  padding: 14px 16px 16px;
+  background: #fff;
+}
+
+.streak-card h3 {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--duo-wolf);
+}
+
+/* ---------- the week ---------- */
+
+.streak-week h3 {
+  margin-bottom: 12px;
+}
+
+.streak-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.streak-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+}
+
+/* The bridge between two consecutive days. Spans centre-to-centre, which is the only honest way to
+   draw "these two are joined": one cell wide, anchored at this dot's middle. */
+.streak-day.is-linked::before {
+  content: '';
+  position: absolute;
+  right: 50%;
+  /* Centred on the 30px dot, which sits flush to the bottom of the cell. */
+  bottom: 11px;
+  width: 100%;
+  height: 8px;
+  background: var(--duo-fox);
+  z-index: 0;
+}
+
+.streak-day-letter {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--duo-wolf);
+}
+
+.streak-day.is-today .streak-day-letter {
+  color: var(--duo-eel);
+}
+
+.streak-day-dot {
+  position: relative;
+  z-index: 1;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--duo-polar);
+  border: 2px solid var(--duo-swan);
+  box-sizing: border-box;
+}
+
+.streak-day.is-future .streak-day-dot {
+  border-style: dashed;
+  background: #fff;
+}
+
+.streak-day.is-today .streak-day-dot {
+  border-color: var(--duo-eel);
+  border-width: 3px;
+}
+
+.streak-day.is-done .streak-day-dot {
+  background: var(--duo-fox);
+  border-color: var(--duo-fox);
+}
+
+.streak-day.is-done.is-today .streak-day-dot {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--duo-eel);
+}
+
+/* A tick, drawn rather than typed, so it keeps its weight at any size. Burnt orange rather than white
+   for the same reason the flame's numeral is: white on Fox reads as a smudge. */
+.streak-day.is-done .streak-day-dot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7px;
+  height: 12px;
+  border: solid #5c3100;
+  border-width: 0 3px 3px 0;
+  transform: translate(-50%, -60%) rotate(42deg);
+}
+
+/* ---------- the rarity ladder ---------- */
+
+.streak-ladder-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.streak-ladder-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  color: var(--duo-eel);
+}
+
+/* The tier's colour arrives as a flame beside the name, not as the name's own colour: every tier
+   outer is too light to set type in. */
+.streak-ladder-head .streak-tier-flame {
+  width: 15px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+
+.streak-ladder-head p {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--duo-wolf);
+  white-space: nowrap;
+}
+
+.streak-rare {
+  font-size: 0.6rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #6b4700;
+  background: var(--duo-bee);
+  border-radius: 5px;
+  padding: 3px 6px;
+}
+
+.streak-rungs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.streak-rung {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  text-align: center;
+}
+
+/* Same bridge device as the week row: a chain, drawn the same way, because it is the same idea. */
+.streak-rung::before {
+  content: '';
+  position: absolute;
+  right: 50%;
+  top: 6px;
+  width: 100%;
+  height: 4px;
+  background: var(--duo-swan);
+  z-index: 0;
+}
+
+.streak-rung:first-child::before {
+  display: none;
+}
+
+.streak-rung.is-reached::before {
+  background: var(--rung-outer);
+}
+
+.streak-rung-pip {
+  position: relative;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid var(--duo-swan);
+  box-sizing: border-box;
+  transition: transform 240ms ease;
+}
+
+.streak-rung.is-reached .streak-rung-pip {
+  background: var(--rung-inner);
+  border-color: var(--rung-outer);
+}
+
+.streak-rung.is-now .streak-rung-pip {
+  transform: scale(1.25);
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--rung-outer);
+}
+
+.streak-rung-name {
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--duo-wolf);
+}
+
+.streak-rung.is-reached .streak-rung-name {
+  color: var(--duo-eel);
+}
+
+.streak-rung-day {
+  font-size: 0.66rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--duo-wolf);
+}
+
+/* ---------- the one action ---------- */
+
+.streak-go {
+  position: relative;
+  width: 100%;
+  min-height: 62px;
+  margin-top: 6px;
+  padding: 0 22px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 16px;
+  background: var(--duo-cta);
+  box-shadow: 0 5px 0 var(--duo-cta-edge);
+  color: #fff;
+  font-family: inherit;
+  /* 18.9px at 800 is display size, which is the threshold that lets white sit on this green. */
+  font-size: 1.18rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  transition: transform 90ms ease, box-shadow 90ms ease;
+}
+
+/* One sweep, slow enough to read as sheen rather than a loading bar. This is the only ambient motion
+   on an otherwise still screen, so the eye lands where the tap has to go. */
+.streak-go::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -60%;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+  animation: streak-sweep 3.6s ease-in-out infinite;
+}
+
+@keyframes streak-sweep {
+  0%,
+  55% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.streak-go:active {
+  transform: translateY(5px);
+  box-shadow: 0 0 0 var(--duo-cta-edge);
+}
+
+.streak-go:disabled {
+  background: var(--duo-swan);
+  color: var(--duo-wolf);
+  box-shadow: 0 5px 0 #d0d0d0;
+  cursor: default;
+}
+
+.streak-go:disabled::after {
+  display: none;
+}
+
+.streak-go:focus-visible {
+  outline: 4px solid #1b6b00;
+  outline-offset: 3px;
+}
+
+.streak-note {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--duo-wolf);
+}
+
+.streak-oops {
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border: 2px solid var(--duo-swan);
+  border-radius: 14px;
+  background: var(--duo-polar);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--duo-eel);
+}
+
+.streak-oops small {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--duo-wolf);
+  word-break: break-word;
+}
+
+/* ---------- the run ---------- */
+
+.streak.is-running {
+  padding: 12px 16px 22px;
+  gap: 10px;
+}
+
+.streak-runbar {
+  width: min(760px, 100%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.streak-track {
+  position: relative;
+  flex: 1;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--duo-swan);
+  overflow: visible;
+}
+
+.streak-track-fill {
+  height: 100%;
+  min-width: 18px;
+  border-radius: 9px;
+  background: var(--duo-green);
+  transition: width 480ms cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+
+/* Duolingo's gloss: a lighter bar floating inside the fill. Pure decoration, but it is the detail that
+   makes the bar read as theirs rather than as a generic progress element. */
+.streak-track-fill::after {
+  content: '';
+  display: block;
+  height: 5px;
+  margin: 3px 8px 0;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.streak-tick {
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--duo-green-dark);
+  animation: streak-rise 900ms ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes streak-rise {
+  0% {
+    transform: translate(-50%, 6px) scale(0.7);
+    opacity: 0;
+  }
+  30% {
+    transform: translate(-50%, -12px) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -30px) scale(1);
+    opacity: 0;
+  }
+}
+
+.streak-runline {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--duo-wolf);
+}
+
+.streak-frame {
+  width: min(760px, 100%);
+  height: min(70vh, 620px);
+  border: 2px solid var(--duo-swan);
+  border-radius: 18px;
+  background: #fff;
+}
+
+/* ---------- the payoff ---------- */
+
+.streak-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.streak-shout {
+  margin: 0;
+  font-size: clamp(1.5rem, 5vw, 1.95rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--duo-green-dark);
+}
+
+.streak-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  margin: 4px 0 2px;
+  padding: 0;
+  list-style: none;
+}
+
+.streak-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 14px;
+}
+
+.streak-tile > span {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+/* The value sits on a white inset so the number keeps full contrast while the tile stays loud. */
+.streak-tile > b {
+  display: block;
+  width: 100%;
+  padding: 9px 4px;
+  border-radius: 11px;
+  background: #fff;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* Duolingo's three end-of-lesson tiles, keeping their colours and taking the labels dark so each one
+   is actually readable against its own fill. */
+.streak-tile.is-streak {
+  background: var(--duo-fox);
+}
+
+.streak-tile.is-streak > span {
+  color: #5c3100;
+}
+
+.streak-tile.is-streak > b {
+  color: #a35700;
+}
+
+.streak-tile.is-gems {
+  background: var(--duo-cardinal);
+}
+
+.streak-tile.is-gems > span {
+  color: #520000;
+}
+
+.streak-tile.is-gems > b {
+  color: #c22626;
+}
+
+.streak-tile.is-puzzles {
+  background: var(--duo-macaw);
+}
+
+.streak-tile.is-puzzles > span {
+  color: #003a55;
+}
+
+.streak-tile.is-puzzles > b {
+  color: #0b7bb0;
+}
+
+/* ---------- lab strip, for the demo rather than the child ---------- */
+
+.streak-lab {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding: 12px 16px 18px;
+  font: 500 11px/1 var(--mono);
+  color: var(--lab-dim);
+}
+
+.streak-lab-tag {
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.streak-lab button {
+  padding: 5px 9px;
+  border: 1px solid var(--lab-line);
+  border-radius: 7px;
+  background: #fff;
+  font: inherit;
+  color: var(--lab-dim);
+}
+
+.streak-lab button.on {
+  border-color: var(--duo-eel);
+  color: var(--duo-eel);
+}
+
+/* ---------- reduced motion ----------
+   The shell already blunts durations globally. This goes further and removes the looping, ambient
+   things outright, because a shortened flicker is a twitch rather than a calmer flicker. */
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-hero.is-lit .streak-flame,
+  .streak-hero.just-lit,
+  .streak-go::after,
+  .streak-tick {
+    animation: none;
+  }
+
+  .streak-embers {
+    display: none;
+  }
+
+  .streak-tick {
+    opacity: 1;
+    transform: translate(-50%, -14px);
+  }
+
+  .streak-go:active {
+    transform: none;
+  }
+}

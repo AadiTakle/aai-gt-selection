@@ -25,7 +25,7 @@ body{display:flex;background:linear-gradient(145deg,#fcf4ef,#fcf4ef);font:16px/1
 .foldchip.L{background:#e48b53}.foldchip.R{background:#e48b53}.foldchip.T{background:#4a6470}.foldchip.B{background:#9fb6bd}
 .foldchip.D1,.foldchip.D2{background:#e48b53}
 .then{color:#4a6470}
-.punchChip{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#002a3a;color:#ffffff;font-size:18px}
+.punchChip{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#002a3a;color:#f8e8de;font-size:18px}
 #rig{height:230px;width:100%;border-radius:20px;background:linear-gradient(165deg,#003b5c,#002a3a);perspective:820px;display:grid;place-items:center;position:relative;overflow:hidden}
 /* Reference grid on the paper: one line per answer-sheet cell, so a punch sits in a square
    the child can name. Every line is drawn the same, so it says nothing about where the
@@ -36,7 +36,16 @@ body{display:flex;background:linear-gradient(145deg,#fcf4ef,#fcf4ef);font:16px/1
   background-position:0 0}
 #paper{--cell:44px;width:176px;height:176px;border:3px solid var(--edge);border-radius:4px;position:relative;transform:rotateX(52deg) rotateZ(6deg);transform-style:preserve-3d;z-index:2;transition:width .2s,height .2s;box-shadow:0 10px 17px #001117aa}
 #flap{position:absolute;display:none;background-color:#f5ddcd;border:2px solid var(--edge);z-index:4}
-.punchMark{position:absolute;width:22px;height:22px;border-radius:50%;background:#001117;border:4px solid #fcf4ef;box-shadow:0 0 0 3px #001117;opacity:0;z-index:6}
+/* A punched hole is drawn as exactly the mark the child places on the answer
+   sheet — a filled navy square with a cream dot, matching .mcell.on — so the
+   correspondence between the hole they were shown and the squares they must
+   tap is seen rather than inferred. Sized from --cell so it fills its square:
+   at a fixed 22px plus rings it outgrew the square on finer grids and straddled
+   the paper's edge, which is what made a correctly placed hole look misplaced. */
+.punchMark{position:absolute;width:calc(var(--cell) - 2px);height:calc(var(--cell) - 2px);
+  border-radius:3px;background:#002a3a;opacity:0;z-index:6;
+  display:grid;place-items:center;transform:translate(-50%,-50%)}
+.punchMark:after{content:"";width:35%;height:35%;border-radius:50%;background:#f8e8de}
 .punchMark.hit{animation:punch .42s ease-out forwards}
 @keyframes punch{0%{opacity:0;transform:translate(-50%,-50%) scale(1.9)}60%{opacity:1;transform:translate(-50%,-50%) scale(.7)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 #stack{position:absolute;right:14px;bottom:10px;color:#6f4526;font:800 12px ui-monospace,monospace;z-index:8}
@@ -262,6 +271,11 @@ function restRig(c){
   $('#stack').textContent=c.layerCount+'x';
   showPunches(c);
 }
+/* Each flap sweeps toward the viewer, through positive local Z, so the fold is
+   watched rather than inferred from the sheet suddenly being half the size —
+   it used to swing behind the paper, where the sheet itself hid it. Paced so a
+   four-fold sequence stays followable; these are the only two timing knobs. */
+const FOLD_MS=425, FOLD_GAP_MS=100, RESET_PAUSE_MS=380;
 async function playFolds(c,track){
   const token=++playToken,p=$('#paper'),flap=$('#flap'),n=c.grid.n,unit=176/n;
   $$('.punchMark').forEach(e=>e.remove());
@@ -270,6 +284,12 @@ async function playFolds(c,track){
   p.style.setProperty('--cell',unit+'px');
   p.style.width='176px';p.style.height='176px';
   $('#stack').textContent='1x';M.progress=0;renderMeters();
+  /* Let the sheet finish opening before the first crease. The width/height
+     transition runs .2s, and creasing during it read as one muddled motion
+     instead of "here is the whole sheet — now watch it fold", which is the
+     beat the replay button exists to give. */
+  await sleep(RESET_PAUSE_MS);
+  if(token!==playToken)return;
   for(const f of c.folds){
     if(token!==playToken)return;
     flap.style.cssText='';flap.style.display='block';flap.style.zIndex='4';
@@ -278,25 +298,25 @@ async function playFolds(c,track){
       flap.style.top='0';flap.style.width='50%';flap.style.height='100%';
       flap.style.left=f.keep==='right'?'0':'50%';
       flap.style.transformOrigin=f.keep==='right'?'right center':'left center';
-      frames=[{transform:'rotateY(0)'},{transform:`rotateY(${f.keep==='right'?-178:178}deg)`}];
+      frames=[{transform:'rotateY(0)'},{transform:`rotateY(${f.keep==='right'?178:-178}deg)`}];
     }else if(f.axis==='horizontal'){
       flap.style.left='0';flap.style.width='100%';flap.style.height='50%';
       flap.style.top=f.keep==='bottom'?'0':'50%';
       flap.style.transformOrigin=f.keep==='bottom'?'center bottom':'center top';
-      frames=[{transform:'rotateX(0)'},{transform:`rotateX(${f.keep==='bottom'?178:-178}deg)`}];
+      frames=[{transform:'rotateX(0)'},{transform:`rotateX(${f.keep==='bottom'?-178:178}deg)`}];
     }else{
       // Oblique crease: reflect the triangle across the square's diagonal.
       flap.style.left='0';flap.style.top='0';flap.style.width='100%';flap.style.height='100%';
       flap.style.transformOrigin='center center';
       const d1=f.op==='D1';
       flap.style.clipPath=d1?'polygon(0% 0%, 100% 0%, 100% 100%)':'polygon(100% 0%, 100% 100%, 0% 100%)';
-      frames=[{transform:'rotate3d(0,0,1,0deg)'},{transform:d1?'rotate3d(1,1,0,178deg)':'rotate3d(1,-1,0,178deg)'}];
+      frames=[{transform:'rotate3d(0,0,1,0deg)'},{transform:d1?'rotate3d(1,1,0,-178deg)':'rotate3d(1,-1,0,-178deg)'}];
     }
     let done=false;
     try{
-      if(flap.animate){const a=flap.animate(frames,{duration:340,easing:'cubic-bezier(.2,.75,.2,1)',fill:'forwards'});await a.finished;done=true;}
+      if(flap.animate){const a=flap.animate(frames,{duration:FOLD_MS,easing:'cubic-bezier(.2,.75,.2,1)',fill:'forwards'});await a.finished;done=true;}
     }catch(_){/* animation unsupported or interrupted — fall through to the static state */}
-    if(!done)await sleep(120);
+    if(!done)await sleep(FOLD_MS*0.35);
     if(token!==playToken)return;
     flap.style.display='none';
     if(f.axis==='vertical')w=Math.max(14,w/2);
@@ -305,7 +325,7 @@ async function playFolds(c,track){
     if(f.axis==='diagonal')p.style.clipPath=clipFor(f.op);
     layers*=2;$('#stack').textContent=layers+'x';
     M.progress++;renderMeters();
-    await sleep(80);
+    await sleep(FOLD_GAP_MS);
   }
   if(token!==playToken)return;
   showPunches(c);
@@ -386,6 +406,12 @@ function openGate(withTutorial){
   setCue('warmup','Ready when you are');
   setStatus('neutral','Press play when you are ready.');
 }
+/* The play gate is armed as always, then released immediately: this type has no
+   transient stimulus, so arming it buys the child nothing and costs a click.
+   Reading time is separated from thinking time by first-action latency
+   (M-RTFIRST), not by a play press. #play is used rather than the begin
+   function directly because each demo names that function differently. */
+function releaseGate(){const p=document.querySelector('#play');if(p)p.click();}
 function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
 function onInit(item){
   if(!item||!item.content||!item.content.grid||!item.content.folds){log('init ignored: malformed ServedItem');return;}
@@ -405,7 +431,7 @@ async function beginItem(withTutorial){
 function onHostMessage(e){
   const d=e.data;if(!d||d.source!==HOST_SRC)return;
   if(d.type==='init')onInit(d.item);
-  else if(d.type==='start')openGate(!!d.tutorial);
+  else if(d.type==='start'){openGate(!!d.tutorial);releaseGate();}
 }
 
 /* ---------- standalone fallback (QA when there is no host) ---------- */

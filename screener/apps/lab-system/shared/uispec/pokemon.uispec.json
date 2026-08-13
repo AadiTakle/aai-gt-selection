@@ -1,0 +1,112 @@
+{
+  "spec": "gt.uispec/v1",
+  "id": "poketrainer",
+  "title": "Poketrainer Bootcamp",
+  "describes": "Pokémon League bootcamp. Encounters on routes; a correct answer catches the Pokémon.",
+
+  "capabilities": {
+    "methods": ["chooseOne", "chooseMany"],
+    "frames": ["matrix", "series", "compare", "transform", "constraints", "target"],
+    "readingBand": "2-3",
+    "timed": false,
+    "depth": false,
+    "maxCoPresent": 12
+  },
+
+  "channels": {
+    "identity": {
+      "render": "sprite",
+      "ordering": "nominal",
+      "label": "which Pokémon",
+      "values": [
+        "sprigling", "emberling", "dripaw", "voltnip", "stonelet",
+        "gustling", "shadepup", "frostkit", "brambug", "tidefin",
+        "cindermol", "sparkfin"
+      ]
+    },
+    "count": {
+      "render": "repeat",
+      "ordering": "ordered",
+      "of": "pokeball",
+      "label": "how many Poké Balls"
+    },
+    "scale": {
+      "render": "scale",
+      "ordering": "ordered",
+      "from": 28,
+      "to": 76,
+      "unit": "px",
+      "label": "how big it is"
+    },
+    "rotation": {
+      "render": "rotate",
+      "ordering": "cyclic",
+      "modulus": 4,
+      "label": "which way it faces"
+    },
+    "category": {
+      "render": "tint",
+      "ordering": "nominal",
+      "label": "its type",
+      "values": ["#78c850", "#f08030", "#6890f0", "#f8d030", "#b8a038", "#a890f0", "#705898", "#98d8d8"]
+    },
+    "text": {
+      "render": "text",
+      "ordering": "nominal",
+      "style": "speech",
+      "label": "what the Professor says"
+    }
+  },
+
+  "frames": {
+    "matrix": { "as": "badge-case", "placement": "above" },
+    "series": { "as": "route-markers", "placement": "above" },
+    "compare": { "as": "two-grass-patches", "placement": "above" },
+    "transform": { "as": "evolution-machine", "placement": "above" },
+    "constraints": { "as": "pokedex-notes", "placement": "beside" },
+    "target": { "as": "wanted-poster", "placement": "above" }
+  },
+
+  "methods": {
+    "chooseOne": { "as": "throw-ball", "commit": "immediate" },
+    "chooseMany": { "as": "select-team", "commit": "confirm" }
+  },
+
+  "explanations": {
+    "chooseOne": {
+      "how": "Tap the Pokémon you want to throw a ball at.",
+      "nudge": "Pick any one of them. You cannot get this wrong in a way that costs you anything."
+    },
+    "chooseMany": {
+      "how": "Tap every Pokémon that belongs, then confirm your team.",
+      "nudge": "Tap one to add it, tap it again to take it off."
+    },
+    "FLU-MATRIX-01": {
+      "how": "One badge is missing from the case. Work out the pattern across the rows and pick the Pokémon that belongs in the gap.",
+      "walkthrough": [
+        "Look along the top row and see what changes from left to right.",
+        "Check the next row down changes the same way.",
+        "Now find the one that finishes the last row."
+      ]
+    },
+    "QUANT-SERIES-01": {
+      "how": "The route markers count up by a rule. Pick the marker that comes next.",
+      "walkthrough": ["See how much each marker adds to the one before it.", "Add the same amount once more."]
+    },
+    "QUANT-DOTS-01": {
+      "how": "Two patches of grass. Tap the side with more Pokémon in it."
+    },
+    "FLU-DEDUCE-01": {
+      "how": "Every note in your Pokédex is true about the one you want. Only one of these fits all of them."
+    }
+  },
+
+  "theme": {
+    "--pkd-red": "#e3350d",
+    "--pkd-red-dark": "#b32a0a",
+    "--pkd-cream": "#fffdf3",
+    "--pkd-grass": "#5d9c3c",
+    "--pkd-ink": "#2a2a30",
+    "--pkd-panel": "#f2f2f2"
+  }
+}

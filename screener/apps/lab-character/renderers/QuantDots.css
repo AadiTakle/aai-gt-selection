@@ -1,0 +1,289 @@
+/* QUANT-DOTS-01. Prefixed `qd-`.
+
+   Two motions matter here and they are different in kind. The shutter travel is decoration and is
+   removed under prefers-reduced-motion. The exposure is the measurement and is set in JS from the
+   item's own `exposureMs`, so no rule in this file can shorten it. */
+
+.qd {
+  --qd-ease: var(--ease, cubic-bezier(0.22, 1, 0.36, 1));
+  --qd-line: var(--line, rgb(22 24 29 / 0.1));
+  --qd-ink: var(--ink, #16181d);
+  --qd-soft: var(--ink-soft, #4b515c);
+  --qd-target: 84px;
+  --qd-gap: clamp(0.75rem, 3vw, 1.5rem);
+  --qd-shutter: #5b6b7a;
+  --qd-shutter-ms: 380ms;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1rem, 3.5vh, 1.75rem);
+  padding: clamp(1rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem);
+}
+
+.qd[data-band='K-1'] {
+  --qd-target: 112px;
+}
+
+/* Reserved height, because the caption changes with the phase and the fields must not move. */
+.qd-prompt {
+  margin: 0;
+  min-height: 2.8em;
+  max-width: 26ch;
+  text-align: center;
+  font-size: clamp(1.05rem, 2.6vw, 1.4rem);
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  color: var(--qd-ink);
+}
+
+/* ---- the two windows ------------------------------------------------------ */
+
+.qd-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--qd-gap);
+  width: 100%;
+  /* Two nominal 240px fields plus the gap: past that the dots gain nothing by being bigger. */
+  max-width: calc(480px + var(--qd-gap));
+}
+
+.qd-window {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #fff, color-mix(in srgb, var(--qd-shutter) 6%, #fff));
+  box-shadow: inset 0 0 0 1px var(--qd-line);
+}
+
+/* The field. Each mark is placed at the item's own coordinates as a percentage of this box, so the
+   scatter the generator built is reproduced exactly and nothing here can nudge a dot. */
+.qd-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* One mark. `left`/`top`/`width` come from the item; the box is the diameter it asked for and the
+   translate puts the mark's centre on the stated point rather than its corner. */
+.qd-dot {
+  position: absolute;
+  display: block;
+  transform: translate(-50%, -50%);
+}
+
+.qd-dot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Closed by default: down over the window. Opening slides it up and out of the way. */
+.qd-shutter {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  transform: translate3d(0, 0, 0);
+  transition: transform var(--qd-shutter-ms) var(--qd-ease);
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--qd-shutter) 12%, #fff) 0 14px,
+      color-mix(in srgb, var(--qd-shutter) 18%, #fff) 14px 28px
+    );
+}
+
+/* A pull bar, so a closed window looks closed rather than blank. */
+.qd-shutter::after {
+  content: '';
+  position: absolute;
+  bottom: 10%;
+  left: 50%;
+  width: 26%;
+  height: 5px;
+  transform: translateX(-50%);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--qd-shutter) 40%, #fff);
+}
+
+.qd-shutter[data-open='true'] {
+  transform: translate3d(0, -101%, 0);
+}
+
+/* ---- footer well: ready gate, then the two sides -------------------------- */
+
+.qd-foot {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: calc(480px + var(--qd-gap));
+  min-height: var(--qd-target);
+}
+
+.qd-start {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  min-height: var(--qd-target);
+  padding: 0 clamp(1.5rem, 6vw, 3rem);
+  border-radius: 999px;
+  background: var(--qd-ink);
+  color: #fff;
+  font-size: clamp(1rem, 2.4vw, 1.2rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition:
+    transform 240ms var(--qd-ease),
+    box-shadow 240ms var(--qd-ease);
+  animation: qd-rise 460ms var(--qd-ease) both;
+}
+
+.qd-start:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 20px 36px -24px rgb(22 24 29 / 0.8);
+}
+
+.qd-start:active {
+  transform: scale(0.97);
+  transition-duration: 90ms;
+}
+
+.qd-start:focus-visible {
+  outline: 3px solid #3d7068;
+  outline-offset: 4px;
+}
+
+/* The sides line up with the windows above them: the position is the meaning. */
+.qd-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--qd-gap);
+  width: 100%;
+}
+
+.qd-choice {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: var(--qd-target);
+  padding: clamp(0.6rem, 2vw, 1rem);
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--qd-line);
+  transition:
+    transform 240ms var(--qd-ease),
+    opacity 260ms var(--qd-ease),
+    box-shadow 240ms var(--qd-ease);
+  animation: qd-rise 420ms var(--qd-ease) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.qd-choice-mark {
+  display: block;
+  width: clamp(20px, 4vw, 28px);
+}
+
+.qd-choice-mark svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.qd-choice-word {
+  font-size: clamp(0.95rem, 2.2vw, 1.1rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--qd-ink);
+}
+
+.qd-choice:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 18px 34px -26px rgb(22 24 29 / 0.55);
+}
+
+.qd-choice:active {
+  transform: scale(0.98);
+  transition-duration: 90ms;
+}
+
+.qd-choice:focus-visible {
+  outline: 3px solid #3d7068;
+  outline-offset: 4px;
+}
+
+/* Chosen. The item is scored somewhere else and nothing here knows the outcome. */
+.qd-choice[data-chosen='true'] {
+  transform: scale(1.02);
+  box-shadow: inset 0 0 0 3px rgb(22 24 29 / 0.82);
+}
+
+.qd-choice[data-chosen='false'] {
+  opacity: 0.34;
+}
+
+.qd[data-settled='true'] .qd-choice {
+  cursor: default;
+}
+
+.qd[data-settled='true'] .qd-choice:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.qd[data-settled='true'] .qd-choice[data-chosen='true']:hover {
+  transform: scale(1.02);
+  box-shadow: inset 0 0 0 3px rgb(22 24 29 / 0.82);
+}
+
+.qd-said {
+  margin: 0;
+  min-height: 1.4em;
+  max-width: 34ch;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--qd-soft);
+}
+
+/* ---- keyframes ----------------------------------------------------------- */
+
+@keyframes qd-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qd-start,
+  .qd-choice {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  /* The shutter still travels the same distance, it just does it at once. The component sets
+     --qd-shutter-ms to 0ms in this case, so the exposure keeps its full length. */
+  .qd-shutter {
+    transition: none !important;
+  }
+
+  .qd-choice[data-chosen='false'] {
+    opacity: 0.34;
+  }
+}
