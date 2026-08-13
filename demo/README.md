@@ -9,7 +9,7 @@ question library live rather than from a file that can go stale.
 | **Question-type review** | <https://d284xy6sbvs9mb.cloudfront.net> | S3 + CloudFront | Yes — types, spectra and served items |
 | **CogAT prep site** | <https://scunwsuf4i.us-east-1.awsapprunner.com/about-the-test> | App Runner (container) | No — it is an explainer, not a screener |
 | **Bramblebrook game** | <https://d14xlnxxtsczg9.cloudfront.net> | S3 + CloudFront | Yes — serving and scoring |
-| GT screener (example assessment) | not deployed | — | pending |
+| **GT screener (example assessment)** | <https://kt49a2xvq5.us-east-1.awsapprunner.com/demo/exam?telemetry=1> | App Runner (container) | No — still its own engine |
 
 The platform behind them all: `https://0yz8m5z48k.execute-api.us-east-1.amazonaws.com`, account
 `056956104102`, region `us-east-1`.
@@ -20,7 +20,7 @@ The platform behind them all: `https://0yz8m5z48k.execute-api.us-east-1.amazonaw
 | --- | --- |
 | `platform-dashboard/` | The backend dashboard. Static page; infrastructure from a deploy-time snapshot, library data fetched live. |
 | `question-type-review/` | The 36-type review UI, moved here from `archive/research/exam-question-types`. |
-| `gt-screener/` | A pointer. The app is a Next.js workspace package and cannot be relocated without breaking the monorepo. |
+| `gt-screener/` | A pointer. The app is a Next.js workspace package and cannot be relocated without breaking the monorepo. Deployed. |
 | `cogat-prep/` | A pointer. The app lives on a different branch. |
 
 ## Why two of them are pointers rather than folders

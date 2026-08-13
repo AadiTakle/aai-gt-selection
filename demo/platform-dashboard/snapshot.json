@@ -200,6 +200,12 @@
    "connected": false
   },
   {
+   "name": "GT screener (example assessment)",
+   "url": "https://kt49a2xvq5.us-east-1.awsapprunner.com/demo/exam?telemetry=1",
+   "host": "App Runner",
+   "connected": false
+  },
+  {
    "name": "Bramblebrook game",
    "url": "https://d14xlnxxtsczg9.cloudfront.net",
    "host": "S3 + CloudFront",

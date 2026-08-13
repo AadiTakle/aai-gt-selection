@@ -3,9 +3,9 @@
 **Source:** `archive/apps/web` in this repository. A Next.js workspace package; moving it here would
 break its build paths and workspace membership, so only this pointer lives in `demo/`.
 
-**Deployed:** not yet.
+**Deployed:** <https://kt49a2xvq5.us-east-1.awsapprunner.com/demo/exam?telemetry=1>
 
-## Why not yet
+## What it runs, and what it does not
 
 It is registered on the platform — app `app-b157b58d-32ec-4349-81e5-3036f981bb4f`, approved for all
 36 servable types, which is every type it can draw (it ships 52 HTML demo renderers, and all 36 are
