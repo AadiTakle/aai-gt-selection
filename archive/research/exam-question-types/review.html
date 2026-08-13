@@ -554,21 +554,28 @@ function importReview(file){
 }
 
 /**
- * The list of types is the platform's, live; the prose about each type is local.
+ * The list is what this app is APPROVED to serve, live; the prose about each type is local.
  *
- * Merging in this direction is the whole point. The static file had 66 entries and the deployed
- * library has 53 types, and the two sets are not nested: four types with real banks were missing from
- * the file entirely. Driving the list from the platform means a type that exists cannot be invisible
- * here, and a type that no longer exists is marked rather than silently reviewed.
+ * ══ WHY APPROVAL IS THE FILTER ════════════════════════════════════════════════════════════════════
+ *
+ * A reviewer's time is the scarce thing, and the old list wasted it in two directions at once. It
+ * carried 17 types that exist only as a design spec, with no bank in the library at all, and the
+ * library carried 17 more that have items but nothing SCORABLE — the page could draw them and could
+ * never serve a question from one. Both kinds look identical to a reviewer until they click and get
+ * nothing. Meanwhile four types with real banks were missing from the file entirely.
+ *
+ * So the list is neither file. It is `approvedForThisApp` from the platform, which the review app's
+ * own registration defines: 36 types that have scorable items and a demo to draw them in. Changing
+ * what a reviewer sees is then an approval change on the platform, not an edit here — which is the
+ * whole point of an app having its own supported-type list.
  */
 async function loadTypes(){
   const spec=await fetch('review-data.json',{cache:'no-store'}).then(r=>r.json());
   const bySpec=new Map(spec.map(s=>[s.type_id,s]));
   const live=await PlatformClient.types();
-  const seen=new Set();
+  const usable=live.filter(t=>t.approvedForThisApp && (t.scorableCount??0)>0);
 
-  const merged=live.map(t=>{
-    seen.add(t.typeCode);
+  const merged=usable.map(t=>{
     const s=bySpec.get(t.typeCode);
     return {
       ...(s ?? {
@@ -584,25 +591,18 @@ async function loadTypes(){
       platform:t,
     };
   });
-
-  // Specced but absent from the library: still reviewable as a design, not servable.
-  for(const s of spec){
-    if(seen.has(s.type_id)) continue;
-    merged.push({...s, onPlatform:false, hasSpec:true, platform:null});
-  }
   merged.sort((a,b)=>a.domain.localeCompare(b.domain)||a.type_id.localeCompare(b.type_id));
+  merged._hidden=live.length-usable.length;
   return merged;
 }
 
 loadTypes().then(data=>{
   DATA=data;
-  const onPlat=DATA.filter(d=>d.onPlatform).length;
-  const noSpec=DATA.filter(d=>d.onPlatform&&!d.hasSpec).length;
-  const gone=DATA.length-onPlat;
+  const noSpec=DATA.filter(d=>!d.hasSpec).length;
   const sub=document.getElementById('liveNote');
-  if(sub) sub.textContent=`${onPlat} live from the platform`+
+  if(sub) sub.textContent=`${DATA.length} servable types, live from the library`+
     (noSpec?` · ${noSpec} with no design spec on file`:'')+
-    (gone?` · ${gone} specced but not in the library`:'');
+    (DATA._hidden?` · ${DATA._hidden} with nothing scorable are hidden`:'');
   const domSel=document.getElementById('fDomain');
   [...new Set(DATA.map(d=>d.domain))].sort().forEach(dm=>{
     const o=document.createElement('option'); o.value=dm; o.textContent=dm; domSel.appendChild(o);
