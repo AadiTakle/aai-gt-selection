@@ -40,6 +40,8 @@ export default defineConfig({
   plugins: [react(), sanctuaryPlugin()],
   resolve: {
     alias: {
+      // Subpath first: the barrel pulls in `@gt/item-library`, which this app has no alias for.
+      '@gt/engine/irf': r('./packages/engine/src/irf.ts'),
       '@gt/engine': r('./packages/engine/src/index.ts'),
       '@gt/qbank': r('./packages/qbank/src/index.ts'),
       '@gt/contracts': r('./packages/contracts/src/index.ts'),

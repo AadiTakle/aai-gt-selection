@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { demoAnswer, demoCreateSession, demoNext } from './demoSession';
 import type { Battery } from './batteries';
 import type { OptionRef, Serve, SortieState } from './types';
 
@@ -76,6 +77,46 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data as { error?: string }).error ?? res.statusText);
   return data as T;
+}
+
+/**
+ * `?demo=1`: run the whole session on the page, and touch nothing deployed.
+ *
+ * ══ WHY A URL PARAMETER ═══════════════════════════════════════════════════════════════════════════
+ *
+ * A demo has to be decidable by whoever is about to give it, on a machine they may not have configured, seconds
+ * before they present. A build flag cannot do that — it would mean two deployments and the risk of showing the
+ * wrong one. A link can.
+ *
+ * Read ONCE at module load rather than per call, so the mode cannot change halfway through a session and leave
+ * half a trace on the platform and half in memory.
+ *
+ * ══ WHAT "ISOLATED" MEANS HERE, PRECISELY ═════════════════════════════════════════════════════════
+ *
+ * In demo mode this module makes no request to the platform at all: no session is created, no answer is posted,
+ * no api key is sent, and nothing is written anywhere that outlives the tab. The only network access on that
+ * path is `demoSession`'s fetch of its own static asset from the origin the page was served from. So a demo
+ * cannot create a persona, cannot contaminate exposure counts, cannot appear in anybody's outreach queue, and
+ * cannot be affected by the platform being down, misconfigured, or absent.
+ *
+ * The cost, stated once here and again in `demoSession`: the answer keys are in that asset, because scoring
+ * locally requires them locally. Demo mode shows the instrument to adults. It does not measure children.
+ */
+const DEMO = (() => {
+  try {
+    if (typeof window === 'undefined') return false;
+    const flag = new URLSearchParams(window.location.search).get('demo');
+    return flag === '1' || flag === 'true';
+  } catch {
+    // A window without a parsable location is not a demo. Failing closed means falling back to the platform,
+    // which is the path that is actually configured and monitored.
+    return false;
+  }
+})();
+
+/** Whether this page is running the isolated demo rather than talking to the platform. */
+export function isDemo(): boolean {
+  return DEMO;
 }
 
 /**
@@ -200,9 +241,11 @@ export function useSortie(opts: {
   }, []);
 
   const loadNext = useCallback(async (sid: string) => {
-    const next = await api<{ done: boolean; state: SortieState } & Partial<Serve>>(
-      `/api/bank/sessions/${sid}/next`,
-    );
+    const next = DEMO
+      ? ((await demoNext(sid)) as { done: boolean; state: SortieState } & Partial<Serve>)
+      : await api<{ done: boolean; state: SortieState } & Partial<Serve>>(
+          `/api/bank/sessions/${sid}/next`,
+        );
     if (!alive.current) return;
     setState(next.state);
     // Nothing to close: the session outlives the burst, so a keeper walking away leaves it open for the
@@ -235,10 +278,12 @@ export function useSortie(opts: {
        * is approved to serve — an unapproved code is refused rather than quietly dropped, so a typo cannot
        * shrink a child's pool unnoticed.
        */
-      const res = await api<{ sessionId: string; state: SortieState }>('/api/bank/sessions', {
-        types,
-        ...(keeperId ? { personaId: keeperId } : {}),
-      });
+      const res = DEMO
+        ? await demoCreateSession({ personaId: keeperId, types })
+        : await api<{ sessionId: string; state: SortieState }>('/api/bank/sessions', {
+            types,
+            ...(keeperId ? { personaId: keeperId } : {}),
+          });
       if (!alive.current) return;
       id.current = res.sessionId;
       setSessionId(res.sessionId);
@@ -260,13 +305,16 @@ export function useSortie(opts: {
       busy.current = true;
       setPhase('settling');
       try {
-        const raw = await api<Record<string, unknown>>(`/api/bank/sessions/${sid}/answer`, {
-          // Both paths, because scoreResponse marks a numeric key against selectedIndex and a string
-          // key against key, and the two never meet. Sending one loses a whole family of types.
-          response: { key: option.key, selectedKey: option.key, selectedIndex: option.index },
-          latencyMs: Date.now() - shownAt.current,
-          ...(flags && flags.length > 0 ? { flags } : {}),
-        });
+        // Both paths, because scoreResponse marks a numeric key against selectedIndex and a string key
+        // against key, and the two never meet. Sending one loses a whole family of types.
+        const response = { key: option.key, selectedKey: option.key, selectedIndex: option.index };
+        const raw = DEMO
+          ? ((await demoAnswer(sid, response)) as unknown as Record<string, unknown>)
+          : await api<Record<string, unknown>>(`/api/bank/sessions/${sid}/answer`, {
+              response,
+              latencyMs: Date.now() - shownAt.current,
+              ...(flags && flags.length > 0 ? { flags } : {}),
+            });
         if (!alive.current) return;
 
         /**

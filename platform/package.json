@@ -27,6 +27,7 @@
     "measure:live": "tsx scripts/measure-live-path.ts",
     "measure:live": "tsx scripts/measure-live-path.ts",
     "measure:bramblebrook": "tsx scripts/measure-bramblebrook.ts",
+    "build:demo-bank": "tsx scripts/build-demo-bank.ts",
     "seed:bramblebrook": "tsx scripts/seed-bramblebrook.ts",
     "dev:local": "tsx local/src/dev-server.ts"
   },
