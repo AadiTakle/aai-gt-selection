@@ -116,3 +116,63 @@ describe('demo mode measures like the real thing', () => {
     expect(JSON.stringify(next)).not.toContain('correctKey');
   });
 });
+
+describe('the demo starts easy and follows the player', () => {
+  const toBank = (logits: number) => logits * 3 + 10.5;
+
+  it('opens well below the gifted cut', async () => {
+    /**
+     * The complaint that prompted this: the first question used to be aimed at the 95th percentile, bank
+     * difficulty 15.4 of 20, before the demo knew anything about the player. An over-easy start costs a couple of
+     * items of information; an over-hard one costs the player.
+     */
+    const { sessionId } = await demoCreateSession({ personaId: 'easy-start' });
+    const first = await demoNext(sessionId);
+    const difficulty = first.difficulty as number;
+    expect(difficulty).toBeLessThan(toBank(0));
+    expect(difficulty).toBeLessThan(toBank(DEMO_THRESHOLD));
+  });
+
+  it('gets harder for a player who keeps answering correctly', async () => {
+    const bank = JSON.parse(readFileSync(BANK, 'utf8')) as {
+      items: { itemId: string; correctKey: string | number }[];
+    };
+    const keyOf = new Map(bank.items.map((i) => [i.itemId, i.correctKey]));
+    const { sessionId } = await demoCreateSession({ personaId: 'climber' });
+
+    const seen: number[] = [];
+    for (let i = 0; i < 10; i += 1) {
+      const next = await demoNext(sessionId);
+      if (next.done === true) break;
+      seen.push(next.difficulty as number);
+      const key = keyOf.get((next.served as { itemId: string }).itemId);
+      await demoAnswer(
+        sessionId,
+        typeof key === 'number' ? { selectedIndex: key } : { key: String(key), selectedKey: String(key) },
+      );
+    }
+    // Adaptive means the last questions are harder than the first, not that every step rises.
+    const first = seen.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
+    const last = seen.slice(-3).reduce((a, b) => a + b, 0) / 3;
+    expect(last).toBeGreaterThan(first);
+  });
+
+  it('never aims past what the bank can serve', async () => {
+    const bank = JSON.parse(readFileSync(BANK, 'utf8')) as {
+      items: { itemId: string; correctKey: string | number }[];
+    };
+    const keyOf = new Map(bank.items.map((i) => [i.itemId, i.correctKey]));
+    const { sessionId } = await demoCreateSession({ personaId: 'ceiling' });
+    for (let i = 0; i < 20; i += 1) {
+      const next = await demoNext(sessionId);
+      if (next.done === true) break;
+      // The ceiling is 3 logits, which is bank 19.5, and the bank itself stops at 20.
+      expect(next.difficulty as number).toBeLessThanOrEqual(20);
+      const key = keyOf.get((next.served as { itemId: string }).itemId);
+      await demoAnswer(
+        sessionId,
+        typeof key === 'number' ? { selectedIndex: key } : { key: String(key), selectedKey: String(key) },
+      );
+    }
+  });
+});

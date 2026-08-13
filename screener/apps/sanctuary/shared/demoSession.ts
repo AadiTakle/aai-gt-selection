@@ -68,13 +68,51 @@ async function bank(): Promise<readonly DemoItem[]> {
 }
 
 /**
- * The threshold the demo aims at, matching `CRITERIA_V1` on the platform.
+ * The bar the demo DECIDES against, matching `CRITERIA_V1` on the platform.
  *
- * Hardcoded rather than fetched, because fetching it would be a network call and because a demo that aimed
- * somewhere else would demonstrate the wrong instrument. If the platform's bar moves, this has to move with it —
- * a test asserts the two agree.
+ * Hardcoded rather than fetched, because fetching it would be a network call and because a demo that judged
+ * against a different bar would demonstrate the wrong instrument. If the platform's bar moves, this moves with
+ * it — a test asserts the two agree.
+ *
+ * This is NOT where questions are aimed. See `steer`.
  */
 export const DEMO_THRESHOLD = 1.645;
+
+/**
+ * Where questions are AIMED, which is a different question from where the decision is made.
+ *
+ * The demo used to select at `DEMO_THRESHOLD`, which meant the very first question a visitor met was pitched at
+ * the 95th percentile — bank difficulty 15.4 of 20 — and stayed there however they did. Two things wrong with
+ * that. It is punishing: an adult demonstrating this got a run of items designed so that a gifted child would
+ * miss a third of them. And it demonstrates the wrong thing: an adaptive instrument that never adapts looks like
+ * a quiz.
+ *
+ * These numbers are Tiffany's, recovered from the steering the dev plugin used to do, and her reasoning holds:
+ *
+ *   "Deliberately below centre. Starting at 0 and walking DOWN means a young child's first contact with the
+ *    game is a run of items too hard for them, which is the single worst first impression this can make. An
+ *    over-easy start costs a couple of items of information; an over-hard one costs the child."
+ *
+ * The bank's authoring scale converts as `bank = logits * 3 + 10.5`, so a start of -1.5 is bank difficulty 6 and
+ * the ceiling of 3 is 19.5 — which is what "they only went up to about 20" was describing.
+ *
+ * The real screener deliberately does NOT do this: it aims every question at the cut, because that is where
+ * evidence about the cut comes from and it is measuring, not entertaining. A demo is entertaining.
+ */
+const STEER_START = -1.5;
+const STEER_MIN = -3;
+const STEER_MAX = 3;
+
+/**
+ * How much of the new estimate to take each time.
+ *
+ * Tiffany's again, and for the reason she gives: jumping the whole way to a three-item posterior swings
+ * difficulty on what is mostly noise, and one lucky guess should not put a child at the ceiling. Two-thirds
+ * moves visibly within a visit while still taking several answers to travel a long way.
+ */
+const STEER_LEARN = 0.66;
+
+const clampSteer = (x: number): number => Math.max(STEER_MIN, Math.min(STEER_MAX, x));
 
 /** How long a demo session runs before it declares a verdict, matching the app's registered budget. */
 export const DEMO_MIN_ITEMS = 12;
@@ -111,6 +149,8 @@ interface Answered {
 export interface DemoSession {
   readonly sessionId: string;
   posterior: number[];
+  /** Where the NEXT question is aimed, in logits. Starts below centre and follows the estimate. */
+  steer: number;
   readonly answered: Answered[];
   readonly served: Set<string>;
   pending: DemoItem | null;
@@ -197,6 +237,7 @@ export async function demoCreateSession(input: {
   const session: DemoSession = {
     sessionId: key,
     posterior: normalPrior(),
+    steer: STEER_START,
     answered: [],
     served: new Set(),
     pending: null,
@@ -225,7 +266,7 @@ export async function demoNext(
     return { done: true, state };
   }
   if (session.pending) {
-    return { done: false, state, ...wire(session.pending) };
+    return { done: false, state, ...wire(session.pending, session.steer) };
   }
 
   const all = await bank();
@@ -238,14 +279,14 @@ export async function demoNext(
 
   const ranked = [...eligible].sort(
     (x, y) =>
-      information(DEMO_THRESHOLD, { a: y.a, b: y.b, c: y.c }) -
-      information(DEMO_THRESHOLD, { a: x.a, b: x.b, c: x.c }),
+      information(session.steer, { a: y.a, b: y.b, c: y.c }) -
+      information(session.steer, { a: x.a, b: x.b, c: x.c }),
   );
   const top = ranked.slice(0, Math.min(6, ranked.length));
   const chosen = top[Math.floor(Math.random() * top.length)] as DemoItem;
   session.pending = chosen;
   session.served.add(chosen.itemId);
-  return { done: false, state, ...wire(chosen) };
+  return { done: false, state, ...wire(chosen, session.steer) };
 }
 
 /**
@@ -255,13 +296,13 @@ export async function demoNext(
  * should never be able to read it off the payload it was handed — the platform guarantees that by never sending
  * it, and this keeps the same guarantee on this path so no presentation can come to depend on it being there.
  */
-function wire(item: DemoItem): Record<string, unknown> {
+function wire(item: DemoItem, steer: number): Record<string, unknown> {
   return {
     served: { itemId: item.itemId, revision: 1, content: item.content },
     typeCode: item.typeCode,
     domain: item.domain,
     difficulty: item.difficulty,
-    informationAtThreshold: information(DEMO_THRESHOLD, { a: item.a, b: item.b, c: item.c }),
+    informationAtThreshold: information(steer, { a: item.a, b: item.b, c: item.c }),
     selectionReason: 'demo',
   };
 }
@@ -300,6 +341,15 @@ export async function demoAnswer(
   };
   session.answered.push(entry);
   session.posterior = update(session.posterior, entry);
+  /**
+   * Follow the estimate, damped, and clamped to what the bank can actually serve.
+   *
+   * Damped so a single lucky answer does not jump to the ceiling; clamped because beyond +-3 logits the bank has
+   * nothing left and steering further would aim at items that do not exist.
+   */
+  session.steer = clampSteer(
+    session.steer + (mean(session.posterior) - session.steer) * STEER_LEARN,
+  );
   return { correct, state: stateOf(session) };
 }
 
