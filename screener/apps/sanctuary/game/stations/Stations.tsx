@@ -1,4 +1,4 @@
-import { useFrame, useThree, type ComputeFunction } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type JSX } from 'react';
 import { Raycaster, Vector2, Vector3, type Group } from 'three';
 
@@ -13,6 +13,9 @@ import { PressBadge, Reticle, StandMark, Wisp } from './Beacon';
 import { Bay, CoatWallBase, DayLogBase, Emblem, Lanterns, TideLedgeBase } from './carpentry';
 import { Cradle, hatchTiming } from './Cradle';
 import { SITES, dockPoint, facingOf, fitScale, siteFor } from './sites';
+
+/** The crosshair, in NDC. Aiming is owned by `world/crosshair.tsx`; this is for the reticle swell. */
+const CENTRE = new Vector2(0, 0);
 
 export { STATION_SOLIDS } from './sites';
 
@@ -75,7 +78,6 @@ const REACH = 6.8;
 /** How far off dead-centre the keeper may be looking and still be offered the station. ~56°. */
 const FACING_DOT = 0.56;
 /** Screen centre, in normalised device coordinates. The crosshair, and the only pointer this file uses. */
-const CENTRE = new Vector2(0, 0);
 
 /**
  * The in-world presentation per item type.
@@ -118,8 +120,6 @@ export function Stations({
   const reduced = usePrefersReducedMotion();
   const camera = useThree((s) => s.camera);
   const gl = useThree((s) => s.gl);
-  const setEvents = useThree((s) => s.setEvents);
-  const events = useThree((s) => s.events);
 
   /** Which station is in range and roughly faced. Changes rarely, so it is state rather than a ref. */
   const [near, setNear] = useState<string | null>(null);
@@ -211,26 +211,14 @@ export function Stations({
    *
    * Restored on leaving, and on unmount, because the rest of the app picks with a real cursor.
    */
-  const original = useRef<ComputeFunction | undefined>(undefined);
-  const captured = useRef(false);
-  if (!captured.current) {
-    original.current = events.compute;
-    captured.current = true;
-  }
-
-  const crosshair = useCallback<ComputeFunction>((_event, state) => {
-    state.pointer.set(0, 0);
-    state.raycaster.setFromCamera(CENTRE, state.camera);
-  }, []);
-
-  useEffect(() => {
-    const restore = original.current;
-    if (engaged) setEvents({ compute: crosshair });
-    else if (restore) setEvents({ compute: restore });
-    return () => {
-      if (restore) setEvents({ compute: restore });
-    };
-  }, [engaged, setEvents, crosshair]);
+  /*
+   * Aiming by looking is owned by `world/crosshair.tsx`, mounted once by `Game.tsx`.
+   *
+   * This file used to swap R3F's pointer `compute` itself, and so did the shop and the tutorial board.
+   * `compute` is a single global, so three owners meant one of them restoring the default while another
+   * was still engaged — after which every click resolved at the frozen cursor position rather than at the
+   * crosshair. See that file for the full account.
+   */
 
   /** Is the crosshair on something choosable? The presentations' hit volumes are invisible but solid to
    *  a raycast, which is what lets this be asked without knowing anything about their internals. */

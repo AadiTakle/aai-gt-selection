@@ -1,4 +1,4 @@
-import { useFrame, useThree, type ComputeFunction } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react';
 import {
   Color,
@@ -693,8 +693,6 @@ export function Shop({
 }): JSX.Element {
   const reduced = usePrefersReducedMotion();
   const camera = useThree((s) => s.camera);
-  const setEvents = useThree((s) => s.setEvents);
-  const events = useThree((s) => s.events);
   const { coins, spend } = useCoins();
 
   /** In range and roughly faced. Changes rarely, so state rather than a ref. */
@@ -782,26 +780,14 @@ export function Shop({
    * The stations swap the same function for the same reason, and the two can never be engaged at once —
    * `Game.tsx` owns both flags — so there is no contest over it. Restored on leaving and on unmount.
    */
-  const original = useRef<ComputeFunction | undefined>(undefined);
-  const captured = useRef(false);
-  if (!captured.current) {
-    original.current = events.compute;
-    captured.current = true;
-  }
-
-  const crosshair = useCallback<ComputeFunction>((_event, state) => {
-    state.pointer.set(0, 0);
-    state.raycaster.setFromCamera(CENTRE, state.camera);
-  }, []);
-
-  useEffect(() => {
-    const restore = original.current;
-    if (engaged) setEvents({ compute: crosshair });
-    else if (restore) setEvents({ compute: restore });
-    return () => {
-      if (restore) setEvents({ compute: restore });
-    };
-  }, [engaged, setEvents, crosshair]);
+  /*
+   * Aiming by looking is owned by `world/crosshair.tsx`, mounted once by `Game.tsx`.
+   *
+   * This file used to swap R3F's pointer `compute` itself, and so did the shop and the tutorial board.
+   * `compute` is a single global, so three owners meant one of them restoring the default while another
+   * was still engaged — after which every click resolved at the frozen cursor position rather than at the
+   * crosshair. See that file for the full account.
+   */
 
   /**
    * What the crosshair is on.

@@ -6,6 +6,7 @@ import { toRef } from '../shared/ItemStage';
 import { VERBS, typesFor, verbFor, type Battery } from '../shared/batteries';
 import { canShowWords, readingBand, useSortie } from '../shared/useSortie';
 import { FAMILIES, LS_KEEPER, type Family } from './contract';
+import { CrosshairAiming } from './world/crosshair';
 import { usePrefersReducedMotion } from './world/motion';
 import { PodWall } from './screener/PodWall';
 import { TideLine } from './screener/TideLine';
@@ -738,6 +739,15 @@ export function Game() {
             putSlime(family, position);
           }}
         />
+        {/*
+          * ONE owner of R3F's pointer `compute`, for every surface that aims by looking.
+          *
+          * Stations, the shop and the tutorial board each used to swap it themselves. `compute` is a single
+          * global, so whichever of them ran a cleanup last won — and if that happened while a station was
+          * engaged, the default compute came back and every click resolved at the frozen cursor position under
+          * pointer lock. The condition below is the OR of every surface that aims with the camera.
+          */}
+        <CrosshairAiming active={!!engaged || shopOpen || boardEngaged} />
         <Stations
           engaged={engaged}
           live={live}
