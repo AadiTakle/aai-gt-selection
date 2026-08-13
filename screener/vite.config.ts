@@ -11,6 +11,7 @@ export default defineConfig({
     alias: {
       '@gt/contracts': r('./packages/contracts/src/index.ts'),
       '@gt/item-library': r('./packages/item-library/src/index.ts'),
+      '@gt/engine/irf': r('./packages/engine/src/irf.ts'),
       '@gt/engine': r('./packages/engine/src/index.ts'),
       '@gt/stats': r('./packages/stats/src/index.ts'),
       '@gt/practice': r('./packages/practice/src/index.ts'),

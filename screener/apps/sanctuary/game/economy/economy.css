@@ -1,0 +1,177 @@
+/* The purse and the flying coins. The flat layer only; the stall itself is 3D.
+   Warm, rounded, bubbly, perpetual golden hour — same vocabulary as game.css, no grey, nothing sharp. */
+
+/* ── the purse ─────────────────────────────────────────────────────────────────────────────────
+   Fixed to the TOP LEFT on purpose, and it is the only corner that is genuinely free: game.css puts
+   .bh-hud along the bottom and .bh-beat-slim across the top centre, so anywhere else the purse would sit
+   on top of something. Position: fixed rather than in flow, so the indicator is in the same place on
+   screen however Game.tsx chooses to mount it — which is what lets a flying coin aim at it. */
+.ec-purse {
+  position: fixed;
+  top: 1.1rem;
+  left: 1.1rem;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 1rem 0.45rem 0.5rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.86);
+  box-shadow: 0 6px 0 rgb(120 90 55 / 0.24);
+  font-family: ui-rounded, 'Nunito', 'Quicksand', ui-sans-serif, system-ui, sans-serif;
+  pointer-events: none;
+  transform: scale(1);
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* A coin arrived. One soft bounce, and the coin glyph flashes. Nothing else in the app pops, so this
+   reads unmistakably as "that went in". */
+.ec-purse.is-plink {
+  transform: scale(1.14);
+}
+
+.ec-purse-count {
+  margin: 0;
+  min-width: 1.4ch;
+  color: #5a4326;
+  font-weight: 800;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ── the coin glyph ────────────────────────────────────────────────────────────────────────────
+   The same picture as the brass disc on the stall: a fat round, a raised rim, a star in the middle.
+   Drawn in CSS rather than as an image because this app ships no image files, and because it has to
+   stay crisp at the 2.1rem the purse uses and the 1.6rem a flying coin uses. */
+.ec-coin {
+  position: relative;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #ffe9ae 0%, #f0c65e 42%, #d99f36 78%, #b87f26 100%);
+  box-shadow:
+    inset 0 0 0 0.18rem rgb(255 240 200 / 0.75),
+    inset 0 -0.12rem 0.2rem rgb(150 100 30 / 0.4);
+}
+
+.ec-coin::after {
+  content: '';
+  position: absolute;
+  inset: 28%;
+  background: #b8842c;
+  opacity: 0.72;
+  /* A five-pointed star, the same five pips pressed into the 3D coin's face. */
+  clip-path: polygon(50% 0%, 62% 36%, 100% 37%, 69% 60%, 80% 98%, 50% 74%, 20% 98%, 31% 60%, 0% 37%, 38% 36%);
+}
+
+.ec-purse.is-plink .ec-coin {
+  box-shadow:
+    inset 0 0 0 0.18rem rgb(255 250 232 / 0.95),
+    inset 0 -0.12rem 0.2rem rgb(150 100 30 / 0.3),
+    0 0 0.9rem rgb(255 214 120 / 0.9);
+}
+
+/* ── the flight ────────────────────────────────────────────────────────────────────────────────
+   An arc out of two nested elements, which is the whole trick and the reason there is no rAF loop here.
+   The OUTER element carries the horizontal travel on a linear timing, the INNER one carries the vertical
+   travel on an ease-out. Linear across plus fast-then-slow upward is a path that bows above the straight
+   line — a lob into the purse — and the browser interpolates both on the compositor, so twelve coins in
+   the air cost nothing in a frame that is already drawing a 3D ranch. */
+.ec-flight {
+  position: fixed;
+  inset: 0;
+  z-index: 7;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ec-fly {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  animation: ec-across var(--ec-dur) linear var(--ec-delay) both;
+}
+
+.ec-fly-inner {
+  will-change: transform, opacity;
+  animation:
+    ec-up var(--ec-dur) cubic-bezier(0.16, 0.72, 0.3, 1) var(--ec-delay) both,
+    ec-land var(--ec-dur) ease-in var(--ec-delay) both;
+}
+
+/* The coin itself spins about its vertical axis as it travels, which is what makes it read as a coin
+   rather than as a dot. Slightly under a whole number of turns, so it lands face-on. */
+.ec-fly-spin {
+  animation: ec-spin var(--ec-dur) linear var(--ec-delay) both;
+}
+
+/* The negative margin is what makes the flight's coordinates mean the coin's CENTRE rather than its top
+   left corner, which is what the purse publishes and what the spread is measured around. */
+.ec-fly .ec-coin {
+  display: block;
+  width: 2.2rem;
+  height: 2.2rem;
+  margin: -1.1rem 0 0 -1.1rem;
+}
+
+@keyframes ec-across {
+  from {
+    transform: translate3d(var(--ec-x0), var(--ec-y0), 0);
+  }
+  to {
+    transform: translate3d(var(--ec-x1), var(--ec-y0), 0);
+  }
+}
+
+@keyframes ec-up {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, var(--ec-dy), 0);
+  }
+}
+
+@keyframes ec-land {
+  0% {
+    opacity: 0;
+    scale: 0.5;
+  }
+  14% {
+    opacity: 1;
+    scale: 1.12;
+  }
+  76% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 0.55;
+  }
+}
+
+@keyframes ec-spin {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(940deg);
+  }
+}
+
+/* A child who asked for less movement gets no flight at all — the numeral going up is the feedback, and
+   it is a perfectly good one. game.css already collapses every animation to 1ms under this query; this
+   block is here so the intent is stated rather than inherited by accident. */
+@media (prefers-reduced-motion: reduce) {
+  .ec-flight {
+    display: none;
+  }
+
+  .ec-purse.is-plink {
+    transform: scale(1);
+  }
+}
