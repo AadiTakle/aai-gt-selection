@@ -1,3 +1,4 @@
+import { ENGAGED_FOV, OPEN_FOV } from './Stations';
 import { describe, expect, it } from 'vitest';
 
 import { RETIRED, RETIRED_TYPES, VERBS, domainOf, type Battery } from '../../shared/batteries';
@@ -122,5 +123,27 @@ describe('every style a station can serve can also be drawn', () => {
     for (const battery of BATTERIES) {
       expect(domainOf(battery), `${battery} spans more than one engine domain`).toBe(expected[battery]);
     }
+  });
+});
+
+describe('the lens', () => {
+  it('keeps the whole panel in frame at the engaged field of view, even on a 4:3 window', () => {
+    /**
+     * The engaged view narrows the lens to make the counted marks bigger, and the floor is not a preference: at
+     * 44 degrees the panel's width is 95% of the frustum on a 4:3 window and at 40 it does not fit at all. A
+     * cropped panel is worse than a small one, because a child cannot aim at a card that is off screen.
+     */
+    const rad = (d: number) => (d * Math.PI) / 180;
+    const DOCK = 4.6;
+    const FIT_W = 4.7;
+    const FIT_H = 3.0;
+    const height = 2 * DOCK * Math.tan(rad(ENGAGED_FOV) / 2);
+    const narrowestWidth = height * (4 / 3);
+    expect(FIT_H).toBeLessThan(height);
+    expect(FIT_W).toBeLessThan(narrowestWidth);
+  });
+
+  it('narrows rather than widens when a station is engaged', () => {
+    expect(ENGAGED_FOV).toBeLessThan(OPEN_FOV);
   });
 });

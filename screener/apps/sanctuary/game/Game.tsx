@@ -28,7 +28,7 @@ import {
   stepKeeper,
   type Ladder,
 } from './world/ladder';
-import { Stations, STATION_SOLIDS, SITES, PIPS } from './stations';
+import { Stations, STATION_SOLIDS, SITES, PIPS, OPEN_FOV } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
 import { useAudio, MuteButton, HeadphonePrompt } from './audio';
@@ -679,7 +679,7 @@ export function Game() {
 
   return (
     <div className="bh-root">
-      <Canvas shadows camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
+      <Canvas shadows camera={{ fov: OPEN_FOV, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
         <color attach="background" args={['#eec89a']} />
         <Suspense fallback={null}>
           <Lighting />

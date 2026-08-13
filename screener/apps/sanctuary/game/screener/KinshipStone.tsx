@@ -754,6 +754,24 @@ export function KinshipStone({
       {/* GIVEN: the pair whose joining the child has to read. */}
       <group position={[0, STEM_Y, 0]}>
         <Pair marks={stemMarks} words={showWords ? pairs.stem : undefined} />
+        {/*
+          * The stem can be HEARD, which it could not before.
+          *
+          * This pair is the premise: the whole item is "these two go together like this, now which two do the
+          * same". Only the candidates spoke on hover, so a child who could not read had four pronounceable
+          * options and no way into the thing they are meant to be matching. It says the pair and nothing else —
+          * no click behaviour, because the stem is not an answer and a click on it must never look like one.
+          */}
+        <mesh
+          visible={false}
+          position={[0, 0, 0.22]}
+          onPointerOver={(e) => {
+            e.stopPropagation();
+            sayPair(pairs.stem);
+          }}
+        >
+          <boxGeometry args={[PAIR_GAP + CARD + 0.3, CARD + 0.4, 0.5]} />
+        </mesh>
       </group>
 
       {/* MISSING: two more, joined the same way. The only thing here that glows. */}
@@ -805,9 +823,16 @@ export function KinshipStone({
         return (
           <group key={o.index} position={[slotX(o.index, n, OPT_PITCH), OPT_Y, 0]}>
             {/* Invisible and oversized, tiled edge to edge at the shelf pitch — see `OPT_PITCH`. */}
+            {/*
+              * Aligned with the pair rather than protruding toward the camera, matching `SortingGate`.
+              *
+              * A volume centred half a unit in front of what it stands for is intersected before the cards are
+              * reached, so the region that responds sits visibly in front of — and, at a downward viewing angle,
+              * above — the thing it belongs to. Generous is right; displaced is not.
+              */}
             <mesh
               visible={false}
-              position={[0, 0, 0.5]}
+              position={[0, 0, 0.22]}
               onPointerOver={(e) => {
                 e.stopPropagation();
                 setHover(o.index);

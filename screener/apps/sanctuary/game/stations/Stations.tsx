@@ -1,6 +1,6 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type JSX } from 'react';
-import { Raycaster, Vector2, Vector3, type Group } from 'three';
+import { PerspectiveCamera, Raycaster, Vector2, Vector3, type Group } from 'three';
 
 import { toRef } from '../../shared/ItemStage';
 import type { Family } from '../contract';
@@ -13,6 +13,16 @@ import { PressBadge, Reticle, StandMark, Wisp } from './Beacon';
 import { Bay, CoatWallBase, DayLogBase, Emblem, Lanterns, TideLedgeBase } from './carpentry';
 import { Cradle, hatchTiming } from './Cradle';
 import { SITES, dockPoint, facingOf, fitScale, siteFor } from './sites';
+
+/**
+ * The lens, open and engaged. See the lean-in note in the docking frame loop for why 46 is a floor.
+ *
+ * Exported, and the `Canvas` in `Game.tsx` is given `OPEN_FOV` rather than its own literal. This file restores
+ * the open value on leaving, so two opinions about what "open" means would leave the world permanently at
+ * whichever one this file held — the same shape of bug as three components each owning the pointer `compute`.
+ */
+export const OPEN_FOV = 62;
+export const ENGAGED_FOV = 46;
 
 /** The crosshair, in NDC. Aiming is owned by `world/crosshair.tsx`; this is for the reticle swell. */
 const CENTRE = new Vector2(0, 0);
@@ -310,6 +320,34 @@ export function Stations({
    * panel from underneath it.
    */
   useFrame((_, dt) => {
+    /**
+     * LEANING IN. The field of view narrows while a station is engaged, and widens again on leaving.
+     *
+     * The owner asked whether the counted marks could be bigger, and the honest answer was that the apparatus
+     * is already scaled to fill its bay — so nothing inside it can grow without something else shrinking. What
+     * could grow was the share of the SCREEN it occupies: at 62 degrees the panel filled 48% of the width and
+     * 54% of the height, so more than half the frame was barn wall and meadow while a child squinted at a
+     * cluster of twenty berries.
+     *
+     * 46 degrees magnifies everything on the panel by 1.42x, which with the mark widening already done makes a
+     * mark about two thirds larger than it was. It is the floor rather than a preference: at 44 the panel's
+     * 4.7-unit width is 95% of the frustum on a 4:3 window, and at 40 it does not fit at all. 46 leaves the
+     * panel at 77% of height with room on every aspect this game is played at.
+     *
+     * Chosen over docking the camera closer, which would have been simpler and is the wrong tool: the dock is
+     * also where the CHILD STANDS, every standing spot in `sites.ts` was checked against the world's own layout
+     * predicates at 4.6, and moving it inward risks putting a child inside a hay bale for a reason that has
+     * nothing to do with hay. Narrowing the lens moves nothing.
+     *
+     * Lerped rather than snapped, and on the same clock as the dock glide, because an instant field-of-view
+     * change is the one camera move that reliably makes people feel sick.
+     */
+    const wantFov = engagedSite ? ENGAGED_FOV : OPEN_FOV;
+    if (camera instanceof PerspectiveCamera && Math.abs(camera.fov - wantFov) > 0.01) {
+      camera.fov += (wantFov - camera.fov) * (1 - Math.exp(-5 * dt));
+      camera.updateProjectionMatrix();
+    }
+
     if (!engagedSite) return;
     const p = dockPoint(engagedSite);
     target.current.set(p[0], p[1], p[2]);
