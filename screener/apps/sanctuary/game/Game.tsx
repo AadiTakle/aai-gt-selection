@@ -4,7 +4,7 @@ import * as THREE from 'three';
 
 import { toRef } from '../shared/ItemStage';
 import { VERBS, typesFor, verbFor, type Battery } from '../shared/batteries';
-import { canShowWords, readingBand, useSortie } from '../shared/useSortie';
+import { useSortie } from '../shared/useSortie';
 import { FAMILIES, LS_KEEPER, type Family } from './contract';
 import { CrosshairAiming } from './world/crosshair';
 import { usePrefersReducedMotion } from './world/motion';
@@ -32,6 +32,7 @@ import { Stations, STATION_SOLIDS, SITES, PIPS } from './stations';
 import { Vacpack, capturedTrace } from './vacpack';
 import { Shop, SHOP_SOLIDS, Purse, CoinFlight, useCoins, EARN, PRICES } from './economy';
 import { useAudio, MuteButton, HeadphonePrompt } from './audio';
+import { Batched, Hud as PerfHud, Probe as PerfProbe, perfEnabled } from './perf';
 import { useVacpackTank } from './vacpack';
 import { INTRO_SOLIDS, IntroGuide, IntroPortrait, useBoardEngaged } from './intro';
 import { FAMILY_BATTERY, type Family as Fam } from './contract';
@@ -262,33 +263,30 @@ function Keeper({ locked }: { locked: boolean }) {
  */
 export { IN_WORLD } from './screener/inWorld';
 
+
 /**
- * The one sentence telling a child what this question wants.
+ * What the child is being asked, in words.
  *
- * Prefers the bank's own `content.prompt`, because an authored instruction is written against the item and a
- * generic one is written against a guess. Where none exists, the fallback is per battery rather than per type:
- * `FLU-MATRIX-01` and `FLU-CARPET-01` both ask which piece completes a pattern, and inventing two different
- * sentences for one task would be a difference a child has to resolve for no reason.
- *
- * Deliberately never names the battery, the type, a score, or a number of questions. See the note at the call
- * site: the stealth framing is about not telling a child their mind is being sorted, not about withholding what
- * the task is.
+ * The bank's own `prompt` wherever it has one — never paraphrased, because the item's wording is part of
+ * the item. Three of the drawn types ship an empty prompt, so they get one written here: they are the pure
+ * figure types, where the task was thought self-evident from the drawing. It is self-evident to an adult
+ * who knows they are looking at a puzzle.
  */
-function instructionFor(typeCode: string, content: Record<string, unknown>): string {
-  const authored = typeof content.prompt === 'string' ? content.prompt.trim() : '';
-  if (authored.length > 0) return authored;
-  if (typeCode.startsWith('FLU-')) return 'Which piece finishes the pattern?';
-  if (typeCode.startsWith('VER-')) return 'Which one belongs with them?';
-  if (typeCode.startsWith('QUANT-')) return 'Which one comes next?';
-  return 'Pick the one that fits.';
+const ASK: Record<string, string> = {
+  'FLU-MATRIX-01': 'Which piece finishes the pattern?',
+  'FLU-CARPET-01': 'Which piece comes next?',
+  'VER-RELPAIR-01': 'Which pair goes together in the same way?',
+};
+
+function ask(typeCode: string, content: Record<string, unknown>): string {
+  const own = typeof content.prompt === 'string' ? content.prompt.trim() : '';
+  return own || ASK[typeCode] || 'Choose one.';
 }
 
 export interface LiveItem {
   serve: NonNullable<ReturnType<typeof useSortie>['serve']>;
   asking: boolean;
   answer: ReturnType<typeof useSortie>['answer'];
-  /** Whether this app may set words as words. From the platform's app registration, not from a constant. */
-  showWords: boolean;
 }
 
 function Beat({
@@ -384,22 +382,6 @@ function Beat({
     roundLength,
   });
 
-  /**
-   * Whether words may be set as words, asked of the platform rather than decided here.
-   *
-   * Starts `false` and flips once the app registration answers, so the first frame of a station never puts text
-   * in front of a child whose app said 'none'. `readingBand()` memoises, so this costs one request per page.
-   */
-  const [showWords, setShowWords] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    void readingBand().then((band) => {
-      if (alive) setShowWords(canShowWords(band));
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   useEffect(() => {
     void s.open();
@@ -425,7 +407,7 @@ function Beat({
 
   useEffect(() => {
     report(
-      s.serve ? { serve: s.serve, asking: s.phase === 'asking', answer: s.answer, showWords } : null,
+      s.serve ? { serve: s.serve, asking: s.phase === 'asking', answer: s.answer } : null,
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.serve, s.phase]);
@@ -455,32 +437,35 @@ function Beat({
         */}
       <p className="bh-beat-title">{verbFor(s.serve.typeCode)?.title ?? verb?.title ?? 'Something to do'}</p>
       {/*
-        * WHAT TO DO, which five of the seven types previously never said.
+        * THE QUESTION, IN WORDS. Five of the seven served types ship a `prompt` in the bank and NOT ONE of
+        * them was ever rendered — the panel showed only the verb's in-world name.
         *
-        * The line above is a job on a ranch — "Coaxing a coat", "The Sprouter" — and it does no instructional
-        * work at all, so a child met a glowing gap and a shelf of tiles and had to infer the task. For a matrix
-        * that is arguably discoverable; for the Sprouter, a stump that turns seed clusters into shoot clusters,
-        * it is not. Meanwhile the quantitative banks CARRY the sentence that resolves it and the game was
-        * dropping it on the floor.
+        * The owner found it from the other end: "there is a balance one ish that just looks like it has
+        * random symbols so i can't tell what it's asking." He was right, and the symbols were not the
+        * problem. That item ships with "Choose the group of shapes that balances the left pan." and the
+        * child never saw it. Its beam is also welded level in every state on purpose, so there is not even
+        * a visual cue that the thing is a scale seeking balance. Three shapes in one pan and four trays of
+        * shapes below is unanswerable without the sentence, however good the drawing is.
         *
-        * This does not undo the stealth framing, and the distinction is the whole reason it is safe. What was
-        * removed from this panel was the BATTERY NAME — "Quantitative" over a child's head is the one piece of
-        * vocabulary that tells them their answers are being sorted into abilities. "Choose the step that comes
-        * next" discloses nothing about being measured. The two were removed together and only one had to be.
+        * This is the same correction as his instruction about the verbal battery — "you have to use words
+        * it just might not be as big of words as you're used to". The rule that a five-year-old cannot
+        * read was applied to the INSTRUCTION as well as to the content, which left several items with no
+        * statement of the task at all. A short sentence, read aloud where narration exists, is how a
+        * five-year-old is actually told what to do.
         *
-        * `instructionFor` falls back to a phrasing per battery where the bank has no prompt, because two of the
-        * seven types have none authored and a child at those stations was the worst served of all.
+        * Nothing here says test, quiz, score, or names a battery: these are the bank's own task
+        * instructions, in its own words.
         */}
-      <p className="bh-beat-ask">{instructionFor(s.serve.typeCode, content)}</p>
+      <p className="bh-beat-ask">{ask(s.serve.typeCode, content)}</p>
       {/*
-        * The verdict, shown only while the pick is settling and only when the platform actually marked it.
+        * The verdict, while the pick settles, and only when the platform actually marked it.
         *
-        * Wording chosen to be about the answer and not about the child: "That's it" and "Not that one" name
-        * the choice, where "Correct" and "Wrong" name the person who made it. A child meeting deliberately
-        * above-grade material will read the second one four times a visit.
+        * Wording is about the answer and not about the child: "That's it" and "Not that one" name the choice,
+        * where "Correct" and "Wrong" name the person who made it. A child meeting deliberately above-grade
+        * material reads the second one several times a visit.
         *
-        * `null` shows nothing at all. A response that could not be marked — too fast to be an attempt, or a
-        * type whose scoring rule is unwritten — must not appear as a miss.
+        * `null` shows nothing. A response that could not be marked — too fast to be an attempt, or a spoken
+        * item on a machine with no voice — is not a miss and must not appear as one.
         */}
       {s.phase === 'settling' && s.lastCorrect !== null && (
         <p className={s.lastCorrect ? 'bh-verdict bh-verdict-yes' : 'bh-verdict bh-verdict-no'}>
@@ -679,10 +664,17 @@ export function Game() {
 
   return (
     <div className="bh-root">
-      <Canvas shadows camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
+      {/* `shadows="variance"` rather than a bare `shadows`, and it is load-bearing: r3f rewrites
+          `gl.shadowMap.type` on every render of this component, so a bare prop fought `Lighting`'s
+          one-time VSM write and won after the first resize or hot update. See `world/Lighting.tsx`. */}
+      <Canvas shadows="variance" camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
+        {perfEnabled() && <PerfProbe />}
         <color attach="background" args={['#eec89a']} />
         <Suspense fallback={null}>
           <Lighting />
+          {/* NOT wrapped in `<Batched>`, and that is a measurement rather than an oversight: of its
+              165 meshes, 87 are already `InstancedMesh` and 77 carry a texture or transparency, so a
+              batcher folds exactly nothing here. `Buildings.tsx` had already done this work. */}
           <Buildings />
           {slimes.map((sl) => (
             <Slime key={sl.uid} {...sl} />
@@ -690,6 +682,10 @@ export function Game() {
         </Suspense>
         {/* Suck, carry, plop. Disabled while a station is engaged so a click means "choose" there
             and "hoover" everywhere else, with no mode the child has to learn. */}
+        {/* The stall carries 294 static meshes — the shelf and its figurines — which is the largest
+            batchable set in the game. The wrapper's tags sit AROUND the element without re-indenting
+            it, so this is an insertion of two lines into a file another author is working in. */}
+        <Batched label="shop">
         <Shop
           engaged={shopOpen}
           onEngage={() => setShopOpen(true)}
@@ -723,6 +719,7 @@ export function Game() {
             audio.plop?.();
           }}
         />
+        </Batched>
         <Vacpack
           enabled={locked && !engaged && !shopOpen && !boardEngaged}
           onCapture={(id) => {
@@ -748,6 +745,9 @@ export function Game() {
           * pointer lock. The condition below is the OR of every surface that aims with the camera.
           */}
         <CrosshairAiming active={!!engaged || shopOpen || boardEngaged} />
+        {/* The stations' structures are static; their item content is not, and swaps every question.
+            `Batch` notices that and rebuilds rather than leaving the previous question hanging. */}
+        <Batched label="stations">
         <Stations
           engaged={engaged}
           live={live}
@@ -755,6 +755,7 @@ export function Game() {
           onLeave={() => setEngaged(null)}
           onGrant={grant}
         />
+        </Batched>
         <Keeper locked={locked && !engaged && !shopOpen && !boardEngaged} />
         {/* The guided opening: Nan's tour, the waypoints, and the challenge board that unlocks the
             second paddock. `busy` is NOT optional — `speak.ts` is one queue, so without it a nudge from
@@ -785,6 +786,8 @@ export function Game() {
           }
         />
       </Canvas>
+
+      {perfEnabled() && <PerfHud />}
 
       {!locked && !engaged && (
         <button type="button" className="bh-enter" onClick={lock}>

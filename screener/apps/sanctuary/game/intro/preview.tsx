@@ -253,7 +253,7 @@ function App(): JSX.Element {
 
   return (
     <div className="bh-root">
-      <Canvas shadows camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
+      <Canvas shadows="variance" camera={{ fov: 62, near: 0.1, far: 220 }} dpr={[1, 1.75]}>
         <color attach="background" args={['#eec89a']} />
         <Suspense fallback={null}>
           <Lighting />

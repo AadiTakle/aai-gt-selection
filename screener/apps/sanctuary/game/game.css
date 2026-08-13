@@ -182,34 +182,33 @@
   box-shadow: 0 10px 0 rgb(120 90 55 / 0.18);
 }
 
+/**
+ * The question itself. Bigger than a caption and smaller than the title, because it is the thing a child
+ * actually has to act on — and read aloud where the item narrates, so an emerging reader hears it while
+ * seeing it.
+ */
+.bh-beat-ask {
+  margin: 0.15rem 0 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #5a4326;
+  text-wrap: balance;
+}
+
 /*
  * The verdict, while a pick settles.
  *
- * The title above it keeps its own margin, so this sits under it without moving anything: the panel is at the
- * top of the screen and a line that pushed the layout down would shift the one thing on screen a child is
- * looking at, every single answer.
+ * Sits under the instruction without moving it: the panel is at the top of the screen and a line that pushed the
+ * layout down would shift the one thing a child is looking at, on every single answer.
  *
- * Not colour alone. Each state carries a mark as well as a hue, because roughly one boy in twelve cannot
- * separate these two hues and this is the one moment in the game where the meaning is the difference between
- * them. Weight differs too, so the two read apart in greyscale.
+ * Not colour alone. Each state carries a mark as well as a hue, because roughly one boy in twelve cannot separate
+ * these two hues and this is the one moment where the meaning IS the difference between them. Weight differs too,
+ * so the two still read apart in greyscale.
  */
-/*
- * The instruction. Sits under the job title and above the verdict.
- *
- * Quieter than the title on purpose: the title is the fiction a child is inside, and this is the practical line
- * they need once. Same size as the verdict so the panel does not change height when a pick settles — the panel
- * is at the top of the screen and a jump would move the one thing on screen they are looking at.
- */
-.bh-beat-ask {
-  margin: -0.7rem 0 0.35rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: #5c4630;
-}
-
 .bh-verdict {
-  margin: -0.5rem 0 0.15rem;
-  font-size: 1.05rem;
+  margin: 0.25rem 0 0;
+  font-size: 1.02rem;
   letter-spacing: 0.01em;
 }
 
@@ -219,13 +218,13 @@
 }
 
 .bh-verdict-yes::before {
-  content: '✓ ';
+  content: '\2713  ';
 }
 
 /*
- * Quieter than the affirmative on purpose: lighter weight, softer colour, a neutral mark rather than a cross.
- * A child meeting deliberately above-grade items sees this more often than the other one, and the design brief
- * for that moment is "your turn was counted", not "you failed".
+ * Quieter than the affirmative on purpose: lighter weight, softer colour, a neutral mark rather than a cross. A
+ * child meeting deliberately above-grade items sees this more often than the other one, and the brief for that
+ * moment is "your turn was counted", not "you failed".
  */
 .bh-verdict-no {
   color: #7c6248;
@@ -233,7 +232,7 @@
 }
 
 .bh-verdict-no::before {
-  content: '· ';
+  content: '\00b7  ';
 }
 
 .bh-beat-note {

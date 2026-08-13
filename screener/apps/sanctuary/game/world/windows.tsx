@@ -596,7 +596,9 @@ const PARTS: WindowParts = (() => {
       });
       for (const sx of [-1, 1] as const) {
         parts.corbel.push({
-          position: place(spec, sx * boxW * 0.36, bedY - 0.15, 0.07),
+          /* 0.09 out, so the lower end lands on the wall face while the upper end tucks under the
+             box. Both ends now meet something. */
+          position: place(spec, sx * boxW * 0.36, bedY - 0.15, 0.09),
           rot: [0, yaw, 0],
         });
       }
@@ -809,7 +811,13 @@ export function Windows(): JSX.Element {
       // placement you can read and one you have to draw on paper.
       corbel: (() => {
         const c = new RoundedBoxGeometry(0.06, 0.3, 0.06, 1, 0.018);
-        c.rotateX(-0.62);
+        /**
+         * LEANING OUT AND UP, not in and down. The sign was the other way, which put the bracket's TOP
+         * inside the wall and left its BOTTOM hanging 16cm out in open air below the planter — a peg
+         * pointing at the ground, touching nothing, under every homey window on the ranch. A corbel
+         * springs FROM the wall and carries the thing above it; that is the whole shape.
+         */
+        c.rotateX(0.62);
         return c;
       })(),
       bloom: new SphereGeometry(1, 7, 5),

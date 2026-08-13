@@ -407,7 +407,6 @@ export function Stations({
       content,
       scale: fitScale(live.serve.typeCode, content),
       itemId: live.serve.served.itemId,
-      showWords: live.showWords,
     };
   }, [live]);
 
@@ -470,7 +469,6 @@ export function Stations({
                     key={mounted.itemId}
                     content={mounted.content}
                     disabled={!live.asking}
-                    showWords={mounted.showWords}
                     onPick={(handed: string, flags?: readonly string[]) =>
                       handlePick(live, mounted.content, handed, flags)
                     }

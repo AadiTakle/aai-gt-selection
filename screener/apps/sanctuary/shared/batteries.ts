@@ -154,9 +154,12 @@ export const RETIRED_TYPES: readonly string[] = RETIRED.map((r) => r.typeCode);
  * spoken parts and their identities long enough to evaluate N! arrangements against them, which is a
  * serial-order maintenance load. That is the owner's read and the items support it.
  *
- * WHY IT IS STILL IN `VERBS`. Removing it today would leave the verbal station with `VER-SORTBOT-01`
- * alone, and that type is pool-gated to 27 of its 100 items (see `screener/sortbotGate.ts`) with
- * per-keeper exclusion on top, so a child would exhaust the verbal battery in three or four visits.
+ * IT IS NO LONGER IN `VERBS`; this entry is the record of why. The retirement waited on a second verbal
+ * type, because `VER-SORTBOT-01` alone was pool-gated to 27 of its 100 items and a child would have
+ * exhausted the verbal battery in three or four visits. Both halves of that changed: `VER-RELPAIR-01`
+ * (Verbal Analogies) landed, and the words are now WRITTEN rather than drawn — so the sortbot gate no
+ * longer refuses the undrawable and its pool is 82 of 100, refusing only the 18 items whose vocabulary
+ * no child of the band has. See `screener/sortbotGate.ts` and `screener/wordPlate.tsx`.
  * `VER-RELPAIR-01` — Verbal Analogies, a real CogAT Verbal subtest, 100 items, already in `VERBS` and
  * waiting only on a presentation — is being built. THE ORDER IS: land that presentation, then delete
  * the `log` line below and rename `gate` to `log` in the same commit, so the Verbal station's key still

@@ -1,189 +1,288 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Text } from '@react-three/drei';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type * as THREE from 'three';
 
 import { handedFor } from './address';
-import { EventGlyph } from './EventGlyph';
 import { tokenGlyph, type EventMark } from './eventMeaning';
-import { canSpeak, hushSpeech, narrate, speak } from './speak';
+import { canSpeak, hushSpeech, narrate, speak, type NarrationState, type StoryLine } from './speak';
 /**
- * The gate lives in a dependency-free module because it must run at POOL level, in the server plugin's
- * node context — by the time this component sees `content`, the engine has already chosen the item, the
- * child is looking at it, and an answer will be recorded against it. Re-exported here so there is exactly
- * one predicate and it cannot drift between the pool and the panel.
+ * The gates live in a dependency-free module because the serve gate must run at POOL level, in the server
+ * plugin's node context — by the time this component sees `content`, the engine has already chosen the
+ * item, the child is looking at it, and an answer will be recorded against it. Re-exported here so there
+ * is exactly one pair of predicates and they cannot drift between the pool and the panel.
  */
-import { SORTING_GATE_BANDS, sortingGateServes, tokenWords } from './sortbotGate';
+import { sortingGateDraws, sortingGateServes, tokenWords } from './sortbotGate';
+import { breath, HUE, MAT, shade, useReducedMotion } from './theme';
+import { EmptySlot, WordCard } from './wordPlate';
 
-export { SORTING_GATE_BANDS, sortingGateServes };
-import { HUE, MAT, breath, shade, useReducedMotion, useSlab, wordFontSize } from './theme';
+export { sortingGateDraws, sortingGateServes, tokenWords };
 
 /**
- * `VER-SORTBOT-01` as a thing in the hollow: the sorting gate, a hopper with two chutes running off it,
- * one into the bin of things that BELONG and one into the bin of things that do not.
- *
- * WHAT WAS WRONG BEFORE THIS FILE. Nothing was wrong with it; nothing existed. The verbal station had
- * exactly one presentation built — the day's log — so every verbal round a child ever played was the same
- * style of question, which is the boredom the owner complained about. The nonverbal station rotates
- * through three and the quantitative through three. This is the verbal station's second.
+ * `VER-SORTBOT-01` as a thing in the hollow: the sorting gate, a robot's head over two crates — one of
+ * things that BELONG together and one of things that do not — with the words still to be judged on a shelf
+ * below it.
  *
  * WHAT THE ITEM ACTUALLY IS, read off the bank rather than off the brief. `content` is
  * `{typeCode, presentation, prompt, examplesIn, examplesOut, options, frequencyBand}` and nothing else.
  * `examplesIn` is always exactly two `{text}`, `examplesOut` always exactly one, `options` are three (20
  * items) or four (80 items) of `{token: {text}}`, and the category itself is NEVER SERVED — it lives in
  * `provenance.derivation.rule` on disk, which the client does not get and must not want. So the rule can
- * only be shown, never stated, which is the whole reason this is a machine with two bins rather than a
+ * only be shown, never stated, which is the whole reason this is a machine with two crates rather than a
  * label with a list under it.
  *
  * THERE IS NO "NEW WORD" FIELD, and the brief's description of one is the single place it and the payload
- * disagree. The candidate the child judges is not a separate token sitting on the hopper — it IS whichever
- * option they choose. So the hopper's mouth is not where the question is displayed, it is where the
- * ANSWER is posted: the picked card appears at the lip and rides the lit chute down into the bin. Until
- * something is picked the lip is empty, because until something is picked there is nothing to put on it.
+ * disagree. The candidate the child judges is not a separate token sitting on the machine — it IS whichever
+ * option they choose. So the head's mouth is not where the question is displayed, it is where the ANSWER is
+ * posted: the picked plate rises to the mouth and rides the lit chute down into the crate.
+ *
+ * ══ THE WORDS ARE THE ITEM, WHICH REVERSES WHAT THIS FILE USED TO DO ═══════════════════════════════
+ *
+ * This presentation was built on the rule that a five-year-old cannot read, so every token — both worked
+ * examples, the counter-example and every option — was DRAWN through `tokenGlyph` and the words themselves
+ * were never shown. `presentation` is `"word"`; the content is literally single words; and the drawing was
+ * asked to carry all of it.
+ *
+ * IT COST 73 OF THE 100 ITEMS. `sortbotGate.ts` has the table: 4-5 and 6-8 were refused entirely because
+ * nothing draws `nylon`, `hydro`, `argon` or `abate`, and ten of the 37 small-band items were refused
+ * because two of their words drew alike. Worse, four of the 6-8 rules are `words that rhyme with cat`,
+ * `compound words`, `words with double letters` and `past-tense verbs` — questions ABOUT THE LETTERS IN A
+ * WORD, which no picture can ask and which are trivially answerable the moment the word is on screen. The
+ * rule was not merely narrowing this bank, it was deleting the items that most needed words.
+ *
+ * So every word is now WRITTEN on its plate, large and dark on pale, and read aloud on arrival. The
+ * pictures stay exactly where they were proven good — the 27 items of K-1 and 2-3 whose whole vocabulary
+ * draws distinctly — and they are now a tile beside the word rather than a substitute for it, which is the
+ * right way round for a pre-reader. `sortingGateDraws` decides that per ITEM and never per word, and the
+ * header there explains why a per-word rule would leave the answer as the only bare plate on the shelf.
+ *
+ * The pool went from 27 to 82. What is still refused is 18 items of tier-1 vocabulary — `ad hominem`,
+ * `parsimonious`, `abate` — because showing a word larger does not teach it; `readability.ts` argues that
+ * one, including why it is a rarity tier and not the whole 6-8 band.
+ *
+ * ══ WHY THE LAYOUT TURNED NINETY DEGREES, WHICH IS ARITHMETIC AND NOT TASTE ════════════════════════
+ *
+ * The old shape put its words in rows: three across each crate, four across the shelf. Words do not fit in
+ * it. The child reads this at `dock` 4.6m, which at 1280x800 and fov 62 is about 145 screen pixels per
+ * world unit before `fitScale`, and `sites.ts` gives this type a bay of 4.70 x 3.00 units — so the entire
+ * panel is about 680 x 435 pixels of screen however it is arranged. Six plates across a crate row and four
+ * across a shelf is 110 pixels each, which is 9 pixels per character on `flashlight`.
+ *
+ * A crate holds its words in a COLUMN instead, and the shelf holds four in two columns of two. That is
+ * two plates across the panel rather than six, and it buys:
+ *
+ *     plate 2.70 x 0.68 units   →   203 x 51 screen pixels
+ *     letters                   →   about 30 pixels tall, on every word in the served bank
+ *
+ * WHAT IT COSTS is that the four candidates are no longer all the same distance from the camera: the
+ * second shelf row is 0.9 units lower than the first, which is 1% further away and renders 1% smaller.
+ * This directory holds that constraint hard — "a candidate nearer the camera renders larger, which is a
+ * false signal on a comparison task" — so the number is worth stating rather than glossing: 1%, uniform,
+ * identical for every item, against 9 pixels per character. The two columns are exactly equal.
+ *
+ * ONE PLATE SIZE AND ONE PLATE DEPTH, EVERYWHERE. Both crates, the socket and the shelf draw the identical
+ * plate at the identical scale on the identical plane. Not tidiness: on a type whose whole question is "is
+ * this thing the same KIND as those things", a size difference is a false signal about membership. The
+ * shelf therefore drops in HEIGHT to separate itself from the crates and does not come forward at all.
+ *
+ * ══ THE PANEL SUPPLIES THE INSTRUCTION; THIS FILE SUPPLIES THE WORDS ══════════════════════════════
+ *
+ * `Game.tsx` renders `content.prompt` above the panel — "The robot sorted these words. Tap the new word
+ * that also goes IN." — so nothing here draws a second copy of it, and the sentence the whole machine is
+ * an illustration of is now actually on screen. The narration reads that same sentence aloud, which is what
+ * a shared line between the written and the spoken channel is for.
+ *
+ * ══ HEARING IT AGAIN IS FREE, UNLIMITED AND UNTIMED ═══════════════════════════════════════════════
+ *
+ * NEW HERE, AND THE OWNER'S INSTRUCTION IS WHY. Narration used to be a single unrepeatable pass of the
+ * prompt on arrival: a child who missed it had no way to ask again, which for a pre-reader is the whole
+ * item gone. There is now a horn — the same object `DayLog` and `KinshipStone` use, so a child learns it
+ * once — that retells the prompt, both crates and the whole shelf, and POINTING AT A PLATE says that word.
+ * Both unlimited, neither timed, neither recorded, and both suppressed while the arrival telling is still
+ * running so a wandering cursor cannot talk over the question.
+ *
+ * WHAT THE VOICE MAY SAY is everything on screen and nothing else. It never names the category: that lives
+ * in `provenance.derivation.rule`, is not served, and is the answer. "These go in" and "this one does not"
+ * are descriptions of where the words are sitting, which the child can see.
+ *
+ * ══ THE THINGS EVERY PRESENTATION HERE HAS LEARNED THE HARD WAY ═══════════════════════════════════
+ *
+ * MATTE. `roughness` never below 0.85 on anything structural and `metalness` zero throughout. A clearcoat
+ * here would mirror the station lamp onto whichever plate happened to face it, and a plate that is
+ * brighter than its neighbours is a plate a child will read as chosen.
+ *
+ * THE MISSING PLACE IS THE ONLY THING THAT GLOWS. The IN crate used to carry a honey band along its
+ * headboard and the band worked — it just worked at the socket's expense, merging with it into one yellow
+ * stripe. Which crate is which is carried by the lit chute pointing into one of them and by the socket
+ * sitting in it, which is two cues, and the second is the one that poses the question.
+ *
+ * IT CANNOT KNOW THE ANSWER. Nothing here compares anything. The picked plate rides into the IN crate
+ * because that is what the CHILD said about it — the machine performs the child's claim and passes no
+ * comment on it. `onPick` hands back the address and that is all that leaves this file.
  *
  * THE ADDRESS HAZARD, which is the same one `DayLog` carries and the reason both call the same function.
  * These options have NO `key` field and this type's on-disk `answer.correctKey` is an INTEGER on all 100
  * items, so THE POSITION IS THE ANSWER and `onPick` must hand back `String(index)`. `handedFor` in
  * `address.ts` is the only thing allowed to decide that; hand back a letter and every item of this type is
  * marked wrong, confidently, with no error anywhere. `prove-drawn-types.ts` drives that exact function
- * against the live API and this type is in its list.
+ * against the live API on a NONZERO key for this type.
  *
- * NO READING IS REQUIRED, and for this type that is a harder promise than it is for the log. The bank's
- * `presentation` is `"word"` and its content is literally single words, so a faithful rendering would be a
- * vocabulary test wearing a reasoning test's clothes. Every token — both worked examples, the one
- * counter-example and every option — is drawn instead, through `tokenGlyph`'s exact-match noun table in
- * `eventMeaning.ts`, which was built for this type. `SERVABLE` below is the guarantee that the drawing is
- * good enough to answer from, and it is a hard gate rather than a hope.
+ * ══ WHAT THE BAY HAS TO CONTAIN ═══════════════════════════════════════════════════════════════════
  *
- * ONE CARD SIZE AND ONE CARD DEPTH, EVERYWHERE. Both bins, the socket and the shelf all draw the identical
- * card at the identical scale on the identical plane. This is not tidiness: a shelf placed nearer the
- * camera than the apparatus renders candidates visibly larger, and on a type whose whole question is
- * "is this thing the same KIND as those things" a size difference is a false signal about membership. The
- * shelf therefore drops in HEIGHT to separate itself and does not come forward at all — the same trade
- * `Weave.tsx` argues at length for its own reasons.
+ * `game/stations/sites.ts` is not this directory's to edit, so the arithmetic is left here. IT IS SAFE TO
+ * LEAVE ALONE: the drawing fits inside the extents already declared there at both option counts, which is
+ * the property that matters, and updating it would buy nothing because `fitScale` is already clamped.
  *
- * MATTE, LIKE THE REST OF THE HOLLOW. `roughness` never below 0.85 on anything structural and `metalness`
- * zero throughout. A clearcoat here would mirror the station lamp onto whichever card happened to face it,
- * and a card that is brighter than its neighbours is a card a child will read as chosen.
+ *     declared today   halfW 4.37, halfH 2.84   →  `fitScale` min(4.70/8.74, 3.00/5.68) = 0.528, clamped
+ *                                                  to its 0.52 ceiling, so BOTH option counts render at
+ *                                                  exactly 0.52 and the declared box is the budget.
+ *     actually drawn   halfW 4.47   the horn's outer edge at four options, where the machine itself is
+ *                                   only 3.12 — the horn is what sets the width. At three options the
+ *                                   shelf is 8.58 wide and the horn still just wins.
+ *                      halfH 2.84 at four options (0.95 head + 2.70 crates + 0.22 + 1.80 shelf), 2.39 at
+ *                                   three, where the shelf is one row instead of two.
  *
- * IT CANNOT KNOW THE ANSWER. Nothing here compares anything. The picked card rides into the IN bin because
- * that is what the CHILD said about it, not because it is right — the machine performs the child's claim
- * and passes no comment on it. `onPick` hands back the address and that is all that leaves this file.
- *
- * WHAT THE BAY HAS TO CONTAIN. `game/stations/sites.ts` is not this directory's to edit, so the arithmetic
- * is left here for whoever adds the branch. Every one of the bank's 100 items has exactly two `examplesIn`
- * and one `examplesOut`, so `slots` is 3 and the bins are a FIXED size; only the option count varies, and
- * it never wins the width. Both cases therefore give the same box:
- *
- *     halfW  4.37   the bins' outer edges, `binX + binW / 2`. The 4-option shelf is 4.15 and the
- *                   3-option shelf 3.23, so the apparatus is the widest thing here — which is the
- *                   opposite of every other presentation in this directory, where the shelf always wins.
- *     halfH  2.84   the shelf plank's underside. The hopper's lip reaches 2.80 above, so the drawing is
- *                   very nearly symmetric about its own origin and the panel's centre can sit at the
- *                   site's own height with no adjustment.
- *
- *     if (typeCode === 'VER-SORTBOT-01') return { halfW: 4.37, halfH: 2.84 };
- *
- * AND IT WILL PROJECT SMALLER THAN THOSE NUMBERS SUGGEST, which is worth knowing because the bay note in
- * `sites.ts` is about projection at the child's eye rather than about half-extents. Every other
- * presentation hangs its shelf of candidates 0.4 to 3.1 units in FRONT of the panel plane and pays for it
- * in apparent size; this one hangs its shelf at the panel plane, for the reason given above, so the most
- * forward thing it draws is a bin's front board at z 0.32. There is no parallax to pay. `fitScale` lands
- * at 0.528 and is clamped to 0.52, giving a drawn panel of 4.54 x 2.95 against the Verbal bay's 5.10 x
- * 3.40 — but re-run the measurement rather than taking that on trust, because it is the projection and
- * not the box that the sill has to clear.
+ * 8.94 x 5.67 at 0.52 projects to 4.65 x 2.95 of a 4.70 x 3.00 bay: inside the sill, with 5 hundredths of
+ * a unit to spare on the width. That margin is deliberate and it is the reason `PLATE_W` is 2.70 and not
+ * 2.80 — re-run the measurement rather than taking it on trust, because the three-option shelf is the
+ * binding case and it is the one nobody looks at.
  */
 
 /* ============================================================================
-   what may be served
+   what gets said
    ========================================================================== */
 
+/** Between spoken lines. Equal everywhere, and exactly equal between candidates — see `speak.ts`. */
+const LINE_GAP_MS = 780;
+
+/** How long after arriving the gate speaks. Matches `DayLog` and `KinshipStone`, so the hollow has one pace. */
+const ARRIVAL_BEAT_MS = 900;
+
+/** Used only if an item arrives with no authored prompt. The bank's own wording, so it cannot drift. */
+const FALLBACK_ASK = 'Tap the word that also goes in.';
+
 /**
- * THE BANDS THIS TYPE MAY BE SERVED TO, and the measurement that decides it.
+ * A run of words as ONE utterance, so a crate's contents arrive as one group rather than as loose words.
  *
- * Run `tokenGlyph` over all 100 items of the bank and count, per band, the items that cannot be answered
- * from the pictures. Two ways to fail: an option that no drawing exists for (it falls through to a neutral
- * shell or pebble, which says nothing), and two options that resolve to the SAME drawing (which deletes
- * the choice between them). Measured, over the whole bank:
+ * The capitals and the full stops are for intonation only, which is the argument `speak.ts` makes in
+ * `settled`: `speechSynthesis` takes its contour from punctuation, and bare nouns run together are read as
+ * an unfinished list with a rising tail. The words themselves are the bank's and are never altered — what
+ * this says is exactly what the plates show.
  *
- *     band          items   two options alike   an option unpictured   distinct tokens drawn
- *     K-1 + 2-3       37            0                    0                    155/155
- *     4-5             20            5                   19                     29/110
- *     6-8             43           26                   42                     43/264
- *
- * The small bands' vocabulary is concrete nouns a five-year-old can point at — cow, chair, bone. The 4-5
- * and 6-8 vocabulary is `abate`, `ad hominem`, `anchoring`, `ephemeral`, and no drawing of any quality
- * depicts those. More than half of the 6-8 items have two options resolving to one picture, which makes
- * them unanswerable from pictures however careful the drawing is; a child would be guessing while the
- * engine recorded the guess as ability. So the gate is not a preference and it is not tunable.
+ * EVERY WORD IN THE RUN IS CAPITALISED, not just the first, which a node-side print of the real lines
+ * caught: `These go in. Dog. cat.` The full stop had already told the voice to fall, and the lowercase word
+ * after it is a sentence that starts in the middle. Each word in a crate is its own settled sentence.
  */
-/* `SORTING_GATE_BANDS`, `REFUSED`, `tokenWords` and `sortingGateServes` moved to `sortingGate.ts`,
-   dependency-free, so the server plugin can apply the same gate when it builds the pool. */
+function saidRun(lead: string, words: readonly string[]): string {
+  const said = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1));
+  return `${lead} ${said.join('. ')}.`;
+}
+
+/**
+ * Everything the machine says, and the silence between: the item's own prompt, what is in each crate, then
+ * every word on the shelf.
+ *
+ * PURE AND FREE OF `window`, like `speak.ts`'s `storyLines`, so a node-side check can print exactly what a
+ * child would hear for a real item without booting a browser.
+ *
+ * IT NEVER NAMES THE CATEGORY. `provenance.derivation.rule` is the answer and is not served; "these go in"
+ * and "this one does not" describe where the words are sitting, which is on screen. The shelf is spoken in
+ * the order it is drawn, top to bottom then left to right, because that order is how a child knows which
+ * plate they just heard — addressing, not content — and the gaps are equal so no plate is marked special.
+ */
+export function sortLines(content: Record<string, unknown>): StoryLine[] {
+  const texts = (v: unknown, dig: (o: Record<string, unknown>) => unknown): string[] =>
+    (Array.isArray(v) ? (v as Record<string, unknown>[]) : [])
+      .map((o) => dig(o ?? {}))
+      .map((t) => (typeof t === 'string' ? t.trim() : ''))
+      .filter((t) => t.length > 0);
+
+  const inWords = texts(content.examplesIn, (o) => o.text);
+  const outWords = texts(content.examplesOut, (o) => o.text);
+  const options = texts(content.options, (o) => (o.token as Record<string, unknown> | undefined)?.text);
+  if (options.length === 0) return [];
+
+  const prompt = typeof content.prompt === 'string' ? content.prompt.trim() : '';
+  const lines: StoryLine[] = [{ text: prompt.length > 0 ? prompt : FALLBACK_ASK, gapMs: LINE_GAP_MS }];
+  if (inWords.length > 0) lines.push({ text: saidRun('These go in.', inWords), gapMs: LINE_GAP_MS });
+  if (outWords.length > 0) {
+    lines.push({
+      text: saidRun(outWords.length === 1 ? 'This one does not.' : 'These do not.', outWords),
+      gapMs: LINE_GAP_MS,
+    });
+  }
+  for (const w of options) lines.push({ text: saidRun('', [w]).trim(), gapMs: LINE_GAP_MS });
+  return lines;
+}
 
 /* ============================================================================
    layout
    ========================================================================== */
 
 /**
- * ONE CARD, and every drawn token in the item is exactly this one. See the header for why a candidate may
- * never be a different size or a different distance from the things it is being compared with.
- */
-const CARD = 1.02;
-/** How much of the card the drawing fills. Lifted from `DayLog`'s slabs so a cow is a cow at both stations. */
-const GLYPH = 0.84;
-/** Between cards standing in a bin. Tight, because a bin is a row of things that were put together. */
-const SLOT_PITCH = 1.16;
-/**
- * Between cards on the shelf, and it is set by the HIT VOLUME rather than by the card.
+ * ONE WORD PLATE, and every place in the item is exactly this one. See the header for the pixel arithmetic
+ * that set these two numbers, and for why a plate may never be a different size from the things it is being
+ * compared with.
  *
- * A five-year-old aiming a mouse in three dimensions is imprecise, so each candidate needs a collider far
- * larger than its drawing. Those colliders are tiled edge to edge at exactly this pitch — no gap to fall
- * through and no overlap, because overlapping volumes mean the child who aims between two cards gets
- * whichever one three happens to hit first, which is a coin toss wearing a choice's clothes. So the pitch
- * is the collider's width and the card floats in the middle of it with room all round.
+ * 2.70 rather than 2.80 because the THREE-OPTION shelf is the binding case: three of these at a 2.94 pitch
+ * is 8.58 units, and the bay is 4.70 at a `fitScale` of 0.52, which is 9.04 units of room in total.
  */
-const OPT_PITCH = 1.85;
+const PLATE_W = 2.7;
+const PLATE_H = 0.68;
 
-/** Clear air between the two bins, which the hopper stands over. */
-const BIN_GAP = 1.1;
-/** Where the row of cards inside a bin sits. */
-const BIN_Y = 0.35;
+/** Between one plate and the next, down a crate or down the shelf. */
+const ROW_PITCH = 0.9;
+
+/** A crate, outer: one plate wide plus its walls. */
+const CRATE_W = PLATE_W + 0.34;
 /**
- * The hopper's middle, and it is SMALL — which the first screenshot decided.
+ * Clear air between the two crates, and it is wide because a screenshot said so twice.
  *
- * At a 1.15 mouth radius this was 2.3 units across, wider than a bin is tall, and from the child's vantage
- * — which looks slightly UP at the panel — you see straight into the cone. What came back was a big brown
- * lampshade hanging over the machine with a dark hole in it: the largest object in the frame, and the one
- * carrying the least information. The mouth now only has to be wide enough to hold a posted card, which is
- * what it is for, and the bins and the cards are the biggest things on screen again.
+ * At 0.16 the two crates butted up into ONE box with a divider down the middle, which on a type whose whole
+ * question is "does this belong with those or not" deletes the question — a child looking at one box has no
+ * reason to read the left half as a different pile from the right. It is also where the robot's head lives,
+ * so the gap has to be wide enough to hold it in open air rather than sitting it on the crates' shoulders,
+ * which is what the first shot showed: a dark mushroom growing out of the woodwork.
  */
-const HOPPER_Y = 2.35;
-const HOPPER_H = 0.7;
-/** Mouth and throat. The mouth takes a whole card and not much more; the throat feeds the chutes. */
-const HOPPER_RT = 0.68;
-const HOPPER_RB = 0.26;
+const BIN_GAP = 0.8;
+/** Crate centres. */
+const BIN_X = (CRATE_W + BIN_GAP) / 2;
+
 /**
- * The shelf, and it drops rather than coming forward — see the header.
- *
- * Chosen so the machine's visible top and the shelf plank's visible underside land at nearly the same
- * distance from the origin (2.79 up, 2.82 down), which keeps the panel's centre at the site's own height
- * the way every other presentation here does. The first pass had it at -2.1 and the extra third of a metre
- * of dead air read, in a shot, as two unrelated objects rather than one machine with a shelf under it.
+ * How many slots a crate is built to hold. BOTH CRATES GET THE SAME COUNT even though one holds three
+ * things and the other holds one, because a larger crate reads as a more important crate and which pile is
+ * bigger is not what the child is being asked. The OUT crate's spare slots are plain interior with no
+ * recess drawn in them, so nothing there competes with the socket.
  */
-const SHELF_Y = -1.77;
+const CRATE_SLOTS = 3;
 
-/** How long after arriving the gate says the item's own prompt. Matches `DayLog`, for the same reason. */
-const ARRIVAL_BEAT_MS = 900;
+/** The head's mouth and throat. Small — see the note on `Head`. */
+const HEAD_RT = 0.44;
+const HEAD_RB = 0.18;
+const HEAD_H = 0.5;
+/** The band at the top of the panel the head occupies, measured from the panel's own top edge. */
+const HEAD_BAND = 0.95;
 
-/** A card is drawn against this rather than against white — see the note in `Card`. */
-const FACE = HUE.stone;
+/** Between the crates' floor and the shelf's first row. */
+const SHELF_GAP = 0.22;
 
-/** How many slots a bin holds. Both bins get the larger, so neither reads as the more important object. */
-function binSlots(inCount: number, outCount: number): number {
-  return Math.max(inCount + 1, outCount, 1);
+/** The horn's mouth radius, and how far out from the machine it hangs. */
+const HORN_R = 0.5;
+
+/**
+ * How the shelf is arranged, which is the one thing that changes with the option count.
+ *
+ * FOUR OPTIONS GO IN TWO COLUMNS OF TWO, aligned under the two crates, because four plates in a row do not
+ * fit in the bay at a readable size — that is the whole arithmetic in the header. THREE GO IN ONE ROW,
+ * because 2-plus-1 would leave one plate alone on a row with a hole beside it, and a plate that is the only
+ * thing on its row is a plate a child looks at first. One row of three fits at 2.94 pitch with 0.46 of the
+ * bay to spare.
+ */
+function shelfShape(n: number): { cols: number; rows: number; pitchX: number } {
+  if (n <= 3) return { cols: Math.max(1, n), rows: 1, pitchX: 2.94 };
+  return { cols: 2, rows: Math.ceil(n / 2), pitchX: BIN_X * 2 };
 }
 
-/** Where the nth of `count` cards sits across a bin or a shelf. */
+/** Where the nth plate of a row of `count` sits. */
 function slotX(i: number, count: number, pitch: number): number {
   return (i - (count - 1) / 2) * pitch;
 }
@@ -193,210 +292,167 @@ function slotX(i: number, count: number, pitch: number): number {
    ========================================================================== */
 
 /**
- * One token, drawn on a card.
+ * A crate: an open box the robot has already sorted words into, holding them in a column.
  *
- * A WARM MID STONE RATHER THAN PAPER WHITE, which `DayLog` learned from a screenshot and this file inherits
- * rather than rediscovers: the pictures are built from primitives and a great many of them have white or
- * cream parts — an egg, a cloud, a hen, a plate, a glass — and against a near-white face those parts vanish
- * and the card looks half-drawn. The rim is a shade of the same stone rather than a colour, because a
- * coloured rim would be an attribute this item is not asking about, and `farm animals` items would start
- * looking like they had been grouped by trim.
+ * NOTHING ON IT GLOWS, which a screenshot corrected in the old layout and which still holds. The IN crate
+ * used to carry a honey band along its headboard to mark itself out, and the band worked — it just worked
+ * at the socket's expense. A run of lit trim immediately above a lit slot, in the same honey, merged with
+ * it: the empty place stopped being the brightest thing on screen and became part of a yellow stripe. The
+ * hollow's rule is that the missing place is the ONLY thing that glows, and it is a rule because this is
+ * what happens when it is bent.
  */
-function Card({ mark, word }: { mark: EventMark; word?: string | undefined }) {
-  const face = useSlab(CARD, CARD, 0.16, 0.09);
-  const rim = useSlab(CARD + 0.1, CARD + 0.1, 0.11, 0.1);
+function Crate({ slots }: { slots: number }) {
+  const h = slots * ROW_PITCH;
   return (
     <group>
-      <mesh geometry={rim} position={[0, 0, -0.05]}>
-        <meshStandardMaterial color={shade(HUE.stoneDeep, 0.1)} roughness={0.9} metalness={0} />
-      </mesh>
-      <mesh geometry={face}>
-        <meshStandardMaterial color={FACE} roughness={0.88} metalness={0} />
-      </mesh>
       {/*
-        * THE WORD, when the app's reading band allows one, and the picture otherwise.
-        *
-        * Not a style toggle. The glyph table matches 27 of this bank's 100 items; on the other 73 it either
-        * cannot draw a word at all or draws two different words identically, and on 8 of those it draws the
-        * KEYED ANSWER as the same shape as the OUT counter-example — so the only visible evidence points away
-        * from the right answer. No glyph table can be completed out of that, because one whole family keys on
-        * rhyme and another on abstract adjectives, and neither has a picture.
-        *
-        * The word is the bank's own intent: every item declares `presentation: "word"`. Third to fifth graders
-        * read fluently and real CogAT sets Verbal Classification as words from grade 3 up. `showWords` comes
-        * from the platform's app registration rather than from a constant here, so the presentation and the pool
-        * the platform is selecting from cannot disagree.
-        *
-        * Sized off `CARD` rather than chosen: the longest word in the servable pool is nine characters, and at
-        * 0.26 of the card width a nine-character word sits inside the face with a margin at every scale the
-        * shelf takes.
+        * The back the plates stand against, and it is a LIGHT timber rather than the deep bark it started
+        * as. The OUT crate holds one word in a three-slot box, so most of its back is bare, and in deep bark
+        * that bare part came back from a shot as a black hole in the machine — heavier than anything with
+        * information on it. Bare crate should read as an empty crate, which is dull, not as a void.
         */}
-      {word ? (
-        <Text
-          position={[0, 0.02, 0.13]}
-          fontSize={wordFontSize(word, CARD)}
-          maxWidth={CARD * 0.92}
-          textAlign="center"
-          anchorX="center"
-          anchorY="middle"
-          color={shade(HUE.stoneDeep, -0.45)}
-          outlineWidth={0}
-        >
-          {word}
-        </Text>
-      ) : (
-        <group position={[0, 0.02, 0.12]} scale={GLYPH}>
-          <EventGlyph glyph={mark.glyph} state={mark.state} bg={FACE} />
-        </group>
-      )}
-    </group>
-  );
-}
-
-/**
- * THE ONE MISSING PLACE: the empty slot at the end of the IN bin, which is the whole question in one
- * object.
- *
- * The hollow has exactly one convention for this and every dressing in the directory uses it — a recessed
- * dark bed ringed in breathing honey light, the only thing in the world that moves on its own. A child who
- * cannot read a word finds it in under a second, and having found it they have understood the item without
- * being told anything: two things are in this bin, one thing is in that bin, and this bin has room for one
- * more. The rule is never stated because it never can be; it is shown by what is already sorted.
- *
- * Under `prefers-reduced-motion` the breath resolves to its MIDPOINT rather than to nothing, so the socket
- * still plainly glows and the affordance survives — the rule the whole directory follows.
- */
-function Socket({ filled }: { filled: boolean }) {
-  const ring = useSlab(CARD + 0.16, CARD + 0.16, 0.14, 0.11);
-  const bed = useSlab(CARD - 0.08, CARD - 0.08, 0.16, 0.09);
-  const mat = useRef<THREE.MeshStandardMaterial>(null);
-  const frame = useRef<THREE.Group>(null);
-  const reduced = useReducedMotion();
-
-  useFrame(({ clock }) => {
-    const b = filled ? 0.25 : breath(clock.elapsedTime, 2.6, reduced);
-    if (mat.current) mat.current.emissiveIntensity = 0.4 + b * 0.9;
-    if (frame.current) {
-      const s = filled ? 1 : 1 + b * 0.025;
-      frame.current.scale.set(s, s, 1);
-    }
-  });
-
-  return (
-    <group>
-      <group ref={frame}>
-        <mesh geometry={ring} position={[0, 0, -0.12]}>
-          <meshStandardMaterial
-            ref={mat}
-            color={HUE.honey}
-            emissive={HUE.honey}
-            emissiveIntensity={0.8}
-            roughness={0.5}
-            metalness={0}
-          />
-        </mesh>
-      </group>
-      <mesh geometry={bed} position={[0, 0, -0.04]}>
-        <meshStandardMaterial {...MAT.cut} />
+      <mesh position={[0, -h / 2, -0.26]}>
+        <boxGeometry args={[CRATE_W, h, 0.16]} />
+        <meshStandardMaterial color={shade(HUE.barkSoft, 0.14)} roughness={0.94} metalness={0} />
       </mesh>
-    </group>
-  );
-}
-
-/**
- * A bin: an open crate the robot has already sorted things into.
- *
- * BOTH BINS ARE BUILT TO THE SAME SIZE even though one holds three places and the other holds one, because
- * a larger crate reads as a more important crate and which pile is bigger is not what the child is being
- * asked.
- *
- * AND NEITHER OF THEM GLOWS, which a screenshot corrected. The IN bin used to carry a honey band along its
- * headboard to mark itself out, and the band worked — it just worked at the socket's expense. A metre of
- * lit trim immediately above a lit slot, in the same honey, merged with it: the empty place stopped being
- * the brightest thing on screen and became part of a yellow stripe. The hollow's rule is that the missing
- * place is the ONLY thing that glows, and it is a rule because this is what happens when it is bent. Which
- * bin is which is carried by the lit chute pointing into one of them and by the socket sitting in it, which
- * is two cues, and the second is the one that actually poses the question.
- */
-function Bin({ w }: { w: number }) {
-  return (
-    <group>
-      {/* Headboard, tall enough to stand a card against. */}
-      <mesh position={[0, 0.05, -0.3]}>
-        <boxGeometry args={[w, CARD + 0.44, 0.16]} />
-        <meshStandardMaterial {...MAT.bark} />
-      </mesh>
-      {/* A plain capping rail. Structure, not signal — see the note above about what happened when this
-          was honey. */}
-      <mesh position={[0, 0.72, -0.21]}>
-        <boxGeometry args={[w - 0.14, 0.14, 0.06]} />
-        <meshStandardMaterial color={shade(HUE.barkSoft, -0.12)} roughness={0.9} metalness={0} />
-      </mesh>
-      <mesh position={[0, -0.61, 0]}>
-        <boxGeometry args={[w, 0.16, 0.72]} />
-        <meshStandardMaterial {...MAT.barkDeep} />
-      </mesh>
-      {/* The front board. Low on purpose — it has to hold the cards in without covering any part of a
-          drawing, and a card's picture starts 0.42 above its own middle. */}
-      <mesh position={[0, -0.44, 0.32]}>
-        <boxGeometry args={[w, 0.34, 0.14]} />
-        <meshStandardMaterial {...MAT.bark} />
-      </mesh>
+      {/* Side walls. */}
       {[-1, 1].map((side) => (
-        <mesh key={side} position={[(side * w) / 2, -0.16, 0]}>
-          <boxGeometry args={[0.16, 1.1, 0.72]} />
+        <mesh key={side} position={[(side * CRATE_W) / 2, -h / 2, -0.02]}>
+          <boxGeometry args={[0.16, h, 0.62]} />
           <meshStandardMaterial {...MAT.barkDeep} />
         </mesh>
+      ))}
+      {/* The floor. Structure, not signal — see the note above about what happened when this was honey. */}
+      <mesh position={[0, -h + 0.07, -0.02]}>
+        <boxGeometry args={[CRATE_W, 0.14, 0.62]} />
+        <meshStandardMaterial {...MAT.barkDeep} />
+      </mesh>
+      {/*
+        * AND THERE IS NO CAPPING RAIL ALONG THE TOP, which a shot deleted. A 0.12 rail at the crate's lip
+        * sits 0.08 in FRONT of the socket's honey ring and cut the top off it: the ring came back as an L
+        * along the left and bottom of the slot instead of a ring, and the one thing in this world that must
+        * never be hard to find was the thing being occluded by trim.
+        */}
+    </group>
+  );
+}
+
+/**
+ * The robot's head, and the two short spouts it drops words through — one into each crate.
+ *
+ * WHY THE SPOUTS ARE STUBS AND NOT CHUTES, which is the correction the first shot of this layout forced.
+ * The old row layout ran a long board from the head's throat diagonally down into each bin, and the lit one
+ * was the whole reason a child could tell which bin the question was about. In a COLUMN layout that device
+ * cannot work: both crates fill from their top slot, which is level with the head, so the "chute" has 1.5
+ * units of run and 0.15 of drop. What came back was two planks lying across the crates' shoulders — clutter
+ * that read as scaffolding, and the lit one was a yellow sliver nobody would follow.
+ *
+ * So the run is gone and only the pointing is kept: two stubby spouts angled down and out of the head's
+ * base, the LEFT ONE LIT, ending in open air above each crate's first slot. It is still a path with a light
+ * on it ending at a place with a hole in it, which is a sentence a five-year-old reads without being taught
+ * the vocabulary; it is just three inches long instead of two feet. The socket in the IN crate is the other
+ * cue and the one that actually poses the question.
+ *
+ * THE HEAD IS SMALL, which the old layout's first screenshot decided. At a 1.15 mouth radius it was wider
+ * than a crate, and from the child's vantage — which looks slightly UP at the panel — you saw straight into
+ * the cone: a big brown lampshade with a dark hole in it, the largest object in the frame and the one
+ * carrying the least information. The mouth only has to be wide enough to take a posted plate on its way
+ * through, which is what it is for. Two-sided, because a child looking INTO a single-sided cone sees a hole
+ * in the world — the mistake `DayLog`'s horn documents — and the lip is an unrotated torus for the reason
+ * that file gives at length.
+ */
+function Head() {
+  const timber = useMemo(() => shade(HUE.barkSoft, 0.16), []);
+  return (
+    <group>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[HEAD_RT, HEAD_RB, HEAD_H, 26, 1, true]} />
+        <meshStandardMaterial color={timber} roughness={0.9} metalness={0} side={2} />
+      </mesh>
+      <mesh position={[0, HEAD_H / 2, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[HEAD_RT, 0.09, 10, 30]} />
+        <meshStandardMaterial {...MAT.barkDeep} />
+      </mesh>
+      <mesh position={[0, -HEAD_H / 2, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[HEAD_RB, 0.07, 8, 20]} />
+        <meshStandardMaterial {...MAT.barkDeep} />
+      </mesh>
+      {/* The two ways out. `side` -1 is the IN crate, which is the lit one. */}
+      {[-1, 1].map((side) => (
+        <group
+          key={side}
+          position={[side * 0.3, -HEAD_H / 2 - 0.12, 0]}
+          rotation={[0, 0, side * -0.72]}
+        >
+          <mesh>
+            <boxGeometry args={[0.6, 0.16, 0.42]} />
+            <meshStandardMaterial {...MAT.bark} />
+          </mesh>
+          {[-1, 1].map((rail) => (
+            <mesh key={rail} position={[0.03, 0.09, rail * 0.22]}>
+              <boxGeometry args={[0.56, 0.1, 0.08]} />
+              <meshStandardMaterial
+                color={side < 0 ? HUE.honey : shade(HUE.barkSoft, -0.12)}
+                emissive={side < 0 ? HUE.honey : '#000000'}
+                emissiveIntensity={side < 0 ? 0.45 : 0}
+                roughness={0.85}
+                metalness={0}
+              />
+            </mesh>
+          ))}
+        </group>
       ))}
     </group>
   );
 }
 
 /**
- * One chute: a board with two rails, running from the hopper's throat down to a bin.
+ * TELL IT AGAIN. A horn on the machine's shoulder, mouth turned toward the child.
  *
- * The lit one is the whole reason a child knows which bin the question is about. It is not an arrow and it
- * is not a label — it is a path with a light on it ending at a place with a hole in it, which is a sentence
- * a five-year-old reads without being taught the vocabulary.
+ * THE SAME OBJECT `DayLog` AND `KinshipStone` USE, deliberately: a child who missed a word needs to ask for
+ * it again without being told how, and three different "say it again" objects in one battery would be three
+ * things to learn. Three states, as there: pulsing while speaking, plain dead stone on a machine with no
+ * voice (so nobody spends the round pressing it), lit when the crosshair is on it. Still pressable when
+ * dormant, because a press is how a late-loading voice gets discovered.
  */
-function Chute({
-  from,
-  to,
-  drop,
-  lit,
-}: {
-  from: readonly [number, number];
-  to: readonly [number, number];
-  /** How far the spout at the far end reaches down toward the bin's mouth. */
-  drop: number;
-  lit: boolean;
-}) {
-  const dx = to[0] - from[0];
-  const dy = to[1] - from[1];
-  const len = Math.hypot(dx, dy);
+function Horn({ speaking, dormant, lit }: { speaking: boolean; dormant: boolean; lit: boolean }) {
+  const mouth = useRef<THREE.MeshStandardMaterial>(null);
+  const reduced = useReducedMotion();
+
+  useFrame(({ clock }) => {
+    if (!mouth.current) return;
+    const b = speaking ? breath(clock.elapsedTime, 1.1, reduced) : 0;
+    mouth.current.emissiveIntensity = dormant ? 0 : (lit ? 0.5 : 0.16) + b * 0.7;
+  });
+
   return (
-    <group>
-      <group position={[(from[0] + to[0]) / 2, (from[1] + to[1]) / 2, 0]} rotation={[0, 0, Math.atan2(dy, dx)]}>
-        <mesh>
-          <boxGeometry args={[len, 0.16, 0.62]} />
-          <meshStandardMaterial {...MAT.bark} />
-        </mesh>
-        {[-1, 1].map((side) => (
-          <mesh key={side} position={[0, 0.07, side * 0.32]}>
-            <boxGeometry args={[len, 0.12, 0.1]} />
-            <meshStandardMaterial
-              color={lit ? HUE.honey : shade(HUE.barkSoft, -0.12)}
-              emissive={lit ? HUE.honey : '#000000'}
-              emissiveIntensity={lit ? 0.4 : 0}
-              roughness={0.85}
-              metalness={0}
-            />
-          </mesh>
-        ))}
-      </group>
-      {/* The spout, which is what makes the chute POINT INTO the bin rather than merely end above it. */}
-      <mesh position={[to[0], to[1] - drop / 2, 0]}>
-        <boxGeometry args={[0.34, drop, 0.5]} />
+    /* Yawed well round, because a horn seen square on is a ring, and a ring is a bowl. */
+    <group rotation={[0, -0.5, 0]}>
+      <mesh position={[0.34, 0, -0.34]} rotation={[0, Math.PI / 2, 0]}>
+        <cylinderGeometry args={[0.13, 0.16, 0.7, 12]} />
+        <meshStandardMaterial {...MAT.barkDeep} />
+      </mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[HORN_R, HORN_R * 0.36, 0.62, 24, 1, true]} />
+        <meshStandardMaterial color={shade(HUE.barkSoft, 0.16)} roughness={0.9} metalness={0} side={2} />
+      </mesh>
+      <mesh position={[0, 0, 0.3]}>
+        <circleGeometry args={[HORN_R * 0.86, 24]} />
+        <meshStandardMaterial
+          ref={mouth}
+          color={dormant ? shade(HUE.bark, 0.06) : HUE.honey}
+          emissive={dormant ? '#000000' : HUE.honey}
+          emissiveIntensity={0}
+          roughness={0.6}
+          metalness={0}
+        />
+      </mesh>
+      <mesh position={[0, 0, 0.31]}>
+        <torusGeometry args={[HORN_R, 0.075, 10, 28]} />
+        <meshStandardMaterial {...MAT.barkDeep} />
+      </mesh>
+      <mesh position={[0, 0, -0.34]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[HORN_R * 0.42, HORN_R * 0.42, 0.26, 16]} />
         <meshStandardMaterial {...MAT.barkDeep} />
       </mesh>
     </group>
@@ -404,30 +460,40 @@ function Chute({
 }
 
 /**
- * The hopper: the machine's mouth, where a word is posted in.
+ * THE ONE MISSING PLACE: the empty slot at the top of the IN crate, which is the whole question in one
+ * object.
  *
- * A truncated cone open at both ends and drawn two-sided, because a child is looking down INTO it and a
- * single-sided cone shows a hole in the world instead of a far inner wall — the mistake `DayLog`'s horn
- * documents. The lip is an unrotated torus for the same reason that file gives at length: a torus already
- * lies in the XY plane, and turning it a quarter turn to match the cone lays a flat band across the mouth
- * that reads as a handle.
+ * A child who cannot read a word finds it in under a second, and having found it they have understood the
+ * item without being told anything: two words are in this crate, one word is in that one, and this crate
+ * has room for one more. The rule is never stated because it never can be; it is shown by what is already
+ * sorted. Under `prefers-reduced-motion` the breath resolves to its MIDPOINT rather than to nothing, so the
+ * socket still plainly glows and the affordance survives.
  */
-function Hopper() {
-  const timber = useMemo(() => shade(HUE.barkSoft, 0.16), []);
+function Socket({ filled }: { filled: boolean }) {
+  const frame = useRef<THREE.Group>(null);
+  const reduced = useReducedMotion();
+  const mat = useRef<THREE.MeshStandardMaterial | null>(null);
+
+  /* Mutated inside the frame loop rather than pushed through React — `theme.ts`'s rule about what may run
+     at 60fps, and the reason `EmptySlot` hands its material out instead of taking a glow prop. */
+  useFrame(({ clock }) => {
+    const b = filled ? 0.25 : breath(clock.elapsedTime, 2.6, reduced);
+    if (mat.current) mat.current.emissiveIntensity = 0.4 + b * 0.9;
+    if (frame.current) {
+      const s = filled ? 1 : 1 + b * 0.02;
+      frame.current.scale.set(s, s, 1);
+    }
+  });
+
   return (
-    <group>
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[HOPPER_RT, HOPPER_RB, HOPPER_H, 26, 1, true]} />
-        <meshStandardMaterial color={timber} roughness={0.9} metalness={0} side={2} />
-      </mesh>
-      <mesh position={[0, HOPPER_H / 2, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[HOPPER_RT, 0.1, 10, 30]} />
-        <meshStandardMaterial {...MAT.barkDeep} />
-      </mesh>
-      <mesh position={[0, -HOPPER_H / 2, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[HOPPER_RB, 0.08, 8, 20]} />
-        <meshStandardMaterial {...MAT.barkDeep} />
-      </mesh>
+    <group ref={frame}>
+      <EmptySlot
+        w={PLATE_W}
+        h={PLATE_H}
+        onMaterial={(m) => {
+          mat.current = m;
+        }}
+      />
     </group>
   );
 }
@@ -436,47 +502,31 @@ function Hopper() {
    the gate
    ========================================================================== */
 
-/**
- * What the gate says on arrival, in place of the bank's prompt.
- *
- * "Point at" rather than "tap", because that is the gesture; "the one" rather than "the word", because the
- * cards are pictures whenever the app's reading band forbids text. Short enough to finish before a child has
- * chosen, which is the constraint that rules out explaining the rule — and the rule must not be explained
- * anyway, since inferring it is the item.
- */
-const POINT_AND_PICK = 'The robot sorted these. Point at the one that also goes in.';
-
 export function SortingGate({
   content,
   onPick,
   disabled = false,
-  showWords = false,
 }: {
   content: Record<string, unknown>;
   onPick: (handed: string) => void;
   disabled?: boolean;
-  /**
-   * Set the words as words rather than drawing them. Comes from the app's registered reading band.
-   *
-   * Defaults to `false` so a caller that has not thought about it gets the old behaviour rather than
-   * accidentally putting text in front of a pre-reader.
-   */
-  showWords?: boolean;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [hover, setHover] = useState<number | null>(null);
+  const [onHorn, setOnHorn] = useState(false);
+  const [narration, setNarration] = useState<NarrationState>('idle');
   const reduced = useReducedMotion();
 
-  const examplesIn = useMemo(() => marksOf(content.examplesIn, (o) => o.text), [content]);
-  const examplesOut = useMemo(() => marksOf(content.examplesOut, (o) => o.text), [content]);
   /**
-   * The words themselves, kept beside the marks rather than instead of them.
-   *
-   * Both are needed at once: `showWords` decides per render which face a card shows, and the marks stay live so
-   * that turning reading off does not require re-deriving anything.
+   * PICTURES ARE ALL OR NOTHING PER ITEM — see `sortingGateDraws`. True for the 27 items of K-1 and 2-3
+   * whose whole vocabulary draws distinctly, false for everything else, and a false is now a plate with a
+   * word on it rather than an item nobody may be served.
    */
-  const wordsIn = useMemo(() => wordsOf(content.examplesIn), [content]);
-  const wordsOut = useMemo(() => wordsOf(content.examplesOut), [content]);
+  const drawn = useMemo(() => sortingGateDraws(content), [content]);
+  const markOf = useCallback((word: string): EventMark | null => (drawn ? tokenGlyph(word) : null), [drawn]);
+
+  const examplesIn = useMemo(() => wordsOf(content.examplesIn, (o) => o.text), [content]);
+  const examplesOut = useMemo(() => wordsOf(content.examplesOut, (o) => o.text), [content]);
 
   /**
    * The candidates.
@@ -490,183 +540,188 @@ export function SortingGate({
     return raw.map((o, i) => {
       const token = (o?.token ?? {}) as Record<string, unknown>;
       const text = typeof token.text === 'string' ? token.text.trim() : '';
-      return { index: i, handed: handedFor(o, i), mark: tokenGlyph(text), word: text };
+      return { index: i, handed: handedFor(o, i), word: text };
     });
   }, [content]);
 
+  /** Everything the machine says and the silence between. Nothing here may reorder or relabel it. */
+  const said = useMemo(() => sortLines(content), [content]);
+
+  const retell = useCallback(() => {
+    if (said.length === 0) return;
+    narrate(said, setNarration);
+  }, [said]);
+
   /**
-   * The item's own authored prompt, said once on arrival.
-   *
-   * A SECOND CHANNEL AND NOTHING MORE. Unlike the day's log — where the sentences ARE the item and a child
-   * who hears nothing has been handed a blank — everything this item asks is on screen: two things sorted
-   * one way, one thing sorted the other, a lit empty place. So there is no horn, no voiceless fallback and
-   * no state to track. A machine with no voice loses the instruction and keeps the question, which is why
-   * the pictures had to carry it in the first place.
+   * Told once on arrival, after a beat, and then left alone — the horn is for the second and third time.
+   * Nothing is left talking when the item changes: this component is keyed on the item, so unmount is per
+   * question.
    */
   useEffect(() => {
-    /**
-     * THE BANK'S PROMPT IS NOT SPOKEN VERBATIM, because on this surface it is twice wrong.
-     *
-     * Every item's `content.prompt` reads "The robot sorted these words. Tap the new word that also goes IN."
-     * Both halves describe a different interface: nothing here TAPS — a child aims a crosshair under pointer
-     * lock and clicks, or presses Enter — and when `showWords` is false the cards are not WORDS but pictures,
-     * deliberately, so that the rule can be shown rather than stated. A child who trusts the sentence goes
-     * looking for something to tap and for words that are not there.
-     *
-     * So the presentation owns its own wording. `POINT_AND_PICK` names the gesture this surface actually has
-     * and stays true whichever face the cards are showing.
-     */
-    if (!canSpeak()) return;
-    /**
-     * The words are SAID as well as set, so a weak reader can still use the cards.
-     *
-     * Showing words fixed the item and created a new barrier in the same move: a third grader reading below
-     * level can see four words and decode none of them, which measures reading rather than classification. So
-     * the gate names what it has sorted and what is on offer, in the order the cards sit in, and a child who
-     * cannot read follows the audio while a child who can ignores it. Neither is asked to choose a mode.
-     *
-     * The RULE is still never said — only the words are. Inferring the category is the item, and naming it
-     * would answer the question out loud.
-     */
-    const lines = [
-      POINT_AND_PICK,
-      ...(wordsIn.length > 0 ? [`These go in. ${wordsIn.join('. ')}.`] : []),
-      ...(wordsOut.length > 0 ? [`This one does not. ${wordsOut.join('. ')}.`] : []),
-      ...(options.length > 0 ? [`Now these. ${options.map((o) => o.word).filter(Boolean).join('. ')}.`] : []),
-    ];
-    const t = setTimeout(() => narrate(lines), ARRIVAL_BEAT_MS);
+    if (said.length === 0) return;
+    if (!canSpeak()) {
+      setNarration('unavailable');
+      return;
+    }
+    const t = setTimeout(retell, ARRIVAL_BEAT_MS);
     return () => {
       clearTimeout(t);
       hushSpeech();
     };
-  }, [content]);
+  }, [said, retell]);
 
-  const slots = binSlots(examplesIn.length, examplesOut.length);
-  const binInner = slots * SLOT_PITCH;
-  const binW = binInner + 0.34;
-  const binX = binW / 2 + BIN_GAP / 2;
-  const n = Math.max(1, options.length);
+  const voiceless = narration === 'unavailable';
+  const speaking = narration === 'speaking';
+
   /**
-   * The slot each bin fills first, and where its chute therefore points.
+   * Say one word on its own, which is what a pre-reader pointing at a plate wants.
    *
-   * BOTH BINS FILL FROM THE INSIDE OUT, which is what makes the machine symmetrical rather than merely
-   * mirrored. The IN bin's empty socket is its innermost slot and the OUT bin's one card sits in its
-   * innermost slot, so the two chutes come off the throat at the same angle and each lands over the thing
-   * its side of the machine is about. Centring the OUT card in its crate instead — which is what this did
-   * first — left the OUT chute pointing at bare planking for no reason a child could work out.
+   * SUPPRESSED WHILE THE ARRIVAL TELLING IS RUNNING: `speak()` cancels whatever is queued, so a cursor
+   * drifting across the shelf during the opening would chop the prompt off mid-sentence.
    */
-  const mouthX = binX - slotX(slots - 1, slots, SLOT_PITCH);
+  const sayWord = useCallback(
+    (word: string) => {
+      if (speaking || word.length === 0) return;
+      speak(`${word.charAt(0).toUpperCase()}${word.slice(1)}.`);
+    },
+    [speaking],
+  );
 
-  /** Where the posted card starts and where it comes to rest. Both are places on the machine. */
-  const lip = [0, HOPPER_Y + HOPPER_H / 2 - 0.18, 0.3] as const;
-  const rest = [-binX + slotX(examplesIn.length, slots, SLOT_PITCH), BIN_Y, 0.02] as const;
+  const n = Math.max(1, options.length);
+  const shelf = shelfShape(n);
 
-  const pickedMark = picked === null ? null : (options.find((o) => o.index === picked)?.mark ?? null);
-  const pickedWord = picked === null ? undefined : options.find((o) => o.index === picked)?.word;
+  /* The panel's own box, top-down: the head's band, the crates, a gap, then the shelf. */
+  const panelH = HEAD_BAND + CRATE_SLOTS * ROW_PITCH + SHELF_GAP + shelf.rows * ROW_PITCH;
+  const top = panelH / 2;
+  /** The top edge of a crate's interior: where its first slot begins. */
+  const crateTop = top - HEAD_BAND;
+  /* The head sits in the air between the two crates, above their shoulders — see `BIN_GAP`. */
+  const headY = crateTop + 0.44;
+  const slotY = (i: number): number => crateTop - (i + 0.5) * ROW_PITCH;
+  const shelfTop = crateTop - CRATE_SLOTS * ROW_PITCH - SHELF_GAP;
+  const shelfY = (row: number): number => shelfTop - (row + 0.5) * ROW_PITCH;
+
+  /**
+   * The horn hangs off the machine's left shoulder, and this is the number that sets the PANEL'S WIDTH.
+   *
+   * The machine itself is 6.88 wide at four options; the horn takes the drawn width to 8.98, which at
+   * `fitScale` 0.52 projects to 4.67 of the bay's 4.70. Three hundredths of a unit, so a horn moved further
+   * out pokes through the bay's frame — re-measure rather than nudging this.
+   */
+  const hornX = -(BIN_X + CRATE_W / 2 + 0.55);
+
+  /** Where a posted plate starts, where it passes through, and where it comes to rest. */
+  const mouth = [0, headY - HEAD_H / 2 - 0.1, 0.3] as const;
+  const rest = [-BIN_X, slotY(0), 0.02] as const;
+
+  const pickedOption = picked === null ? null : (options.find((o) => o.index === picked) ?? null);
+  const pickedFrom = (): readonly [number, number, number] => {
+    if (!pickedOption) return [0, 0, 0];
+    const row = Math.floor(pickedOption.index / shelf.cols);
+    const col = pickedOption.index % shelf.cols;
+    return [slotX(col, Math.min(shelf.cols, n), shelf.pitchX), shelfY(row), 0.02];
+  };
 
   return (
     <group>
-      <group position={[0, HOPPER_Y, 0]}>
-        <Hopper />
+      {/* The machine's head, in the air between the crates, with a lit spout leaning toward the crate that
+          has the empty place in it and a dull one leaning the other way. */}
+      <group position={[0, headY, 0]}>
+        <Head />
       </group>
 
-      {/* The two paths out of the throat, and THE LIT ONE ENDS DIRECTLY ABOVE THE EMPTY SLOT.
-          Two screenshots decided this shape. Aiming a chute at a bin's MIDDLE lays it across the cards
-          standing in that bin — the first shot had the IN chute running over the socket, which is the one
-          thing here that must never be hard to find. Running them out to the bins' far ends instead fixed
-          the occlusion and cost more than it saved: two long symmetric diagonals meeting over the middle
-          read, unmistakably, as the ROOF of a house, and the machine disappeared under it.
-          Short and steep, ending over the slot each bin fills first, is what actually reads as a chute —
-          and it makes the lit one into a pointing finger. Its spout stops at 1.15 and the tallest card
-          tops out at 0.86, so it indicates the socket without covering any part of it. */}
-      <Chute
-        from={[-HOPPER_RB * 0.9, HOPPER_Y - HOPPER_H / 2]}
-        to={[-mouthX, BIN_Y + 1.1]}
-        drop={0.3}
-        lit
-      />
-      <Chute
-        from={[HOPPER_RB * 0.9, HOPPER_Y - HOPPER_H / 2]}
-        to={[mouthX, BIN_Y + 1.1]}
-        drop={0.3}
-        lit={false}
-      />
-
-      {/* IN: what the robot has already decided belongs, and room for one more. */}
-      <group position={[-binX, BIN_Y, 0]}>
-        <Bin w={binW} />
-        {examplesIn.map((mark, i) => (
-          <group key={i} position={[slotX(i, slots, SLOT_PITCH), 0, 0.02]}>
-            <Card mark={mark} word={showWords ? wordsIn[i] : undefined} />
-          </group>
-        ))}
-        <group position={[slotX(examplesIn.length, slots, SLOT_PITCH), 0, 0.02]}>
-          <Socket filled={pickedMark !== null} />
+      {/* IN: what the robot has already decided belongs, and room for one more at the top. */}
+      <group position={[-BIN_X, crateTop, 0]}>
+        <Crate slots={CRATE_SLOTS} />
+      </group>
+      <group position={[-BIN_X, slotY(0), 0]}>
+        <Socket filled={pickedOption !== null} />
+      </group>
+      {examplesIn.map((word, i) => (
+        <group key={`in-${i}`} position={[-BIN_X, slotY(i + 1), 0.02]}>
+          <WordCard word={word} w={PLATE_W} h={PLATE_H} mark={markOf(word)} />
         </group>
-      </group>
+      ))}
 
-      {/* OUT: what it decided does not. Filled from the inside out, under its own chute — see `mouthX`. */}
-      <group position={[binX, BIN_Y, 0]}>
-        <Bin w={binW} />
-        {examplesOut.map((mark, i) => (
-          <group key={i} position={[slotX(i, slots, SLOT_PITCH), 0, 0.02]}>
-            <Card mark={mark} word={showWords ? wordsOut[i] : undefined} />
-          </group>
-        ))}
+      {/* OUT: what it decided does not. Its crate is built to the same size — see `CRATE_SLOTS`. */}
+      <group position={[BIN_X, crateTop, 0]}>
+        <Crate slots={CRATE_SLOTS} />
       </group>
+      {examplesOut.map((word, i) => (
+        <group key={`out-${i}`} position={[BIN_X, slotY(i), 0.02]}>
+          <WordCard word={word} w={PLATE_W} h={PLATE_H} mark={markOf(word)} />
+        </group>
+      ))}
 
-      {/* The posted card, riding from the lip down into the bin. See `PostedCard`. */}
-      {pickedMark ? (
+      {/* The horn, out on the machine's shoulder, where nothing is measuring. Level with the crate's upper
+          wall rather than with the head, so its neck is let into timber instead of hanging in the sky. */}
+      <group position={[hornX, crateTop - 0.34, 0.1]}>
+        <Horn speaking={speaking} dormant={voiceless} lit={onHorn} />
+      </group>
+      {/* A five-year-old aiming in three dimensions does not hit a horn, so what takes the press is a
+          volume far larger than the horn. It sits clear of the shelf's own volumes, which start 1.9 units
+          below it. */}
+      <mesh
+        visible={false}
+        position={[hornX, crateTop - 0.34, 0.6]}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setOnHorn(true);
+        }}
+        onPointerOut={(e) => {
+          e.stopPropagation();
+          setOnHorn(false);
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          // Unlimited, untimed, unrecorded. Nothing about hearing it again is scored.
+          retell();
+        }}
+      >
+        <boxGeometry args={[1.5, 1.4, 1.4]} />
+      </mesh>
+
+      {/* The posted plate, riding from the shelf through the mouth and down into the crate. */}
+      {pickedOption ? (
         <PostedCard
-          mark={pickedMark}
-          word={showWords ? pickedWord : undefined}
-          from={lip}
+          word={pickedOption.word}
+          mark={markOf(pickedOption.word)}
+          from={pickedFrom()}
+          via={mouth}
           to={rest}
           reduced={reduced}
         />
       ) : null}
 
       {/* The shelf of words to choose from. */}
-      <group position={[0, SHELF_Y, 0]}>
-        <mesh position={[0, -CARD / 2 - 0.43, -0.1]}>
-          <boxGeometry args={[n * OPT_PITCH + 0.9, 0.26, 1.15]} />
+      <group>
+        {/* The plank the shelf stands on, under the last row. */}
+        <mesh position={[0, shelfY(shelf.rows - 1) - PLATE_H / 2 - 0.28, -0.12]}>
+          <boxGeometry args={[Math.min(shelf.cols, n) * shelf.pitchX + 0.5, 0.24, 1.0]} />
           <meshStandardMaterial {...MAT.bark} />
         </mesh>
         {options.map((o) => {
+          const row = Math.floor(o.index / shelf.cols);
+          const colsHere = Math.min(shelf.cols, n);
+          const col = o.index % shelf.cols;
+          const x = slotX(col, colsHere, shelf.pitchX);
+          const y = shelfY(row);
           const live = !disabled && picked === null;
           const lit = hover === o.index && live;
           const taken = picked === o.index;
           return (
-            <group key={o.index} position={[slotX(o.index, n, OPT_PITCH), 0, 0]}>
-              {/*
-                * Invisible, generous, and NOW ALIGNED WITH THE CARD, which it was not.
-                *
-                * It used to be 2.2 tall against a card of 1.02 and 1.7 deep centred 0.5 in front of it. Both
-                * were wrong in the same direction. The height put 0.59 of clickable air ABOVE each card — and
-                * below the card that same 0.59 is hidden behind the plinth and the shelf beam, so all of the
-                * slack a child could see was overhead. The depth was worse: a volume protruding 1.35 toward the
-                * camera is intersected well before the card plane, so the region that responded sat visibly
-                * above and in front of the thing it belonged to. The owner's report was "the clicking area is
-                * way above the actual words", which is exactly this.
-                *
-                * `CARD + 0.5` keeps the generosity that a small child aiming a mouse needs — 0.25 of padding on
-                * every side — while `0.5` of depth just in front of the face removes the parallax entirely. The
-                * lifted, scaled hover state tops out at 0.14 + 0.51 * 1.05 = 0.68, inside the 0.76 half-height,
-                * so hovering never falls out of its own target.
-                */}
+            <group key={o.index} position={[x, y, 0]}>
+              {/* Invisible and oversized, tiled edge to edge at the shelf pitch in BOTH directions — no gap
+                  to fall through and no overlap, because overlapping volumes mean the child who aims
+                  between two plates gets whichever one three happens to hit first, which is a coin toss
+                  wearing a choice's clothes. */}
               <mesh
                 visible={false}
-                position={[0, 0, 0.22]}
+                position={[0, 0, 0.5]}
                 onPointerOver={(e) => {
                   e.stopPropagation();
                   setHover(o.index);
-                  /**
-                   * Pointing at a card says it. The affordance a weak reader actually needs: not a block of
-                   * narration to sit through, but the ability to ask what THIS one says, as many times as they
-                   * like, by looking at it. `speak` cancels whatever was already speaking, so sweeping along the
-                   * shelf reads the shelf rather than piling four voices on top of each other.
-                   */
-                  if (live && o.word) speak(o.word);
+                  sayWord(o.word);
                 }}
                 onPointerOut={(e) => {
                   e.stopPropagation();
@@ -674,26 +729,34 @@ export function SortingGate({
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (!live) return;
+                  // A tap on a plate that cannot be chosen any more still says it, because wanting to hear
+                  // it again is not the same as wanting to answer and must never cost anything.
+                  if (!live) {
+                    sayWord(o.word);
+                    return;
+                  }
                   setPicked(o.index);
                   onPick(o.handed);
                 }}
               >
-                <boxGeometry args={[OPT_PITCH, CARD + 0.5, 0.5]} />
+                <boxGeometry args={[shelf.pitchX, ROW_PITCH, 1.7]} />
               </mesh>
-              {/* The card leaves the shelf when it is posted, so the shelf shows what is still on offer
-                  and nothing else. Its plinth stays, so the empty place still reads as a place. */}
+
+              {/* The plate leaves the shelf when it is posted, so the shelf shows what is still on offer
+                  and nothing else. Its ledge stays, so the gap still reads as a place. */}
               {taken ? null : (
-                <group position={[0, lit ? 0.14 : 0, 0.02]} scale={lit ? 1.05 : 1}>
-                  <Card mark={o.mark} word={showWords ? o.word : undefined} />
+                <group position={[0, lit ? 0.06 : 0, 0.02]}>
+                  <WordCard word={o.word} w={PLATE_W} h={PLATE_H} mark={markOf(o.word)} />
                 </group>
               )}
-              {/* The plinth is the hover tell: a whole lit block under the card, which is unmissable to a
-                  child who is not sure whether their aim landed. */}
-              <mesh position={[0, -CARD / 2 - 0.16, 0]}>
-                <cylinderGeometry args={[0.4, 0.48, 0.16, 24]} />
+
+              {/* The hover tell: a lit ledge the width of the plate, in the air below it. Unmissable to a
+                  child who is not sure whether their aim landed, and UNDER the plate rather than on it, so
+                  it can never be read as one word being brighter than another. */}
+              <mesh position={[0, -(PLATE_H / 2 + 0.11), 0.06]}>
+                <boxGeometry args={[PLATE_W - 0.2, 0.09, 0.42]} />
                 <meshStandardMaterial
-                  color={lit ? HUE.honey : shade(HUE.stone, 0.04)}
+                  color={lit ? HUE.honey : shade(HUE.barkSoft, 0.06)}
                   emissive={lit ? HUE.honey : '#000000'}
                   emissiveIntensity={lit ? 0.55 : 0}
                   roughness={0.8}
@@ -709,29 +772,36 @@ export function SortingGate({
 }
 
 /**
- * The chosen card, posted into the hopper and riding the lit chute down to the empty place.
+ * The chosen plate, posted into the head and riding the lit chute down to the empty place.
  *
- * WHY IT MOVES AT ALL. A card that simply teleports into the socket reads as the socket having been filled
- * by the machine; a card that visibly travels from the mouth reads as the CHILD having put it there. The
- * difference matters because of what the movement is not: it is not a verdict. The card goes to the IN bin
- * whichever option was chosen, because going to the IN bin is what the child SAID about it. Nothing here
- * knows or could know whether that is right.
+ * WHY IT MOVES AT ALL. A plate that simply teleports into the socket reads as the socket having been filled
+ * by the machine; a plate that visibly travels from the shelf, through the mouth, into the crate reads as
+ * the CHILD having put it there. The difference matters because of what the movement is not: it is not a
+ * verdict. The plate goes to the IN crate whichever option was chosen, because going to the IN crate is
+ * what the child SAID about it. Nothing here knows or could know whether that is right.
  *
- * A straight run rather than a follow of the chute's dogleg, and half a second rather than a beat longer,
- * because the interesting part of this presentation is over once the pick is made and an animation that
- * outlasts its meaning is a delay. Under `prefers-reduced-motion` there is no travel at all: the card is
- * simply in the socket, which is the resting state of the same fact.
+ * TWO LEGS RATHER THAN ONE STRAIGHT RUN, which is the one thing the old version could not do because its
+ * shelf was not under the mouth: up into the head, then down the lit chute. That is the machine's own story
+ * and it is worth the six lines — a straight diagonal from the shelf to the crate would say the plate went
+ * around the machine rather than through it.
+ *
+ * Just over half a second for the pair of legs, because the interesting part of this presentation is over
+ * once the pick is made and an animation that outlasts its meaning is a delay. Under
+ * `prefers-reduced-motion` there is no travel at all: the plate is simply in the socket, which is the
+ * resting state of the same fact.
  */
 function PostedCard({
-  mark,
   word,
+  mark,
   from,
+  via,
   to,
   reduced,
 }: {
-  mark: EventMark;
-  word?: string | undefined;
+  word: string;
+  mark: EventMark | null;
   from: readonly [number, number, number];
+  via: readonly [number, number, number];
   to: readonly [number, number, number];
   reduced: boolean;
 }) {
@@ -740,41 +810,31 @@ function PostedCard({
 
   useFrame((_, dt) => {
     if (!group.current) return;
-    t.current = Math.min(1, t.current + dt / 0.55);
-    // Eased so it leaves the lip briskly and settles rather than arriving at speed.
-    const e = 1 - (1 - t.current) * (1 - t.current);
+    t.current = Math.min(1, t.current + dt / 0.62);
+    // The first 45% is the rise to the mouth, the rest is the ride down the chute. Each leg is eased so
+    // the plate leaves briskly and settles rather than arriving at speed.
+    const leg = t.current < 0.45 ? t.current / 0.45 : (t.current - 0.45) / 0.55;
+    const e = 1 - (1 - leg) * (1 - leg);
+    const a = t.current < 0.45 ? from : via;
+    const b = t.current < 0.45 ? via : to;
     group.current.position.set(
-      from[0] + (to[0] - from[0]) * e,
-      from[1] + (to[1] - from[1]) * e,
-      from[2] + (to[2] - from[2]) * e,
+      a[0] + (b[0] - a[0]) * e,
+      a[1] + (b[1] - a[1]) * e,
+      a[2] + (b[2] - a[2]) * e,
     );
   });
 
   return (
     <group ref={group} position={[from[0], from[1], from[2]]}>
-      <Card mark={mark} word={word} />
+      <WordCard word={word} w={PLATE_W} h={PLATE_H} mark={mark} />
     </group>
   );
 }
 
-/** Every `{text}` in a list, turned into the picture that stands for it. */
-/**
- * The words in the same order `marksOf` produces marks, so index `i` of one is index `i` of the other.
- *
- * Sharing the trim-and-drop-empties rule with `marksOf` is what keeps them aligned; a word list filtered by a
- * different predicate would silently put the wrong label on a card.
- */
-function wordsOf(value: unknown): string[] {
-  return (Array.isArray(value) ? (value as Record<string, unknown>[]) : [])
-    .map((o) => (o ?? {}).text)
-    .map((t) => (typeof t === 'string' ? t.trim() : ''))
-    .filter((t) => t.length > 0);
-}
-
-function marksOf(value: unknown, dig: (o: Record<string, unknown>) => unknown): EventMark[] {
+/** Every `{text}` in a list, trimmed, in reading order. */
+function wordsOf(value: unknown, dig: (o: Record<string, unknown>) => unknown): string[] {
   return (Array.isArray(value) ? (value as Record<string, unknown>[]) : [])
     .map((o) => dig(o ?? {}))
     .map((t) => (typeof t === 'string' ? t.trim() : ''))
-    .filter((t) => t.length > 0)
-    .map(tokenGlyph);
+    .filter((t) => t.length > 0);
 }

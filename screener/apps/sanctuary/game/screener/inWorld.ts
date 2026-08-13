@@ -47,12 +47,16 @@ import { KinshipStone } from './KinshipStone';
  * reachable again.
  *
  * Note that being in this table is not sufficient for an item to be SERVED: `VER-SORTBOT-01` additionally
- * has a pool gate in `server-plugin.ts` that removes the items whose pictures cannot carry the question.
+ * has a pool gate in `server-plugin.ts`, which now removes 18 items of tier-1 vocabulary — `ad hominem`,
+ * `abate` — and nothing else. It used to remove 73, because both verbal types were built on the rule that a
+ * five-year-old cannot read and therefore had to be answerable from pictures alone. Their words are now
+ * WRITTEN on the panel, so being undrawable no longer means being unanswerable: `sortbotGate.ts` and
+ * `kinshipGate.ts` each carry a serve predicate and a separate picture predicate, and only the first belongs
+ * in `excludeItemIds`.
  *
- * `VER-RELPAIR-01` has a gate of the same shape in `kinshipGate.ts` and it refuses NOTHING, which is a
- * claim rather than an oversight: that type is answered by listening, and speech has no vocabulary gap.
- * Its second predicate, `kinshipStoneDraws`, decides only whether pictures accompany the voice, and must
- * never be wired into the pool — it is false for all 100 items and would delete the bank.
+ * `kinshipStoneDraws` and `sortingGateDraws` decide only whether pictures accompany the words, per item and
+ * never per word — wiring either into the pool would delete 100 items and 73 items respectively, for failing
+ * a test they no longer have to pass.
  */
 export const IN_WORLD: Record<
   string,
@@ -64,13 +68,6 @@ export const IN_WORLD: Record<
      */
     onPick: (handed: string, flags?: readonly string[]) => void;
     disabled?: boolean;
-    /**
-     * Whether this app may set words as words, from its registered reading band.
-     *
-     * Optional because only `SortingGate` has a word to set; every other presentation here draws shapes whose
-     * meaning does not depend on reading, and passing it to them would imply a choice they do not have.
-     */
-    showWords?: boolean;
   }>
 > = {
   'FLU-MATRIX-01': PodWall,

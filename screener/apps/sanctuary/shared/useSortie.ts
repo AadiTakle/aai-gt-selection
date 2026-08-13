@@ -79,32 +79,18 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 }
 
 /**
- * The app's own reading ceiling, read from the platform rather than assumed here.
+ * NOTE ON READING, since the code that asked about it is gone.
  *
- * Presentation cannot be correct without it. `VER-SORTBOT-01`'s items are single words, and whether to draw
- * them as pictures or set them as text is not a style choice: the pictorial path is unanswerable on 73 of its
- * 100 items, and the text path is unreadable to a pre-reader. Both are right for some audience, so the only
- * safe source is the app registration the platform is also selecting items against — a client that decided for
- * itself would eventually disagree with the pool it is being served from, and nothing would say so.
+ * This hook used to fetch the app's `maxReadingBand` from `/v1/catalog/app` so a presentation could choose
+ * between setting a word and drawing it. `wordPlate.tsx` now sets words unconditionally, and does it better than
+ * the glyph fallback ever could, so nothing asks any more and the request has been removed — it was also the one
+ * network call demo mode could not make.
  *
- * Fetched once per page and memoised. `/v1/catalog/app` is the platform's own route, so this needs no change to
- * the shared `/api/bank/*` contract.
+ * The latent inconsistency is worth recording rather than leaving to be discovered: an app registered with
+ * `maxReadingBand: 'none'` would still be shown words, because the presentation no longer consults it. The
+ * platform continues to intersect that field when choosing items, so the POOL is still correct; only the
+ * rendering ignores it. Bramblebrook declares '2-3', so nothing is wrong today.
  */
-let readingBandOnce: Promise<string | null> | null = null;
-
-export function readingBand(): Promise<string | null> {
-  readingBandOnce ??= api<{ app?: { maxReadingBand?: string | null } }>('/v1/catalog/app')
-    .then((r) => r.app?.maxReadingBand ?? null)
-    // A failure here must not decide the presentation by accident. 'none' is the cautious answer: pictures are
-    // answerable by more children than text is, even where they are answerable by fewer items.
-    .catch(() => 'none');
-  return readingBandOnce;
-}
-
-/** Whether this app may set words as words. `'none'` and an unknown ceiling both mean no. */
-export function canShowWords(band: string | null): boolean {
-  return band !== null && band !== 'none';
-}
 
 export type Phase = 'idle' | 'opening' | 'asking' | 'settling' | 'closed' | 'error';
 

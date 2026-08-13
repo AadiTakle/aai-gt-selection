@@ -422,6 +422,15 @@ export function flowingWater(spec: SurfaceSpec): FlowingWater {
 \* ------------------------------------------------------------------ */
 
 /**
+ * Where "the lip" ends, in V — the top 14% of the fall.
+ *
+ * The vertex shader damps the bulge to nothing across this band and the fragment shader thickens the
+ * water across the same band, for the same physical reason: at the mouth the stream is still coherent,
+ * and it comes apart on the way down. One constant in one place, so the two cannot drift.
+ */
+const FALL_LIP = 0.86;
+
+/**
  * The falling stream.
  *
  * A THIN OPEN CYLINDER IS THE RIGHT SHAPE and the wrong material, which is what was there before: a
@@ -463,6 +472,7 @@ export function fallingStream(): { material: ShaderMaterial; uniforms: Record<st
     depthWrite: false,
     side: DoubleSide,
     vertexShader: /* glsl */ `
+      #define LIP ${FALL_LIP.toFixed(2)}
       uniform float uTime;
       uniform float uSpeed;
       varying vec2 vUvw;
@@ -485,7 +495,22 @@ export function fallingStream(): { material: ShaderMaterial; uniforms: Record<st
       void main() {
         vUvw = uv;
         float travel = ( 1.0 - uv.y ) * 30.0 + uTime * uSpeed * 30.0;
-        float bulge = 1.0 + 0.26 * sin( travel ) + 0.12 * sin( travel * 2.6 );
+        /**
+         * DAMPED TO NOTHING AT THE LIP, and this is the half of the fix that placement cannot do.
+         *
+         * The top of the tube is tucked up inside an opaque nozzle so its cut rim is hidden — but a
+         * radius that swells by 38% up there shoves the tube's flank back out through the nozzle's wall
+         * and sucks it in again at uSpeed * 30 / 2pi, about nine and a half times a second. That
+         * flicker is what reads as a stitched seam at the spout, and no amount of tucking absorbs it:
+         * at full bulge the tube is 79mm across and the nozzle's bore is 78mm, so the water is wider
+         * than the mouth it leaves.
+         *
+         * It is also the truer read, and the fragment shader already says so across the same band:
+         * coherent at the lip, coming apart on the way down. Only the top 10cm of an 86cm fall loses
+         * its wobble, and 2cm of that is inside the nozzle.
+         */
+        float bulge = 1.0 + smoothstep( 1.0, LIP, uv.y ) *
+          ( 0.26 * sin( travel ) + 0.12 * sin( travel * 2.6 ) );
         vec3 p = position;
         // Radially only. The parent scales this mesh in Y to reach from the nozzle to the surface, so
         // touching p.y here would fight that scale and detach the fall from its own lip.
@@ -498,6 +523,7 @@ export function fallingStream(): { material: ShaderMaterial; uniforms: Record<st
     `,
     fragmentShader: /* glsl */ `
       // For saturate(), which common defines as a macro, so it costs nothing.
+      #define LIP ${FALL_LIP.toFixed(2)}
       #include <common>
       uniform float uTime;
       uniform vec3 uLit;
@@ -554,7 +580,7 @@ export function fallingStream(): { material: ShaderMaterial; uniforms: Record<st
         vec3 col = mix( uCool, uLit, bright );
         float alpha = clamp( uOpacity * thickness * ( 0.5 + bright * 0.65 ) * fray, 0.0, 1.0 );
         // A hair of extra presence right at the lip, where the water is thickest and slowest.
-        alpha = min( 1.0, alpha + smoothstep( 0.86, 1.0, v ) * 0.3 );
+        alpha = min( 1.0, alpha + smoothstep( LIP, 1.0, v ) * 0.3 );
 
         gl_FragColor = vec4( col, alpha );
         #include <tonemapping_fragment>
@@ -594,7 +620,18 @@ export function fallingStream(): { material: ShaderMaterial; uniforms: Record<st
 export function fallGeometry(topRadius = 0.06, bottomRadius = 0.028): CylinderGeometry {
   // three's signature is ( radiusTop, radiusBottom, ... ) and the argument order here is the one place
   // this can silently invert: swapped, the fall trumpets outward on its way down and reads as a funnel.
-  return new CylinderGeometry(topRadius, bottomRadius, 1, 7, 1, true);
+  //
+  // FOURTEEN HEIGHT SEGMENTS, and the number is load-bearing rather than a default nudged upward. With
+  // the 1 that was here the tube had TWO vertex rings, so the vertex shader's whole stated purpose —
+  // swelling the radius so the OUTLINE undulates, "and the outline is what the eye actually uses to
+  // identify a shape" — could not do anything along the length: there was nothing between top and
+  // bottom to displace, and the silhouette was two straight lines by construction.
+  //
+  // It also silently broke the lip damping below. `smoothstep( 1.0, LIP, uv.y )` only ever saw
+  // uv.y in { 0, 1 }, so it pinned the top ring and left the bottom at full bulge — which converts a
+  // flicker at the mouth into the whole column pumping width as a cone. Fourteen rings over an 86cm
+  // fall is ~6cm each against an ~18cm wobble, so the wave resolves. 196 triangles instead of 14.
+  return new CylinderGeometry(topRadius, bottomRadius, 1, 7, 14, true);
 }
 
 /**
@@ -610,8 +647,19 @@ export function fallGeometry(topRadius = 0.06, bottomRadius = 0.028): CylinderGe
  * with no bookkeeping, and it is also the truer read: what you actually see where a small fall meets a
  * fed basin is a bright churning patch ON the water, not a cloud above it.
  */
-export function churnMaterial(): { material: ShaderMaterial; uniforms: Record<string, IUniform> } {
-  const uniforms: Record<string, IUniform> = { uTime: CLOCK, uTint: { value: new Color(WATER.foam) } };
+export function churnMaterial(bounds: RingBounds): {
+  material: ShaderMaterial;
+  uniforms: Record<string, IUniform>;
+} {
+  const uniforms: Record<string, IUniform> = {
+    uTime: CLOCK,
+    uTint: { value: new Color(WATER.foam) },
+    /* The same bounds the foam rings take, for the same reason: a 27cm disc centred 11.25cm from the
+       trough's end overruns the pool by 13.6cm and is drawn flat on the kerb, so the stream reads as
+       landing on the stone rather than in the water. */
+    uChurnHalf: { value: new Vector2(bounds.half[0], bounds.half[1]) },
+    uChurnCentre: { value: new Vector2(bounds.centre[0], bounds.centre[1]) },
+  };
   const material = new ShaderMaterial({
     uniforms,
     transparent: true,
@@ -620,15 +668,23 @@ export function churnMaterial(): { material: ShaderMaterial; uniforms: Record<st
     side: DoubleSide,
     vertexShader: /* glsl */ `
       varying vec2 vUvw;
+      varying vec2 vChurn;
       void main() {
         vUvw = uv;
+        // Offset from the disc's centre in metres, so the fragment stage can tell how near the
+        // waterline it is. Column length is the world scale, as in the foam ring material.
+        vChurn = position.xy * length( modelMatrix[ 0 ].xyz );
         gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
       }
     `,
     fragmentShader: /* glsl */ `
+      #define RING_FADE_GLSL ${RING_FADE.toFixed(2)}
       uniform float uTime;
       uniform vec3 uTint;
+      uniform vec2 uChurnHalf;
+      uniform vec2 uChurnCentre;
       varying vec2 vUvw;
+      varying vec2 vChurn;
       void main() {
         vec2 p = vUvw - 0.5;
         float r = length( p ) * 2.0;
@@ -639,6 +695,9 @@ export function churnMaterial(): { material: ShaderMaterial; uniforms: Record<st
         // Two out-of-phase breaths, so the spray swells unevenly rather than pulsing like a metronome.
         float swell = 0.72 + 0.18 * sin( uTime * 2.3 ) + 0.1 * sin( uTime * 3.7 + 1.1 );
         float a = smoothstep( 1.0, 0.15, r / swell ) * 0.26;
+        // Out at the waterline, exactly as the foam rings do. See foamRingMaterial below.
+        vec2 churnRim = uChurnHalf - abs( uChurnCentre + vChurn );
+        a *= smoothstep( 0.0, RING_FADE_GLSL, min( churnRim.x, churnRim.y ) );
         gl_FragColor = vec4( uTint, a );
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -674,7 +733,45 @@ export function splashRingGeometry(): RingGeometry {
  * that enters it, so it is nearly as bright facing away from the sun as facing into it. Lighting it would
  * make it grey on the shadow side, which is the failure the brief calls out by name.
  */
-export function foamRingMaterial(): MeshBasicMaterial {
+/**
+ * Where the water ENDS, so a ring can be told to stop at it.
+ *
+ * Both in the pool surface's own local metres — the frame `flowingWater`'s `impact` is already expressed
+ * in, so a caller that has one has the other for free and the two cannot disagree about where the water
+ * is.
+ */
+export interface RingBounds {
+  /** Half-extents of the water. */
+  half: readonly [number, number];
+  /** Where this ring's centre sits in that frame. */
+  centre: readonly [number, number];
+}
+
+/** How wide the fade at the waterline is. Wide enough to read as foam thinning, not as a cut edge. */
+const RING_FADE = 0.09;
+
+/**
+ * The foam rings' material. Deliberately unlit and warm, and it stops at the water's edge.
+ *
+ * UNLIT: foam is the one part of water that is not a mirror — it is a mat of air bubbles that scatters
+ * everything entering it, so it is nearly as bright facing away from the sun as into it. Lighting it
+ * would make it grey on the shadow side, which is the failure the brief calls out by name.
+ *
+ * FADED AT THE RIM, and this is why the material is patched rather than plain. A ring is round and a
+ * vessel is not. The tide ledge's stream lands 11.25cm from the end of a 4.14m trough, so a ring that
+ * grows to the 51cm a ripple in open water wants is outside the pool for 99.7% of its life and finishes
+ * 16.75cm past the OUTER face of the kerb, hanging over the grass — the owner's "make sure the circle
+ * doesn't leave the pool".
+ *
+ * Scaling the ring down to fit was tried and rejected on sight: the smallest clearance is 11.25cm, which
+ * makes the largest ring smaller than the 27cm churn patch it sits inside, so the containment is perfect
+ * and the effect is gone. Fading each fragment as it nears the waterline keeps the ring its full size and
+ * is the truer read anyway — a ripple reaching a wall does not stop being a ripple, it stops being foam.
+ *
+ * The scale is read from the model matrix rather than passed as a uniform, because the mesh is already
+ * scaled every frame and a second copy of that number is a second thing to keep in step.
+ */
+export function foamRingMaterial(bounds: RingBounds): MeshBasicMaterial {
   const material = new MeshBasicMaterial({
     color: WATER.foam,
     transparent: true,
@@ -683,6 +780,46 @@ export function foamRingMaterial(): MeshBasicMaterial {
     side: DoubleSide,
   });
   material.name = 'ranch-spring-foam-ring';
+
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uRingHalf = { value: new Vector2(bounds.half[0], bounds.half[1]) };
+    shader.uniforms.uRingCentre = { value: new Vector2(bounds.centre[0], bounds.centre[1]) };
+
+    shader.vertexShader = inject(
+      shader.vertexShader,
+      '#include <common>',
+      `#include <common>
+       varying vec2 vRing;`,
+    );
+    shader.vertexShader = inject(
+      shader.vertexShader,
+      '#include <begin_vertex>',
+      `#include <begin_vertex>
+       // The ring's own offset from its centre, in metres. Column length is the world scale, which is
+       // what the frame loop writes to the mesh scale, so this tracks the growth without a uniform.
+       vRing = position.xy * length( modelMatrix[ 0 ].xyz );`,
+    );
+
+    shader.fragmentShader = inject(
+      shader.fragmentShader,
+      '#include <common>',
+      `#include <common>
+       varying vec2 vRing;
+       uniform vec2 uRingHalf;
+       uniform vec2 uRingCentre;`,
+    );
+    shader.fragmentShader = inject(
+      shader.fragmentShader,
+      '#include <dithering_fragment>',
+      `#include <dithering_fragment>
+       // Distance from this fragment to the nearest waterline, and out at zero.
+       vec2 toRim = uRingHalf - abs( uRingCentre + vRing );
+       gl_FragColor.a *= smoothstep( 0.0, ${RING_FADE.toFixed(2)}, min( toRim.x, toRim.y ) );`,
+    );
+  };
+  /* Two rings, two materials, one program. Without a stable key three compiles a variant per material
+     because `onBeforeCompile` makes them look different to its cache. */
+  material.customProgramCacheKey = () => 'ranch-spring-foam-ring';
   return material;
 }
 
@@ -696,13 +833,31 @@ export function foamRingMaterial(): MeshBasicMaterial {
  * `reduced` parks them at their mid radius, which is a resting state rather than an absence: under
  * reduced motion the ring is still there, telling a child the water is fed, it simply does not pulse.
  */
+/**
+ * The radius envelope of a splash ring: where it starts, and the largest it ever asks to be.
+ *
+ * Exported because THE CALLER IS THE ONLY THING THAT KNOWS HOW MUCH ROOM THERE IS, and the radius below
+ * is a wish rather than a licence. A ring is round; a vessel is not. This curve was sized for a splash
+ * in the middle of a trough 99cm across, where the water allows 49.5cm — almost exactly what it wants.
+ * But the tide ledge's stream lands 11.25cm from the trough's -X end, so an unbounded 51cm ring leaves
+ * the water three milliseconds into a 1150ms pulse and finishes 16.75cm PAST the outer face of a 26cm
+ * kerb, hanging in the air over the grass.
+ *
+ * So a caller divides by `SPLASH_RING_MAX` to get the ring's progress in 0..1 and multiplies by a limit
+ * it derives from its own vessel — see `ringRoom` in the tide ledge. The envelope stays here, beside the
+ * curve it belongs to, so the two cannot drift apart.
+ */
+export const SPLASH_RING_MIN = 0.09;
+const SPLASH_RING_GROWTH = 0.42;
+export const SPLASH_RING_MAX = SPLASH_RING_MIN + SPLASH_RING_GROWTH;
+
 export function splashRing(t: number, index: number, reduced: boolean): { radius: number; opacity: number } {
   const period = 1.15;
   if (reduced) return { radius: 0.2 + index * 0.14, opacity: 0.3 };
   const phase = ((t / period + index * 0.5) % 1 + 1) % 1;
   return {
     // Decelerating outward, the way a real ring does as it loses energy to the surface.
-    radius: 0.09 + Math.sqrt(phase) * 0.42,
+    radius: SPLASH_RING_MIN + Math.sqrt(phase) * SPLASH_RING_GROWTH,
     // Up fast, out slowly.
     opacity: Math.min(1, phase * 6) * (1 - phase) * 0.75,
   };

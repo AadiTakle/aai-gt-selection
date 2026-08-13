@@ -1,7 +1,8 @@
 import { tokenGlyph } from './eventMeaning';
+import { vocabularyInReach } from './readability';
 
 /**
- * Which `VER-RELPAIR-01` items may be served, and — separately — which of them may be DRAWN.
+ * Which `VER-RELPAIR-01` items may be served, and — separately — which of them may carry PICTURES.
  *
  * ══ WHY THIS IS A SEPARATE, DEPENDENCY-FREE FILE ══════════════════════════════════════════════════
  *
@@ -10,26 +11,27 @@ import { tokenGlyph } from './eventMeaning';
  * against it, so declining to draw at that point produces an unanswerable item plus a blank panel, which is
  * strictly worse than not gating at all. A pool gate has to run in `apps/sanctuary/server-plugin.ts` when
  * the session is opened, in Vite's node context, which cannot import a `.tsx` that pulls in three and
- * React. So: no React, no three, no JSX, importing only `eventMeaning.ts`, which has no imports of its own.
- * `KinshipStone.tsx` re-exports from here, so there is exactly one pair of predicates and they cannot drift
- * between the pool and the panel.
+ * React. So: no React, no three, no JSX, importing only `eventMeaning.ts` and `readability.ts`, neither of
+ * which imports anything. `KinshipStone.tsx` re-exports from here, so there is exactly one pair of
+ * predicates and they cannot drift between the pool and the panel.
  *
- * ══ WHY THERE ARE TWO PREDICATES AND NOT ONE ══════════════════════════════════════════════════════
+ * ══ WHAT THIS TYPE USED TO BE, AND WHY IT WAS THE WORST CASE IN THE DIRECTORY ══════════════════════
  *
- * `sortbotGate.ts` has one, because `VER-SORTBOT-01` is answered by looking and an item it cannot draw is
- * an item it cannot serve. This type is answered by LISTENING — see the header of `KinshipStone.tsx` for
- * why — and speech has no vocabulary gap, so the two questions come apart:
+ * It was ANSWERED BY LISTENING. `tokenGlyph` is an exact-match noun table built for `VER-SORTBOT-01`'s
+ * vocabulary and against this bank it covers 91 of 445 distinct words; the count of items in which EVERY
+ * word has a drawing is zero in all four bands. So the pairs were spoken aloud and the stone was ten blank
+ * slabs with a turned ring on each. On a muted tab, a school image with no voice packages, in a noisy room
+ * or for a deaf child, THE ITEM CONTAINED NOTHING AT ALL — and the owner, who can hear, reported exactly
+ * that: "i can't hear anything with the headphone one so i have no clue what it means".
  *
- *   `kinshipStoneServes`  may a child be given this item at all?   Shape only. Rejects 0 of 100.
- *   `kinshipStoneDraws`   may its words be shown as pictures too?  Rejects 100 of 100 today.
+ * A question with one channel fails completely when that channel fails. The words are now ON SCREEN and
+ * the voice reinforces them, which is the right way round for an emerging reader and the only way round
+ * that survives a silent machine.
  *
- * Only the first belongs in `excludeItemIds`. Wiring the second into the pool would delete the whole bank
- * for failing a test it does not have to pass.
+ * ══ WHY THE PICTURES STILL CANNOT COME, AND WHY THAT IS NOW CHEAP ═════════════════════════════════
  *
- * ══ WHAT THE PICTURE MEASUREMENT FOUND, WHICH IS WHY THIS TYPE IS SPOKEN ══════════════════════════
- *
- * `tokenGlyph` is an exact-match noun table built for `VER-SORTBOT-01`'s vocabulary, and against this bank
- * it covers 91 of 445 distinct words. Measured per band, items where every word has a drawing:
+ * The measurement that made this type spoken is unchanged and it is worth keeping, because it is a fact
+ * about the bank rather than about the old rule. Per band, items where every word has a drawing:
  *
  *     band   items   fully drawable   distinct words   drawn
  *     K-1      17          0                95           45
@@ -37,21 +39,32 @@ import { tokenGlyph } from './eventMeaning';
  *     4-5      20          0               114           14
  *     6-8      43          0               214           31
  *
- * Zero, everywhere, and not for want of a bigger table. The most frequent misses are the superordinate
- * halves of `is a kind of` pairs — `animal`, `fruit`, `insect`, `number`, `person` — and a category has no
- * appearance. Any honest drawing of `animal` is a drawing of some particular animal, which is the sentence
- * `sortbotGate.ts` arrives at from the other direction. Both ways out are closed:
+ * Zero everywhere, and not for want of a bigger table. The most frequent misses are the superordinate
+ * halves of `is a kind of` pairs — `animal`, `fruit`, `insect`, `number`, `person` — and A CATEGORY HAS NO
+ * APPEARANCE. Both ways out remain closed: draw `animal` as one of its members and in
+ * `robin : bird | maple : tree | robin : nest | bird : wing` the correct pair becomes a bird beside a bird
+ * while the stem shows two visibly different creatures, so the item INVERTS; draw it as a category badge
+ * and the badge appears in the stem and in exactly one option, which hands over the answer.
  *
- *   Draw the category as one of its members and the correct pair becomes THE SAME PICTURE TWICE. In
- *     `robin : bird | maple : tree | robin : nest | bird : wing` the answer is `robin : bird`, and a robin
- *     drawn honestly is a bird, so the child is shown a bird beside a bird while the stem shows two visibly
- *     different creatures — the pair that shares the relation is the one pair that plainly does not match.
- *     The item does not get harder, it INVERTS.
+ * WHAT HAS CHANGED IS THE COST OF THAT ZERO. It used to mean "this type has no visual channel"; it now
+ * means "this type's plates carry words and no cow". The words are the channel.
  *
- *   Draw it as a category badge instead and the badge hands over the answer: a mark meaning "this one is a
- *     kind of thing" appears in the stem and in exactly one option.
+ * ══ WHY PICTURES ARE STILL ALL-OR-NOTHING PER ITEM, WHICH IS THE ONE JUDGEMENT CALL HERE ═══════════
  *
- * So the words are SPOKEN, and pictures are support rather than the channel.
+ * The instruction is to keep the pictures where they are good, and the obvious reading is per word: draw
+ * `dog`, leave `animal` bare. That is the wrong reading FOR THIS TYPE, and the reason is the same
+ * inversion in a new costume.
+ *
+ * Picture coverage is not random with respect to the answer. In `dog : animal -> cat : paw | dog : bone |
+ * robin : bird` the answer is `robin : bird`; `robin` and `bird` are the one pair whose two words collide
+ * on a single drawing, so a per-word rule would show pictures on both distractors and leave THE CORRECT
+ * PAIR as the only bare one on the stone. A five-year-old scanning for the odd one out finds the answer
+ * without reading anything. Across the bank the undrawable word is systematically the category — which is
+ * to say, systematically the thing the relation is about.
+ *
+ * So an item is drawn throughout or drawn nowhere. Today that is nowhere, for all 100, and the plates are
+ * words alone — which is sufficient, which is the whole point of the change, and which is why this
+ * predicate is no longer load-bearing enough to argue about.
  *
  * ══ THE DISTINCTNESS CLAUSE, WHICH GOVERNS DRAWING AND NOT SERVING ════════════════════════════════
  *
@@ -70,11 +83,15 @@ import { tokenGlyph } from './eventMeaning';
  * doing the one thing it was authored to do.
  *
  * The clause is therefore kept but CORRECTED to injectivity over DISTINCT words: two different words may
- * never share a picture, one word appearing twice is the same object seen twice. It is not dropped,
- * because the hazard it was written for is sharper here than at the gate — if `paw` and `bone` draw alike,
- * or an option's second word draws like the stem's, it is the RELATION that becomes unreadable, not one
- * option, and every candidate collapses to the same claim. It just has no business deciding what is
- * served, now that being undrawable no longer means being unanswerable.
+ * never share a picture, one word appearing twice is the same object seen twice.
+ *
+ * ══ WHAT THE SERVE GATE CHECKS, AND WHY IT STILL REFUSES NOTHING ══════════════════════════════════
+ *
+ * Shape, and the vocabulary floor every verbal type now shares. It refuses 0 of 100 — the rarest item in
+ * this bank is Zipf tier 3 (`gigantic`, `heartbroken`, `foundation`, `deafening`), which is ordinary
+ * reading for the 6-8 band that gets it, and nothing here comes near the `ad hominem` tier that costs
+ * `VER-SORTBOT-01` eighteen items. Applying the same floor to both types and reporting one refusal count of
+ * 18 and one of 0 is what makes the floor a measurement rather than a knob.
  */
 
 /* ============================================================================
@@ -129,35 +146,30 @@ function normalise(text: string): string {
    ========================================================================== */
 
 /**
- * MAY THIS ITEM BE SERVED. Shape, and nothing else.
+ * MAY THIS ITEM BE SERVED. Shape and vocabulary.
  *
  * It rejects nothing in the bank as it stands, and saying so plainly is the point of it existing: a gate
- * that refuses nothing is a claim, and the claim is that every word of every item reaches the child
- * through the voice. The shape check is not decoration either — a malformed pair would draw a stone with a
- * hole in it and still take an answer.
+ * that refuses nothing is a claim, and the claim is that every word of every item is one a child of that
+ * band can be shown and can hear read aloud. The shape check is not decoration either — a malformed pair
+ * would draw a stone with a hole in it and still take an answer.
  *
- * THE ONE THING THIS CANNOT CHECK is whether the machine has a voice. `speechSynthesis` is absent on some
- * school images and silently mute on others, and on such a machine an item with no pictures has nothing
- * left. That cannot be decided server-side when the pool is built, so it is not decided here; the
- * component detects it (`narration === 'unavailable'`) and it is written up in `KinshipStone.tsx` as the
- * operational risk it is.
+ * IT NO LONGER HAS AN UNCHECKABLE HAZARD BEHIND IT. This used to carry a warning that it could not know
+ * whether the machine had a voice, because on a mute machine a spoken item with no pictures has nothing
+ * left. The words are on the stone now, so a voiceless machine loses the reinforcement and keeps the
+ * question, which is the difference between a deployment risk and a preference.
  */
 export function kinshipStoneServes(content: Record<string, unknown>): boolean {
-  return pairWords(content) !== null;
+  return pairWords(content) !== null && vocabularyInReach(content);
 }
 
 /**
- * MAY THIS ITEM'S WORDS BE SHOWN AS PICTURES as well as spoken.
+ * MAY THIS ITEM'S WORDS CARRY PICTURES as well as being read.
  *
- * ALL OR NOTHING PER ITEM, and that is the whole design decision. Drawing the pairs that happen to be
- * drawable and leaving the rest blank would make some candidates carry a picture and others not, and a
- * candidate with a picture on it is the one a child looks at. That is a preference produced by the noun
- * table rather than by the item — the same class of fault as a clearcoat highlight marking one card as
- * chosen — so an item is either drawn throughout or drawn nowhere, and uniform blankness is the honest
- * state of a spoken item.
- *
- * Returns false for all 100 items today. It is here so that a growing `eventMeaning.ts` turns pictures on
- * DELIBERATELY and measurably rather than silently, and `prove-drawn-types.ts` asserts the count.
+ * All or nothing per item — the header argues why per-word pictures would mark the correct pair on this
+ * type specifically. Returns false for all 100 items today. It is here so that a growing `eventMeaning.ts`
+ * turns pictures on DELIBERATELY and measurably rather than silently, and `prove-drawn-types.ts` asserts
+ * the count. A failure there is not a regression; it is a prompt to go and LOOK at the item that became
+ * drawable.
  */
 export function kinshipStoneDraws(content: Record<string, unknown>): boolean {
   const words = pairWords(content);
