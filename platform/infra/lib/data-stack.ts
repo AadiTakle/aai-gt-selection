@@ -39,7 +39,14 @@ export class DataStack extends Stack {
 
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
-    tagPlatform(this);
+    /**
+     * `-c environment=` and `-c owner=` at deploy time, defaulting to a sandbox deployment owned by whoever
+     * wrote this. See `tags.ts`: SEC-05 is enforced and the sandbox is not exempt.
+     */
+    tagPlatform(this, {
+      environment: this.node.tryGetContext('environment') as string | undefined,
+      owner: this.node.tryGetContext('owner') as string | undefined,
+    });
 
     this.mainTable = new TableV2(this, 'PlatformTable', {
       partitionKey: { name: 'PK', type: AttributeType.STRING },

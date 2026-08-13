@@ -3,8 +3,10 @@ import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { bankRoutes } from '@gt/qbank/wire';
 import { MAIN_TABLE_INDEXES } from '@platform/store';
+import { Stack } from 'aws-cdk-lib';
 import { ApiStack } from './lib/api-stack.js';
 import { DataStack } from './lib/data-stack.js';
+import { REQUIRED_TAG_KEYS, tagPlatform } from './lib/tags.js';
 
 /**
  * Assertions against the synthesised template.
@@ -330,5 +332,41 @@ describe('the stacks synthesise without credentials', () => {
       JSON.stringify(fn.Properties?.Tags ?? []).includes('gt-question-platform'),
     );
     expect(tagged.length).toBeGreaterThanOrEqual(6);
+  });
+});
+
+describe('SEC-05 required tags', () => {
+  /**
+   * The four keys, on every taggable resource in both stacks.
+   *
+   * Asserted because getting this wrong is silent and expensive: tag keys are case-sensitive, so the previous
+   * lowercase `project` satisfied nothing, and the policy's remedy for an untagged resource is to delete it.
+   * The keys come from the module rather than being retyped here, so the test cannot drift from what is applied.
+   */
+  it('applies Project, Environment, ManagedBy and Owner to every tagged resource', () => {
+    for (const template of [dataTemplate, apiTemplate]) {
+      const all = template.toJSON() as {
+        Resources?: Record<string, { Properties?: { Tags?: { Key?: string }[] } }>;
+      };
+      const tagged = Object.entries(all.Resources ?? {}).filter(([, r]) =>
+        Array.isArray(r.Properties?.Tags),
+      );
+      expect(tagged.length).toBeGreaterThan(0);
+      for (const [name, resource] of tagged) {
+        const keys = (resource.Properties?.Tags ?? []).map((t) => t.Key);
+        for (const key of REQUIRED_TAG_KEYS) {
+          expect(keys, `${name} is missing the ${key} tag`).toContain(key);
+        }
+      }
+    }
+  });
+
+  it('refuses an environment the policy does not allow', () => {
+    // A typo here would otherwise deploy and then fail a compliance scan days later.
+    expect(() => tagPlatform(new Stack(new App(), 'T'), { environment: 'prod' })).toThrow(/must be one of/);
+  });
+
+  it('refuses an empty owner', () => {
+    expect(() => tagPlatform(new Stack(new App(), 'T2'), { owner: '  ' })).toThrow(/unowned/);
   });
 });
