@@ -1,7 +1,10 @@
 #!/usr/bin/env node
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { App } from 'aws-cdk-lib';
 import { ApiStack } from '../lib/api-stack.js';
 import { DataStack } from '../lib/data-stack.js';
+import { WebStack } from '../lib/web-stack.js';
 
 /**
  * The CDK app.
@@ -49,3 +52,24 @@ new ApiStack(app, `${prefix}Api`, {
   description: 'GT question platform: HTTP API, authorizer and the five functions.',
   data,
 });
+
+/**
+ * The game's own hosting, deployed only when a built bundle is pointed at.
+ *
+ * Conditional because the other two stacks must remain deployable with no build present: a backend change should
+ * not require a working frontend build, and `cdk synth` in CI has no `dist-sanctuary` to find. Pass the path to
+ * include it:
+ *
+ *   cdk deploy -c web=../screener/dist-sanctuary --all
+ *
+ * Resolved against the `platform/` package root rather than the working directory, so the same command works
+ * from anywhere and the path reads the way every other reference to that directory does.
+ */
+const web = app.node.tryGetContext('web') as string | undefined;
+if (web) {
+  new WebStack(app, `${prefix}Web`, {
+    env,
+    description: 'GT question platform: the game bundle on CloudFront.',
+    sourceDirectory: resolve(dirname(fileURLToPath(import.meta.url)), '../..', web),
+  });
+}
