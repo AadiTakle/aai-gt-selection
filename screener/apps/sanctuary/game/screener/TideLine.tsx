@@ -234,7 +234,14 @@ export function TideLine({
    */
   const fit: ClusterFit = useMemo(() => {
     const maxCount = Math.max(1, ...terms.map((t) => t.value), ...options.map((o) => o.term.value));
-    return fitCluster(maxCount, (troughW - 0.18) * 0.92, (troughH - 0.18) * 0.88, 0.28);
+    /**
+     * Widened for the same reason as `Sprouter`'s dish: the margin was coming straight off the berry size.
+     *
+     * 0.18 of inset plus a further 8%/12% left a cluster 76% of the trough across and 69% down. The berries are
+     * the thing being counted, so every reserved millimetre made the item harder in a way that has nothing to do
+     * with quantitative reasoning.
+     */
+    return fitCluster(maxCount, (troughW - 0.1) * 0.96, (troughH - 0.1) * 0.94, 0.28);
   }, [terms, options, troughW, troughH]);
 
   const pickedTerm = options.find((o) => o.handed === picked)?.term ?? null;

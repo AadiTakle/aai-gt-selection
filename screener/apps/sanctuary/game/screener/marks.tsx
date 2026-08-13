@@ -127,7 +127,21 @@ export interface ClusterFit {
 export function fitCluster(maxCount: number, fitW: number, fitH: number, baseGap = 0.3): ClusterFit {
   const l = clusterLayout(Math.max(1, maxCount));
   const gap = Math.min(baseGap, fitW / l.w, fitH / l.h);
-  return { gap, radius: gap * 0.4 };
+  /**
+   * 0.42 of the pitch, raised from 0.40 because the marks were reported as hard to decode.
+   *
+   * The mark has to be as large as possible while still plainly being SEVERAL THINGS rather than one blob —
+   * countability is the whole point, and two dots that touch are one shape. At 0.42 the diameter is 0.84 of the
+   * pitch and the clear space between neighbours is 0.16 of it, which at the smallest gap this file ever
+   * produces (0.077 on a 77-count item) is still a visible channel rather than a seam. 0.45 closes that to 0.10
+   * and the highest counts start reading as a lattice with no gaps, which is worse than small dots because it
+   * cannot be counted at all rather than merely being hard.
+   *
+   * The larger share of the fix is not here: it is in how much of its dish a caller lets the cluster use. See
+   * `Sprouter`'s `fit`, which was spending a fifth of its width and better than a quarter of its height on
+   * margin.
+   */
+  return { gap, radius: gap * 0.42 };
 }
 
 /* ============================================================================

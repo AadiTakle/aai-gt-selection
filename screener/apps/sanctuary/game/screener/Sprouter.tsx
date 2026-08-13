@@ -267,7 +267,24 @@ export function Sprouter({
       ...pairs.flat(),
       ...options.map((o) => o.value),
     );
-    return fitCluster(maxCount, (DISH_W - 0.2) * 0.92, (DISH_H - 0.2) * 0.9, 0.3);
+    /**
+     * The dish's usable box, widened because the marks were hard to decode.
+     *
+     * This used to reserve 0.2 of inset and then a further 8% of width and 10% of height, so a cluster got 80%
+     * of the dish across and 73% down — and since the gap is `min(baseGap, fitW / cols, fitH / rows)`, every
+     * bit of that margin came straight off the mark size on exactly the items where counting is hardest. The
+     * bank runs to 77 on its worst items, where the cluster is a 10.9 x 9.92 lattice and the height binds.
+     *
+     * 0.12 of inset and 96%/95% keeps a visible lip on the dish while handing the cluster about 15% more room
+     * in each direction. Combined with the mark radius going to 0.42 of pitch, a mark is roughly a fifth larger
+     * at every count, with no change to the layout, the dish, or the apparatus around it.
+     *
+     * NOT SOLVED by this, and the reason is structural: the whole apparatus is scaled by `fitScale` to fit a bay
+     * whose width is capped by the barn wall, so making anything bigger in local units is undone by the scale
+     * unless it takes space from something else. The 40-to-77 counts are still small. Fixing those needs either
+     * a larger bay or a dish that takes a bigger share of the panel.
+     */
+    return fitCluster(maxCount, (DISH_W - 0.12) * 0.96, (DISH_H - 0.12) * 0.95, 0.3);
   }, [pairs, input, options]);
 
   const pickedValue = options.find((o) => o.handed === picked)?.value ?? null;

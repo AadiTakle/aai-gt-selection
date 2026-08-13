@@ -6,7 +6,7 @@ import type * as THREE from 'three';
 import { handedFor } from './address';
 import { EventGlyph } from './EventGlyph';
 import { tokenGlyph, type EventMark } from './eventMeaning';
-import { canSpeak, hushSpeech, narrate } from './speak';
+import { canSpeak, hushSpeech, narrate, speak } from './speak';
 /**
  * The gate lives in a dependency-free module because it must run at POOL level, in the server plugin's
  * node context — by the time this component sees `content`, the engine has already chosen the item, the
@@ -517,7 +517,24 @@ export function SortingGate({
      * and stays true whichever face the cards are showing.
      */
     if (!canSpeak()) return;
-    const t = setTimeout(() => narrate([POINT_AND_PICK]), ARRIVAL_BEAT_MS);
+    /**
+     * The words are SAID as well as set, so a weak reader can still use the cards.
+     *
+     * Showing words fixed the item and created a new barrier in the same move: a third grader reading below
+     * level can see four words and decode none of them, which measures reading rather than classification. So
+     * the gate names what it has sorted and what is on offer, in the order the cards sit in, and a child who
+     * cannot read follows the audio while a child who can ignores it. Neither is asked to choose a mode.
+     *
+     * The RULE is still never said — only the words are. Inferring the category is the item, and naming it
+     * would answer the question out loud.
+     */
+    const lines = [
+      POINT_AND_PICK,
+      ...(wordsIn.length > 0 ? [`These go in. ${wordsIn.join('. ')}.`] : []),
+      ...(wordsOut.length > 0 ? [`This one does not. ${wordsOut.join('. ')}.`] : []),
+      ...(options.length > 0 ? [`Now these. ${options.map((o) => o.word).filter(Boolean).join('. ')}.`] : []),
+    ];
+    const t = setTimeout(() => narrate(lines), ARRIVAL_BEAT_MS);
     return () => {
       clearTimeout(t);
       hushSpeech();
@@ -621,13 +638,35 @@ export function SortingGate({
           const taken = picked === o.index;
           return (
             <group key={o.index} position={[slotX(o.index, n, OPT_PITCH), 0, 0]}>
-              {/* Invisible and oversized, tiled edge to edge at the shelf pitch — see `OPT_PITCH`. */}
+              {/*
+                * Invisible, generous, and NOW ALIGNED WITH THE CARD, which it was not.
+                *
+                * It used to be 2.2 tall against a card of 1.02 and 1.7 deep centred 0.5 in front of it. Both
+                * were wrong in the same direction. The height put 0.59 of clickable air ABOVE each card — and
+                * below the card that same 0.59 is hidden behind the plinth and the shelf beam, so all of the
+                * slack a child could see was overhead. The depth was worse: a volume protruding 1.35 toward the
+                * camera is intersected well before the card plane, so the region that responded sat visibly
+                * above and in front of the thing it belonged to. The owner's report was "the clicking area is
+                * way above the actual words", which is exactly this.
+                *
+                * `CARD + 0.5` keeps the generosity that a small child aiming a mouse needs — 0.25 of padding on
+                * every side — while `0.5` of depth just in front of the face removes the parallax entirely. The
+                * lifted, scaled hover state tops out at 0.14 + 0.51 * 1.05 = 0.68, inside the 0.76 half-height,
+                * so hovering never falls out of its own target.
+                */}
               <mesh
                 visible={false}
-                position={[0, 0, 0.5]}
+                position={[0, 0, 0.22]}
                 onPointerOver={(e) => {
                   e.stopPropagation();
                   setHover(o.index);
+                  /**
+                   * Pointing at a card says it. The affordance a weak reader actually needs: not a block of
+                   * narration to sit through, but the ability to ask what THIS one says, as many times as they
+                   * like, by looking at it. `speak` cancels whatever was already speaking, so sweeping along the
+                   * shelf reads the shelf rather than piling four voices on top of each other.
+                   */
+                  if (live && o.word) speak(o.word);
                 }}
                 onPointerOut={(e) => {
                   e.stopPropagation();
@@ -640,7 +679,7 @@ export function SortingGate({
                   onPick(o.handed);
                 }}
               >
-                <boxGeometry args={[OPT_PITCH, 2.2, 1.7]} />
+                <boxGeometry args={[OPT_PITCH, CARD + 0.5, 0.5]} />
               </mesh>
               {/* The card leaves the shelf when it is posted, so the shelf shows what is still on offer
                   and nothing else. Its plinth stays, so the empty place still reads as a place. */}

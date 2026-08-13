@@ -12,6 +12,7 @@ import { tokenGlyph, type EventMark } from './eventMeaning';
  * is exactly one pair of predicates and they cannot drift between the pool and the panel.
  */
 import { kinshipStoneDraws, kinshipStoneServes, pairsOf, pairWords } from './kinshipGate';
+import { Text } from '@react-three/drei';
 import { canSpeak, hushSpeech, narrate, speak, type NarrationState, type StoryLine } from './speak';
 import { bankColor, breath, HUE, MAT, shade, useReducedMotion, useSlab } from './theme';
 
@@ -326,7 +327,7 @@ function slotX(i: number, count: number, pitch: number): number {
  * and this file inherits: the pictures are built from primitives and many have white or cream parts — an
  * egg, a cloud, a hen, a plate — which vanish against a near-white face.
  */
-function Card({ mark }: { mark: EventMark | null }) {
+function Card({ mark, word }: { mark: EventMark | null; word?: string | undefined }) {
   const face = useSlab(CARD, CARD, 0.16, 0.09);
   const rim = useSlab(CARD + 0.1, CARD + 0.1, 0.11, 0.1);
   return (
@@ -337,7 +338,30 @@ function Card({ mark }: { mark: EventMark | null }) {
       <mesh geometry={face}>
         <meshStandardMaterial color={FACE} roughness={0.88} metalness={0} />
       </mesh>
-      {mark ? (
+      {word ? (
+        /*
+          * THE WORD, which this type used to keep entirely in speech.
+          *
+          * The item is an analogy between two words, and the cards were empty bowls: the whole question lived in
+          * narration, so a child who could not hear it — no speech synthesis, muted tab, a noisy room — was
+          * choosing between four indistinguishable cradles. Audio is now the SUPPLEMENT and the card is the
+          * item, which is the same correction `SortingGate` needed and for the same reason.
+          *
+          * Sized off `CARD` exactly as the gate sizes its own, so the two verbal stations set type identically.
+          */
+        <Text
+          position={[0, 0.02, 0.13]}
+          fontSize={CARD * 0.26}
+          maxWidth={CARD * 0.92}
+          textAlign="center"
+          anchorX="center"
+          anchorY="middle"
+          color={shade(HUE.stoneDeep, -0.45)}
+          outlineWidth={0}
+        >
+          {word}
+        </Text>
+      ) : mark ? (
         <group position={[0, 0.02, 0.12]} scale={GLYPH}>
           <EventGlyph glyph={mark.glyph} state={mark.state} bg={FACE} />
         </group>
@@ -443,14 +467,22 @@ function Cradle({ band }: { band?: string }) {
 }
 
 /** One complete pair: two cards in one cradle with the joining between them. */
-function Pair({ marks, band }: { marks: readonly [EventMark | null, EventMark | null]; band?: string }) {
+function Pair({
+  marks,
+  words,
+  band,
+}: {
+  marks: readonly [EventMark | null, EventMark | null];
+  words?: readonly [string, string] | undefined;
+  band?: string;
+}) {
   return (
     <group>
       <Cradle band={band} />
       <Joining />
       {[0, 1].map((i) => (
         <group key={i} position={[(i === 0 ? -PAIR_GAP : PAIR_GAP) / 2, 0, 0.02]}>
-          <Card mark={marks[i] ?? null} />
+          <Card mark={marks[i] ?? null} word={words?.[i]} />
         </group>
       ))}
     </group>
@@ -605,10 +637,13 @@ export function KinshipStone({
   content,
   onPick,
   disabled = false,
+  showWords = false,
 }: {
   content: Record<string, unknown>;
   onPick: (handed: string, flags?: readonly string[]) => void;
   disabled?: boolean;
+  /** Set the words as words. From the app's registered reading band; audio remains, as support. */
+  showWords?: boolean;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -718,7 +753,7 @@ export function KinshipStone({
 
       {/* GIVEN: the pair whose joining the child has to read. */}
       <group position={[0, STEM_Y, 0]}>
-        <Pair marks={stemMarks} />
+        <Pair marks={stemMarks} words={showWords ? pairs.stem : undefined} />
       </group>
 
       {/* MISSING: two more, joined the same way. The only thing here that glows. */}
@@ -727,6 +762,7 @@ export function KinshipStone({
         {pickedOption ? (
           <SeatedPair
             marks={pickedOption.marks}
+            words={showWords ? pickedOption.pair : undefined}
             band={pickedOption.hue}
             from={[slotX(pickedOption.index, n, OPT_PITCH), OPT_Y - SOCK_Y, 0.04]}
             reduced={reduced}
@@ -808,7 +844,7 @@ export function KinshipStone({
                 plinth stays, so the empty place still reads as a place. */}
             {taken ? null : (
               <group position={[0, lit ? 0.12 : 0, 0]} scale={lit ? 1.04 : 1}>
-                <Pair marks={o.marks} band={o.hue} />
+                <Pair marks={o.marks} words={showWords ? o.pair : undefined} band={o.hue} />
               </group>
             )}
 
@@ -849,11 +885,13 @@ export function KinshipStone({
  */
 function SeatedPair({
   marks,
+  words,
   band,
   from,
   reduced,
 }: {
   marks: readonly [EventMark | null, EventMark | null];
+  words?: readonly [string, string] | undefined;
   band: string;
   /** Where the pair started, in the empty place's own coordinates. */
   from: readonly [number, number, number];
@@ -871,7 +909,7 @@ function SeatedPair({
 
   return (
     <group ref={group} position={[from[0], from[1], from[2]]}>
-      <Pair marks={marks} band={band} />
+      <Pair marks={marks} words={words} band={band} />
     </group>
   );
 }
