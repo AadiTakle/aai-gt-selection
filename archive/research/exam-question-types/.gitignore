@@ -14,3 +14,6 @@ qa/flow.json
 # compiled copy is a second copy of the selection rule and the ability fit, free to drift from the
 # sources it was built from. Regenerate with `pnpm stage2:review:build`.
 stage2-build/
+
+# Carries a live app key; mint your own with the admin API.
+platform-config.json

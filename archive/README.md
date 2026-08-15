@@ -30,7 +30,7 @@ fit that a standing score does not.
 | Test-taker surface, runner, results | `apps/web/` | Working |
 | 52 published question demos, 48 wired into the engine | `apps/web/public/exam-demos/`, `research/exam-question-types/` | Working |
 | Database schema, RPCs, server-side answer verification | `supabase/` (28 migrations) | Working, pgTAP covered |
-| 9 BrainLifts (the thinking behind the design) | `brainlifting/` | Complete |
+| BrainLifts (the evidence and reasoning layer, continued after reset) | `../brainlifting/` | Preserved at repository root; 14 current directories |
 | Requirements, decisions (47), evidence (117) | `docs/` | Complete and internally consistent |
 | Research shards, question-type catalogue, legal review | `research/` | Complete |
 

@@ -2,15 +2,15 @@
   "name": "gt-selection-capstone",
   "private": true,
   "version": "0.0.0",
-  "description": "Repo-root shortcuts. There is nothing to install here: every script below delegates into screener/, which is the npm project. archive/ is a separate pnpm workspace with its own scripts.",
+  "description": "Repo-root shortcuts. There is nothing to install here: every script below delegates into product/screener/, which is the npm project. archive/ is a separate pnpm workspace with its own scripts.",
   "scripts": {
-    "ui": "npm --prefix screener run ui --",
-    "test": "npm --prefix screener test",
-    "typecheck": "npm --prefix screener run typecheck",
-    "dev": "npm --prefix screener run dev",
-    "sim": "npm --prefix screener run sim",
-    "verify": "npm --prefix screener run verify",
-    "planner": "npm --prefix screener run planner",
-    "review": "npm --prefix screener run review"
+    "ui": "npm --prefix product/screener run ui --",
+    "test": "npm --prefix product/screener test",
+    "typecheck": "npm --prefix product/screener run typecheck",
+    "dev": "npm --prefix product/screener run dev",
+    "sim": "npm --prefix product/screener run sim",
+    "verify": "npm --prefix product/screener run verify",
+    "planner": "npm --prefix product/screener run planner",
+    "review": "npm --prefix product/screener run review"
   }
 }
