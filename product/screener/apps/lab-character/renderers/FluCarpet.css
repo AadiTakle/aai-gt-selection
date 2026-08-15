@@ -1,0 +1,280 @@
+/* FLU-CARPET-01. Prefix `fc-`.
+
+   The weave is the focal point and it is the only thing on screen besides the choices. Cells sit on
+   one continuous field rather than as separate cards, because a carpet is one object — separating
+   the cells into tiles made the row mode read as four unrelated pictures.
+
+   Art sizing follows the same rule as the other renderers: the card is a positioned box and the
+   drawing inside it is absolutely positioned, because a viewBox-only SVG sized in percentages inside
+   an auto-sized track collapses to nothing. Here the box is also where `size` lands — the face is a
+   fraction of the cell, so a size progression is legible without the grid reflowing. */
+
+.fc-root {
+  --fc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --fc-tile: 4.9rem;
+  --fc-target: 5.5rem;
+  --fc-ink: #16181d;
+  --fc-quiet: rgb(22 24 29 / 0.24);
+  --fc-line: rgb(22 24 29 / 0.12);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.75rem, 5vh, 3.25rem);
+  padding: clamp(1rem, 3vh, 2rem) 1rem;
+}
+
+.fc-root[data-band='K-1'] {
+  --fc-tile: 5.6rem;
+  --fc-target: 6.75rem;
+}
+
+.fc-ask {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.6vw, 1.35rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-align: center;
+  color: var(--fc-ink);
+}
+
+/* ---- the weave ------------------------------------------------------------ */
+
+.fc-carpet {
+  display: grid;
+  grid-template-columns: repeat(var(--fc-cols, 3), var(--fc-tile));
+  gap: 2px;
+  padding: 0.5rem;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--fc-line);
+  box-shadow: 0 1px 0 rgb(22 24 29 / 0.04);
+}
+
+.fc-cell {
+  position: relative;
+  display: block;
+  width: var(--fc-tile);
+  height: var(--fc-tile);
+  border-radius: 10px;
+  background: rgb(22 24 29 / 0.015);
+  animation: fc-rise 420ms var(--fc-ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.fc-cell-blank {
+  background: rgb(22 24 29 / 0.04);
+}
+
+.fc-hole {
+  position: absolute;
+  inset: 27%;
+  border-radius: 9px;
+  border: 2px dashed var(--fc-quiet);
+}
+
+/* A count is drawn as a cluster, never a numeral. Wrapping flex rather than a grid because a wrapped
+   flex line is centred: three copies land as two above one centred beneath, which is bigger and
+   easier to count than three squeezed into a single row — and this type can put `size` on top of
+   `count`, so every percent of the cell matters. */
+.fc-face {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 6%;
+}
+
+/* `size` is a scale step, so the face is a fraction of a fixed cell. Centred with a transform
+   because the width it is being centred against is itself a fraction. */
+.fc-cell > .fc-face,
+.fc-opt-face > .fc-face {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% * var(--fc-scale, 1));
+  height: calc(100% * var(--fc-scale, 1));
+  transform: translate(-50%, -50%);
+}
+
+.fc-cell > .fc-face {
+  /* The cell has no padding of its own, so the largest face still breathes inside it. */
+  width: calc(78% * var(--fc-scale, 1));
+  height: calc(78% * var(--fc-scale, 1));
+}
+
+/* ONE DRAWN SIZE FOR THE WHOLE WEAVE. `--fc-w` comes from the component, computed from the largest
+   count anywhere in the item. It used to be selected here from each face's own `data-n`, which meant
+   a cell of one drew its motif at full width and a cell of three drew at 45% — with `size` ALSO an
+   attribute this type progresses on, two of the item's own attributes were sharing one channel and
+   the size progression could not be read. `data-n` stays as the record of what the face holds. */
+.fc-glyph {
+  display: block;
+  width: var(--fc-w, 100%);
+  height: auto;
+}
+
+/* `fill: 0` — an unfilled motif.
+
+   `Glyph` draws its geometric fallback as an outline when told `hollow`, but it does not pass the
+   modifier to a world's `draw`, so artwork comes back solid (see the foot of FluCarpet.tsx). These
+   rules reach into whatever came back and take the fill off it: the silhouette is outlined in the
+   cell's own ink and the interior is left as a ghost. `fill` is one of the six attributes a
+   progression runs on, so this has to hold for every skin rather than for the fallback alone.
+
+   The dash matters for the same reason it does in FluOpChain: taking the fill off is enough for a motif
+   a world draws as artwork and does nothing at all for one it draws in strokes — Hatchling's `bolt` is
+   a twig and its `chevron` is a bird, both strokes — so a broken contour is the only channel that reads
+   as unfilled whichever way the motif was drawn. It is long-dashed rather than fine so the motif's
+   silhouette survives it: `motif` is an attribute these items also progress on. */
+.fc-glyph-hollow :is(path, circle, ellipse, rect, polygon, polyline) {
+  fill-opacity: 0.12;
+  stroke: var(--fc-ink-cell, currentColor);
+  stroke-width: 6;
+  stroke-dasharray: 22 6;
+  stroke-linejoin: round;
+  stroke-linecap: butt;
+}
+
+/* ---- the choices ---------------------------------------------------------- */
+
+.fc-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(0.6rem, 2vw, 1.1rem);
+  width: 100%;
+  max-width: 46rem;
+}
+
+.fc-opt {
+  all: unset;
+  position: relative;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: block;
+  width: var(--fc-target);
+  height: var(--fc-target);
+  min-width: 64px;
+  min-height: 64px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid var(--fc-line);
+  box-shadow: 0 1px 0 rgb(22 24 29 / 0.04);
+  animation: fc-rise 380ms var(--fc-ease) both;
+  animation-delay: calc(180ms + var(--i, 0) * 60ms);
+  transition:
+    transform 200ms var(--fc-ease),
+    opacity 260ms var(--fc-ease),
+    box-shadow 200ms var(--fc-ease);
+}
+
+.fc-opt:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 14px 26px -18px rgb(22 24 29 / 0.5);
+}
+
+.fc-opt:active {
+  transform: scale(0.96);
+}
+
+.fc-opt:focus-visible {
+  outline: 3px solid #3d7068;
+  outline-offset: 3px;
+}
+
+.fc-opt-face {
+  position: absolute;
+  inset: 15%;
+}
+
+.fc-opt-key {
+  position: absolute;
+  top: 0.3rem;
+  left: 0.45rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--fc-quiet);
+}
+
+.fc-root[data-band='K-1'] .fc-opt-key {
+  display: none;
+}
+
+.fc-mark {
+  position: absolute;
+  right: -0.4rem;
+  bottom: -0.4rem;
+  width: 1.55rem;
+  height: 1.55rem;
+  fill: var(--fc-ink);
+  animation: fc-pop 260ms var(--fc-ease) both;
+}
+
+.fc-opt-chosen {
+  transform: translate3d(0, -6px, 0);
+  border-color: var(--fc-ink);
+  box-shadow: 0 16px 28px -18px rgb(22 24 29 / 0.55);
+}
+
+.fc-settled .fc-opt {
+  cursor: default;
+}
+
+.fc-settled .fc-opt:not(.fc-opt-chosen) {
+  opacity: 0.4;
+}
+
+.fc-settled .fc-opt:not(.fc-opt-chosen):hover {
+  transform: none;
+  box-shadow: 0 1px 0 rgb(22 24 29 / 0.04);
+}
+
+.fc-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes fc-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fc-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-root *,
+  .fc-root *::before,
+  .fc-root *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+
+  .fc-opt:hover,
+  .fc-opt:active {
+    transform: none;
+  }
+}

@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLU-GRIDCOPY-01 · Copy the Change</title>
+<style>
+  :root{--bg1:#fcf4ef;--bg2:#f8e8de;--ink:#001117;--card:#ffffff;--accent:#004f71;--good:#146c43;--bad:#a4442f;
+    --c1:#e48b53;--c2:#9fb6bd;--c3:#e48b53;
+    --tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+  #howto{max-width:660px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#004f71;border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="scored"]{background:#004f71;color:#ffffff;border-color:#004f71}
+  #phasecue[data-phase="done"]{background:#f5ddcd;color:#002a3a;border-color:#ecd9cb}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#4a6470}
+  #stagecard{background:var(--card);border-radius:26px;padding:20px;box-shadow:0 18px 50px -22px #002a3a;
+    display:flex;flex-direction:column;align-items:center;gap:14px;max-width:660px;width:100%}
+  .band{border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;align-items:center;width:100%}
+  #worked{background:linear-gradient(160deg,#fcf4ef,#f8e8de);border:3px solid #ecd9cb}
+  #task{background:linear-gradient(160deg,#fcf4ef,#fcf4ef);border:3px solid #f8e8de}
+  .cue{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6f4526}
+  .arow{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .arrow{font-size:24px;color:#4a6470;font-weight:800}
+  .gridbox{display:grid;gap:4px;background:#ecd9cb;padding:6px;border-radius:10px}
+  .gc{width:32px;height:32px;background:#f8e8de;border-radius:6px;transition:.1s;position:relative;border:0;padding:0}
+  .gc.c1{background:var(--c1)} .gc.c2{background:var(--c2)} .gc.c3{background:var(--c3)}
+  /* colour is never the only cue: each colour carries a pattern too */
+  .gc.c1::after,.gc.c2::after,.gc.c3::after{position:absolute;inset:0;display:grid;place-items:center;
+    color:#ffffff;font:800 13px ui-monospace,monospace;opacity:.85}
+  .gc.c1::after{content:"//"} .gc.c2::after{content:"o"} .gc.c3::after{content:"+"}
+  .gc.edit{cursor:pointer}
+  .gc.edit:hover{outline:2px solid #ebba9b}
+  .gc.touched{box-shadow:inset 0 0 0 2px #00111733}
+  .small .gc{width:26px;height:26px}
+  #controls{display:flex;gap:14px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:16px}
+  #undo{height:50px;padding:0 16px;background:#f8e8de;color:#004f71;font-weight:800}
+  #replay{width:50px;height:50px;border-radius:50%;background:#f8e8de;color:#004f71;font-size:22px}
+  #go{width:74px;height:74px;border-radius:50%;background:var(--accent);color:#ffffff;font-size:30px;
+    box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;
+    transition:transform .55s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:325px;flex:0 0 325px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;
+    font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #33505c;border-radius:10px;background:#003b5c}
+  .dtop{display:flex;justify-content:space-between;color:#ffffff}
+  .dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#33505c;border-radius:8px;margin-top:8px;overflow:hidden}
+  .dfill{height:100%;background:linear-gradient(90deg,#ebba9b,#ebba9b);transition:.25s}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#6f4526}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mid.srv{color:#6f4526}
+  .mval{color:#ffffff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+  #log{height:190px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  button:focus-visible,.gc:focus-visible{outline:4px solid #e48b53;outline-offset:2px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:320px}}
+  @media(max-width:560px){#wrap{padding:10px}#stagecard{padding:14px}.gc{width:26px;height:26px}.small .gc{width:21px;height:21px}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">FLU-GRIDCOPY-01 · Copy the Change</div>
+    <header id="howto">
+      <h1>How to use — Copy the Change</h1>
+      <p>The top row shows how one grid changes into another. Work out the change, then tap squares in <b>your grid</b> so it changes the same way (each tap moves a square to the next colour, then back to empty). Use <b>Undo</b> to take a tap back, then press the check (<b>&#10003;</b>) to send your grid.</p>
+    </header>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
+    <div id="stagecard">
+      <div id="worked" class="band">
+        <div class="cue">Examples — how the grid changes</div>
+        <div id="examples" class="arow"></div>
+      </div>
+      <div id="task" class="band">
+        <div class="cue">Your turn — make the same change</div>
+        <div class="arow">
+          <div id="probe" class="gridbox"></div>
+          <div class="arrow">&#8594;</div>
+          <div id="editable" class="gridbox"></div>
+        </div>
+      </div>
+      <div id="controls">
+        <button id="replay" title="show how again">&#8635;</button>
+        <button id="undo">Undo</button>
+        <button id="go" title="send answer">&#10003;</button>
+      </div>
+      <div id="status" class="neutral">Waiting for the next puzzle.</div>
+    </div>
+    <div id="playgate">
+      <p>The grids are ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child (display only)</h3>
+    <div id="difficulty"></div>
+    <div id="mode">Renderer reports the raw constructed grid; <b>correctness is server-side</b>.</div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * FLU-GRIDCOPY-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW constructed
+ * grid + process telemetry. It NEVER self-generates items, NEVER holds the
+ * target grid, and NEVER shows correct/incorrect: the transformation program,
+ * the key and the per-cell score live server-side (BUILD_PLAN §2).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://) so the file still runs
+ * for QA. Correctness is still never shown; emitted ItemResults are logged.
+ * ===================================================================== */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const HOST_SRC='gt-exam-host',DEMO_SRC='gt-exam-demo';
+
+/* ---------- per-item state ---------- */
+let current=null;        // current ServedItem
+let interactive=false;   // interaction enabled?
+let submitted=false;     // already answered this item?
+let grid=null;           // the child's editable grid (numbers)
+let editSeq=[];          // raw edit sequence
+let touched={};          // "r,c" -> number of taps
+let itemStart=0,itemTelemetry=[];
+let gateTutorial=false;  // does the pending play press owe a gesture hint?
+const M={rt:null,firstLat:null,rev:0,undo:0,blur:0};
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false,standaloneQueue=[],standaloneIdx=0,tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free) ---------- */
+const METERS=[
+ {id:'M-ACC',srv:true,name:'Grid exactly right (server-verified)',get:()=>'server-side'},
+ {id:'M-POLY',srv:true,name:'Per-cell partial credit (server-verified)',get:()=>'server-side'},
+ {id:'M-PROG',srv:true,name:'Convergence trajectory (server-verified)',get:()=>'server-side'},
+ {id:'M-PATH',name:'Cell edits logged',get:()=>String(editSeq.length)},
+ {id:'M-EFF',name:'Edits made (vs minimum: server)',get:()=>String(editSeq.length)},
+ {id:'M-REV',name:'Re-edited cells + undos',get:()=>String(M.rev)},
+ {id:'M-RT',name:'Response time',get:()=>M.rt==null?'\u2014':M.rt+' ms'},
+ {id:'M-RTFIRST',name:'First-action latency (study the example)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<800?'1 · rapid':'0')},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){
+  const d=current?current.difficulty:null,c=current?current.content:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>${c?c.rows+'x'+c.cols+' grid · '+c.exampleCount+' example'+(c.exampleCount>1?'s':''):'\u2014'}</span><span>score: server-side</span></div>`;
+}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+
+/* ---------- grid painting ---------- */
+function paint(el,g,editable){
+  el.innerHTML='';
+  el.style.gridTemplateColumns=`repeat(${g[0].length},1fr)`;
+  for(let r=0;r<g.length;r++)for(let c=0;c<g[0].length;c++){
+    const cell=document.createElement(editable?'button':'div');
+    cell.className='gc'+(g[r][c]?' c'+g[r][c]:'')+(editable?' edit':'')+(touched[r+','+c]&&editable?' touched':'');
+    if(editable){cell.dataset.r=r;cell.dataset.c=c;cell.setAttribute('aria-label',`row ${r+1} column ${c+1}`);}
+    el.appendChild(cell);
+  }
+}
+function paintExamples(){
+  const c=current.content,host=$('#examples');host.innerHTML='';
+  c.examples.forEach((ex,i)=>{
+    const pair=document.createElement('div');pair.className='arow small';
+    const a=document.createElement('div');a.className='gridbox';
+    const arrow=document.createElement('div');arrow.className='arrow';arrow.innerHTML='&#8594;';
+    const b=document.createElement('div');b.className='gridbox';
+    pair.appendChild(a);pair.appendChild(arrow);pair.appendChild(b);
+    host.appendChild(pair);
+    paint(a,ex.input,false);paint(b,ex.output,false);
+    if(i<c.examples.length-1){const sep=document.createElement('div');sep.className='cue';sep.textContent='and';host.appendChild(sep);}
+  });
+}
+const clone2=g=>g.map(r=>r.slice());
+
+/* ---------- ghost hand: wordless GESTURE hint (never reveals the answer) ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(600);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(450);}
+async function gestureHint(){
+  // Teaches the GESTURE only: study the example, tap cells in your grid, send.
+  // It never edits a cell, so it never shows what the answer looks like.
+  ghostShow(true);await sleep(250);
+  await ghostTo($('#examples'));await sleep(150);
+  await ghostTo($('#editable'));await ghostTap();
+  await ghostTo($('#go'));await ghostTap();
+  ghostShow(false);await sleep(250);
+}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;editSeq=[];touched={};
+  M.rt=null;M.firstLat=null;M.rev=0;M.undo=0;M.blur=0;itemTelemetry=[];
+  grid=clone2(item.content.probeInput);
+  paintExamples();
+  paint($('#probe'),item.content.probeInput,false);
+  paint($('#editable'),grid,true);
+  $('#go').classList.remove('ready');
+  itemStart=Date.now();renderMeters();
+  emitEvent('render',{rows:item.content.rows,cols:item.content.cols,examples:item.content.exampleCount,
+    palette:item.content.paletteSize,difficulty:item.difficulty});
+}
+
+/* ---------- interaction ---------- */
+function tapCell(r,c){
+  if(!interactive||submitted)return;
+  if(M.firstLat==null){M.firstLat=Date.now()-itemStart;emitEvent('first_action',{r,c,latencyMs:M.firstLat});}
+  const states=current.content.editable.cycleStates;
+  const from=grid[r][c],to=(from+1)%states;
+  grid[r][c]=to;
+  const k=r+','+c;touched[k]=(touched[k]||0)+1;
+  if(touched[k]>1)M.rev++;
+  editSeq.push({r,c,from,to});
+  paint($('#editable'),grid,true);
+  $('#go').classList.add('ready');
+  emitEvent('edit',{r,c,from,to});
+  renderMeters();
+}
+function undo(){
+  if(!interactive||submitted||!editSeq.length)return;
+  const last=editSeq.pop();
+  grid[last.r][last.c]=last.from;
+  M.undo++;M.rev++;
+  const k=last.r+','+last.c;touched[k]=Math.max(0,(touched[k]||1)-1);
+  paint($('#editable'),grid,true);
+  emitEvent('undo',{r:last.r,c:last.c,to:last.from});
+  renderMeters();
+}
+function submit(){
+  if(!interactive||submitted)return;
+  const rt=Date.now()-itemStart;
+  M.rt=rt;submitted=true;interactive=false;$('#go').classList.remove('ready');
+  // NEUTRAL acknowledgment only — never correct/incorrect.
+  setCue('done','Answer sent');
+  setStatus('neutral',standalone?'Grid received. Loading the next puzzle.':'Grid received. Next puzzle coming up.');
+  emitEvent('submit',{rtMs:rt,edits:editSeq.length});
+  const distinct=Object.keys(touched).filter(k=>touched[k]>0).length;
+  const response={
+    finalGrid:clone2(grid),
+    finalGridKey:grid.map(r=>r.join('')).join('/'),
+    editSequence:editSeq.slice(),
+    editCount:editSeq.length,
+    distinctCellsEdited:distinct,
+    undoCount:M.undo,
+  };
+  const metrics={'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-REV':M.rev,
+    'M-PATH':editSeq.length,'M-EFF':editSeq.length,'M-ENGAGE':M.blur,'M-RAPIDGUESS':rt<800?1:0};
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({grid:response.finalGridKey,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1200);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 — the puzzle waits behind the play gate. `init` renders the examples and the grids, but
+   they stay covered and inert until the child presses play. That press is also when the
+   response clock starts, so M-RT and M-RTFIRST measure working out the change rather than
+   however long the child took to look up at the screen. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function onInit(item){
+  if(!item||!item.content||!Array.isArray(item.content.probeInput)){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  openGate(false);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  closeGate();
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();               // interaction unlocked HERE
+  setCue('scored','Your turn');
+  setStatus('neutral','Tap squares in your grid to make the same change, then press the check.');
+  $('#go').classList.add('ready'); // sending an unchanged grid is a valid response
+  renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/FLU-GRIDCOPY-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"ba68e1dd-562f-44a0-8e31-82d51da2feea","typeCode":"FLU-GRIDCOPY-01","domain":"fluid_reasoning","difficulty":1.04,"ageBands":["2-3"],"demoPath":"demos/FLU-GRIDCOPY-01.html","content":{"typeCode":"FLU-GRIDCOPY-01","rows":3,"cols":3,"paletteSize":1,"palette":["blue"],"exampleCount":2,"examples":[{"input":[[0,0,1],[0,0,0],[1,0,0]],"output":[[0,0,0],[1,0,0],[0,0,0]]},{"input":[[0,0,0],[0,0,0],[0,1,1]],"output":[[0,0,0],[0,1,1],[0,0,0]]}],"probeInput":[[1,0,0],[0,0,0],[0,0,1]],"editable":{"rows":3,"cols":3,"initFrom":"probeInput","cycleStates":2}},"syntheticOnly":true,"validated":false},
+{"itemId":"8196240b-ce6f-4ee5-9e9b-7cb6e6e62e34","typeCode":"FLU-GRIDCOPY-01","domain":"fluid_reasoning","difficulty":10.78,"ageBands":["4-5"],"demoPath":"demos/FLU-GRIDCOPY-01.html","content":{"typeCode":"FLU-GRIDCOPY-01","rows":4,"cols":4,"paletteSize":3,"palette":["blue","coral","gold"],"exampleCount":1,"examples":[{"input":[[0,0,1,2],[1,3,0,3],[2,1,0,0],[0,2,0,0]],"output":[[0,0,0,0],[0,0,1,2],[1,3,0,3],[2,1,0,0]]}],"probeInput":[[3,0,0,0],[2,0,2,3],[0,1,0,1],[0,2,0,1]],"editable":{"rows":4,"cols":4,"initFrom":"probeInput","cycleStates":4}},"syntheticOnly":true,"validated":false},
+{"itemId":"538f5777-b0d8-46a3-a937-aac5e4384463","typeCode":"FLU-GRIDCOPY-01","domain":"fluid_reasoning","difficulty":19.96,"ageBands":["6-8"],"demoPath":"demos/FLU-GRIDCOPY-01.html","content":{"typeCode":"FLU-GRIDCOPY-01","rows":5,"cols":5,"paletteSize":3,"palette":["blue","coral","gold"],"exampleCount":1,"examples":[{"input":[[2,1,0,0,0],[2,1,3,0,3],[1,0,2,0,0],[0,0,2,1,3],[3,3,0,3,0]],"output":[[2,2,0,0,0],[2,3,0,3,0],[2,0,2,0,0],[0,0,2,3,0],[3,0,3,0,0]]}],"probeInput":[[3,0,0,2,3],[0,0,0,2,2],[3,2,0,2,1],[1,2,1,1,0],[0,0,0,0,2]],"editable":{"rows":5,"cols":5,"initFrom":"probeInput","cycleStates":4}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
+$('#editable').addEventListener('click',e=>{const cell=e.target.closest('.gc.edit');if(cell)tapCell(+cell.dataset.r,+cell.dataset.c);});
+$('#undo').addEventListener('click',undo);
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  if(e.key==='Backspace'||e.key==='u'||e.key==='U'){e.preventDefault();undo();}
+  else if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
+</script>
+</body>
+</html>

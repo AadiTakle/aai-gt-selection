@@ -1,0 +1,142 @@
+.wrap {
+  position: relative;
+  grid-column: 1 / -1;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: var(--gt-space-4);
+}
+
+.stateField,
+.searchField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2);
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 620;
+  color: var(--color-ink);
+}
+
+.chosen {
+  color: var(--color-primary);
+  font-weight: 620;
+}
+
+.control {
+  appearance: none;
+  width: 100%;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.control:focus {
+  outline: none;
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px rgb(0 79 113 / 0.16);
+}
+
+.control:disabled {
+  background: var(--color-surface);
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.selectWrap {
+  position: relative;
+}
+
+.selectWrap::after {
+  content: '';
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--color-muted);
+  border-bottom: 2px solid var(--color-muted);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.results {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% - var(--gt-space-3));
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--gt-shadow-pop);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.hintRow {
+  padding: var(--gt-space-3) var(--gt-space-4);
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.resultRow {
+  all: unset;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem var(--gt-space-4);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.resultRow:hover,
+.resultRow:focus-visible {
+  background: var(--color-surface);
+}
+
+.resultName {
+  font-weight: 620;
+  color: var(--color-ink);
+  font-size: 0.92rem;
+}
+
+.resultMeta {
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+}
+
+.otherRow {
+  color: var(--gt-blue);
+  font-weight: 620;
+}
+
+.otherRow:hover {
+  background: var(--color-surface);
+}
+
+.source {
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  margin: var(--gt-space-2) 0 0;
+}
+
+@media (max-width: 720px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}

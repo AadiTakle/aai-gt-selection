@@ -1,0 +1,132 @@
+{
+  "_comment": [
+    "Catalog for the Stage 2 review window (stage2-review.html).",
+    "",
+    "AUTHORED data, not generated. Adding a Stage 2 type to the review window is an edit to this",
+    "file: give it a `banks` map (arm -> jsonl path) and, if a figure inspector exists for it, an",
+    "`inspector` id. build-stage2-review.mjs loads whichever bank files are actually present and",
+    "downgrades `status` to `designed` for any type whose banks are missing, so a designed-only type",
+    "still appears in the window with its intended shape rather than being omitted.",
+    "",
+    "Every `designed` entry's text is a summary of docs/product/STAGE2_QUESTION_DESIGN.md section",
+    "`designSection`. That document's own status line is 'Nothing here is built' — the FLU-OPCHAIN-01",
+    "banks were built afterwards, and nothing is gated (Gate B needs ~128 real children)."
+  ],
+  "designDoc": "docs/product/STAGE2_QUESTION_DESIGN.md",
+  "types": [
+    {
+      "typeCode": "FLU-OPCHAIN-01",
+      "name": "Machine Chain",
+      "area": "fluid_reasoning",
+      "status": "built",
+      "buildOrder": 1,
+      "designSection": "§3.1",
+      "generator": "generators/FLU-OPCHAIN-01.mjs",
+      "inspector": "opchain",
+      "banks": {
+        "consistent": "banks/FLU-OPCHAIN-01.jsonl",
+        "perTrial": "control-banks/FLU-OPCHAIN-01.perTrial.jsonl"
+      },
+      "hiddenSystem": "A badge to operator mapping. Six operators — turn, flip, slant (orientation, non-commuting) and swap, ring, twin (attribute toggles) — labelled by six arbitrary badge symbols. The mapping is what persists; the figures never repeat.",
+      "induces": [
+        "which transform each badge stands for (the vocabulary)",
+        "that badges compose in badge order, left to right — the deep one, and what any depth ≥ 2 item requires"
+      ],
+      "ladder": [
+        "depth 1 — know what one badge does",
+        "depth 2 — chain two, in the right order",
+        "depth 3–4 — chain three or four, holding an imagined intermediate figure through steps that do not touch it"
+      ],
+      "levers": [
+        "composition depth, 1–4 (dominates: it is the ladder the learnable thing unlocks)",
+        "count of distinct orientation operators, which is where order starts to matter",
+        "representational mixing — a chain that interleaves orientation changes with attribute toggles",
+        "distractor distance along a named-failure axis (order error, applied twice, omission, wrong operator, first step only, identity copy)"
+      ],
+      "notes": "Bank status is gate-ready and ungated: 234 items per arm, born synthetic, syntheticOnly true and validated false. `difficulty` is a design rung computed from the levers, not a calibrated IRT parameter. Not wired into the live learning block."
+    },
+    {
+      "typeCode": "SPA-XFORM-01",
+      "name": "Transform Machine",
+      "area": "spatial",
+      "status": "designed",
+      "buildOrder": 2,
+      "designSection": "§3.4",
+      "hiddenSystem": "A machine that applies hidden spatial transformations to a block figure, drawn from a candidate set fixed for the whole block.",
+      "induces": [
+        "which transformation the machine applies — the learnable thing is the rule, not rotation speed",
+        "how transformations chain, and that order matters",
+        "holding the intermediate figure in working memory"
+      ],
+      "ladder": [
+        "one transformation, inferred from demonstrations",
+        "two chained, order-sensitive",
+        "longer chains, and chains never demonstrated"
+      ],
+      "levers": [
+        "chain length",
+        "number of candidate transformations in play",
+        "whether the queried face is visible",
+        "figure complexity",
+        "whether the chain was demonstrated",
+        "distractor distance by named error, e.g. wrong axis"
+      ],
+      "notes": "Second in build order and called the biggest hole in the Stage 2 pool. It also carries the highest prior probability of failing its own scrambled control, because rotation practice is the most plausible source of a climb with no system in it — so the control is not optional here. Accuracy is scored; response time is never allowed into λ."
+    },
+    {
+      "typeCode": "QUANT-GLYPHNUM-01",
+      "name": "Alien Numbers",
+      "area": "quantitative",
+      "status": "designed",
+      "buildOrder": 3,
+      "designSection": "§3.2",
+      "hiddenSystem": "An invented numeral system: three or four glyphs, a hidden composition rule, base 3 or base 4, fixed for the block.",
+      "induces": [
+        "which value each glyph carries",
+        "the composition rule — sign-value or place-value",
+        "extension to expressions never shown"
+      ],
+      "ladder": [
+        "read a single glyph",
+        "combine two under an additive rule",
+        "place-value composition",
+        "extend to an untrained combination"
+      ],
+      "levers": [
+        "number of glyphs in the expression",
+        "base",
+        "composition type — additive is established as easier than multiplicative",
+        "whether the combination was trained",
+        "numerical distance",
+        "count of distinct glyphs"
+      ],
+      "notes": "Third in build order and has the best-evidenced difficulty structure of the four, because the composition orderings come from published work. Its open assumption is that adult orderings hold in children. Concreteness fading is designed in: glyph beside quantity at first, glyph alone by a fixed trial."
+    },
+    {
+      "typeCode": "VER-MORPHO-01",
+      "name": "Word Machines",
+      "area": "verbal",
+      "status": "designed",
+      "buildOrder": 4,
+      "designSection": "§3.3",
+      "hiddenSystem": "A tiny invented morphology: pseudo-syllable stems plus affixes carrying negation, plurality, size and agent or patient. Latin script, no audio.",
+      "induces": [
+        "which meaning each morpheme carries",
+        "how morphemes combine — affix order, stacking, doubling"
+      ],
+      "ladder": [
+        "single affix",
+        "multiple affixes",
+        "minimal pairs differing in one morpheme",
+        "affix combinations never demonstrated"
+      ],
+      "levers": [
+        "single versus multiple affixes",
+        "minimal-pair items",
+        "undemonstrated affix combinations",
+        "contextual diversity of the stems"
+      ],
+      "notes": "Built last, and the design its own author is least confident in: the open assumption is that it loads verbal rather than fluid reasoning, which would break comparability with a block that must stay in one area. Recommended for grade bands 2-3 and up, because at K-1 it largely measures decoding."
+    }
+  ]
+}

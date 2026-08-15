@@ -1,0 +1,1124 @@
+/* Backrooms. One hue, no windows, no curves that were not manufactured.
+   Everything is a variation on #d9c760, which is the whole discipline of the theme: the moment a second
+   colour arrives the room stops being wrong. The single exception is the exit sign at the very end, and
+   it earns it by being the only green in the building. */
+
+.br {
+  --br-wall: #d9c760;
+  --br-wall-lit: #e9dc8c;
+  --br-wall-dim: #b3a04a;
+  --br-wall-deep: #7e7131;
+  --br-ceil: #cdbf72;
+  --br-carpet: #9c8a44;
+  --br-carpet-deep: #6f6129;
+  --br-ink: #241f12;
+  --br-ink-soft: #3d3416;
+  --br-void: #100e08;
+  --br-paper: #e6dcae;
+  --br-tube: #fff8dc;
+  --br-exit: #7cf0a0;
+
+  --br-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  --br-sans: 'Helvetica Neue', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* 0 at cold start, 6 at closest. Drives the light, the vignette and the flicker rate together, so
+     the room tightens as one thing rather than as three effects. */
+  --close: 0;
+
+  position: relative;
+  isolation: isolate;
+  min-height: calc(100vh - 48px);
+  background: #b9a850;
+  color: var(--br-ink);
+  font-family: var(--br-sans);
+}
+
+/* Focus has to survive two very different backgrounds: flat yellow wall and a black doorway. A dark
+   ring alone vanishes into the void, a light ring alone vanishes into the wall, so it is both. */
+.br :focus-visible {
+  outline: 3px solid #17130a;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 7px rgba(248, 240, 190, 0.95);
+}
+
+/* ------------------------------------------------------------------ the room */
+
+.br-room {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 118px, rgba(84, 70, 26, 0.07) 118px 120px),
+    linear-gradient(180deg, #e0d074 0%, var(--br-wall) 30%, #cdb958 66%, #b8a44c 100%);
+  /* Reduced motion gets no flicker, so the tension has to be carried by light level instead. */
+  filter: brightness(calc(1 - var(--close) * 0.035));
+  transition: filter 900ms ease;
+}
+
+.br-ceiling {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 38%;
+  overflow: hidden;
+  /* The plane's far edge is a hard line, and it lands around 80% of this box. The fade has to finish
+     before then or the edge shows as a seam straight across the room. */
+  mask-image: linear-gradient(180deg, #000 0%, #000 30%, transparent 72%);
+}
+
+.br-ceiling-plane {
+  position: absolute;
+  top: 0;
+  left: -40%;
+  right: -40%;
+  height: 200%;
+  transform-origin: 50% 0%;
+  transform: perspective(760px) rotateX(-58deg);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 86px, rgba(62, 52, 18, 0.26) 86px 89px),
+    repeating-linear-gradient(0deg, transparent 0 86px, rgba(62, 52, 18, 0.26) 86px 89px),
+    radial-gradient(ellipse 30% 14% at 24% 34%, rgba(122, 96, 40, 0.3), transparent 70%),
+    radial-gradient(ellipse 22% 10% at 71% 55%, rgba(112, 90, 36, 0.26), transparent 70%),
+    linear-gradient(180deg, #e9dc98 0%, #d9c774 44%, #c2af5a 100%);
+}
+
+.br-tube {
+  position: absolute;
+  left: 21%;
+  right: 21%;
+  height: 18px;
+  background: var(--br-tube);
+  box-shadow:
+    0 0 28px 8px rgba(255, 248, 214, 0.5),
+    0 0 72px 24px rgba(255, 242, 186, 0.18);
+  animation: br-flicker calc(9s - var(--close) * 0.9s) steps(1, end) infinite;
+}
+
+.br-tube:nth-child(2) { animation-delay: -1.7s; }
+.br-tube:nth-child(3) { animation-delay: -4.2s; }
+.br-tube:nth-child(4) { animation-delay: -6.1s; }
+.br-tube:nth-child(5) { animation-delay: -2.9s; }
+
+/* Mostly steady with brief dropouts. A tube that pulses evenly reads as a lighting effect; a tube that
+   holds and then stutters reads as a tube nobody has replaced. */
+@keyframes br-flicker {
+  0%, 41.9% { opacity: 1; }
+  42% { opacity: 0.32; }
+  42.6% { opacity: 1; }
+  68% { opacity: 1; }
+  68.3% { opacity: 0.5; }
+  68.7% { opacity: 1; }
+  69.2% { opacity: 0.28; }
+  69.9% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+/* The far wall, and the light standing on it. A pool of brightness at the vanishing point is what makes
+   the corridor read as lit from overhead rather than as a dark box. */
+.br-far {
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  top: 22%;
+  bottom: 26%;
+  /* No hard edges: a rectangle here reads as a rectangle, not as light standing on the far wall. */
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(238, 226, 152, 0.52) 0%,
+    rgba(222, 208, 124, 0.24) 52%,
+    transparent 78%
+  );
+}
+
+.br-carpet {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 44%;
+  overflow: hidden;
+  mask-image: linear-gradient(0deg, #000 0%, #000 26%, transparent 64%);
+}
+
+.br-carpet-plane {
+  position: absolute;
+  bottom: 0;
+  left: -40%;
+  right: -40%;
+  height: 200%;
+  transform-origin: 50% 100%;
+  transform: perspective(760px) rotateX(58deg);
+  background:
+    repeating-linear-gradient(45deg, rgba(58, 48, 18, 0.11) 0 3px, transparent 3px 6px),
+    repeating-linear-gradient(-45deg, rgba(58, 48, 18, 0.09) 0 3px, transparent 3px 6px),
+    repeating-linear-gradient(90deg, transparent 0 168px, rgba(56, 46, 16, 0.18) 168px 171px),
+    radial-gradient(ellipse 26% 12% at 38% 66%, rgba(96, 76, 30, 0.28), transparent 72%),
+    radial-gradient(ellipse 18% 9% at 66% 40%, rgba(100, 80, 32, 0.24), transparent 72%),
+    linear-gradient(0deg, #9c8a3f 0%, #ab9847 44%, #bda94f 100%);
+}
+
+.br-sidewall {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 26%;
+  pointer-events: none;
+}
+
+.br-sidewall.left {
+  left: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 62px, rgba(70, 58, 20, 0.14) 62px 64px),
+    linear-gradient(90deg, rgba(74, 62, 20, 0.3), rgba(74, 62, 20, 0));
+}
+
+.br-sidewall.right {
+  right: 0;
+  background:
+    repeating-linear-gradient(270deg, transparent 0 62px, rgba(70, 58, 20, 0.14) 62px 64px),
+    linear-gradient(270deg, rgba(74, 62, 20, 0.3), rgba(74, 62, 20, 0));
+}
+
+/* Water damage. The rooms are not maintained and the ceiling has been leaking for a long time. */
+.br-damp {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 16% 22% at 11% 26%, rgba(126, 100, 42, 0.22), transparent 70%),
+    radial-gradient(ellipse 12% 30% at 89% 44%, rgba(118, 94, 38, 0.2), transparent 72%),
+    radial-gradient(ellipse 9% 14% at 63% 18%, rgba(132, 106, 46, 0.18), transparent 70%);
+  mix-blend-mode: multiply;
+}
+
+/* Grain, generated by the inline turbulence filter in the markup rather than fetched as an image. */
+.br-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.br-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Light, on purpose. The dread in these rooms comes from flat overhead light and no way out, not from
+     darkness — crushing the yellow into brown loses the one thing the theme is made of. */
+  background:
+    radial-gradient(
+      ellipse 92% 82% at 50% 46%,
+      transparent calc(48% - var(--close) * 3.2%),
+      rgba(58, 47, 14, 0.42) 100%
+    ),
+    linear-gradient(180deg, rgba(52, 42, 12, 0.14) 0%, transparent 12%);
+  transition: background 900ms ease;
+}
+
+/* ----------------------------------------------------------------- the stage */
+
+.br-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: calc(100vh - 48px);
+  max-width: 1020px;
+  margin: 0 auto;
+  padding: 18px 22px 36px;
+}
+
+/* ------------------------------------------------------------------- the hud */
+
+.br-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  background: rgba(17, 15, 7, 0.86);
+  border: 1px solid rgba(255, 246, 200, 0.18);
+  box-shadow: 0 14px 34px rgba(20, 15, 3, 0.42);
+  color: #f2e7b4;
+  font-family: var(--br-mono);
+}
+
+.br-hudcell {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 18px;
+  border-right: 1px solid rgba(255, 246, 200, 0.14);
+}
+
+.br-hudcell.wide {
+  flex: 1 1 150px;
+}
+
+.br-hudcell:last-child {
+  border-right: 0;
+}
+
+.br-hudcap {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(242, 231, 180, 0.74);
+}
+
+.br-hudval {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.br-hudval.big {
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.br-unit {
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: rgba(242, 231, 180, 0.72);
+}
+
+.br-hudsub {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: rgba(242, 231, 180, 0.76);
+}
+
+.br-meter {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 15px;
+}
+
+.br-cell {
+  width: 20px;
+  height: 11px;
+  box-shadow: inset 0 0 0 1px rgba(242, 231, 180, 0.32);
+}
+
+.br-cell.on {
+  background: #f0e2a0;
+  box-shadow: inset 0 0 0 1px rgba(242, 231, 180, 0.9);
+}
+
+/* -------------------------------------------------------------- the junction */
+
+.br-junction {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+}
+
+.br-waiting {
+  margin: 0;
+  padding: 60px 0;
+  text-align: center;
+  font-family: var(--br-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--br-ink-soft);
+}
+
+.br-fork {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  animation: br-step 420ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes br-step {
+  from { opacity: 0; transform: translateY(12px) scale(0.988); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The lit patch of wall at this junction. It also guarantees what is behind the text: the room's own
+   gradient runs from #e9dc8c to #7e7131, and ink on the dark end of that does not clear 4.5:1. */
+.br-brief {
+  width: 100%;
+  max-width: 840px;
+  padding: 18px 24px 22px;
+  background: linear-gradient(180deg, #f6efc4 0%, #ede2ac 100%);
+  border: 1px solid rgba(60, 50, 18, 0.34);
+  box-shadow:
+    0 26px 60px rgba(26, 20, 4, 0.4),
+    inset 0 1px 0 rgba(255, 253, 235, 0.8);
+}
+
+.br-found {
+  margin: 0 0 14px;
+  font-family: var(--br-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--br-ink-soft);
+  text-align: center;
+}
+
+.br-material:not(:empty) {
+  margin-bottom: 16px;
+}
+
+.br-go-line {
+  margin: 0;
+  text-align: center;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: var(--br-ink);
+}
+
+.br-aside {
+  margin: 0;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--br-ink-soft);
+}
+
+/* ---------------------------------------------------------------- doorways */
+
+.br-doors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px 12px;
+  width: 100%;
+}
+
+.br-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: clamp(96px, 13vw, 132px);
+  padding: 4px 2px 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.br-doors.n2 .br-choice,
+.br-doors.n3 .br-choice {
+  width: clamp(112px, 16vw, 158px);
+}
+
+.br-doors.n7 .br-choice,
+.br-doors.n8 .br-choice {
+  width: clamp(86px, 11vw, 114px);
+}
+
+.br-choice:hover:not(:disabled) {
+  transform: translateY(-4px);
+  filter: brightness(1.07);
+}
+
+.br-choice:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.br-choice.taken {
+  opacity: 1;
+  filter: brightness(1.16);
+  transform: translateY(-4px) scale(1.02);
+}
+
+.br-doorway {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+}
+
+/* The label taped up beside the frame. Paper stock rather than wall, so the ink on it clears 10:1
+   whatever the room is doing behind. */
+.br-plate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-height: 76px;
+  padding: 10px 7px;
+  background: var(--br-paper);
+  border: 1px solid rgba(70, 58, 22, 0.35);
+  box-shadow: 0 5px 14px rgba(28, 22, 6, 0.32);
+  transform: rotate(-0.6deg);
+}
+
+.br-plate::before,
+.br-plate::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  width: 26px;
+  height: 13px;
+  background: rgba(236, 226, 184, 0.62);
+  border: 1px solid rgba(120, 104, 50, 0.22);
+}
+
+.br-plate::before { left: 9%; transform: rotate(-6deg); }
+.br-plate::after { right: 9%; transform: rotate(5deg); }
+
+.br-door {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.br-leaf { fill: #c6b355; }
+.br-jamb { fill: none; stroke: rgba(48, 40, 14, 0.72); stroke-width: 2.4; }
+.br-void { fill: var(--br-void); }
+.br-panel { fill: none; stroke: rgba(60, 50, 18, 0.42); stroke-width: 1.8; }
+.br-seam { stroke: rgba(38, 32, 10, 0.7); stroke-width: 2; }
+.br-fitting { fill: #6a5c2a; }
+.br-pane { fill: #14120a; }
+.br-wire { stroke: rgba(206, 196, 146, 0.3); stroke-width: 1; }
+.br-kick { fill: #ab9944; }
+.br-step { stroke: rgba(184, 170, 108, 0.5); stroke-width: 2.2; }
+.br-lintel { fill: #b2a04c; }
+.br-sill { fill: #8e7f38; }
+.br-slat { fill: #b4a24e; }
+.br-strip { fill: rgba(228, 216, 160, 0.4); }
+.br-torn { fill: none; stroke: rgba(240, 232, 190, 0.55); stroke-width: 3; stroke-linejoin: round; }
+.br-tornedge { fill: none; stroke: rgba(60, 50, 18, 0.3); stroke-width: 1.4; }
+.br-cast { fill: rgba(30, 24, 6, 0.34); }
+.br-sign { fill: #ece0a6; stroke: rgba(50, 42, 14, 0.5); stroke-width: 1.2; }
+
+.br-signletter {
+  fill: var(--br-ink);
+  font-family: var(--br-mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* ------------------------------------------------------------------- marks */
+
+.br-mark {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.br-tally {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.br-tally-none,
+.br-tally-many {
+  font-family: var(--br-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--br-ink-soft);
+}
+
+.br-trace,
+.br-cells {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.br-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+
+/* A label with nothing on it. Scuffed rather than blank, so it reads as a door nobody marked instead
+   of as a component that failed to render. */
+.br-unmarked {
+  display: block;
+  width: 46px;
+  height: 30px;
+  background: repeating-linear-gradient(
+    -38deg,
+    rgba(92, 78, 34, 0.18) 0 2px,
+    transparent 2px 8px
+  );
+  box-shadow: inset 0 0 0 1px rgba(92, 78, 34, 0.2);
+}
+
+.br-scrawl {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: var(--br-ink);
+}
+
+.br-stencil-num {
+  font-family: var(--br-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--br-ink);
+}
+
+.br-seq {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  justify-content: center;
+}
+
+.br-seqstep {
+  padding: 3px 5px;
+  border: 1px solid;
+  font-family: var(--br-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.br-pair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+}
+
+.br-pairlink {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 2px;
+  background: rgba(60, 50, 18, 0.55);
+}
+
+/* ------------------------------------------------------------------- stems */
+
+/* compare: two counts somebody scratched into the plaster */
+.br-walls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+
+.br-wallcount {
+  display: flex;
+  flex: 1 1 200px;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  max-width: 300px;
+  padding: 16px 14px;
+  background: rgba(146, 128, 56, 0.26);
+  box-shadow:
+    inset 0 0 0 1px rgba(60, 50, 18, 0.26),
+    inset 0 3px 16px rgba(40, 32, 8, 0.2);
+}
+
+.br-wallname {
+  font-family: var(--br-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--br-ink-soft);
+}
+
+.br-scratched {
+  display: block;
+  max-width: 100%;
+}
+
+/* matrix: the carpet tiles, one of them lifted */
+.br-tiles {
+  display: grid;
+  gap: 4px;
+  justify-content: center;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 9px;
+  background: rgba(56, 47, 16, 0.18);
+}
+
+.br-tile {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  background: linear-gradient(158deg, #bfad55, #a09040);
+  box-shadow: inset 0 0 0 1px rgba(70, 58, 20, 0.32);
+}
+
+.br-tile.lifted {
+  background: #14120b;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.85);
+}
+
+.br-tilegap {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 2px dashed rgba(216, 202, 142, 0.42);
+}
+
+/* transform: a service panel nobody has opened in a while */
+.br-panel-unit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(180deg, #b6a54f, #9d8d42);
+  box-shadow:
+    inset 0 0 0 2px rgba(50, 42, 14, 0.42),
+    inset 0 3px 0 rgba(255, 248, 205, 0.18);
+}
+
+.br-window {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 88px;
+  padding: 11px;
+  background: #e2d6a2;
+  box-shadow: inset 0 0 0 2px rgba(60, 50, 18, 0.4);
+}
+
+.br-window.unknown {
+  background: #17150d;
+}
+
+.br-windowcap {
+  font-family: var(--br-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--br-ink-soft);
+}
+
+.br-window.unknown .br-windowcap {
+  color: rgba(240, 230, 184, 0.82);
+}
+
+.br-unknown {
+  display: block;
+  width: 32px;
+  height: 32px;
+  border: 2px dashed rgba(228, 216, 160, 0.5);
+}
+
+.br-switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+}
+
+.br-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 11px;
+  background: #2a2512;
+  color: #f0e5b2;
+  font-family: var(--br-mono);
+  font-size: 0.76rem;
+  font-weight: 600;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.38);
+}
+
+.br-switchno {
+  font-size: 9px;
+  opacity: 0.62;
+}
+
+.br-legend {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  font-family: var(--br-mono);
+  font-size: 0.72rem;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--br-ink);
+}
+
+.br-legendcap {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--br-ink-soft);
+}
+
+/* constraints: notes left on the wall */
+.br-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-width: 660px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.br-note {
+  position: relative;
+  padding: 11px 15px 11px 35px;
+  background: #eae0b4;
+  border-left: 4px solid rgba(90, 74, 28, 0.55);
+  box-shadow: 0 5px 14px rgba(30, 24, 6, 0.22);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--br-ink);
+  transform: rotate(var(--lean, 0deg));
+}
+
+.br-note::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 1.15em;
+  width: 8px;
+  height: 8px;
+  background: var(--br-ink);
+  transform: rotate(45deg);
+}
+
+/* passage: a page torn out and dropped */
+.br-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 24px 34px;
+  /* Duller and dirtier than the notice slab it sits on, or it reads as part of the wall rather than as
+     something somebody dropped. */
+  background: linear-gradient(176deg, #ded2a0 0%, #d4c793 100%);
+  font-size: 0.92rem;
+  line-height: 1.62;
+  color: var(--br-ink);
+  filter: drop-shadow(0 8px 18px rgba(30, 24, 6, 0.34));
+  clip-path: polygon(
+    0% 0%, 100% 0%, 100% 93%,
+    93% 98%, 86% 92%, 79% 100%, 72% 93%, 65% 99%, 58% 91%,
+    51% 98%, 44% 92%, 37% 100%, 30% 93%, 23% 99%, 16% 92%, 9% 98%, 0% 94%
+  );
+}
+
+.br-pagetitle {
+  margin: 0 0 9px;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
+.br-page p {
+  margin: 0 0 8px;
+}
+
+.br-pageq {
+  margin-top: 13px !important;
+  font-weight: 700;
+}
+
+/* target: something pinned by the frame */
+.br-pinned {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.br-pincap {
+  font-family: var(--br-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--br-ink-soft);
+}
+
+.br-pinrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 11px;
+  justify-content: center;
+}
+
+.br-pinitem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 13px 14px 11px;
+  background: var(--br-paper);
+  box-shadow: 0 5px 14px rgba(28, 22, 6, 0.28);
+}
+
+.br-pinitem::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #7d3320;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  transform: translateX(-50%);
+}
+
+.br-pinnote {
+  max-width: 52ch;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--br-ink-soft);
+}
+
+/* ---------------------------------------------------- entry, error, endings */
+
+.br-entry,
+.br-end {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 34px 34px;
+  background: linear-gradient(180deg, #f7f0c6 0%, #ece0a7 100%);
+  border: 1px solid rgba(60, 50, 18, 0.34);
+  box-shadow:
+    0 34px 76px rgba(26, 20, 4, 0.46),
+    inset 0 1px 0 rgba(255, 253, 235, 0.8);
+}
+
+.br-entry h2,
+.br-end h2 {
+  margin: 0 0 13px;
+  font-size: clamp(1.4rem, 3.2vw, 1.95rem);
+  line-height: 1.14;
+  letter-spacing: -0.018em;
+  color: var(--br-ink);
+}
+
+.br-lede {
+  max-width: 58ch;
+  margin: 0 0 13px;
+  font-size: 0.98rem;
+  line-height: 1.62;
+  color: #322b16;
+}
+
+.br-kicker {
+  margin: 0 0 12px;
+  font-family: var(--br-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #56491e;
+}
+
+/* The only green in the building, and it only ever appears on the way out. */
+.br-kicker.exit {
+  display: inline-block;
+  padding: 6px 11px;
+  background: #10240f;
+  color: var(--br-exit);
+  box-shadow:
+    0 0 0 1px rgba(124, 240, 160, 0.38),
+    0 0 28px rgba(90, 220, 130, 0.38);
+}
+
+.br-fineprint {
+  margin: 10px 0 0;
+  font-family: var(--br-mono);
+  font-size: 0.72rem;
+  line-height: 1.6;
+  color: #56491e;
+}
+
+.br-entrywrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+}
+
+.br-entrywrap .br-entry {
+  flex: 0 1 580px;
+  margin: 0;
+}
+
+.br-entrydoor {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: center;
+}
+
+.br-firstdoor {
+  width: clamp(132px, 15vw, 164px);
+}
+
+.br-firstdoor .br-scrawl {
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.br-go {
+  padding: 15px 26px;
+  background: #2a2512;
+  border: 0;
+  color: #f6ecb6;
+  font-family: var(--br-sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow:
+    0 6px 0 #16130a,
+    0 16px 28px rgba(24, 18, 4, 0.4);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.br-go:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 0 #16130a,
+    0 20px 32px rgba(24, 18, 4, 0.45);
+}
+
+.br-go:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 #16130a;
+}
+
+.br-go.small {
+  padding: 13px 18px;
+  font-size: 0.86rem;
+}
+
+.br-cta {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(60, 50, 18, 0.26);
+}
+
+.br-listlabel {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: #322b16;
+}
+
+.br-listrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.br-input {
+  flex: 1 1 210px;
+  min-width: 0;
+  padding: 14px;
+  background: #f2e9c2;
+  border: 1px solid rgba(60, 50, 18, 0.45);
+  color: var(--br-ink);
+  font-family: var(--br-sans);
+  font-size: 0.95rem;
+}
+
+.br-input::placeholder {
+  color: rgba(48, 41, 20, 0.68);
+}
+
+.br-listed {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--br-ink);
+}
+
+.br-endrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.br-tally-line {
+  font-family: var(--br-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: #56491e;
+}
+
+/* ------------------------------------------------------------------ smaller */
+
+@media (max-width: 760px) {
+  .br-stage {
+    padding: 14px 14px 28px;
+  }
+
+  .br-hudcell {
+    padding: 8px 12px;
+  }
+
+  .br-hudval.big {
+    font-size: 1.35rem;
+  }
+
+  .br-brief {
+    padding: 15px 16px 18px;
+  }
+
+  .br-entry,
+  .br-end {
+    padding: 24px 20px 26px;
+  }
+
+  .br-tile {
+    width: 46px;
+    height: 46px;
+  }
+}
+
+/* --------------------------------------------------------- reduced motion */
+
+/* This theme is an invitation to flicker, so the flicker has to be genuinely off here rather than
+   merely fast. The room keeps its tension through light level and vignette, both of which are driven
+   by --close and neither of which moves. */
+@media (prefers-reduced-motion: reduce) {
+  .br *,
+  .br *::before,
+  .br *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .br-tube {
+    opacity: 1;
+  }
+}

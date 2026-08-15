@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WM-bubble-01 · Bubble Pop Memory</title>
+<!--
+  WM-bubble-01 (Bubble Pop Memory, n-back) — PURE RENDERER.
+
+  This demo no longer invents its own stream and holds no answer key. It renders a
+  ServedItem's `content` (the bubble stream(s) and n) and reports the child's raw
+  judgements + process telemetry. Which steps were matches, hits/false alarms and d'
+  are SERVER-authoritative and are never computed or shown here.
+
+  TWO-ALTERNATIVE JUDGEMENT, NOT GO/NO-GO. Every decidable bubble is answered out
+  loud: "Seen it" (this word is the same as the word n bubbles ago) or "New" (it is
+  not). The run advances on the child's answer, never on a clock, and the answers
+  accumulate across the whole stream. A go/no-go POP button cannot tell a child who
+  decided "new" from one who was too slow or was not looking, so a miss and a
+  non-response were the same event; separating them is what lets the server score
+  hits and false alarms as independent signal-detection channels.
+
+  Embedding protocol (postMessage; source-tagged gt-exam-host / gt-exam-demo):
+    host -> demo : {source:'gt-exam-host', type:'init',  item: ServedItem}
+                   {source:'gt-exam-host', type:'start', tutorial?}
+    demo -> host : {source:'gt-exam-demo', type:'ready'}
+                   {source:'gt-exam-demo', type:'telemetry', event: TelemetryEvent}
+                   {source:'gt-exam-demo', type:'result',    result: ItemResult}
+
+  ServedItem = { itemId, typeCode, domain, difficulty, ageBands?, content }
+    content = { n, paceMs, responseWindowMs, streamLength, leadInSteps,
+                vocabularyLevel, prompt,
+                channels:[{id,label,kind,popLabel,hotkey,stream:[string]}] }
+    (NOTE: content carries no target list — the key is server-side. `paceMs` now
+     paces the LEAD-IN only; `prompt`/`popLabel` describe the retired POP control,
+     so the child-facing rule line is derived from `n` instead of printing them.)
+
+  ItemResult = { itemId, typeCode, domain,
+                 response:{judgements:[{channel,stepIndex,choice,rtMs,via}], pops,
+                           stepsShown, channelIds, releasedAtStep, completed},
+                 metrics:{'M-RT','M-RTFIRST','M-RTVAR','M-REV','M-ENGAGE','M-RAPIDGUESS'},
+                 telemetry:[TelemetryEvent] }
+    `judgements` is the authoritative stream, in presentation order, one entry per
+    lane per decidable bubble. `pops` is the SAME evidence reduced to the "seen"
+    steps, kept because the ported plpgsql verifier (`app.exam_verify_bubble`) still
+    reads that shape; it carries no information the judgements do not.
+    `stepsShown` counts bubbles that were fully answered, so an interrupted block
+    never claims a bubble the child never got to answer.
+
+  LOCK / RELEASE DISCIPLINE (deliberate — this is the SPA-FOLDNET-01 class of bug):
+    * `inputLocked` is set ONLY by lockInput(reason) and cleared ONLY by releaseInput(reason);
+      both log the transition, so a stuck lock is visible in the event log.
+    * Input is locked through the lead-in (the first n bubbles, where no n-back item
+      exists yet) and RELEASED the moment the first decidable bubble appears.
+    * emitResult() is NEVER gated on the lock. The block always ends by releasing the
+      lock and emitting exactly once (`resultSent` guard), and a watchdog covers the
+      timed lead-in so an interrupted stream still reports. Once the child is answering
+      there is no watchdog: thinking time is theirs, and the host owns the timeout.
+
+  D-017: reading is a required baseline-literacy gate. All instructions and stimuli
+  are on-screen TEXT. There is no audio channel, no tone, and no speech synthesis —
+  the spec's "dual visual + auditory" mode is delivered as WORD + LETTER print channels.
+
+  Standalone fallback: opened by double-click (no host), it plays built-in sample
+  ServedItems locally and logs the emitted results/telemetry on-page.
+-->
+<style>
+  :root{--bg1:#fcf4ef;--bg2:#fcf4ef;--ink:#004f71;--card:#ffffff;--accent:#e48b53;--good:#146c43;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#6f4526;text-transform:uppercase;font-weight:700}
+  #howto{max-width:640px;width:100%;background:#ffffff;border:1px solid #f8e8de;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a6470}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fcf4ef;color:#4a6470;border:2px solid #f5ddcd;min-height:30px}
+  #phasecue[data-phase="ready"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="watch"]{background:#f8e8de;color:#002a3a;border-color:#ecd9cb}
+  #phasecue[data-phase="respond"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#f8e8de;color:#4a6470;border-color:#ecd9cb}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.neutral{color:#6f4526} #status.hold{color:#6f4526}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #4a6470;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:640px;width:100%}
+  #rule{font-size:15px;font-weight:700;color:#33505c;text-align:center}
+  #lanes{display:flex;gap:14px;width:100%;justify-content:center}
+  .lane{flex:1;max-width:280px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .laneName{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6f4526;font-weight:800}
+  .tank{width:100%;height:150px;position:relative;background:linear-gradient(180deg,#fcf4ef,#fcf4ef);border-radius:18px;border:3px solid #f8e8de;overflow:hidden}
+  .bubble{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);min-width:130px;padding:0 14px;height:58px;background:#ffffff;border:3px solid var(--accent);border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:800;letter-spacing:.02em;color:#004f71;box-shadow:0 6px 16px -6px #2e9bff88;animation:rise .45s ease-out}
+  @keyframes rise{from{bottom:6px;opacity:.2}to{bottom:44px;opacity:1}}
+  .tank.locked{filter:grayscale(.35) opacity(.85)}
+  /* The two judgements are styled identically on purpose: a child must not be able to
+     read which answer the screen expects off the size, weight or colour of a button. */
+  .judges{display:flex;gap:10px;width:100%}
+  .judgebtn{flex:1;font:inherit;border:0;cursor:pointer;border-radius:16px;padding:12px 10px;font-size:17px;font-weight:800;background:#004f71;color:#ffffff;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .judgebtn .key{font-size:11px;font-weight:600;letter-spacing:.08em}
+  .judgebtn:disabled{opacity:.3;pointer-events:none}
+  .judgebtn.hit{animation:tapflash .3s}
+  @keyframes tapflash{0%{transform:scale(1)}45%{transform:scale(.94)}100%{transform:scale(1)}}
+  #progressbar{width:100%;height:8px;background:#fcf4ef;border-radius:6px;overflow:hidden}
+  #progressbar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#e48b53,#ebba9b);transition:.2s}
+  #controls{display:flex;gap:16px;align-items:center}
+  #replay{width:46px;height:46px;background:#fcf4ef;color:#6f4526;font-size:20px;border-radius:50%;border:0;cursor:pointer;font-family:inherit}
+  #hotkeys{font-size:12px;color:#6f4526}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #chan{padding:6px 14px;font-size:11px;color:var(--tel-dim);border-bottom:1px solid #33505c}
+  #chan b{color:var(--tel-key)}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#ffffff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">WM-bubble-01 &middot; Bubble Pop Memory</div>
+    <header id="howto">
+      <h1>How to use &mdash; Bubble Pop Memory</h1>
+      <p>Bubbles rise one at a time with a word inside. For every bubble, answer once: tap <b>Seen it</b> if the word is the <b>same as the word n bubbles ago</b>, or <b>New</b> if it is not &mdash; the rule line below the card tells you what n is right now. Each button has a key you can press instead. The next bubble comes when you answer, so take the time you need. The first few bubbles are a warm-up with nothing to answer yet: the buttons turn on as soon as a match is possible. If a second lane appears, answer both lanes for each bubble.</p>
+    </header>
+    <div id="phasecue" data-phase="ready">Ready</div>
+    <div id="stagecard">
+      <div id="rule">Waiting for the first block&hellip;</div>
+      <div id="lanes"></div>
+      <div id="progressbar"><i id="progressfill"></i></div>
+      <div id="hotkeys">Keys: F = seen &middot; G = new</div>
+      <div id="controls">
+        <button id="replay" title="replay how-to">&#8635;</button>
+      </div>
+      <div id="status" class="neutral">Waiting for the first block&hellip;</div>
+    </div>
+    <div id="playgate">
+      <p>The bubbles are ready. Press play when you are, and they start then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry &middot; per-child</h3>
+    <div id="chan">channel: <b id="chanval">standalone</b> &middot; source-tag <b>gt-exam-demo</b></div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#2e9bff" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const sd=a=>{if(a.length<2)return 0;const m=mean(a);return Math.round(Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/a.length));};
+const RAPID_MS=220; // an answer faster than this is reflex, not recognition
+/* Each lane answers with two keys. The bank declares one hotkey per lane (F, J) for the
+   retired single POP control, so that key stays "seen" and its neighbour becomes "new" —
+   the pair is adjacent under one hand, and the key is printed on the button either way. */
+const NEW_KEY={F:'G',J:'K'};
+
+/* ---------------- embedding channel (postMessage) ---------------- */
+const SRC_HOST='gt-exam-host', SRC_DEMO='gt-exam-demo';
+const embedded=!!(window.parent&&window.parent!==window);
+let hostSeen=false;
+function post(type,payload){
+  const msg=Object.assign({source:SRC_DEMO,type},payload||{});
+  if(embedded){try{window.parent.postMessage(msg,'*');}catch(e){}}
+}
+
+/* ---------------- item + block state ---------------- */
+let item=null,content=null,stepIndex=-1,blockStart=0,firstAnswerAt=null,
+    judgements=[],answerLatencies=[],blurCount=0,rapidAnswers=0,inputLocked=true,
+    releasedAtStep=null,resultSent=false,telemetryLog=[],running=false,
+    watchdog=null,leadTimer=null,lastPhaseWasDemo=false,
+    stepShownAt=0,gateTutorial=false,tutorialShown=false;
+/* Lanes still owing an answer for the bubble on screen. The stream advances when it empties. */
+let pendingLanes=new Set();
+const SESSION={rts:[],blocks:0,maxLevel:0};
+
+function recordEv(ev){ev.t=blockStart?Date.now()-blockStart:0;telemetryLog.push(ev);post('telemetry',{event:ev});}
+function log(msg){const t=blockStart?Date.now()-blockStart:0;const d=document.createElement('div');d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+/* ---------------- phase + status (worded, no emoji) ---------------- */
+const PHASE={ready:'Ready',warmup:'Ready when you are',watch:'Watch &mdash; buttons off',respond:'Your turn &mdash; seen it, or new?',done:'Block sent'};
+function setCue(k,extra){const el=$('#phasecue');el.dataset.phase=k;el.innerHTML=extra?PHASE[k]+' '+extra:PHASE[k];}
+function setStatus(kind,msg){const el=$('#status');if(!el)return;el.className=kind;el.textContent=msg;}
+
+/* ---------------- LOCK / RELEASE (single owner of `inputLocked`) ----------------
+   Every transition is logged. Nothing else in this file assigns to inputLocked, and
+   emitResult() never consults it — a stuck lock can delay an answer, never a result.
+   `syncControls` is the only writer of the buttons' disabled state: a lane is live when
+   input is unlocked AND that lane still owes an answer for the bubble on screen. */
+function syncControls(){
+  $$('.judgebtn').forEach(b=>{b.disabled=inputLocked||!pendingLanes.has(b.dataset.ch);});
+  $$('.tank').forEach(t=>t.classList.toggle('locked',inputLocked));
+}
+function lockInput(reason){
+  if(inputLocked===true&&reason!=='init')return;
+  inputLocked=true;
+  syncControls();
+  log(`INPUT LOCKED (${reason})`);
+  recordEv({kind:'input_locked',reason,step:stepIndex});
+}
+function releaseInput(reason){
+  if(inputLocked===false)return;
+  inputLocked=false;
+  releasedAtStep=stepIndex;
+  syncControls();
+  log(`INPUT RELEASED (${reason}) at step ${stepIndex+1}`);
+  recordEv({kind:'input_released',reason,step:stepIndex});
+}
+
+/* ---------------- telemetry meters ---------------- */
+const METERS=[
+ {id:'M-ACC',name:'Hit accuracy — scored server-side',get:()=>'server-side'},
+ {id:'M-DPRIME',name:"Sensitivity (d') — scored server-side",get:()=>'server-side'},
+ {id:'M-FALSEALARM',name:'False alarms — scored server-side',get:()=>'server-side'},
+ {id:'M-UPDATECOST',name:'Answer latency after each bubble onset',get:()=>answerLatencies.length?`${mean(answerLatencies)} ms mean`:'\u2014'},
+ {id:'M-RTVAR',name:'Answer-latency variability',get:()=>answerLatencies.length>1?`sd ${sd(answerLatencies)} ms`:'\u2014'},
+ {id:'M-DIFFREACH',name:'Hardest block presented (level / n)',get:()=>SESSION.maxLevel?`level ${SESSION.maxLevel} · n=${content?content.n:'\u2014'}`:'\u2014'},
+ {id:'M-RT',name:'Block duration',get:()=>SESSION.rts.length?`${SESSION.rts[SESSION.rts.length-1]} ms`:'\u2014'},
+ {id:'M-RTFIRST',name:'First-answer latency',get:()=>firstAnswerAt!==null?`${firstAnswerAt-blockStart} ms`:'\u2014'},
+ {id:'M-ENGAGE',name:'Window blur events (tracked, not enforced)',get:()=>`${blurCount}`},
+ {id:'M-RAPIDGUESS',name:'Answers faster than '+RAPID_MS+' ms',get:()=>`${rapidAnswers}`},
+ {id:'M-VOCABLVL',name:'Lexical level of this block',get:()=>content&&content.vocabularyLevel?`band ${content.vocabularyLevel} / 7`:'\u2014'},
+ {id:'M-LURETYPE',name:'Lure profile — labelled server-side',get:()=>'server-side'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+
+/* ---------------- rendering ---------------- */
+function laneKeys(ch,i){
+  const seen=String(ch.hotkey||(i===0?'F':'J')).toUpperCase();
+  return{seen,fresh:NEW_KEY[seen]||String.fromCharCode(seen.charCodeAt(0)+1)};
+}
+function laneHTML(ch,i){
+  const k=laneKeys(ch,i);
+  return `<div class="lane" data-ch="${ch.id}">
+    <div class="laneName">${ch.label||('Lane '+(i+1))}</div>
+    <div class="tank locked" id="tank_${ch.id}"></div>
+    <div class="judges">
+      <button type="button" class="judgebtn" data-ch="${ch.id}" data-choice="seen" disabled>Seen it<span class="key">key ${k.seen}</span></button>
+      <button type="button" class="judgebtn" data-ch="${ch.id}" data-choice="new" disabled>New<span class="key">key ${k.fresh}</span></button>
+    </div>
+  </div>`;
+}
+function paintBubble(chId,text){
+  const tank=$('#tank_'+chId);if(!tank)return;
+  tank.innerHTML='';
+  const b=document.createElement('div');b.className='bubble';b.textContent=text;tank.appendChild(b);
+}
+function difficultyOf(it){const d=(it&&it.difficulty!=null)?it.difficulty:0;return +d||0;}
+
+function ruleLine(){
+  const n=content&&content.n;
+  return `Say “Seen it” when the word is the same as the word ${n} bubble${n===1?'':'s'} ago. Say “New” when it is not.`;
+}
+function streamLen(){
+  const chans=content.channels||[];
+  return content.streamLength||(chans[0]&&chans[0].stream.length)||0;
+}
+function leadIn(){return content.leadInSteps!=null?content.leadInSteps:content.n;}
+
+function setItem(served){
+  clearTimeout(watchdog);clearTimeout(leadTimer);
+  item=served;content=(served&&served.content)||{};
+  stepIndex=-1;blockStart=Date.now();firstAnswerAt=null;judgements=[];answerLatencies=[];
+  rapidAnswers=0;releasedAtStep=null;resultSent=false;telemetryLog=[];running=false;
+  pendingLanes=new Set();
+  const chans=content.channels||[];
+  $('#lanes').innerHTML=chans.map(laneHTML).join('');
+  // The rule line is derived from `n` rather than printed from `content.prompt`: the bank's
+  // prompt still describes the retired POP control, and an instruction that names a button
+  // the child cannot see is worse than no instruction.
+  $('#rule').textContent=ruleLine();
+  $('#hotkeys').textContent='Keys: '+chans.map((c,i)=>{
+    const k=laneKeys(c,i);
+    return `${k.seen} = seen, ${k.fresh} = new${chans.length>1?` (${(c.label||c.id).toLowerCase()} lane)`:''}`;
+  }).join(' \u00b7 ');
+  const d=difficultyOf(served);
+  SESSION.maxLevel=Math.max(SESSION.maxLevel,Math.round(d*10)/10);
+  $('#progressfill').style.width='0%';
+  inputLocked=false;lockInput('init'); // force a logged lock at item load
+  setCue('ready');
+  setStatus('neutral',ruleLine());
+  log(`INIT item ${served&&served.itemId?served.itemId:'(no id)'} \u00b7 n=${content.n} \u00b7 ${content.streamLength} bubbles \u00b7 ${chans.length} lane(s) \u00b7 lead-in pace ${content.paceMs}ms \u00b7 level ${Math.round(d*10)/10}`);
+  recordEv({kind:'shown',itemId:served&&served.itemId,n:content.n,streamLength:content.streamLength,channels:chans.map(c=>c.id)});
+  renderMeters();
+}
+
+/* ---------------- R1 — the stream waits behind the play gate ----------------
+   `init` renders the lanes and arms the gate; `start` re-arms it. The first bubble, the
+   block clock and every response-time metric begin when the child presses play, so
+   M-RT/M-RTFIRST measure their thinking rather than however long they took to look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+async function beginBlock(withTutorial){
+  if(!content||running||resultSent)return;
+  closeGate();
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await runHowto();if(resultSent)return;}
+  running=true;blockStart=Date.now();
+  const lead=leadIn();
+  setCue('watch');
+  setStatus('hold',`Watch the first ${lead} bubble${lead===1?'':'s'} \u2014 the buttons turn on when a match becomes possible.`);
+  // Watchdog over the TIMED lead-in only. Past that the stream waits on the child, and a
+  // watchdog would end the block while they were still thinking.
+  watchdog=setTimeout(()=>{if(!resultSent){log('WATCHDOG fired \u2014 emitting result');finishBlock(false);}},(content.paceMs||1800)*(lead+2)+4000);
+  showStep(0);
+}
+
+/* ---------------- the block: one bubble, one answer per lane ---------------- */
+function showStep(i){
+  if(!running)return;
+  const chans=content.channels||[];
+  const len=streamLen(),lead=leadIn();
+  stepIndex=i;
+  stepShownAt=Date.now();
+  chans.forEach(ch=>paintBubble(ch.id,ch.stream[i]));
+  $('#progressfill').style.width=Math.round((i+1)/len*100)+'%';
+  recordEv({kind:'bubble',step:i});
+  if(i<lead){
+    // Lead-in: no n-back item exists yet, so there is nothing to answer. These bubbles are
+    // the only part of the stream that still moves on a clock.
+    pendingLanes=new Set();
+    lockInput('lead-in');
+    syncControls();
+    leadTimer=setTimeout(()=>{if(running)advance();},content.paceMs||1800);
+    return;
+  }
+  pendingLanes=new Set(chans.map(c=>c.id));
+  if(inputLocked){
+    clearTimeout(watchdog);
+    releaseInput('lead-in complete');
+    setCue('respond');
+    setStatus('neutral','Answer every bubble: seen it, or new? The next one comes when you answer.');
+  }
+  syncControls();
+}
+function advance(){
+  clearTimeout(leadTimer);
+  if(stepIndex+1>=streamLen())finishBlock(true);else showStep(stepIndex+1);
+}
+
+function judge(chId,choice,via){
+  if(!content||!running)return;
+  if(inputLocked){
+    // Not scored as a response: the lead-in has no defensible answer. Logged only.
+    recordEv({kind:'judgement_blocked',channel:chId,choice,step:stepIndex,via});
+    log(`answer ignored (input locked, step ${stepIndex+1})`);
+    return;
+  }
+  if(!pendingLanes.has(chId)){
+    // One answer per lane per bubble: a second press is not a second decision.
+    recordEv({kind:'judgement_repeat',channel:chId,choice,step:stepIndex,via});
+    return;
+  }
+  const rt=Math.max(0,Date.now()-stepShownAt);
+  if(firstAnswerAt===null)firstAnswerAt=Date.now();
+  if(rt<RAPID_MS)rapidAnswers++;
+  answerLatencies.push(rt);
+  judgements.push({channel:chId,stepIndex,choice,rtMs:rt,via});
+  pendingLanes.delete(chId);
+  const btn=document.querySelector(`.judgebtn[data-ch="${chId}"][data-choice="${choice}"]`);
+  if(btn){btn.classList.remove('hit');void btn.offsetWidth;btn.classList.add('hit');}
+  syncControls();
+  recordEv({kind:'judgement',channel:chId,choice,step:stepIndex,rt,via});
+  log(`${choice==='seen'?'SEEN':'NEW'} lane ${chId} at bubble ${stepIndex+1} (+${rt}ms)`); // NO correct/incorrect shown
+  renderMeters();
+  if(pendingLanes.size===0)advance(); // the child's answer, not a timer, moves the stream on
+}
+
+function finishBlock(completed){
+  if(resultSent)return;
+  clearTimeout(watchdog);clearTimeout(leadTimer);
+  running=false;
+  pendingLanes=new Set();
+  lockInput('block complete');
+  resultSent=true;
+  const rt=Date.now()-blockStart;
+  SESSION.rts.push(rt);SESSION.blocks++;
+  const result={
+    itemId:item&&item.itemId,
+    typeCode:(item&&item.typeCode)||'WM-bubble-01',
+    domain:(item&&item.domain)||'verbal',
+    response:{
+      judgements:judgements.slice(),
+      // The same evidence reduced to the "seen" steps, for the ported plpgsql verifier.
+      pops:judgements.filter(j=>j.choice==='seen').map(j=>({channel:j.channel,stepIndex:j.stepIndex,rtMs:j.rtMs,via:j.via})),
+      // Bubbles fully answered. An interrupted block must not claim the bubble that was on
+      // screen when it was cut, because the child never got to answer it.
+      stepsShown:completed?streamLen():Math.max(0,stepIndex),
+      channelIds:(content.channels||[]).map(c=>c.id),
+      releasedAtStep,
+      completed:!!completed
+    },
+    metrics:{
+      'M-RT':rt,
+      'M-RTFIRST':firstAnswerAt!==null?firstAnswerAt-blockStart:rt,
+      'M-RTVAR':sd(answerLatencies),
+      'M-UPDATECOST':mean(answerLatencies),
+      'M-REV':0,
+      'M-ENGAGE':blurCount,
+      'M-RAPIDGUESS':rapidAnswers,
+      'M-VOCABLVL':content.vocabularyLevel||0
+    },
+    telemetry:telemetryLog.slice()
+  };
+  post('result',{result});
+  setCue('done');
+  setStatus('ok','Block sent. '+(embedded?'Waiting for the next block\u2026':'Loading the next example\u2026'));
+  log(`RESULT ${judgements.length} answer(s) over ${stepIndex+1} bubbles \u00b7 ${rt}ms \u00b7 released at step ${releasedAtStep!==null?releasedAtStep+1:'\u2014'}`);
+  renderMeters();
+  if(!embedded)setTimeout(nextStandalone,1600);
+}
+
+/* ---------------- wordless how-to pointer (reveals no key) ---------------- */
+const ghost=$('#ghost');
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(450);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(360);}
+async function runHowto(){
+  if(!content)return;
+  lastPhaseWasDemo=true;
+  lockInput('how-to');
+  setCue('watch');
+  setStatus('neutral','Example: two bubbles rise, then the same word comes back \u2014 that one is “Seen it”, and the others are “New”.');
+  const ch=(content.channels||[])[0];if(!ch){lastPhaseWasDemo=false;return;}
+  const sample=['SUN','MOON','SUN'];
+  ghost.classList.add('show');
+  for(let i=0;i<sample.length;i++){paintBubble(ch.id,sample[i]);await sleep(520);}
+  await ghostTo(document.querySelector('.judgebtn[data-choice="seen"]'));await ghostTap();
+  await sleep(250);ghost.classList.remove('show');
+  setStatus('neutral','Your turn next. Answer every bubble; the buttons turn on once a match is possible.');
+  lastPhaseWasDemo=false;
+}
+
+/* ---------------- standalone fallback (double-click, no host) ---------------- */
+const SAMPLES=[
+ {itemId:'sample-wm-easy',typeCode:'WM-bubble-01',domain:'verbal',difficulty:2,ageBands:['2-3'],
+  content:{n:1,paceMs:1200,responseWindowMs:1200,streamLength:10,leadInSteps:1,vocabularyLevel:7,
+   prompt:'Tap POP when the bubble is the same as the one 1 bubble ago.',
+   channels:[{id:'w',label:'Word',kind:'word',popLabel:'POP WORD',hotkey:'F',
+     stream:['SUN','CAT','CAT','DOG','BALL','BALL','TREE','FISH','FISH','HAT']}]}},
+ {itemId:'sample-wm-mid',typeCode:'WM-bubble-01',domain:'verbal',difficulty:10,ageBands:['4-5'],
+  content:{n:3,paceMs:1000,responseWindowMs:1000,streamLength:12,leadInSteps:3,vocabularyLevel:4,
+   prompt:'Tap POP when the bubble is the same as the one 3 bubbles ago.',
+   channels:[{id:'w',label:'Word',kind:'word',popLabel:'POP WORD',hotkey:'F',
+     stream:['CANYON','SUMMIT','TUNDRA','CANYON','GEYSER','TUNDRA','BASIN','GEYSER','MARSH','BASIN','RIDGE','MARSH']}]}},
+ {itemId:'sample-wm-dual',typeCode:'WM-bubble-01',domain:'verbal',difficulty:17,ageBands:['6-8'],
+  content:{n:4,paceMs:950,responseWindowMs:950,streamLength:12,leadInSteps:4,vocabularyLevel:2,
+   prompt:'Tap POP when the bubble is the same as the one 4 bubbles ago.',
+   channels:[
+    {id:'w',label:'Word',kind:'word',popLabel:'POP WORD',hotkey:'F',
+     stream:['ZEPHYR','ISTHMUS','ATOLL','KARST','ZEPHYR','SHOAL','ATOLL','MESA','TARN','SHOAL','BUTTE','MESA']},
+    {id:'l',label:'Letter',kind:'letter',popLabel:'POP LETTER',hotkey:'J',
+     stream:['B','K','R','T','M','K','P','T','S','M','H','Z']}]}}
+];
+let sIdx=0;
+function startStandalone(){$('#chanval').textContent='standalone (no host)';sIdx=0;nextStandalone(true);}
+function nextStandalone(first){
+  if(sIdx>=SAMPLES.length){setCue('done');setStatus('ok','Demo complete. Press \u21bb or reload to run the examples again.');lockInput('samples exhausted');return;}
+  const s=SAMPLES[sIdx++];
+  setItem(s);
+  // Standalone sees the same gate the child sees, so the double-click QA flow is the real flow.
+  openGate(!!first);
+}
+
+/* ---------------- host message handling ---------------- */
+window.addEventListener('message',e=>{
+  const d=e.data;if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init'&&d.item){hostSeen=true;$('#chanval').textContent='host-embedded';setItem(d.item);openGate(false);}
+  else if(d.type==='start'){if(content&&!running&&!resultSent)openGate(!!d.tutorial);}
+});
+
+/* ---------------- input ---------------- */
+$('#play').addEventListener('click',()=>{beginBlock(gateTutorial);});
+$('#lanes').addEventListener('click',e=>{
+  const b=e.target.closest('.judgebtn');
+  if(b)judge(b.dataset.ch,b.dataset.choice,'tap');
+});
+document.addEventListener('keydown',e=>{
+  const k=e.key.toUpperCase();
+  (content&&content.channels||[]).forEach((c,i)=>{
+    const keys=laneKeys(c,i);
+    if(k===keys.seen)judge(c.id,'seen','key');
+    else if(k===keys.fresh)judge(c.id,'new','key');
+  });
+});
+window.addEventListener('blur',()=>{blurCount++;recordEv({kind:'blur'});renderMeters();});
+$('#replay').addEventListener('click',()=>{if(content&&!running)runHowto();});
+
+/* ---------------- boot ---------------- */
+buildMeters();renderMeters();
+post('ready',{});
+if(!embedded){
+  startStandalone();
+}else{
+  setCue('ready');setStatus('neutral','Ready. Waiting for the first block from the host\u2026');
+  setTimeout(()=>{if(!hostSeen&&!content)startStandalone();},1200);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPA-SHADOW-01 · Shadow Play</title>
+<style>
+  :root{--bg1:#fcf4ef;--bg2:#f8e8de;--ink:#001117;--card:#ffffff;--accent:#004f71;--good:#146c43;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
+  *{box-sizing:border-box} html,body{margin:0;min-height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+  #howto{max-width:560px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#004f71;border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="ready"]{background:#f8e8de;color:#004f71;border-color:#ecd9cb}
+  #phasecue[data-phase="locked"]{background:#004f71;color:#ffffff;border-color:#004f71}
+  #prompt{max-width:560px;width:100%;font-size:16px;font-weight:800;color:#33505c;text-align:center;min-height:22px}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.neutral{color:#4a6470}
+  #stagecard{background:var(--card);border-radius:26px;padding:18px;box-shadow:0 18px 50px -22px #002a3a;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:560px;width:100%}
+  #lightbar{display:flex;align-items:center;gap:8px;font-weight:800;color:#4a6470;font-size:15px;background:linear-gradient(160deg,#f5ddcd,#f8e8de);border:3px solid #ecd9cb;border-radius:14px;padding:6px 14px}
+  #lightbar .em{font-size:12px;font-weight:800;letter-spacing:.05em;background:#ecd9cb;color:#33505c;border-radius:6px;padding:2px 8px}
+  #stage{position:relative;border-radius:18px;background:radial-gradient(120% 120% at 30% 15%,#fcf4ef,#fcf4ef);border:3px solid #f8e8de;touch-action:none;cursor:grab}
+  #stage.drag{cursor:grabbing}
+  canvas{display:block;border-radius:15px}
+  #options{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .optwrap{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
+  .optwrap .num{font-weight:800;color:#6f4526;font-size:13px}
+  .sil{display:grid;gap:2px;background:#f8e8de;border-radius:10px;padding:6px;box-shadow:inset 0 0 0 2px #f8e8de;transition:transform .1s}
+  .optwrap:hover .sil{transform:translateY(-2px)}
+  .sc{width:15px;height:15px;border-radius:3px;background:#f8e8de}
+  .sc.on{background:#33505c}
+  .optwrap.sel .sil{outline:4px solid var(--accent);outline-offset:2px}
+  .optwrap[disabled]{pointer-events:none;opacity:.85}
+  #controls{display:flex;gap:12px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:62px;height:62px;background:var(--accent);color:#ffffff;font-size:26px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  #keys{font-size:12px;color:#4a6470;text-align:center}#keys b{color:#6f4526}
+  #telemetry{width:326px;flex:0 0 326px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #004f71;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#4a6470;font-size:11px;padding:2px 0}.itemRow b{color:#f8e8de}
+  #mlist{padding:8px 12px;display:flex;flex-direction:column;gap:6px}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}
+  .mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+  #log{height:150px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:280px}}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">SPA-SHADOW-01 · Shadow Play</div>
+    <header id="howto">
+      <h1>How to use — Shadow Play</h1>
+      <p>Look at the 3-D block shape and at the lamp shining on it. The shadow is never drawn — picture it yourself, then tap the flat shadow the block would throw and press the check to submit. Drag the block to turn it. Number keys 1–5 pick a shadow.</p>
+    </header>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
+    <div id="stagecard">
+      <div id="lightbar"><span class="em" id="lightem">TOP</span><span id="lightlabel">Light from above — shadow on the floor</span></div>
+      <div id="stage">
+        <canvas id="c" width="440" height="300"></canvas>
+      </div>
+      <div id="options" aria-label="answer choices"></div>
+      <div id="controls"><button id="go" title="lock answer" aria-label="lock answer">✓</button></div>
+      <div id="keys"><b>1–5</b> pick shadow · <b>Enter</b> lock</div>
+      <div id="status" class="neutral">Waiting for an item from the host…</div>
+    </div>
+    <div id="playgate">
+      <p>The lamp and the block are ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">—</b></div>
+      <div class="itemRow"><span>LIGHT</span><b id="i_light">—</b></div>
+      <div class="itemRow"><span>OBJECT</span><b id="i_obj">—</b></div>
+      <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">—</b></div>
+    </div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ---- postMessage embedding contract (EXAM_ADAPTIVE_BUILD_PLAN.md §2) ----
+   host->demo : {source:'gt-exam-host', type:'init', item:ServedItem} , {type:'start'}
+   demo->host : {source:'gt-exam-demo', type:'ready'} , {type:'result', result:ItemResult} , {type:'telemetry', event}
+   The demo renders ServedItem.content only. It NEVER receives or shows the answer key,
+   and it emits the child's raw response + numeric metrics + telemetry — no correctness. */
+const HOST='gt-exam-host', SELF='gt-exam-demo';
+const embedded=window.parent&&window.parent!==window;
+function post(type,extra){const msg=Object.assign({source:SELF,type},extra||{});if(embedded){try{window.parent.postMessage(msg,'*')}catch(e){}}}
+
+/* ---------- minimal 3D (parallel projection) ---------- */
+function proj(p,yaw,pit,s,cx,cy){
+  const cyw=Math.cos(yaw),syw=Math.sin(yaw),cp=Math.cos(pit),sp=Math.sin(pit);
+  let x=p[0]*cyw+p[2]*syw, z=-p[0]*syw+p[2]*cyw, y=p[1]*cp-z*sp; z=p[1]*sp+z*cp;
+  return {x:cx+x*s, y:cy-y*s, z};
+}
+const LIGHT=[0.35,0.84,0.42];
+function faceShade(n){const d=Math.max(0,n[0]*LIGHT[0]+n[1]*LIGHT[1]+n[2]*LIGHT[2]);return 0.5+0.5*d;}
+function shade(rgb,f){return `rgb(${Math.round(rgb[0]*f)},${Math.round(rgb[1]*f)},${Math.round(rgb[2]*f)})`;}
+const K=(x,y,z)=>x+','+y+','+z;
+function buildScene(vox,dim){
+  const arr=[...vox].map(s=>s.split(',').map(Number));
+  let maxY=0;arr.forEach(([x,y,z])=>{if(y>maxY)maxY=y;});
+  const ox=dim/2,oy=(maxY+1)/2,oz=dim/2,verts=[],faces=[];
+  arr.forEach(([x,y,z])=>{
+    const corners=[[x,y,z],[x+1,y,z],[x+1,y+1,z],[x,y+1,z],[x,y,z+1],[x+1,y,z+1],[x+1,y+1,z+1],[x,y+1,z+1]].map(q=>[q[0]-ox,q[1]-oy,q[2]-oz]);
+    const off=verts.length;corners.forEach(q=>verts.push(q));
+    [{i:[0,1,2,3],n:[0,0,-1]},{i:[4,5,6,7],n:[0,0,1]},{i:[0,1,5,4],n:[0,-1,0]},{i:[3,2,6,7],n:[0,1,0]},{i:[1,2,6,5],n:[1,0,0]},{i:[0,3,7,4],n:[-1,0,0]}].forEach(d=>faces.push({idx:d.i.map(k=>k+off),n:d.n}));
+  });
+  return {verts,faces};
+}
+
+/* ---------- state ---------- */
+let item=null,content=null,dim=3,vox=new Set(),light='top',options=[];
+let selected=-1,locked=true,started=false;
+let yaw=-0.72,pitch=0.5,drag=false,lx=0,ly=0;
+const T={itemStart:0,first:0,revs:0,rotates:0,rt:0,rapid:false,blur:false,committed:false,sampled:new Set(),lastActivity:performance.now(),events:[]};
+
+const cv=$('#c'),ctx=cv.getContext('2d');
+const PHASE={waiting:'Waiting for item',ready:'Ready',locked:'Answer locked'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+const LIGHTS={top:{em:'TOP',label:'Light from above — shadow on the floor'},front:{em:'FRONT',label:'Light from the front — shadow behind'},side:{em:'SIDE',label:'Light from the side — shadow on the wall'}};
+/* World-space direction the light travels FROM, matching the axis each
+   `question.light` collapses: top = +y (down onto the floor), front = +z (away
+   from the viewer), side = +x (across onto the wall). The lamp is drawn in the
+   same coordinates as the block and projected with the same camera, so turning
+   the block keeps the lamp physically where the item says it is. */
+const LIGHT_FROM={top:[0,1,0],front:[0,0,1],side:[1,0,0]};
+
+/* ---------- telemetry ---------- */
+function nowRel(){return Math.max(0,performance.now()-(T.itemStart||performance.now()));}
+const METERS=[
+ {id:'M-RTFIRST',name:'Time to first action',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-RT',name:'Commit time (engagement-gated)',get:()=>T.committed?`${T.rt} ms${T.rapid?' · gated':''}`:'—'},
+ {id:'M-REV',name:'Answer revisions',get:()=>String(T.revs)},
+ {id:'M-EXPLORE',name:'Shadows sampled · rotates',get:()=>`${T.sampled.size} · ${T.rotates}`},
+ {id:'M-RAPIDGUESS',name:'Rapid/idle flag (tracked)',get:()=>T.committed?(T.rapid?'1':'0'):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function emit(kindEv,data){const ev=Object.assign({t:Math.round(nowRel()),kind:kindEv},data||{});T.events.push(ev);post('telemetry',{event:ev});}
+function first(){if(!T.first&&started){T.first=performance.now()-T.itemStart;emit('first_action',{ms:Math.round(T.first)});log(`first action @ ${Math.round(T.first)}ms`);renderMeters();}}
+function activity(){T.lastActivity=performance.now();}
+addEventListener('pointerdown',activity);addEventListener('keydown',activity);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!locked){T.blur=true;emit('blur');}});
+
+/* ---------- render object + light + options ---------- */
+const add=(a,b,k=1)=>[a[0]+b[0]*k,a[1]+b[1]*k,a[2]+b[2]*k];
+const PERPS={top:[[1,0,0],[0,0,1]],front:[[1,0,0],[0,1,0]],side:[[0,1,0],[0,0,1]]};
+/** Where the lamp hangs: out along the light axis, clear of the block. */
+const lampDist=()=>dim/2+1.8;
+function lampPos(base){return add(base,LIGHT_FROM[light]||LIGHT_FROM.top,lampDist());}
+/**
+ * The lamp and its rays — the whole visual aid the child gets. The cast shadow
+ * is never drawn anywhere in this demo: seeing it would replace the mental
+ * projection the item is measuring (rule R2). The candidate shadows in
+ * `#options` are the answer set, not a rendering of this object's shadow.
+ */
+function drawLight(project,base){
+  const dir=LIGHT_FROM[light]||LIGHT_FROM.top,perps=PERPS[light]||PERPS.top,lampAt=lampPos(base);
+  const spread=dim*0.32,tip=add(base,dir,dim/2+0.15),near=add(base,dir,lampDist()-0.5);
+  const rays=[[0,0],[-1,0],[1,0],[0,-1],[0,1]].map(([u,v])=>{
+    const off=add(perps[0].map(c=>c*u*spread),perps[1],v*spread);
+    return {a:project(add(near,off,0.25)),b:project(add(tip,off))};
+  });
+  const L=project(lampAt);
+  ctx.save();
+  const hull=[rays[1],rays[3],rays[2],rays[4]].map(r=>r.b);           // beam cone
+  ctx.globalAlpha=.4;ctx.fillStyle='#ebba9b';ctx.beginPath();ctx.moveTo(L.x,L.y);
+  hull.forEach(p=>ctx.lineTo(p.x,p.y));ctx.closePath();ctx.fill();
+  ctx.globalAlpha=1;ctx.strokeStyle='#6f4526';ctx.lineWidth=2;ctx.lineCap='round';
+  rays.forEach(({a,b})=>{
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    const ang=Math.atan2(b.y-a.y,b.x-a.x);
+    ctx.beginPath();ctx.moveTo(b.x,b.y);
+    ctx.lineTo(b.x-9*Math.cos(ang-0.4),b.y-9*Math.sin(ang-0.4));
+    ctx.lineTo(b.x-9*Math.cos(ang+0.4),b.y-9*Math.sin(ang+0.4));
+    ctx.closePath();ctx.fillStyle='#6f4526';ctx.fill();
+  });
+  ctx.restore();
+}
+function drawLamp(L){
+  ctx.save();ctx.strokeStyle='#6f4526';ctx.lineWidth=2;ctx.lineCap='round';
+  for(let i=0;i<8;i++){const a=i*Math.PI/4;
+    ctx.beginPath();ctx.moveTo(L.x+16*Math.cos(a),L.y+16*Math.sin(a));ctx.lineTo(L.x+23*Math.cos(a),L.y+23*Math.sin(a));ctx.stroke();}
+  ctx.beginPath();ctx.arc(L.x,L.y,13,0,7);ctx.fillStyle='#e48b53';ctx.fill();ctx.stroke();
+  ctx.restore();
+}
+function drawObject(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const sc=buildScene(vox,dim);
+  const dir=LIGHT_FROM[light]||LIGHT_FROM.top;
+  // The lamp hangs over the middle of the block, on the light axis, so "from
+  // above" reads as directly above however the child has turned the block.
+  const mid=sc.verts.reduce((a,v)=>add(a,v),[0,0,0]).map(v=>v/sc.verts.length);
+  const base=add(mid,dir,-(mid[0]*dir[0]+mid[1]*dir[1]+mid[2]*dir[2]));
+  // Frame the block AND the lamp, so neither can fall off the canvas.
+  const p0=[...sc.verts,lampPos(base)].map(v=>proj(v,yaw,pitch,1,0,0));
+  let mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9;p0.forEach(p=>{mnx=Math.min(mnx,p.x);mxx=Math.max(mxx,p.x);mny=Math.min(mny,p.y);mxy=Math.max(mxy,p.y);});
+  const scale=Math.min((cv.width-80)/((mxx-mnx)||1),(cv.height-70)/((mxy-mny)||1),58);
+  const cx=cv.width/2-((mnx+mxx)/2)*scale,cy=cv.height/2-((mny+mxy)/2)*scale;
+  const project=v=>proj(v,yaw,pitch,scale,cx,cy);
+  const P=sc.verts.map(v=>project(v));
+  const L=project(lampPos(base));
+  const drawBlock=()=>sc.faces.map((f,k)=>({k,d:f.idx.reduce((a,i)=>a+P[i].z,0)/f.idx.length})).sort((a,b)=>a.d-b.d).forEach(({k})=>{
+    const f=sc.faces[k];ctx.beginPath();f.idx.forEach((i,j)=>{const p=P[i];j?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y);});ctx.closePath();
+    ctx.fillStyle=shade([224,138,60],faceShade(f.n));ctx.fill();ctx.lineWidth=1.4;ctx.strokeStyle='#7a4a1e';ctx.stroke();
+  });
+  // A lamp nearer the camera than the block shines onto the face we can see, so
+  // its beam belongs in front of the block; otherwise it passes behind it.
+  const inFront=L.z>P.reduce((a,p)=>a+p.z,0)/P.length;
+  if(!inFront)drawLight(project,base);
+  drawBlock();
+  if(inFront)drawLight(project,base);
+  drawLamp(L);
+}
+function silDom(bits){const h=bits.length,w=bits[0].length;let s=`<div class="sil" style="grid-template-columns:repeat(${w},1fr)">`;for(let r=0;r<h;r++)for(let c=0;c<w;c++)s+=`<div class="sc${bits[r][c]?' on':''}"></div>`;return s+'</div>';}
+function renderOptions(){
+  $('#options').innerHTML=options.map((opt,i)=>`<div class="optwrap" data-i="${i}" aria-label="choice ${opt.key}"><span class="num">${opt.key}</span>${silDom(opt.bits)}</div>`).join('');
+  $$('.optwrap').forEach(w=>w.onclick=()=>choose(+w.dataset.i,'tap'));
+}
+function setLight(){$('#lightem').textContent=LIGHTS[light].em;$('#lightlabel').textContent=LIGHTS[light].label;}
+
+/* ---------- answer + flow ---------- */
+function choose(i,modality){
+  if(locked||i<0||i>=options.length)return;
+  first();if(selected>=0&&selected!==i)T.revs++;if(!T.sampled.has(i))T.sampled.add(i);
+  selected=i;$$('.optwrap').forEach((w,k)=>w.classList.toggle('sel',k===i));
+  $('#go').classList.add('ready');emit('select',{key:options[i].key,index:i,modality});log(`choose ${options[i].key} via ${modality}`);renderMeters();
+}
+function submit(){
+  if(locked||selected<0||!started)return;
+  locked=true;$('#go').classList.remove('ready');$$('.optwrap').forEach(w=>w.setAttribute('disabled',''));
+  T.rt=Math.round(performance.now()-T.itemStart);T.committed=true;
+  const idle=performance.now()-T.lastActivity;T.rapid=T.rt<350||idle>22000;
+  const response={selectedKey:options[selected].key,selectedIndex:selected,light,sampled:T.sampled.size,rotates:T.rotates,revisions:T.revs,msToCommit:T.rt};
+  const metrics={'M-RT':T.rt,'M-RTFIRST':Math.round(T.first),'M-REV':T.revs,'M-EXPLORE':T.sampled.size+T.rotates,'M-RAPIDGUESS':T.rapid?1:0};
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('commit',{key:response.selectedKey});
+  setCue('locked');setStatus('ok','Answer locked.');   // never reveal correct/incorrect
+  log(`LOCK ${response.selectedKey} · ${T.rt}ms · rev${T.revs} · ${T.sampled.size} sampled`);renderMeters();
+  post('result',{result});
+  if(!embedded){cycleNext();}   // standalone: rotate to the next sample
+}
+async function cycleNext(){await sleep(1100);nextSample();}
+
+/* ---------- orbit (drag to rotate the block) ---------- */
+const stage=$('#stage');
+stage.addEventListener('pointerdown',e=>{if(locked)return;drag=true;lx=e.clientX;ly=e.clientY;stage.classList.add('drag');stage.setPointerCapture(e.pointerId);first();});
+stage.addEventListener('pointermove',e=>{if(!drag)return;yaw+=(e.clientX-lx)*.01;pitch+=(e.clientY-ly)*.008;pitch=Math.max(-1.2,Math.min(1.2,pitch));lx=e.clientX;ly=e.clientY;drawObject();});
+function endDrag(){if(drag){drag=false;stage.classList.remove('drag');T.rotates++;emit('rotate');log('rotate object');renderMeters();}}
+stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
+
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;dim=content.object.dim;light=content.question.light;options=content.options;
+  vox=new Set(content.object.voxels.map(v=>K(v[0],v[1],v[2])));
+  selected=-1;locked=true;started=false;yaw=-0.72;pitch=0.5;
+  Object.assign(T,{itemStart:0,first:0,revs:0,rotates:0,rt:0,rapid:false,blur:false,committed:false,sampled:new Set(),lastActivity:performance.now(),events:[]});
+  setLight();drawObject();renderOptions();
+  $('#prompt').textContent=content.question.prompt;
+  $('#go').classList.remove('ready');$$('.optwrap').forEach(w=>w.removeAttribute('disabled'));
+  $('#i_id').textContent=(served.itemId||'—').slice(0,8);
+  $('#i_light').textContent=light;
+  $('#i_obj').textContent=`dim ${dim} · ${content.object.voxels.length} cells · ${options.length} opts`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'—');
+  setCue('ready');setStatus('neutral','See where the lamp shines, then pick the shadow it would make.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} · light ${light} · dim ${dim}`);renderMeters();
+}
+/* R1 — the block waits behind the play gate. `start` used to unlock the controls and set
+   `T.itemStart` the instant the host sent it, so the scored M-RT and M-RTFIRST began before the
+   child had looked at the lamp. `init` renders behind the gate, `start` only arms it, and the
+   press of play is what starts the clock and unlocks the choices and the turntable. Once past
+   the gate nothing plays, so the answer controls are live immediately. */
+function openGate(){
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+/* Every route through this item is keyboard-reachable, so the gate is too. Behind a closed
+   gate the item's own shortcuts do nothing, so any key the child presses means "I am ready":
+   it presses play and is consumed rather than silently going nowhere. */
+function gateKey(e){
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return false;
+  if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/^(Tab|Escape|Shift|Control|Alt|Meta|CapsLock)$/.test(e.key)){
+    $('#play').click();e.preventDefault();
+  }
+  return true;
+}
+function startItem(){if(!content||started)return;closeGate();started=true;locked=false;T.itemStart=performance.now();emit('start');
+  setStatus('neutral','See where the lamp shines, then pick the shadow it would make.');}
+
+/* ---------- input ---------- */
+$('#play').onclick=startItem;   // a second press is a no-op: `started` is set
+$('#go').onclick=()=>{if($('#go').classList.contains('ready'))submit();};
+addEventListener('keydown',e=>{if(e.repeat)return;if(gateKey(e))return;
+ if(/^[1-9]$/.test(e.key)){choose(+e.key-1,'key');}
+ else if(e.key==='Enter'){submit();}
+ else return;e.preventDefault();
+});
+
+/* ---------- host message handling ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+ if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');openGate();}
+ else if(d.type==='start'){openGate();}
+});
+
+/* ---------- standalone fallback (opens by double-click; no host present) ----------
+   Embeds real ServedItems produced by generators/SPA-SHADOW-01.mjs so the renderer
+   and the bank stay in sync. Answer keys are NOT present in a ServedItem. */
+const SAMPLES=[{"itemId":"16fa5be4-bd61-49a6-8dee-370975bcae4f","typeCode":"SPA-SHADOW-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"content":{"typeCode":"SPA-SHADOW-01","question":{"mode":"cast_shadow","light":"top","lightEm":"TOP","prompt":"Which shadow does the top light throw?","lightLabel":"Light from above - shadow on the floor"},"object":{"dim":2,"voxels":[[0,0,0],[1,0,0],[1,0,1]]},"optionKind":"silhouette","options":[{"key":"A","bits":[[1,1],[0,1],[0,1]],"rows":3,"cols":2},{"key":"B","bits":[[1,1],[0,1]],"rows":2,"cols":2},{"key":"C","bits":[[1,0],[0,1]],"rows":2,"cols":2}],"scaffold":{"peek":true,"warmup":true}},"syntheticOnly":true,"validated":false},{"itemId":"d78bae6b-c09c-4eab-b429-7e683519137e","typeCode":"SPA-SHADOW-01","domain":"spatial","difficulty":7.01,"ageBands":["2-3","4-5"],"content":{"typeCode":"SPA-SHADOW-01","question":{"mode":"cast_shadow","light":"side","lightEm":"SIDE","prompt":"Which shadow does the side light throw?","lightLabel":"Light from the side - shadow on the wall"},"object":{"dim":3,"voxels":[[0,0,0],[0,0,1],[0,1,0],[0,1,1],[1,0,0],[1,0,1],[2,0,0]]},"optionKind":"silhouette","options":[{"key":"A","bits":[[1,0,0],[1,1,1]],"rows":2,"cols":3},{"key":"B","bits":[[1,1,1],[1,1,0]],"rows":2,"cols":3},{"key":"C","bits":[[1,1],[1,1]],"rows":2,"cols":2},{"key":"D","bits":[[1,1],[1,0]],"rows":2,"cols":2}],"scaffold":{"peek":false,"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"8b0e1980-34ee-41aa-b063-fc68f77e20ad","typeCode":"SPA-SHADOW-01","domain":"spatial","difficulty":12.94,"ageBands":["6-8"],"content":{"typeCode":"SPA-SHADOW-01","question":{"mode":"cast_shadow","light":"top","lightEm":"TOP","prompt":"Which shadow does the top light throw?","lightLabel":"Light from above - shadow on the floor"},"object":{"dim":4,"voxels":[[0,0,0],[1,0,0],[1,0,1],[1,0,2],[1,1,1],[2,0,0],[2,0,1],[2,0,2],[2,0,3],[2,1,0],[2,1,1],[3,0,0],[3,0,1]]},"optionKind":"silhouette","options":[{"key":"A","bits":[[1,1,0,0],[1,1,1,1]],"rows":2,"cols":4},{"key":"B","bits":[[0,0,0,0,1],[1,1,1,1,0],[0,1,1,1,0],[0,1,1,0,0],[0,0,1,0,0]],"rows":5,"cols":5},{"key":"C","bits":[[1,1,1,1],[0,1,1,1],[0,1,1,1],[0,0,1,0]],"rows":4,"cols":4},{"key":"D","bits":[[0,1,1,0],[1,1,1,1]],"rows":2,"cols":4},{"key":"E","bits":[[1,1,1,1],[0,1,1,1],[0,1,1,0],[0,0,1,0]],"rows":4,"cols":4}],"scaffold":{"peek":false,"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"8c090fcc-076a-4b21-a66e-46ae596b0bf3","typeCode":"SPA-SHADOW-01","domain":"spatial","difficulty":18.99,"ageBands":["6-8"],"content":{"typeCode":"SPA-SHADOW-01","question":{"mode":"cast_shadow","light":"front","lightEm":"FRONT","prompt":"Which shadow does the front light throw?","lightLabel":"Light from the front - shadow behind"},"object":{"dim":4,"voxels":[[0,0,1],[0,0,3],[0,1,1],[0,1,2],[0,1,3],[0,2,1],[0,2,2],[0,2,3],[1,0,3],[1,1,1],[1,1,2],[1,1,3],[1,2,3],[2,0,2],[2,0,3],[2,1,2],[2,1,3],[3,0,2],[3,0,3]]},"optionKind":"silhouette","options":[{"key":"A","bits":[[1,1,0,0],[1,1,1,0],[1,1,1,1]],"rows":3,"cols":4},{"key":"B","bits":[[1,1,0,0],[1,1,1,1],[1,1,1,1]],"rows":3,"cols":4},{"key":"C","bits":[[1,1,1,0,0],[0,1,1,1,0],[0,1,1,1,1]],"rows":3,"cols":5},{"key":"D","bits":[[1,1,1],[1,1,1],[1,1,1]],"rows":3,"cols":3},{"key":"E","bits":[[0,0,1,0],[1,1,0,0],[1,1,1,0],[1,1,1,1]],"rows":4,"cols":4}],"scaffold":{"peek":false,"warmup":false}},"syntheticOnly":true,"validated":false}];
+let sampleIdx=0;
+function nextSample(){loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;openGate();}
+
+/* ---------- boot ---------- */
+buildMeters();renderMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit&&!embedded){
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  nextSample();
+}},500);
+</script>
+</body>
+</html>

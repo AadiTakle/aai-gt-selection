@@ -1,0 +1,257 @@
+/* FLU-MATRIX-01. Everything is prefixed `fm-` so a world's stylesheet cannot reach in by accident.
+
+   Sizing is two custom properties and nothing else: the stimulus tile and the tap target. The K-1
+   override widens the target rather than the whole layout, because the youngest hands miss small
+   buttons long before they miss small pictures.
+
+   HOW THE ART IS SIZED, since it is the one thing here that is not obvious. Every drawing is an SVG
+   with a viewBox and no width or height attribute, so it has no useful intrinsic size. Sized with
+   percentages inside an auto-sized grid track, such an SVG collapses to nothing — the track wants
+   the picture's size and the picture wants the track's. So every card is a positioned box and the
+   art inside it is absolutely positioned with an inset: the box's size comes from the card and
+   nothing has to ask the picture how big it is.
+
+   Motion is transform and opacity only, one curve, and it collapses at the bottom of the file. */
+
+.fm-root {
+  --fm-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --fm-tile: 5rem;
+  --fm-target: 5.5rem;
+  --fm-ink: #16181d;
+  --fm-quiet: rgb(22 24 29 / 0.26);
+  --fm-line: rgb(22 24 29 / 0.12);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.75rem, 5vh, 3.25rem);
+  padding: clamp(1rem, 3vh, 2rem) 1rem;
+}
+
+.fm-root[data-band='K-1'] {
+  --fm-tile: 5.75rem;
+  --fm-target: 6.75rem;
+}
+
+.fm-ask {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.6vw, 1.35rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-align: center;
+  color: var(--fm-ink);
+}
+
+/* ---- the pattern ---------------------------------------------------------- */
+
+.fm-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--fm-cols, 3), var(--fm-tile));
+  gap: 0.6rem;
+}
+
+.fm-cell {
+  position: relative;
+  display: block;
+  width: var(--fm-tile);
+  height: var(--fm-tile);
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--fm-line);
+  animation: fm-rise 420ms var(--fm-ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* The hole reads as a slot waiting to be filled: no border weight, no colour, no invitation to tap
+   it, because it is not tappable. */
+.fm-cell-blank {
+  background: rgb(22 24 29 / 0.03);
+  border-style: dashed;
+  border-color: var(--fm-quiet);
+}
+
+.fm-hole {
+  position: absolute;
+  inset: 28%;
+  stroke: var(--fm-quiet);
+  fill: var(--fm-quiet);
+}
+
+/* A count is drawn as a cluster, never a numeral. Wrapping flex rather than a grid because a wrapped
+   flex line is centred: three copies land as two above one centred beneath, which is bigger and
+   easier to count at a glance than three squeezed into a single row. */
+.fm-face {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 6%;
+}
+
+.fm-cell > .fm-face {
+  position: absolute;
+  inset: 13%;
+}
+
+/* ONE DRAWN SIZE FOR THE WHOLE ITEM. `--fm-w` is set by the component from the largest count
+   anywhere in it, pattern and options together, and every copy in every face uses it. It used to be
+   selected here from each face's own `data-n`, which made a tile of one draw its shape at full width
+   beside a tile of three at 45%: count is one of the rules these items run on, and a mark that grows
+   as the number shrinks invites the child to answer on size. `data-n` is kept as the honest record of
+   what a face holds. */
+.fm-glyph {
+  display: block;
+  width: var(--fm-w, 100%);
+  height: auto;
+}
+
+/* ---- the choices ---------------------------------------------------------- */
+
+.fm-options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(0.6rem, 2vw, 1.1rem);
+  width: 100%;
+  max-width: 46rem;
+}
+
+.fm-opt {
+  all: unset;
+  position: relative;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: block;
+  width: var(--fm-target);
+  height: var(--fm-target);
+  min-width: 64px;
+  min-height: 64px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid var(--fm-line);
+  box-shadow: 0 1px 0 rgb(22 24 29 / 0.04);
+  animation: fm-rise 380ms var(--fm-ease) both;
+  animation-delay: calc(180ms + var(--i, 0) * 60ms);
+  transition:
+    transform 200ms var(--fm-ease),
+    opacity 260ms var(--fm-ease),
+    box-shadow 200ms var(--fm-ease);
+}
+
+.fm-opt:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 14px 26px -18px rgb(22 24 29 / 0.5);
+}
+
+.fm-opt:active {
+  transform: scale(0.96);
+}
+
+.fm-opt:focus-visible {
+  outline: 3px solid #3d7068;
+  outline-offset: 3px;
+}
+
+.fm-opt-face {
+  position: absolute;
+  inset: 16%;
+}
+
+.fm-opt-face > .fm-face {
+  position: absolute;
+  inset: 0;
+}
+
+.fm-opt-key {
+  position: absolute;
+  top: 0.3rem;
+  left: 0.45rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--fm-quiet);
+}
+
+/* Pre-readers get no letter: it is noise they cannot use. */
+.fm-root[data-band='K-1'] .fm-opt-key {
+  display: none;
+}
+
+.fm-mark {
+  position: absolute;
+  right: -0.4rem;
+  bottom: -0.4rem;
+  width: 1.55rem;
+  height: 1.55rem;
+  fill: var(--fm-ink);
+  animation: fm-pop 260ms var(--fm-ease) both;
+}
+
+/* Settled: the chosen one lifts and holds. The others recede but stay legible, and NOTHING here
+   says whether the choice was right — that is the server's business and the child's story. */
+.fm-opt-chosen {
+  transform: translate3d(0, -6px, 0);
+  border-color: var(--fm-ink);
+  box-shadow: 0 16px 28px -18px rgb(22 24 29 / 0.55);
+}
+
+.fm-settled .fm-opt {
+  cursor: default;
+}
+
+.fm-settled .fm-opt:not(.fm-opt-chosen) {
+  opacity: 0.4;
+}
+
+.fm-settled .fm-opt:not(.fm-opt-chosen):hover {
+  transform: none;
+  box-shadow: 0 1px 0 rgb(22 24 29 / 0.04);
+}
+
+.fm-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes fm-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fm-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-root *,
+  .fm-root *::before,
+  .fm-root *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+
+  .fm-opt:hover,
+  .fm-opt:active {
+    transform: none;
+  }
+}

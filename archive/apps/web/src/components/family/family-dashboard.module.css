@@ -1,0 +1,310 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-5);
+  padding-top: var(--gt-space-4);
+}
+
+/* ---- hero with the GT spiral journey ring ---- */
+.hero {
+  background: linear-gradient(
+    135deg,
+    var(--gt-dark-navy) 0%,
+    var(--gt-navy) 45%,
+    var(--gt-blue-dark) 100%
+  );
+  color: var(--gt-near-white);
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-6);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gt-space-6);
+}
+
+/* engineering-drawing linework overlay, weighted right and faded toward the
+   title so the name + ring stay readable */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/blueprint-lines.png') right center / cover no-repeat;
+  opacity: 0.16;
+  pointer-events: none;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 45%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 45%, #000 100%);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  right: 8%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 340px;
+  height: 340px;
+  background: radial-gradient(circle, rgb(228 139 83 / 0.22), transparent 68%);
+  pointer-events: none;
+}
+
+.heroInfo {
+  position: relative;
+  z-index: 1;
+}
+
+.kicker {
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gt-gold-light);
+  font-weight: 600;
+  margin: 0;
+}
+
+.student {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  margin: var(--gt-space-2) 0 var(--gt-space-3);
+  color: var(--gt-near-white);
+}
+
+.statusPill {
+  display: inline-block;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-xs);
+  background: var(--gt-gold);
+  color: var(--color-accent-ink);
+  font-family: var(--font-utility);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.heroLine {
+  font-size: 1.05rem;
+  color: rgb(251 251 251 / 0.82);
+  margin: var(--gt-space-4) 0 0;
+  max-width: 46ch;
+}
+
+.heroRing {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gt-space-2);
+}
+
+.ringCaption {
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-on-navy-soft);
+}
+
+/* ---- connected left-to-right pipeline ---- */
+.pipeline {
+  display: flex;
+  align-items: stretch;
+}
+
+.pipeItem {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+/* the line linking each stage to the previous one */
+.connector {
+  flex: none;
+  width: var(--gt-space-4);
+  height: 3px;
+  border-radius: 3px;
+  background: var(--color-border-strong);
+}
+
+.connectorOn {
+  background: var(--gt-gold);
+}
+
+.phaseCard {
+  flex: 1;
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+}
+
+/* the active phase reads as a small navy feature field, with a gold mark */
+.phaseCard.active {
+  border-color: transparent;
+  background: linear-gradient(140deg, var(--gt-navy) 0%, var(--gt-blue-dark) 100%);
+  color: var(--gt-near-white);
+}
+
+.phaseCard.done {
+  background: var(--color-panel);
+}
+
+.phaseMark {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-utility);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  border: 1.5px solid var(--color-border-strong);
+  color: var(--color-muted);
+}
+
+.active .phaseMark {
+  background: var(--gt-gold);
+  border-color: var(--gt-gold);
+  color: var(--color-accent-ink);
+}
+
+.active .phaseState {
+  color: var(--gt-gold-light);
+}
+
+/* completed step: settled brand blue, distinct from active gold */
+.done .phaseMark {
+  background: var(--gt-blue);
+  border-color: var(--gt-blue);
+  color: var(--gt-near-white);
+}
+
+.phaseLabel {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 300;
+  margin: var(--gt-space-2) 0 0;
+}
+
+.phaseDetail {
+  font-size: 0.85rem;
+  margin: 0;
+  color: var(--color-ink-soft);
+}
+
+.active .phaseDetail {
+  color: rgb(251 251 251 / 0.9);
+}
+
+.phaseState {
+  margin: var(--gt-space-2) 0 0;
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.upcoming {
+  opacity: 0.85;
+}
+
+/* ---- actions row ---- */
+.grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: var(--gt-space-5);
+  align-items: start;
+}
+
+.sideCard {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-3);
+  align-items: flex-start;
+}
+
+.sideTitle {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 300;
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.note {
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+  margin: 0;
+}
+
+/* secondary action (the assessment CTA carries this screen's chamfer) */
+.reviewBtn {
+  margin-top: var(--gt-space-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-ink);
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.95rem;
+  text-decoration: none;
+  padding: 0.7rem 1.1rem;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.reviewBtn:hover {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+
+.boundary {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin: 0;
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pipeline {
+    flex-direction: column;
+  }
+  .pipeItem {
+    flex-direction: column;
+    width: 100%;
+  }
+  .connector {
+    width: 3px;
+    height: var(--gt-space-4);
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .student {
+    font-size: 1.9rem;
+  }
+}

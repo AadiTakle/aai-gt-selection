@@ -1,0 +1,73 @@
+.wrap {
+  position: relative;
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2);
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 620;
+  color: var(--color-ink);
+}
+
+.opt {
+  color: var(--color-muted);
+  font-weight: 400;
+  font-size: 0.72rem;
+}
+
+.control {
+  appearance: none;
+  width: 100%;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.control:focus {
+  outline: none;
+  border-color: var(--color-focus);
+  box-shadow: 0 0 0 3px rgb(0 79 113 / 0.16);
+}
+
+.results {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--gt-shadow-pop);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.resultRow {
+  all: unset;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem var(--gt-space-4);
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.resultRow:hover,
+.resultRow:focus-visible {
+  background: var(--color-surface);
+}

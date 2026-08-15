@@ -1,0 +1,318 @@
+/* =============================================================================
+   Global shell. Deliberately small.
+
+   Each world ships its own stylesheet and owns its art direction completely, so this file holds
+   only three things: the reset, the launcher, and the few primitives the shared drawing vocabulary
+   needs (.cluster, .stage, the missing-renderer notice).
+
+   Motion policy, since it applies everywhere: transitions are on transform and opacity only, one
+   easing curve, and everything collapses under prefers-reduced-motion at the bottom of the file.
+   Nothing animates layout, because a reflow mid-question is how a child taps the wrong option.
+   ============================================================================= */
+
+:root {
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ink: #16181d;
+  --ink-soft: #4b515c;
+  --paper: #f7f4ef;
+  --line: rgb(22 24 29 / 0.1);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid #3d7068;
+  outline-offset: 3px;
+}
+
+/* ---- launcher ------------------------------------------------------------- */
+
+.launcher {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vh, 5rem) 1.5rem 4rem;
+}
+
+.launcher-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.launcher-title {
+  margin: 0.5rem 0 0.75rem;
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+}
+
+.launcher-lede {
+  margin: 0 0 2.5rem;
+  max-width: 46ch;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+}
+
+.grid li {
+  animation: rise 560ms var(--ease) both;
+  animation-delay: calc(var(--i) * 80ms);
+}
+
+.card {
+  all: unset;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  transition:
+    transform 320ms var(--ease),
+    box-shadow 320ms var(--ease);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -24px rgb(22 24 29 / 0.45);
+}
+
+.card-art {
+  position: relative;
+  display: block;
+  height: 8.5rem;
+  background: linear-gradient(135deg, var(--a), var(--b));
+  overflow: hidden;
+}
+
+.card-orb {
+  position: absolute;
+  inset: auto -20% -60% auto;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.22);
+  transition: transform 620ms var(--ease);
+}
+
+.card:hover .card-orb {
+  transform: translate3d(-1.5rem, -1rem, 0) scale(1.08);
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1.1rem 1.2rem 1.3rem;
+}
+
+.card-band {
+  align-self: flex-start;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--b) 16%, transparent);
+  color: color-mix(in srgb, var(--b) 82%, black);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.card-title {
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.card-interest {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--b) 75%, black);
+}
+
+.card-blurb {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.card-foot {
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.launcher-note {
+  margin: 3rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+  max-width: 60ch;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.world-loading {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  animation: fade 400ms var(--ease) both;
+}
+
+/* ---- shared drawing primitives ------------------------------------------- */
+
+.cluster {
+  display: grid;
+  gap: 6%;
+  place-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.cluster svg {
+  width: 100%;
+  height: auto;
+  animation: pop 320ms var(--ease) both;
+}
+
+.stage {
+  opacity: 0;
+  transform: translate3d(0, 10px, 0);
+  transition:
+    opacity 380ms var(--ease),
+    transform 380ms var(--ease);
+}
+
+.stage-in {
+  opacity: 1;
+  transform: none;
+}
+
+.stage-settled {
+  /* Answered: the stage stops inviting input without dimming so far that a child thinks it broke. */
+  filter: saturate(0.85);
+  transition: filter 420ms var(--ease);
+}
+
+.stage-wait {
+  min-height: 12rem;
+}
+
+.stage-missing {
+  max-width: 32rem;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.stage-missing-detail {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+.btn-quiet {
+  all: unset;
+  cursor: pointer;
+  padding: 0.7rem 1.2rem;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  font-weight: 600;
+  transition: background 200ms var(--ease);
+}
+
+.btn-quiet:hover {
+  background: rgb(22 24 29 / 0.05);
+}
+
+/* ---- keyframes ----------------------------------------------------------- */
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Iteration count is the load-bearing line. Crushing the duration alone leaves an infinite
+     animation running at 1ms per cycle, which STROBES rather than stops: worse for exactly the
+     people the query exists to protect. Pinning iterations to 1 ends looping animation outright,
+     and `animation-name: none` on the catch-all would also kill the keyframes that merely set a
+     resting state, so it is not used here. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,8 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# NOTE: runtime outputs are written to ./out/, which the repository-root
+# .gitignore already ignores (regenerable from the seed in the manifest).
+# A curated snapshot lives in ./sample-report/ as committed acceptance evidence.

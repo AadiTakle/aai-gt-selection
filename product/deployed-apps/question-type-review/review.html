@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GT Question-Type Review</title>
+<style>
+  :root{
+    --navy:#0f2742; --navy-2:#1b3a5b; --gold:#f2b705; --paper:#faf7f0;
+    --ink:#12202e; --muted:#5a6b7b; --line:#dfe3e8; --ok:#1f8a4c; --card:#ffffff;
+    --s1:#2563eb; --dual:#7c3aed; --s2:#c2410c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--paper)}
+  header.topbar{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;display:flex;align-items:center;gap:16px;padding:10px 16px;border-bottom:3px solid var(--gold)}
+  .topbar h1{font-size:16px;margin:0;font-weight:650;letter-spacing:.2px}
+  .topbar .prog{font-size:13px;color:#cfe0f2}
+  .topbar .spacer{flex:1}
+  .topbar button{background:var(--gold);color:#231a02;border:none;border-radius:7px;padding:7px 12px;font-weight:650;cursor:pointer;font-size:13px}
+  .topbar button.ghost{background:transparent;color:#dfe9f5;border:1px solid #37567a}
+  .topbar button:hover{filter:brightness(1.05)}
+  .layout{display:flex;height:calc(100vh - 53px)}
+  aside{width:340px;min-width:300px;border-right:1px solid var(--line);overflow-y:auto;background:#fff}
+  .filters{padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:5}
+  .filters input[type=search],.filters select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:13px;margin-bottom:6px}
+  .filters .row{display:flex;gap:6px}
+  .filters .row select{margin-bottom:0}
+  .filters label.chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-top:6px}
+  ul.types{list-style:none;margin:0;padding:0}
+  li.type{padding:9px 12px;border-bottom:1px solid #eef1f4;cursor:pointer;display:flex;align-items:center;gap:8px}
+  li.type:hover{background:#f4f7fb}
+  li.type.active{background:#eaf1fb;box-shadow:inset 3px 0 0 var(--navy)}
+  li.type .nm{flex:1;min-width:0}
+  li.type .nm b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  li.type .nm span{font-size:11px;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
+  .badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;color:#fff;white-space:nowrap}
+  .b-S1{background:var(--s1)} .b-DUAL{background:var(--dual)} .b-S2{background:var(--s2)}
+  .dot{width:9px;height:9px;border-radius:50%;background:#d5dbe1;flex:none}
+  .dot.done{background:var(--ok)}
+  main{flex:1;overflow-y:auto;padding:18px 22px}
+  .empty{color:var(--muted);margin-top:40px;text-align:center}
+  .head h2{margin:0 0 2px;font-size:22px}
+  .head .meta{color:var(--muted);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .head .meta code{font-family:ui-monospace,Menlo,monospace;background:#eef1f4;padding:1px 6px;border-radius:5px}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+  @media(max-width:1100px){.grid{grid-template-columns:1fr}}
+  .demoWrap{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .demoWrap .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f4f7fb;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .demoWrap .bar .spacer{flex:1}
+  .demoWrap .bar a,.demoWrap .bar button{font-size:12px;color:var(--navy);background:none;border:1px solid var(--line);border-radius:5px;padding:3px 8px;cursor:pointer;text-decoration:none}
+  .demoWrap iframe{width:100%;height:540px;border:0;display:block;background:#fff}
+  .demoWrap .nodemo{padding:24px;color:var(--muted);text-align:center;font-size:13px}
+  section.card{border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:14px}
+  section.card>h3{margin:0;font-size:13px;padding:9px 12px;border-bottom:1px solid var(--line);background:#fbfcfd;cursor:pointer;display:flex;align-items:center;gap:6px}
+  section.card>h3 .tw{color:var(--muted);font-weight:400;font-size:11px;margin-left:auto}
+  section.card .body{padding:11px 13px;font-size:13px;line-height:1.5}
+  section.card.collapsed .body{display:none}
+  .kv{margin:0 0 8px}
+  .kv b{color:var(--navy-2)}
+  table.metrics{width:100%;border-collapse:collapse;font-size:12px}
+  table.metrics th,table.metrics td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:top}
+  table.metrics th{background:#f4f7fb;font-weight:600}
+  table.metrics td code{font-family:ui-monospace,Menlo,monospace;font-size:11px}
+  .comments h3{font-size:14px;margin:2px 0 10px;color:var(--navy)}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;font-weight:650;color:var(--navy-2);margin-bottom:4px}
+  .field label .hint{font-weight:400;color:var(--muted)}
+  .field textarea{width:100%;min-height:64px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-family:inherit;font-size:13px;resize:vertical;line-height:1.45}
+  .field textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 2px #cfe0f2}
+  .savenote{font-size:11px;color:var(--ok);height:14px}
+  .disc{font-size:11px;color:var(--muted);margin-top:6px;border-top:1px dashed var(--line);padding-top:8px}
+  /* difficulty explorer */
+  .diffwrap{border:1px solid var(--line);border-radius:10px;background:#fff;margin:14px 0}
+  .diffwrap .bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#f4f7fb;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)}
+  .diffwrap .bar .spacer{flex:1}
+  .diffwrap .bar b{color:var(--navy-2)}
+  .diffbody{padding:11px 13px}
+  .spec{display:flex;align-items:flex-end;gap:2px;height:58px}
+  .spec .bin{flex:1;min-height:2px;background:#c9d8ec;border-radius:2px 2px 0 0;cursor:pointer}
+  .spec .bin:hover{background:var(--navy-2)}
+  .spec .bin.hit{background:var(--gold)}
+  .spec .bin.empty{background:#eef1f4;cursor:default}
+  .axis{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:ui-monospace,Menlo,monospace;margin-top:3px}
+  .band{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);margin-top:4px}
+  .band .lbl{width:30px;font-weight:700;color:var(--navy-2);font-family:ui-monospace,Menlo,monospace}
+  .band .track{position:relative;flex:1;height:6px;background:#eef1f4;border-radius:3px}
+  .band .fill{position:absolute;top:0;bottom:0;background:#9db8d8;border-radius:3px}
+  .band .n{width:96px;text-align:right;white-space:nowrap;font-family:ui-monospace,Menlo,monospace}
+  .slrow{display:flex;align-items:center;gap:9px;margin-top:11px}
+  .slrow input[type=range]{flex:1;accent-color:#0f2742}
+  .slrow .val{font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700;color:var(--navy);min-width:64px;text-align:right}
+  .btns{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:9px;font-size:12px;color:var(--muted)}
+  .btns button,.chip{font-size:12px;color:var(--navy);background:#fff;border:1px solid var(--line);border-radius:5px;padding:3px 8px;cursor:pointer;font-family:inherit}
+  .btns button:hover,.chip:hover{background:#f4f7fb}
+  .btns button.primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .btns label.chk{display:flex;align-items:center;gap:5px;font-size:11.5px;cursor:pointer}
+  .served{font-size:11.5px;color:var(--muted);margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;line-height:1.6}
+  .served code{font-family:ui-monospace,Menlo,monospace;background:#f4f7fb;padding:0 4px;border-radius:4px}
+  .served b{color:var(--navy-2)}
+  .served .stat{color:var(--ok);font-weight:650}
+  .served details{margin-top:5px}
+  .served details summary{cursor:pointer;color:var(--navy)}
+  .served details pre{max-height:150px;overflow:auto;background:#f8fafc;border:1px solid var(--line);border-radius:6px;padding:7px;font-size:10.5px;margin:5px 0 0}
+  .rangeset{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:9px;border-top:1px dashed var(--line);padding-top:8px}
+  .rangeset input[type=number]{width:58px;padding:3px 5px;border:1px solid var(--line);border-radius:5px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px}
+  .rangeset button{font-size:11.5px;color:var(--navy);background:#fff;border:1px solid var(--line);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <h1>GT Question-Type Review</h1>
+  <span class="prog" id="prog">0 / 0 reviewed</span>
+  <span class="prog" id="liveNote">connecting to the library…</span>
+  <span class="spacer"></span>
+  <button class="ghost" id="importBtn" title="Load a previously exported review JSON">Import</button>
+  <input type="file" id="importFile" accept="application/json" style="display:none" />
+  <button id="exportBtn" title="Download your comments as Markdown + JSON">Export</button>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="filters">
+      <input type="search" id="search" placeholder="Search name or code..." />
+      <div class="row">
+        <select id="fDomain"><option value="">All domains</option></select>
+        <select id="fStage">
+          <option value="">All stages</option>
+          <option value="S1">Stage 1 (standing)</option>
+          <option value="DUAL">Dual</option>
+          <option value="S2">Stage 2 (learning-rate)</option>
+        </select>
+      </div>
+      <label class="chk"><input type="checkbox" id="fUnrev" /> only unreviewed</label>
+    </div>
+    <ul class="types" id="typeList"></ul>
+  </aside>
+  <main id="main"><div class="empty">Loading types…</div></main>
+</div>
+
+<script src="platform.js"></script>
+<script>
+const CATS = [
+  {key:'ui',        label:'1 · UI / interaction',                 hint:'layout, controls, clarity, engagement, self-teach'},
+  {key:'difficulty',label:'2 · Difficulty score & intended grade', hint:'is the rung/age-band right? escalation? ceiling?'},
+  {key:'framing',   label:'3 · Question framing & answer',         hint:'prompt wording, stimulus, correctness/answer key'},
+  {key:'general',   label:'4 · General improvement',               hint:'anything else to perfect this type'},
+  {key:'metrics',   label:'5 · Metrics & how they are calculated', hint:'which signals, how collected, how they feed the score'},
+];
+const LS_KEY = 'gt-type-review-v1';
+let DATA = [];
+let store = loadStore();
+let activeId = null;
+
+function loadStore(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)) || {}; }catch(e){ return {}; } }
+function saveStore(){ localStorage.setItem(LS_KEY, JSON.stringify(store)); }
+function hasComments(id){ const c = store[id]; return !!c && CATS.some(k => (c[k.key]||'').trim()); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+
+function renderProg(){
+  const done = DATA.filter(d=>hasComments(d.type_id)).length;
+  document.getElementById('prog').textContent = `${done} / ${DATA.length} reviewed`;
+}
+
+function filtered(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const dom = document.getElementById('fDomain').value;
+  const st = document.getElementById('fStage').value;
+  const unrev = document.getElementById('fUnrev').checked;
+  return DATA.filter(d=>{
+    if(dom && d.domain!==dom) return false;
+    if(st && d.stage!==st) return false;
+    if(unrev && hasComments(d.type_id)) return false;
+    if(q && !(d.type_id.toLowerCase().includes(q) || (d.name||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function renderList(){
+  const ul = document.getElementById('typeList');
+  const rows = filtered();
+  ul.innerHTML = rows.map(d=>`
+    <li class="type ${d.type_id===activeId?'active':''}" data-id="${d.type_id}">
+      <span class="dot ${hasComments(d.type_id)?'done':''}"></span>
+      <span class="nm"><b>${esc(d.name)}</b><span>${esc(d.type_id)} · ${esc(d.domain)}</span></span>
+      <span class="badge b-${d.stage}">${d.stage}</span>
+    </li>`).join('') || '<li class="type"><span class="nm"><b>No types match</b></span></li>';
+  [...ul.querySelectorAll('li.type[data-id]')].forEach(li=>li.onclick=()=>select(li.dataset.id));
+}
+
+/* =====================================================================
+ * Difficulty explorer, served by the deployed question platform
+ *
+ * The spectrum comes from `/v1/catalog/types/<code>`, which returns the type's
+ * difficulty DISTRIBUTION and no items on purpose. Seeing a real item therefore
+ * means asking for one the way a child's app does: a session restricted to this
+ * one type, then `next`. Two honest consequences:
+ *   - the engine chooses the difficulty, so the old "serve at this level"
+ *     slider is now a readout of where the served item landed;
+ *   - the age band IS a real control, because the platform honours `ageBand`
+ *     on session creation.
+ * The item reaches the demo over the same host protocol as before:
+ *   host -> demo : {source:'gt-exam-host', type:'init', item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ * Nothing is stripped here any more, because the platform never sends a key.
+ * ===================================================================== */
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+const BANDS=['K-1','2-3','4-5','6-8'];
+const BINS=20;                       // one bin per difficulty point, 1..20
+const specCache=new Map();           // typeCode -> platform type detail
+let spectrum=null;                   // active type's detail from the platform
+let session=null;                    // {id, poolSize, band} for the active type
+let servedItem=null, servedInfo=null;
+let bandFilter='', tutorial=false;
+let frame=null, frameReady=false, wantServe=false;
+
+function median(ns){const s=[...ns].sort((a,b)=>a-b),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function binOf(d){return Math.max(0,Math.min(BINS-1,Math.floor(d)-1));}
+
+async function loadSpectrum(code){
+  if(specCache.has(code)) return specCache.get(code);
+  const detail=await PlatformClient.type(code);
+  specCache.set(code,detail);
+  return detail;
+}
+
+/* ---- host -> demo ---- */
+function pushItem(item){
+  if(!frame||!frame.contentWindow) return;
+  frame.contentWindow.postMessage({source:HOST_SRC,type:'init',item:item},'*');
+  frame.contentWindow.postMessage({source:HOST_SRC,type:'start',tutorial:tutorial},'*');
+}
+
+/* ---- demo -> host ---- */
+window.addEventListener('message',e=>{
+  const d=e.data;
+  if(!d||d.source!==DEMO_SRC) return;
+  if(!frame||e.source!==frame.contentWindow) return;   // ignore stale iframes
+  if(d.type==='ready'){ frameReady=true; if(wantServe&&servedItem){ pushItem(servedItem); } }
+  else if(d.type==='result'){
+    const s=document.getElementById('servedStatus');
+    if(s) s.innerHTML=' · <span class="stat">answered</span> — press ▶ or “another at this level” for the next item';
+  }
+});
+
+/**
+ * Open a fresh session for the active type, or reuse the one already open for this band.
+ *
+ * A session is per (type, band): changing the band has to start a new one, because the band is fixed
+ * at creation and is the only lever a reviewer actually has over what gets served.
+ */
+async function ensureSession(code){
+  if(session && session.code===code && session.band===bandFilter) return session;
+  const opened=await PlatformClient.openSession(code, bandFilter||undefined);
+  session={id:opened.sessionId, poolSize:opened.poolSize, code, band:bandFilter, answered:0};
+  return session;
+}
+
+/** Pull the next real item. `advance` answers the outstanding one first, which the engine requires. */
+async function serveReal(advance){
+  const code=activeId; if(!code) return;
+  const info=document.getElementById('servedInfo');
+  try{
+    const s=await ensureSession(code);
+    if(advance && servedItem){
+      await PlatformClient.answer(s.id, null);   // resolve it so the engine will move on
+      s.answered++;
+    }
+    const next=await PlatformClient.next(s.id);
+    if(activeId!==code) return;                  // reviewer moved on mid-flight
+    if(next.done){
+      session=null; servedItem=null;
+      if(info) info.innerHTML=`<div>This session stopped after ${esc(String(s.answered))} item(s) — press <b>Serve a real item</b> to open a new one.</div>`;
+      return;
+    }
+    servedItem=next.served; servedInfo=next;
+    wantServe=true;
+    if(frameReady) pushItem(servedItem);         // otherwise the 'ready' handler serves it
+    renderServed(next);
+    markBins();
+  }catch(err){
+    if(info) info.innerHTML=`<div>Could not serve from the platform: <small>${esc(err.message)}</small></div>`;
+  }
+}
+function markBins(){
+  if(!servedInfo) return;
+  const b=binOf(servedInfo.difficulty);
+  document.querySelectorAll('#spec .bin').forEach(el=>el.classList.toggle('hit',+el.dataset.bin===b));
+}
+/* 46 of the 66 banks record provenance.levers; the rest carry their difficulty
+ * knobs under bank-specific keys (ruleFamily, level, tier, rung, variant, ...),
+ * so fall back to the whole provenance minus the bookkeeping fields. */
+const PROV_NOISE=new Set(['generator','generatorRef','seed','contentHash','promptHash','validatorVerdicts','validator','lexiconHash']);
+function leverText(item){
+  const p=item.provenance||{};
+  const src=(p.levers&&Object.keys(p.levers).length)?p.levers
+    :Object.fromEntries(Object.entries(p).filter(([k])=>!PROV_NOISE.has(k)));
+  const parts=Object.entries(src).map(([k,v])=>{
+    const val=Array.isArray(v)?v.join('/'):(v&&typeof v==='object'?JSON.stringify(v):v);
+    return `${esc(k)}=<b>${esc(String(val).slice(0,60))}</b>`;
+  });
+  return parts.length?parts.join(' · '):'not recorded in this bank';
+}
+
+function renderServed(next){
+  const el=document.getElementById('servedInfo'); if(!el) return;
+  const item=next.served;
+  const s=session||{};
+  el.innerHTML=
+    `<div><b>Served live</b> from the platform${bandFilter?` for band ${esc(bandFilter)}`:''} · `+
+    `difficulty <b>${next.difficulty.toFixed(2)}</b>/20 · `+
+    `pool ${esc(String(s.poolSize??'?'))} · item ${esc(String((s.answered??0)+1))} of this session · `+
+    `<code>${esc(String(item.itemId).slice(0,8))}</code><span id="servedStatus"></span></div>`+
+    `<div>the engine chose it: <b>${esc(next.selectionReason||'max information at threshold')}</b> · `+
+    `information ${Number(next.informationAtThreshold??0).toFixed(3)} · domain ${esc(next.domain||'—')}</div>`+
+    `<div class="savenote">No answer key is shown because the platform never sends one — it marks on the server.</div>`;
+}
+
+function diffPanelShell(){
+  return `<div class="diffwrap">
+    <div class="bar"><span><b>Difficulty spectrum &amp; served level</b></span><span class="spacer"></span>
+      <span id="diffCount"></span></div>
+    <div class="diffbody" id="diffBody"><div class="served" style="border:0;margin:0;padding:0">Loading bank…</div></div>
+  </div>`;
+}
+
+async function initDifficultyPanel(d){
+  const body=document.getElementById('diffBody'); if(!body) return;
+  const id=d.type_id;
+  spectrum=null; session=null; servedItem=null; servedInfo=null; bandFilter=''; wantServe=false;
+  if(!d.onPlatform){
+    body.innerHTML=`<div class="served" style="border:0;margin:0;padding:0">`+
+      `<code>${esc(id)}</code> has a design spec but no bank in the deployed library, so there is nothing to serve. `+
+      `The demo keeps cycling its own samples.</div>`;
+    return;
+  }
+  try{ spectrum=await loadSpectrum(id); }
+  catch(err){
+    body.innerHTML=`<div class="served" style="border:0;margin:0;padding:0">Could not reach the platform for <code>${esc(id)}</code>.<br>`+
+      `<small>${esc(err.message)}</small></div>`;
+    return;
+  }
+  if(activeId!==id) return;                        // reviewer moved on while loading
+
+  const ds=(spectrum.difficulties||[]).slice().sort((a,b)=>a-b);
+  const counts=Array(BINS).fill(0);
+  ds.forEach(v=>counts[binOf(v)]++);
+  const peak=Math.max(...counts,1);
+  const cnt=document.getElementById('diffCount');
+  if(cnt) cnt.textContent=ds.length
+    ? `${spectrum.itemCount} items · ${spectrum.scorableItemCount??spectrum.scorableCount??0} scorable · min ${Math.min(...ds).toFixed(1)} · median ${median(ds).toFixed(1)} · max ${Math.max(...ds).toFixed(1)}`
+    : `${spectrum.itemCount??0} items · nothing scorable yet`;
+
+  const bins=counts.map((n,i)=>
+    `<div class="bin ${n?'':'empty'}" data-bin="${i}" style="height:${n?Math.max(6,Math.round(n/peak*100)):2}%" `+
+    `title="difficulty ${i+1}–${i+2===21?20:i+2}: ${n} item${n===1?'':'s'}${n?' — click to serve':''}"></div>`).join('');
+
+  /**
+   * The bands the TYPE declares, not per-band difficulty ranges.
+   *
+   * The old rows split the local bank by each item's own `ageBands`. The platform does not expose
+   * per-item bands — deliberately, since enumerating a bank is the thing `/v1/catalog/types` refuses to
+   * do — so this reports what the type claims and lets the chips below prove it by serving.
+   */
+  const typeBands=(spectrum.ageBands||[]).filter(b=>BANDS.includes(b));
+  const bandRows=typeBands.length
+    ? `<div class="band"><span class="lbl">bands</span><span class="track"><span class="fill" style="left:0;width:100%"></span></span>`+
+      `<span class="n">${esc(typeBands.join(', '))}</span></div>`
+    : '';
+
+  body.innerHTML=
+    `<div class="spec" id="spec">${bins}</div>
+     <div class="axis"><span>1 · easiest</span><span>5</span><span>10</span><span>15</span><span>20 · hardest</span></div>
+     <div id="bandRows">${bandRows}</div>
+     <div class="btns">
+       <button class="primary" id="dServe">Serve a real item</button>
+       <button id="dAnother">next item in this session</button>
+       <label class="chk"><input type="checkbox" id="dTutorial" /> include warm-up / ghost-hand</label>
+       <span class="spacer" style="flex:1"></span>
+       <span>band:</span>
+       <button class="chip on" data-band="">all</button>
+       ${typeBands.map(b=>`<button class="chip" data-band="${esc(b)}">${esc(b)}</button>`).join('')}
+     </div>
+     <div class="served" id="servedInfo"></div>
+     <div class="rangeset">
+       <span><b>Your verdict —</b> intended difficulty range:</span>
+       <input type="number" id="rMin" min="1" max="20" step="0.5" placeholder="min" />
+       <span>–</span>
+       <input type="number" id="rMax" min="1" max="20" step="0.5" placeholder="max" />
+       <button id="rFromMin">◀ set min from served item</button>
+       <button id="rFromMax">set max from served item ▶</button>
+       <button id="rClear">clear</button>
+       <span id="rNote" class="savenote"></span>
+     </div>`;
+
+  document.getElementById('dServe').onclick=()=>serveReal(false);
+  document.getElementById('dAnother').onclick=()=>serveReal(true);
+  document.getElementById('dTutorial').onchange=e=>{ tutorial=e.target.checked; };
+  document.querySelectorAll('#diffBody .chip').forEach(ch=>ch.onclick=()=>{
+    bandFilter=ch.dataset.band;
+    document.querySelectorAll('#diffBody .chip').forEach(c=>c.classList.toggle('on',c===ch));
+    session=null;                                  // the band is fixed at session creation
+    serveReal(false);
+  });
+
+  /* recorded verdict — persisted next to the comments, exported with them */
+  const c=store[id]||(store[id]={});
+  const rng=c.diffRange||{};
+  const rMin=document.getElementById('rMin'), rMax=document.getElementById('rMax');
+  if(rng.min!=null) rMin.value=rng.min;
+  if(rng.max!=null) rMax.value=rng.max;
+  const saveRange=()=>{
+    let mn=rMin.value===''?null:+rMin.value, mx=rMax.value===''?null:+rMax.value;
+    if(mn!=null&&mx!=null&&mn>mx){ [mn,mx]=[mx,mn]; rMin.value=mn; rMax.value=mx; }  // keep it a range
+    if(mn==null&&mx==null) delete c.diffRange; else c.diffRange={min:mn,max:mx};
+    saveStore();
+    const n=document.getElementById('rNote');
+    if(n){ n.textContent='saved'; clearTimeout(n._t); n._t=setTimeout(()=>n.textContent='',900); }
+  };
+  rMin.addEventListener('input',saveRange);
+  rMax.addEventListener('input',saveRange);
+  // The reference point is the item actually on screen, since the reviewer's judgement is about what
+  // they just saw rather than about a slider position.
+  const servedDifficulty=()=>servedInfo?servedInfo.difficulty:null;
+  document.getElementById('rFromMin').onclick=()=>{ const v=servedDifficulty(); if(v!=null){ rMin.value=v.toFixed(1); saveRange(); } };
+  document.getElementById('rFromMax').onclick=()=>{ const v=servedDifficulty(); if(v!=null){ rMax.value=v.toFixed(1); saveRange(); } };
+  document.getElementById('rClear').onclick=()=>{ rMin.value=''; rMax.value=''; saveRange(); };
+
+  serveReal(false);                                // open with a real item straight away
+}
+
+function card(title, bodyHtml, collapsed){
+  return `<section class="card ${collapsed?'collapsed':''}"><h3>${title}<span class="tw">${collapsed?'show':'hide'}</span></h3><div class="body">${bodyHtml}</div></section>`;
+}
+
+function metricsTable(ms){
+  if(!ms || !ms.length) return '<div class="kv">No metrics declared.</div>';
+  return `<table class="metrics"><thead><tr><th>Metric</th><th>What</th><th>How it is collected</th></tr></thead><tbody>`+
+    ms.map(m=>`<tr><td><code>${esc(m.id)}</code><br>${esc(m.name)}</td><td>${esc(m.what)}</td><td>${esc(m.how_to_collect)}</td></tr>`).join('')+
+    `</tbody></table>`;
+}
+
+function select(id){
+  activeId = id;
+  const d = DATA.find(x=>x.type_id===id);
+  renderList();
+  const c = store[id] || (store[id]={});
+  const demoHtml = d.demo
+    ? `<div class="demoWrap"><div class="bar"><span>Live demo</span><span class="spacer"></span>
+        <button data-reload>reload</button><a href="${esc(d.demo)}" target="_blank" rel="noreferrer">open in new tab ↗</a></div>
+        <iframe src="${esc(d.demo)}" title="${esc(d.name)} demo" loading="lazy"></iframe></div>`
+    : `<div class="demoWrap"><div class="nodemo">No demo file found for <code>${esc(d.type_id)}</code>.</div></div>`;
+
+  const meta = `
+    ${d.one_liner?`<p class="kv"><b>In one line:</b> ${esc(d.one_liner)}</p>`:''}
+    ${d.interaction?`<p class="kv"><b>Interaction:</b> ${esc(d.interaction)}</p>`:''}
+    ${d.self_teach?`<p class="kv"><b>Self-teach:</b> ${esc(d.self_teach)}</p>`:''}
+    ${d.engagement_hook?`<p class="kv"><b>Engagement hook:</b> ${esc(d.engagement_hook)}</p>`:''}`;
+  const diff = `
+    <p class="kv"><b>Stage:</b> ${esc(d.stage_label)}</p>
+    <p class="kv"><b>Age bands:</b> ${esc((d.age_bands||[]).join(', ')||'—')}</p>
+    <p class="kv"><b>Adaptivity (works_well):</b> ${esc(d.works_well)}</p>
+    ${d.content_range?`<p class="kv"><b>Content range:</b> ${esc(d.content_range)}</p>`:''}
+    ${d.difficulty_levers?`<p class="kv"><b>Difficulty levers:</b> ${esc(Array.isArray(d.difficulty_levers)?d.difficulty_levers.join('; '):d.difficulty_levers)}</p>`:''}`;
+  const metricsBody = metricsTable(d.metrics) + (d.tail_precision_rationale?`<p class="kv" style="margin-top:8px"><b>Why these separate the tail:</b> ${esc(d.tail_precision_rationale)}</p>`:'');
+
+  const comments = `<div class="comments"><h3>Your review comments</h3>`+
+    CATS.map(cat=>`
+      <div class="field">
+        <label>${cat.label} <span class="hint">— ${esc(cat.hint)}</span></label>
+        <textarea data-cat="${cat.key}" placeholder="Comments…">${esc(c[cat.key]||'')}</textarea>
+        <div class="savenote" data-note="${cat.key}"></div>
+      </div>`).join('')+
+    `<div class="disc">Comments auto-save to this browser. Use <b>Export</b> to hand them back. Born-synthetic review of an unapproved, pluggable design.</div></div>`;
+
+  document.getElementById('main').innerHTML = `
+    <div class="head">
+      <h2>${esc(d.name)} <span class="badge b-${d.stage}">${d.stage}</span></h2>
+      <div class="meta"><code>${esc(d.type_id)}</code> · domain: <b>${esc(d.domain)}</b> · adaptivity: ${esc(d.works_well)} · grades: ${esc((d.age_bands||[]).join(', ')||'—')}</div>
+    </div>
+    <div class="grid">
+      <div>${demoHtml}
+        ${d.demo?diffPanelShell():''}
+        ${card('Metrics tracked &amp; how they are calculated', metricsBody, false)}
+      </div>
+      <div>
+        ${comments}
+        ${card('Framing, interaction &amp; self-teach', meta, true)}
+        ${card('Difficulty, grade level &amp; adaptivity', diff, true)}
+        ${d.construct_irrelevant_risks?card('Construct-irrelevant risks (from spec)', `<div class="kv">${esc(d.construct_irrelevant_risks)}</div>`, true):''}
+      </div>
+    </div>`;
+
+  const main = document.getElementById('main');
+  main.querySelectorAll('section.card>h3').forEach(h=>h.onclick=()=>{
+    const s=h.parentElement; s.classList.toggle('collapsed');
+    h.querySelector('.tw').textContent = s.classList.contains('collapsed')?'show':'hide';
+  });
+  frame = main.querySelector('.demoWrap iframe');
+  frameReady = false;
+  const rl = main.querySelector('[data-reload]');
+  if(rl) rl.onclick=()=>{ if(frame){ frameReady=false; frame.src=frame.src; } };  // re-serves on 'ready'
+  main.querySelectorAll('textarea[data-cat]').forEach(ta=>{
+    ta.addEventListener('input',()=>{
+      c[ta.dataset.cat]=ta.value; saveStore();
+      const note=main.querySelector(`[data-note="${ta.dataset.cat}"]`);
+      if(note){ note.textContent='saved'; clearTimeout(note._t); note._t=setTimeout(()=>note.textContent='',900); }
+      renderProg();
+      const li=document.querySelector(`li.type[data-id="${CSS.escape(activeId)}"] .dot`);
+      if(li) li.classList.toggle('done', hasComments(activeId));
+    });
+  });
+
+  if(d.demo) initDifficultyPanel(d);
+}
+
+function hasRange(id){ const c=store[id]; return !!(c&&c.diffRange&&(c.diffRange.min!=null||c.diffRange.max!=null)); }
+function rangeText(id){
+  const r=(store[id]||{}).diffRange||{};
+  if(r.min==null&&r.max==null) return '';
+  return `${r.min==null?'?':r.min}–${r.max==null?'?':r.max} of 1–20`;
+}
+
+function exportReview(){
+  const stamp=new Date().toISOString().slice(0,16).replace('T',' ');
+  const withC=DATA.filter(d=>hasComments(d.type_id)||hasRange(d.type_id));
+  let md=`# GT Question-Type Review — comments\n\n_${withC.length} of ${DATA.length} types reviewed · exported ${stamp}_\n\n`;
+  let curDom=null;
+  withC.forEach(d=>{
+    if(d.domain!==curDom){ md+=`\n## Domain: ${d.domain}\n`; curDom=d.domain; }
+    const c=store[d.type_id]||{};
+    md+=`\n### ${d.type_id} — ${d.name}  (${d.stage})\n`;
+    const rt=rangeText(d.type_id);
+    if(rt) md+=`- **Intended difficulty range:** ${rt}\n`;
+    CATS.forEach(cat=>{ const v=(c[cat.key]||'').trim(); if(v) md+=`- **${cat.label.replace(/^\d+ · /,'')}:** ${v}\n`; });
+  });
+  download('gt-type-review.md', md, 'text/markdown');
+  download('gt-type-review.json', JSON.stringify(store,null,2), 'application/json');
+}
+function download(name, text, type){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type}));
+  a.download=name; document.body.appendChild(a); a.click(); a.remove();
+}
+function importReview(file){
+  const r=new FileReader();
+  r.onload=()=>{ try{
+    const obj=JSON.parse(r.result);
+    Object.keys(obj).forEach(id=>{ store[id]=Object.assign(store[id]||{}, obj[id]); });
+    saveStore(); renderProg(); renderList(); if(activeId) select(activeId);
+    alert('Imported review comments.');
+  }catch(e){ alert('Could not parse that JSON.'); } };
+  r.readAsText(file);
+}
+
+/**
+ * The list is what this app is APPROVED to serve, live; the prose about each type is local.
+ *
+ * ══ WHY APPROVAL IS THE FILTER ════════════════════════════════════════════════════════════════════
+ *
+ * A reviewer's time is the scarce thing, and the old list wasted it in two directions at once. It
+ * carried 17 types that exist only as a design spec, with no bank in the library at all, and the
+ * library carried 17 more that have items but nothing SCORABLE — the page could draw them and could
+ * never serve a question from one. Both kinds look identical to a reviewer until they click and get
+ * nothing. Meanwhile four types with real banks were missing from the file entirely.
+ *
+ * So the list is neither file. It is `approvedForThisApp` from the platform, which the review app's
+ * own registration defines: 36 types that have scorable items and a demo to draw them in. Changing
+ * what a reviewer sees is then an approval change on the platform, not an edit here — which is the
+ * whole point of an app having its own supported-type list.
+ */
+async function loadTypes(){
+  const spec=await fetch('review-data.json',{cache:'no-store'}).then(r=>r.json());
+  const bySpec=new Map(spec.map(s=>[s.type_id,s]));
+  const live=await PlatformClient.types();
+  const usable=live.filter(t=>t.approvedForThisApp && (t.scorableCount??0)>0);
+
+  const merged=usable.map(t=>{
+    const s=bySpec.get(t.typeCode);
+    return {
+      ...(s ?? {
+        type_id:t.typeCode,
+        name:t.title||t.typeCode,
+        domain:t.domain||'—',
+        stage:'S1',
+        stage_label:'no design spec on file',
+      }),
+      type_id:t.typeCode,
+      onPlatform:true,
+      hasSpec:Boolean(s),
+      platform:t,
+    };
+  });
+  merged.sort((a,b)=>a.domain.localeCompare(b.domain)||a.type_id.localeCompare(b.type_id));
+  merged._hidden=live.length-usable.length;
+  return merged;
+}
+
+loadTypes().then(data=>{
+  DATA=data;
+  const noSpec=DATA.filter(d=>!d.hasSpec).length;
+  const sub=document.getElementById('liveNote');
+  if(sub) sub.textContent=`${DATA.length} servable types, live from the library`+
+    (noSpec?` · ${noSpec} with no design spec on file`:'')+
+    (DATA._hidden?` · ${DATA._hidden} with nothing scorable are hidden`:'');
+  const domSel=document.getElementById('fDomain');
+  [...new Set(DATA.map(d=>d.domain))].sort().forEach(dm=>{
+    const o=document.createElement('option'); o.value=dm; o.textContent=dm; domSel.appendChild(o);
+  });
+  ['search','fDomain','fStage','fUnrev'].forEach(id=>{
+    document.getElementById(id).addEventListener('input',renderList);
+    document.getElementById(id).addEventListener('change',renderList);
+  });
+  document.getElementById('exportBtn').onclick=exportReview;
+  document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+  document.getElementById('importFile').onchange=e=>{ if(e.target.files[0]) importReview(e.target.files[0]); };
+  renderProg(); renderList();
+  if(DATA.length) select(DATA[0].type_id);
+  else document.getElementById('main').innerHTML='<div class="empty">The platform returned no types for this app.</div>';
+}).catch(err=>{
+  document.getElementById('main').innerHTML=`<div class="empty">Could not load the type list.<br>`+
+    `This page now reads the live catalogue, so it needs <code>platform-config.json</code> (apiBaseUrl + appKey) `+
+    `and this origin must be in the API's CORS allow-list.<br><br><small>${esc(err.message)}</small></div>`;
+});
+</script>
+</body>
+</html>

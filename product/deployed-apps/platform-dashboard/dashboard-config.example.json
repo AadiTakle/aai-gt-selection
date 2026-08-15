@@ -1,0 +1,7 @@
+{
+  "apiBaseUrl": "https://<api>.execute-api.<region>.amazonaws.com",
+  "appKey": "gtk_...",
+  "apps": {
+    "<name>": "gtk_..."
+  }
+}

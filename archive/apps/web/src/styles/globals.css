@@ -1,0 +1,308 @@
+/* =========================================================================
+   GT School brand token layer.
+   Warm off-white paper carries the content, Navy does the structural work,
+   Gold is the accent (a surface, never ink). Literata display / Inter Tight
+   body / Inconsolata utility marks. See the GT School brand skill.
+   ========================================================================= */
+:root {
+  /* Type — self-hosted variable faces (see root layout imports) */
+  --font-display: 'Literata Variable', 'Palatino Linotype', Palatino, Georgia, serif;
+  --font-body: 'Inter Tight Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-utility: 'Inconsolata Variable', ui-monospace, Consolas, monospace;
+
+  /* Brand palette */
+  --gt-gold: #e48b53;
+  --gt-gold-deep: #ab683e;
+  --gt-gold-light: #ebba9b;
+  --gt-gold-lighter: #f5ddcd;
+  --gt-gold-lightest: #f8e8de;
+  --gt-navy: #002a3a;
+  --gt-blue-dark: #003b5c;
+  --gt-blue: #004f71;
+  --gt-dark-navy: #001117;
+  --gt-off-white: #fcf4ef;
+  --gt-near-white: #fbfbfb;
+  --gt-black: #1a1a1a;
+  --gt-grey: #cac6c4;
+  --gt-grey-light: #d9d9d9;
+
+  /* Semantic tokens — components reference these, never a raw hex */
+  --color-bg: var(--gt-off-white);
+  --color-panel: #ffffff;
+  --color-surface: var(--gt-gold-lightest);
+  --color-surface-strong: var(--gt-gold-lighter);
+  --color-surface-selected: var(--gt-gold-light);
+  --color-ink: var(--gt-dark-navy);
+  --color-ink-soft: #33505c; /* 7.9 on off-white — secondary prose */
+  --color-muted: #4a6470; /* 5.8 on off-white — captions, metadata */
+  --color-on-navy: var(--gt-near-white); /* 14.6 on navy */
+  --color-on-navy-soft: #9fb6bd; /* legible muted text on the navy field */
+  --color-border: #ecd9cb;
+  --color-border-strong: var(--gt-grey);
+  --color-primary: var(--gt-navy);
+  --color-primary-hover: var(--gt-dark-navy);
+  --color-primary-soft: var(--gt-gold-lighter);
+  --color-accent: var(--gt-gold);
+  --color-accent-ink: var(--gt-dark-navy); /* text on Gold is Dark Navy (7.4) */
+  --color-focus: var(--gt-blue);
+  --color-success: #146c43; /* semantic ready/success, ~5.3 on white */
+  --color-danger: #a4442f; /* semantic error, passes on light surfaces */
+
+  /* Per-item identity accents that carry TEXT on a warm tint. Both hexes come
+     from the brand's verified "warm and cool accents on tinted surfaces" table,
+     so a warm accent never has to be Gold-as-ink. */
+  --color-accent-cool-ink: #14384a; /* 10.4 on gold-lightest */
+  --color-accent-warm-ink: #6f4526; /* 6.9 on gold-lightest */
+
+  /* Shape */
+  --radius-xs: 0.25rem; /* 4px — compact tags */
+  --radius-md: 0.5rem; /* 8px — default */
+  --radius-lg: 0.75rem; /* 12px — large containers */
+  --cut-br: 14px; /* signature bottom-right chamfer */
+
+  /* Spacing scale (named steps: tiny … xlarge) */
+  --gt-space-1: 0.25rem;
+  --gt-space-2: 0.5rem;
+  --gt-space-3: 0.75rem;
+  --gt-space-4: 1rem;
+  --gt-space-5: 1.5rem;
+  --gt-space-6: 2rem;
+  --gt-space-7: 3rem;
+  --gt-space-8: 4rem;
+
+  --gt-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Surfaces sit flat on the paper; only floating popovers get a soft lift. */
+  --gt-shadow-card: none;
+  --gt-shadow-pop: 0 6px 18px rgb(0 17 23 / 0.12);
+
+  /* -----------------------------------------------------------------------
+     Legacy aliases → brand tokens. Kept so any not-yet-migrated reference
+     still resolves to an on-brand value; new code should use the tokens
+     above (or the brand palette names) directly.
+     ----------------------------------------------------------------------- */
+  --gt-font-display: var(--font-display);
+  --gt-font-sans: var(--font-body);
+  --gt-font-heading: var(--font-display);
+  --gt-font-body: var(--font-body);
+  --gt-font-utility: var(--font-utility);
+
+  --gt-navy-dark: var(--gt-dark-navy);
+  --gt-ember: var(--gt-gold);
+  --gt-ember-hi: var(--gt-gold-light);
+  --gt-ember-lo: var(--gt-gold-lighter);
+  --gt-petrol: var(--gt-navy);
+  --gt-petrol-70: var(--gt-blue-dark);
+  --gt-petrol-50: var(--color-on-navy-soft);
+  --gt-paper: var(--color-panel);
+  --gt-card: var(--color-panel);
+  --gt-ink: var(--color-ink);
+  --gt-ink-60: var(--color-ink-soft);
+  --gt-ink-40: var(--color-muted);
+  --gt-line: var(--color-border);
+  --gt-line-strong: var(--color-border-strong);
+  --gt-good: var(--color-success);
+
+  --gt-color-background: var(--color-bg);
+  --gt-color-foreground: var(--color-ink);
+  --gt-color-muted: var(--color-muted);
+  --gt-color-accent: var(--gt-blue);
+  --gt-color-surface: var(--color-panel);
+  --gt-color-border: var(--color-border);
+
+  --gt-radius-sm: var(--radius-md);
+  --gt-radius-md: var(--radius-lg);
+  --gt-radius-lg: var(--radius-lg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--color-ink);
+  background: var(--color-bg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* The serif is a display face: 300 weight, at 1.1rem and above. */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+h1 {
+  letter-spacing: -0.03em;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--gt-blue);
+  text-underline-offset: 0.15em;
+}
+
+code {
+  padding: 0.1rem 0.3rem;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-utility);
+  font-size: 0.85em;
+}
+
+/* Visible keyboard focus everywhere. Zero-specificity :where() so components
+   can still refine it; the ring is never clipped by a chamfer because the
+   chamfer lives on a ::before layer. */
+:where(button, a, input, select, textarea, summary):focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 0.125rem;
+}
+
+/* ---- app shell ---- */
+.app-shell {
+  margin: 0 auto;
+  max-width: 72rem;
+  min-height: 100vh;
+  padding: 1rem 1.5rem 3rem;
+}
+
+.app-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 1.5rem 0;
+}
+
+.app-header-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-header strong {
+  font-family: var(--font-body);
+  font-weight: 620;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+}
+
+.gt-brand-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.gt-brand-link:hover {
+  opacity: 0.85;
+}
+
+/* On the wizard, the fixed 300px sidebar covers the top-left, hiding the header
+   logo. Shift the logo right to line up with where the canvas text starts.
+   Logo and canvas share the centered app-shell origin, so the gap is a constant:
+   sidebar 300px + canvas padding 2rem − header padding 1.5rem = 308px. */
+body:has(.wizard-shell) .gt-brand-link {
+  margin-left: 308px;
+}
+
+@media (max-width: 860px) {
+  body:has(.wizard-shell) .gt-brand-link {
+    margin-left: 0;
+  }
+}
+
+/* ---- landing surface grid (architecture shell) ---- */
+.surface-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  margin-top: 2rem;
+}
+
+.surface-card,
+.surface-placeholder {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+}
+
+.surface-card {
+  display: block;
+  text-decoration: none;
+  color: var(--color-ink);
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.surface-card:hover {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+
+.surface-card strong {
+  font-family: var(--font-body);
+  font-weight: 620;
+  color: var(--color-ink);
+}
+
+.surface-card p {
+  margin: 0.35rem 0 0;
+  color: var(--color-ink-soft);
+  font-size: 0.9rem;
+}
+
+.surface-placeholder {
+  margin-top: 3rem;
+}
+
+.surface-placeholder h1 {
+  font-size: clamp(2rem, 5vw, 4rem);
+  margin: 0.25rem 0 1rem;
+}
+
+.eyebrow {
+  color: var(--gt-blue);
+  font-family: var(--font-utility);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.boundary {
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+}
+
+/* Motion conveys state, not decoration. Honor reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
