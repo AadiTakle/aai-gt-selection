@@ -1,0 +1,56 @@
+{
+  "name": "gt-screener",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shared assessment item library, adaptive engine, and the screeners built on them.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "tsx watch apps/api/src/server.ts",
+    "dev:web": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "sim": "tsx packages/engine/src/harness/run-simulation.ts",
+    "verify": "npm run typecheck && npm run test && npm run sim && npm run smoke",
+    "smoke": "bash scripts/smoke.sh",
+    "practice": "python3 scripts/check-practice.py 5181",
+    "ui": "tsx packages/ui-contract/src/cli.ts",
+    "planner": "vite --config vite.planner.config.ts",
+    "review": "vite --config vite.review.config.ts",
+    "lab:system": "vite --config vite.lab-system.config.ts",
+    "verify:showcase": "tsx apps/lab-system/verify-showcase.ts",
+    "kit": "tsx apps/lab-system/shared/uikit/cli.ts",
+    "kit:preview": "tsx apps/lab-system/shared/uikit/preview.ts",
+    "lab:character": "vite --config vite.lab-character.config.ts",
+    "sanctuary": "vite --config vite.sanctuary.config.ts",
+    "api:spec": "tsx scripts/write-openapi.ts"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@types/three": "^0.185.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "vitest": "^2.1.8"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
+    "@react-three/rapier": "^2.2.0",
+    "express": "^4.21.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.185.1"
+  }
+}

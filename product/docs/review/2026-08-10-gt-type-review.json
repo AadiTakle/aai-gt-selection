@@ -1,0 +1,113 @@
+{
+  "FLU-ANALOGY-01": {
+    "ui": "When rotating 72 degrees, some fgures (like the pentagons, have rotationa symmetry so it is impossible to tell them apart) make sure to only use figures with a clear direction, tak e into consideration for all rotation ones and stuff"
+  },
+  "FLU-CARPET-01": {
+    "ui": "symbols too small, make larger (if sizing is a feature, its not noticeable enough), ie make size differences more noticable"
+  },
+  "FLU-ODDPAIR-01": {
+    "ui": "sometimes there are multiple odd ones out, for example here, the one with only one dot, or the one thatshrinks instead of grows, or the one without any red, etc"
+  },
+  "FLU-STACK-01": {
+    "general": "maybe could be not multiple chocie and you fill it out instad, fairly easy to guess since there arent many options ( as new category maybe)"
+  },
+  "FLU-VENN-01": {
+    "ui": "in some questions, the same symbol appears s twice, so they cant be separate venn diagrams, so confusing (especially difficulty 20 ones)"
+  },
+  "FLU-DEDUCE-01": {
+    "ui": "cleus arent super clear, because is  you dont know what attributrs are being eeasured. kill this question type"
+  },
+  "FLU-GRIDCOPY-01": {
+    "ui": "always have two examples, bc for really hard problems it is impossible to determine a clear rule, becomes kinda guesswork. or at least clarify that each cell ahs a different rule"
+  },
+  "FLU-LADDER-01": {
+    "ui": "maybe difficulty doesnt go that high??"
+  },
+  "FLU-MATRIXBUILD-01": {
+    "ui": "kill this question typr"
+  },
+  "CX-achieve-02": {
+    "ui": "kill this question type"
+  },
+  "CX-diverge-01": {
+    "ui": "kill"
+  },
+  "CX-figural-01": {
+    "ui": "kill"
+  },
+  "FLU-CONCEPT-01": {
+    "ui": "efficiency shouldn be weighted bc the child will plan to use all of them not plan to optimize"
+  },
+  "QUANT-DOTS-01": {
+    "ui": "lowkey really hgoh guess percenage, and very fine margins, not very informative"
+  },
+  "QUANT-EQUAL-01": {
+    "ui": "kill"
+  },
+  "QUANT-MATRIX-01": {
+    "ui": "lowkey kinda easy lol"
+  },
+  "QUANT-NUMLINE-01": {
+    "ui": "kill"
+  },
+  "QUANT-SERIES-01": {
+    "ui": "difficulty might be off"
+  },
+  "QUANT-BUILD-01": {
+    "ui": "kill"
+  },
+  "QUANT-MIX-01": {
+    "ui": "i think difficulty doesnt really scale\ne the 20 difficulty one you can jst fill to be the same as the other ones (so its trivial)"
+  },
+  "QUANT-MOBILE-01": {
+    "ui": "kill"
+  },
+  "QUANT-WORD-01": {
+    "ui": "sometimes you need all the numbers so doesnt make sense lowkey (always introduce distractor, or just if no ditractor theyre reallye easy?"
+  },
+  "GB-FILTER-01": {
+    "ui": "kill"
+  },
+  "GB-TRACK-01": {
+    "ui": "ui  doesnt sshow all the jars, so hides make sure it is playable"
+  },
+  "SPA-FOLDNET-01": {
+    "ui": "make sure the net is correct should be edges touching edges, not vertices touching edges."
+  },
+  "SPA-PUNCH-01": {
+    "ui": "folding animation is bad, try to fix it like the previous one, which is good"
+  },
+  "SPA-ROLL-01": {
+    "ui": "restatrt doesnt let you see the color of ther cube (restart should send you to start, but not start rolling) (and you cant tell what the bottom one is ever, because its hidden at start and then hidden, so maybe show a netting ro smth)"
+  },
+  "SPA-SCENE-01": {
+    "ui": "make sure the icons are flat on the ground or else its unclear, also remove shadows pls"
+  },
+  "SPA-SHADOW-01": {
+    "ui": "make ligth rays parallel to ground pls"
+  },
+  "SPA-XSCAN-01": {
+    "ui": "sometimes it is impossibler to know the shape of answers chocies (or at least very hrd) for example one problem requires finding pentagonal pyramid, but the opions all look like pyramids and cant see base."
+  },
+  "WM-bind-01": {
+    "ui": "some of them have veryslight color differences, make each problem only use one color ("
+  },
+  "WM-gate-01": {
+    "ui": "kill"
+  },
+  "WM-corsi-01": {
+    "ui": "make lighting more bright so it is more noticeble whichlit up (also add replay of lighting up pls)"
+  },
+  "WM-gridflash-01": {
+    "ui": "kill"
+  },
+  "GB-EXPLORE-01": {
+    "ui": "make a player character, also smal drawing of eadch icon (like home well etc(, also small pause between fidning everything and it turinig black. make sure to add frame.of reference of where youre pointing from"
+  },
+  "GB-PATHFORGE-01": {
+    "ui": "kill"
+  },
+  "GB-SHAPEFIT-01": {
+    "ui": "kill"
+  }
+}

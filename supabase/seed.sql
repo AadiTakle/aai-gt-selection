@@ -1,5 +1,0 @@
--- Intentionally empty.
---
--- Phase B seeds no applicant, assessment, reviewer, or policy data. Login-capable fictional
--- users are created through scripts/create-local-auth-users.ts so password hashes and Auth
--- internals never enter SQL or version control.

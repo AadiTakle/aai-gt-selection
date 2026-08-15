@@ -1,0 +1,92 @@
+# Nothing merges on a red test.
+#
+# `product/screener/` had a substantial test suite, a simulation and an end-to-end smoke suite, and nothing ran them
+# automatically. This is task 3.6 from product/docs/handoff/engine-portability-tasks.md.
+#
+# Two jobs rather than one, because they fail for different reasons and the distinction is worth
+# seeing at a glance: `verify` is the measurement engine, `build` is the browser boundary.
+
+name: verify
+
+# Quoted deliberately. In YAML 1.1 a bare `on` is the boolean true, so some parsers read this key as
+# `True` rather than "on". GitHub's own parser accepts either, but anything else reading this file —
+# a linter, a script, a person — should not have to know that.
+"on":
+  push:
+    branches: ['**']
+  pull_request:
+
+# Least privilege: this workflow reads the repository and needs nothing else.
+permissions:
+  contents: read
+
+# A second push supersedes the first. Cancelling saves a runner and stops a stale red X sitting on a
+# branch that has already been fixed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      # Never stop the other version early: knowing a failure is version-specific is most of the
+      # diagnosis, and that is exactly what a shared `fail-fast` hides.
+      fail-fast: false
+      matrix:
+        # 20 is the floor `product/screener/package.json` declares under `engines`. 24 is what the work was
+        # actually done on. Testing only one of them means the declaration or the reality is untested.
+        node: ['20', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: product/screener/package-lock.json
+
+      # `npm ci` and not `npm install`: it installs exactly the lockfile and fails if the lockfile and
+      # package.json disagree, which is a thing worth failing on rather than silently resolving.
+      - name: Install
+        working-directory: product/screener
+        run: npm ci
+
+      # Typecheck, the current tests, the simulation harness, and the end-to-end smoke suite. The smoke script
+      # starts its own API on port 5199 and tears it down, so nothing here needs a service container.
+      # It shells out to `python3` and `curl`, both present on ubuntu-latest.
+      - name: Verify
+        working-directory: product/screener
+        run: npm run verify
+
+  build:
+    name: web build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: product/screener/package-lock.json
+
+      - name: Install
+        working-directory: product/screener
+        run: npm ci
+
+      # Deliberately separate from `verify`, which does not build.
+      #
+      # This is the only check that protects the browser boundary. `packages/qbank/index.ts` is the
+      # browser-safe entry and `server.ts` is the one that reaches the filesystem; re-exporting the wrong
+      # thing from the wrong file bundles `node:fs` into the web app, which has happened before and is
+      # recorded in that file's header. A typecheck does not notice. A build does.
+      - name: Build
+        working-directory: product/screener
+        run: npm run build

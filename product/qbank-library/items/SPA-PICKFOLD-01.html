@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-PICKFOLD-01 · Which Fold Made It?</title>
+<style>
+:root{--ink:#004f71;--paper:#f8e8de;--edge:#e48b53;--coral:#a4442f;--blue:#e48b53;--mint:#4a6470;--violet:#9fb6bd;--good:#4a6470;--tel:#002a3a;--tel2:#003b5c}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{display:flex;background:radial-gradient(circle at 20% 10%,#f5ddcd 0,transparent 32%),linear-gradient(145deg,#fcf4ef,#fcf4ef);color:var(--ink);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif}
+#wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:10px}#badge{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#6f4526}#howto{max-width:620px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--blue);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #33505c}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
+#howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fcf4ef;color:var(--blue);border:2px solid #f5ddcd;min-height:30px}
+#phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+#phasecue[data-phase="ready"]{background:#fcf4ef;color:var(--blue);border-color:#f5ddcd}
+#phasecue[data-phase="locked"]{background:var(--blue);color:#ffffff;border-color:var(--blue)}
+#prompt{max-width:620px;width:100%;font-size:16px;font-weight:800;color:#33505c;text-align:center;min-height:22px}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}#status.ok{color:var(--good)}#status.neutral{color:#4a6470}
+#stagecard{width:min(720px,100%);background:#ffffff;border-radius:28px;padding:18px;box-shadow:0 24px 60px -32px #33505c;display:grid;gap:14px}
+#target{display:flex;align-items:center;justify-content:center;gap:18px;background:#f8e8de;border:3px solid #9fb6bd;border-radius:20px;padding:12px;min-height:118px}.scissors{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#4a6470;max-width:64px;text-align:center;line-height:1.25}.qmark{font-size:34px;font-weight:800;color:#4a6470}
+.pattern{display:grid;grid-template-columns:repeat(8,1fr);width:94px;height:94px;border:3px solid var(--edge);background:var(--paper);box-shadow:inset 0 0 0 1px #ffffff}.pcell{border:.5px solid #ecd9cb;display:grid;place-items:center}.pcell.dot:after{content:"";width:8px;height:8px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 2px #ffffff,0 0 0 3px var(--coral)}.pcell.diamond:after{content:"";width:7px;height:7px;background:var(--violet);transform:rotate(45deg);box-shadow:0 0 0 2px #ffffff}
+.arena{display:grid;grid-template-columns:230px 1fr;gap:16px;align-items:center}.foldScene{height:230px;border-radius:20px;background:linear-gradient(165deg,#003b5c,#33505c);perspective:1500px;display:grid;place-items:center;position:relative;overflow:hidden}.foldScene:before{content:"";position:absolute;inset:auto 18px 24px;height:18px;border-radius:50%;background:#001117;filter:blur(10px);opacity:.45}
+/* The paper is a fixed 164px stage; the sheet and the hinging flap are boxes inside it, so a
+   fold is one sheet splitting at the crease rather than an overlay sliding over a whole sheet. */
+#foldPaper{width:164px;height:164px;position:relative;transform:rotateX(38deg) rotateZ(-6deg);transform-style:preserve-3d;transition:transform .28s ease}
+#sheet{position:absolute;left:0;top:0;width:164px;height:164px;background:var(--paper);border:3px solid var(--edge);border-radius:5px;box-shadow:0 10px 18px #001117aa}
+#flap{position:absolute;display:none;transform-style:preserve-3d;z-index:3}
+.face{position:absolute;inset:0;border:3px solid var(--edge);border-radius:5px;backface-visibility:hidden}
+.face.front{background:var(--paper)}
+.face.back{background:#f5ddcd}
+/* Holes on the folded stack wear the same mark they wear in the target pattern —
+   coral circle for the first punch, violet diamond for the second — so a child
+   comparing stack with pattern can see which punch made which holes. */
+#punch{position:absolute;inset:0;display:none;z-index:4;pointer-events:none}
+.punchDot{position:absolute;display:grid;place-items:center}
+.punchDot:after{content:"";width:100%;height:100%;border-radius:50%;background:var(--coral);box-shadow:0 0 0 1.5px #ffffff}
+.punchDot.alt:after{border-radius:0;background:var(--violet);transform:rotate(45deg);box-shadow:0 0 0 1.5px #ffffff}
+#layerBadge{position:absolute;right:12px;bottom:10px;color:#4a6470;font:700 12px ui-monospace,monospace}
+#options{display:grid;grid-template-columns:1fr 1fr;gap:10px}.option{border:3px solid #f8e8de;border-radius:16px;background:#ffffff;min-height:88px;padding:8px;cursor:pointer;display:grid;grid-template-columns:34px 1fr;align-items:center;gap:8px;transition:.15s}.option:hover,.option:focus-visible{transform:translateY(-2px);border-color:#ebba9b;outline:none}.option.sel{border-color:var(--blue);box-shadow:0 0 0 4px #f8e8de}.option[disabled]{cursor:default;opacity:.9}.key{width:28px;height:28px;border-radius:9px;background:#004f71;color:#ffffff;display:grid;place-items:center;font-weight:900;box-shadow:0 3px 0 #002a3a}.seq{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}.foldchip{width:31px;height:31px;border-radius:9px;display:grid;place-items:center;color:#ffffff;font-size:16px;font-weight:900}.opL{background:var(--coral)}.opR{background:var(--blue)}.opT{background:var(--mint)}.opB{background:var(--violet)}
+#controls{display:flex;justify-content:center;align-items:center;gap:12px}.roundBtn{border:0;border-radius:50%;cursor:pointer;font:700 24px system-ui}.roundBtn:focus-visible{outline:4px solid #ebba9b;outline-offset:2px}#replay{width:50px;height:50px;background:#f8e8de;color:#6f4526}#lock{width:66px;height:66px;background:var(--blue);color:#ffffff;box-shadow:0 10px 24px -10px var(--blue)}#lock:disabled{opacity:.28;cursor:not-allowed}#hotkeys{text-align:center;color:#6f4526;font:700 12px ui-monospace,monospace}.kbd{display:inline-grid;place-items:center;min-width:23px;height:22px;padding:0 5px;border:1px solid #ecd9cb;border-bottom-width:3px;border-radius:6px;background:#ffffff;color:#33505c;margin:0 2px}
+#ghost{position:fixed;left:0;top:0;z-index:80;opacity:0;pointer-events:none;transition:transform .48s cubic-bezier(.2,.8,.2,1),opacity .2s;filter:drop-shadow(0 3px 4px #00111766)}#ghost.show{opacity:1}#ghost.tap{animation:tap .38s}@keyframes tap{50%{scale:.78}}
+#telemetry{width:330px;flex:0 0 330px;min-height:100vh;background:var(--tel);color:#f5ddcd;display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace}#telemetry h3{margin:0;padding:13px 15px;background:var(--tel2);color:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+#itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #33505c;border-radius:12px}.itemRow{display:flex;justify-content:space-between;color:#4a6470;font-size:11px;padding:2px 0}.itemRow b{color:#f8e8de}
+#mlist{padding:8px 12px;display:grid;gap:7px}.mrow{display:grid;grid-template-columns:112px 1fr;gap:6px}.mid{color:#6f4526;font-weight:800}.mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:#6f4526;font-size:11px;margin-top:-4px}#logwrap{margin-top:auto;border-top:1px solid #004f71}#logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}#log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:3px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:330px;flex:none}.arena{grid-template-columns:1fr}.foldScene{height:180px}#stagecard{padding:13px}}@media(max-width:480px){#options{grid-template-columns:1fr}.option{min-height:62px}.arena{gap:10px}}@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+<div id="wrap">
+  <div id="badge">SPA-PICKFOLD-01 · Which Fold Made It?</div>
+  <header id="howto">
+    <h1>How to use — Which Fold Made It?</h1>
+    <p>The top shows a sheet after it was folded, cut, and unfolded. Tap each choice to watch it fold and cut, then pick the fold order that makes that exact pattern and press the check to submit. Number keys also work.</p>
+  </header>
+  <div id="phasecue" data-phase="waiting">Waiting for item</div>
+  <div id="prompt"></div>
+  <main id="stagecard">
+    <div id="target"><span class="scissors">Unfolded cut</span><div id="targetGrid" class="pattern" aria-label="unfolded cut pattern"></div><span class="qmark">?</span></div>
+    <div class="arena">
+      <div class="foldScene"><div id="foldPaper"><div id="sheet"></div><div id="flap"><span class="face front"></span><span class="face back"></span></div><div id="punch"></div></div><span id="layerBadge">1&times;</span></div>
+      <div id="options" aria-label="fold sequence choices"></div>
+    </div>
+    <div id="hotkeys"><span class="kbd">1</span>…<span class="kbd">6</span> preview · <span class="kbd">&crarr;</span> lock</div>
+    <div id="controls"><button id="replay" class="roundBtn" title="replay preview" aria-label="replay preview">&#8635;</button><button id="lock" class="roundBtn" title="lock answer" aria-label="lock answer" disabled>&#10003;</button></div>
+    <div id="status" class="neutral">Waiting for an item from the host…</div>
+  </main>
+  <div id="playgate">
+    <p>The paper is ready. Press play when you are, and the folding starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
+</div>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="itemcard">
+    <div class="itemRow"><span>ITEM</span><b id="i_id">—</b></div>
+    <div class="itemRow"><span>MODE</span><b id="i_mode">—</b></div>
+    <div class="itemRow"><span>FOLDS/CUTS</span><b id="i_fc">—</b></div>
+    <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">—</b></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const ICON={L:'\u2192\u2502',R:'\u2502\u2190',T:'\u2193',B:'\u2191'};
+
+/* ---- postMessage embedding contract (EXAM_ADAPTIVE_BUILD_PLAN.md §2) ----
+   host->demo : {source:'gt-exam-host', type:'init', item:ServedItem} , {type:'start'}
+   demo->host : {source:'gt-exam-demo', type:'ready'} , {type:'result', result:ItemResult} , {type:'telemetry', event}
+   The demo renders ServedItem.content only. It NEVER receives or shows the answer key,
+   and it emits the child's raw response + numeric metrics + telemetry — no correctness. */
+const HOST='gt-exam-host',SELF='gt-exam-demo';
+const embedded=window.parent&&window.parent!==window;
+function post(type,extra){const msg=Object.assign({source:SELF,type},extra||{});if(embedded){try{window.parent.postMessage(msg,'*')}catch(e){}}}
+
+/* ---------- state ---------- */
+let item=null,content=null,options=[],punches=[],gridN=8;
+let selected=-1,locked=true,started=false,animToken=0;
+const T={itemStart:0,first:0,revs:0,previews:0,previewed:new Set(),rt:0,rapid:false,blur:false,committed:false,lastActivity:performance.now(),events:[]};
+
+const PHASE={waiting:'Waiting for item',ready:'Ready',locked:'Answer locked'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+function nowRel(){return Math.max(0,performance.now()-(T.itemStart||performance.now()));}
+
+/* ---------- telemetry ---------- */
+const METERS=[
+ {id:'M-RTFIRST',name:'Time to first preview',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-RT',name:'Commit time (engagement-gated)',get:()=>T.committed?`${T.rt} ms${T.rapid?' · gated':''}`:'—'},
+ {id:'M-REV',name:'Answer revisions',get:()=>String(T.revs)},
+ {id:'M-EXPLORE',name:'Distinct sequences previewed',get:()=>`${T.previewed.size}/${options.length}`},
+ {id:'M-RAPIDGUESS',name:'Rapid/idle flag (tracked)',get:()=>T.committed?(T.rapid?'1':'0'):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get()});}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function emit(kindEv,data){const ev=Object.assign({t:Math.round(nowRel()),kind:kindEv},data||{});T.events.push(ev);post('telemetry',{event:ev});}
+function first(){if(!T.first&&started){T.first=performance.now()-T.itemStart;emit('first_action',{ms:Math.round(T.first)});log(`first preview @ ${Math.round(T.first)}ms`);renderMeters();}}
+function activity(){T.lastActivity=performance.now();}
+addEventListener('pointerdown',activity);addEventListener('keydown',activity);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!locked){T.blur=true;emit('blur');}});
+
+/* ---------- render target + options ---------- */
+function paintPattern(cells){const g=$('#targetGrid');g.innerHTML='';const map=new Map(cells.map(c=>[c.x+','+c.y,c.p]));
+ for(let y=0;y<gridN;y++)for(let x=0;x<gridN;x++){const d=document.createElement('span');const v=map.get(x+','+y);d.className='pcell'+(v===0?' dot':v>=1?' diamond':'');g.appendChild(d);}}
+function optionHTML(o,i){return `<button class="option" data-i="${i}" aria-label="choice ${o.key}"><span class="key">${o.key}</span><span class="seq">${o.seq.map(op=>`<i class="foldchip op${op}">${ICON[op]}</i>`).join('')}</span></button>`;}
+function buildOptions(){const wrap=$('#options');wrap.innerHTML=options.map(optionHTML).join('');wrap.style.gridTemplateColumns=`repeat(${options.length<=2?options.length:2},1fr)`;}
+
+/* ---------- fold + cut animation ----------
+   The sheet is tracked as a rectangle inside a fixed stage. A fold splits it at the crease:
+   the half that stays becomes the sheet at once, and the other half hinges 180° about the
+   crease and lands exactly on it. Nothing slides, nothing protrudes, and the union of sheet
+   and flap is the paper's true outline at every frame.
+   Web Animations ignore the CSS reduced-motion rule, so the durations are gated here too. */
+const STAGE=164;
+const REDUCED=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
+const dur=ms=>REDUCED.matches?1:ms;
+const pause=ms=>sleep(dur(ms));
+let rect={x:0,y:0,w:STAGE,h:STAGE};
+function setBox(el,r){el.style.left=r.x+'px';el.style.top=r.y+'px';el.style.width=r.w+'px';el.style.height=r.h+'px';}
+/** Pan the stage so the shrinking sheet stays in the middle of the scene. */
+function centreStage(){
+  const dx=STAGE/2-(rect.x+rect.w/2),dy=STAGE/2-(rect.y+rect.h/2);
+  $('#foldPaper').style.transform=`translate(${dx}px,${dy}px) rotateX(38deg) rotateZ(-6deg)`;
+}
+function resetGeometry(){
+  rect={x:0,y:0,w:STAGE,h:STAGE};setBox($('#sheet'),rect);centreStage();
+  const flap=$('#flap');flap.getAnimations().forEach(a=>a.cancel());flap.style.display='none';
+  const pl=$('#punch');pl.style.display='none';pl.innerHTML='';$('#layerBadge').textContent='1\u00d7';
+}
+function resetPaper(){animToken++;resetGeometry();}
+/** Which half hinges, which half stays, and the crease it turns about.
+    The stage is tilted rotateX(38deg), so the sheet's local +z points up off the
+    table. Each turn's sign is the one that sends the hinging half through +z: the
+    flap rises, passes over the crease and settles on the half that stayed. The
+    opposite sign is the same half-turn through the table, which is what made the
+    paper look like it was folding under itself with a corner poking out below. */
+function foldParts(op,r){
+  const hw=r.w/2,hh=r.h/2;
+  if(op==='L')return{flap:{x:r.x,y:r.y,w:hw,h:r.h},stay:{x:r.x+hw,y:r.y,w:hw,h:r.h},origin:'right center',axis:'Y',deg:180};
+  if(op==='R')return{flap:{x:r.x+hw,y:r.y,w:hw,h:r.h},stay:{x:r.x,y:r.y,w:hw,h:r.h},origin:'left center',axis:'Y',deg:-180};
+  if(op==='T')return{flap:{x:r.x,y:r.y,w:r.w,h:hh},stay:{x:r.x,y:r.y+hh,w:r.w,h:hh},origin:'center bottom',axis:'X',deg:-180};
+  return{flap:{x:r.x,y:r.y+hh,w:r.w,h:hh},stay:{x:r.x,y:r.y,w:r.w,h:hh},origin:'center top',axis:'X',deg:180};
+}
+async function animateSequence(seq){
+  const token=++animToken,sheet=$('#sheet'),flap=$('#flap'),punch=$('#punch'),back=flap.querySelector('.back');
+  resetGeometry();
+  let layers=1;
+  await pause(90);
+  for(const op of seq){
+    if(token!==animToken)return;
+    const part=foldParts(op,rect);
+    setBox(sheet,part.stay);
+    setBox(flap,part.flap);
+    flap.style.transformOrigin=part.origin;
+    back.style.transform=`rotate${part.axis}(180deg)`;
+    flap.style.display='block';
+    flap.getAnimations().forEach(a=>a.cancel());
+    const lift=`translateZ(0.6px) rotate${part.axis}`;
+    const a=flap.animate([{transform:`${lift}(0deg)`},{transform:`${lift}(${part.deg}deg)`}],
+      {duration:dur(420),easing:'cubic-bezier(.33,.06,.28,1)',fill:'forwards'});
+    try{await a.finished;}catch(e){return}
+    if(token!==animToken)return;
+    flap.style.display='none';
+    rect=part.stay;setBox(sheet,rect);centreStage();
+    layers*=2;$('#layerBadge').textContent=layers+'\u00d7';
+    await pause(120);
+  }
+  if(token!==animToken)return;
+  /* The cut goes through the whole stack at the cells the item actually names.
+     This used to draw a single hole in the middle of whatever was left, which
+     contradicted the pattern the child is matching against: content.punches puts
+     it in a corner, and a centre hole unfolds to a different pattern entirely.
+     Coordinates are cells of the folded stack, so they are measured from the
+     stack's own corner. A punch can fall outside the stack when the child is
+     previewing a WRONG fold order, which leaves a smaller stack than the item
+     was built for; clamping keeps that preview on the paper instead of dropping
+     a hole into space. */
+  const cell=STAGE/gridN,d=Math.max(6,cell*0.46);
+  const cols=Math.max(1,Math.round(rect.w/cell)),rows=Math.max(1,Math.round(rect.h/cell));
+  punch.innerHTML='';
+  punches.forEach(([px,py],i)=>{
+    const cx=Math.min(Math.max(px,0),cols-1),cy=Math.min(Math.max(py,0),rows-1);
+    const dot=document.createElement('span');
+    dot.className='punchDot'+(i>=1?' alt':'');
+    setBox(dot,{x:rect.x+(cx+0.5)*cell-d/2,y:rect.y+(cy+0.5)*cell-d/2,w:d,h:d});
+    punch.appendChild(dot);
+    dot.animate([{transform:'scale(.15)',opacity:.2},{transform:'scale(1)',opacity:1}],
+      {duration:dur(280),easing:'ease-out',fill:'forwards'});
+  });
+  punch.style.display='block';
+  await pause(460);
+}
+
+/* ---------- selection ---------- */
+function choose(i,modality){if(locked||i<0||i>=options.length)return;first();if(selected>=0&&selected!==i)T.revs++;selected=i;$$('.option').forEach((o,k)=>o.classList.toggle('sel',k===i));$('#lock').disabled=false;
+ const sig=options[i].seq.join('');if(!T.previewed.has(sig)){T.previewed.add(sig);T.previews++;}
+ emit('select',{key:options[i].key,index:i,modality});log(`preview ${options[i].key} [${sig}] via ${modality}`);renderMeters();animateSequence(options[i].seq);}
+
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;options=content.options;punches=content.punches||[];gridN=(content.grid&&content.grid.n)||8;
+  selected=-1;locked=true;started=false;
+  Object.assign(T,{itemStart:0,first:0,revs:0,previews:0,previewed:new Set(),rt:0,rapid:false,blur:false,committed:false,lastActivity:performance.now(),events:[]});
+  paintPattern(content.target.cells);buildOptions();resetPaper();
+  $('#prompt').textContent=content.question.prompt;
+  $('#lock').disabled=true;$$('.option').forEach(o=>o.disabled=false);
+  $('#i_id').textContent=(served.itemId||'—').slice(0,8);
+  $('#i_mode').textContent=content.question.mode;
+  $('#i_fc').textContent=`${(options[0]&&options[0].seq.length)||'?'} folds · ${punches.length} cut${punches.length>1?'s':''}`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'—');
+  setCue('ready');setStatus('neutral','Preview a fold order, then lock your choice.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} · ${options.length} choices`);renderMeters();
+}
+/* R1 — the paper waits behind the play gate. `start` used to set `T.itemStart` and run the
+   preview fold the instant the host sent it, so the scored M-RT and M-RTFIRST began before the
+   child had looked at the cut pattern, and the fold played to an empty chair. `init` renders
+   behind the gate, `start` only arms it, and the press of play is what starts the clock,
+   unlocks the choices and plays the preview fold. */
+function openGate(){
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');setStatus('neutral','Press play when you are ready.');
+}
+/* The play gate is armed as always, then released immediately: this type has no
+   transient stimulus, so arming it buys the child nothing and costs a click.
+   Reading time is separated from thinking time by first-action latency
+   (M-RTFIRST), not by a play press. #play is used rather than the begin
+   function directly because each demo names that function differently. */
+function releaseGate(){const p=document.querySelector('#play');if(p)p.click();}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+/* Every route through this item is keyboard-reachable, so the gate is too. Behind a closed
+   gate the item's own shortcuts do nothing, so any key the child presses means "I am ready":
+   it presses play and is consumed rather than silently going nowhere. */
+function gateKey(e){
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return false;
+  if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/^(Tab|Escape|Shift|Control|Alt|Meta|CapsLock)$/.test(e.key)){
+    $('#play').click();e.preventDefault();
+  }
+  return true;
+}
+async function startItem(){if(!content||started)return;closeGate();started=true;T.itemStart=performance.now();emit('start');
+  locked=false;   // RELEASE lock so a selection can be made and a result emitted
+  setStatus('neutral','Preview a fold order, then lock your choice.');
+  if(content.scaffold&&content.scaffold.preview){await ghostPreview();}
+}
+async function submit(){if(locked||selected<0||!started)return;locked=true;$('#lock').disabled=true;$$('.option').forEach(o=>o.disabled=true);
+  T.rt=Math.round(performance.now()-T.itemStart);T.committed=true;
+  const idle=performance.now()-T.lastActivity;T.rapid=T.rt<350||idle>20000;
+  const response={selectedKey:options[selected].key,selectedIndex:selected,mode:content.question.mode,previews:T.previews,revisions:T.revs,msToCommit:T.rt,previewedAll:T.previewed.size===options.length};
+  const metrics={'M-RT':T.rt,'M-RTFIRST':Math.round(T.first),'M-REV':T.revs,'M-EXPLORE':T.previewed.size,'M-RAPIDGUESS':T.rapid?1:0};
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('commit',{key:response.selectedKey});
+  setCue('locked');setStatus('ok','Answer locked.');   // never reveal correct/incorrect
+  log(`LOCK ${response.selectedKey} · ${T.rt}ms · rev${T.revs} · ${T.previewed.size} previewed`);renderMeters();
+  post('result',{result});
+  if(!embedded){await sleep(1100);nextSample();}
+}
+
+/* ---------- ghost self-teach (previews one option; reveals no answer) ---------- */
+const ghost=$('#ghost');
+async function ghostTo(el){if(!el)return;const r=el.getBoundingClientRect();ghost.style.transform=`translate(${r.left+r.width/2-12}px,${r.top+r.height/2-10}px)`;await sleep(460);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(320);}
+async function ghostPreview(){ghost.classList.add('show');const opt=$$('.option')[0];await ghostTo(opt);await ghostTap();await animateSequence(options[0].seq);ghost.classList.remove('show');}
+
+/* ---------- input ---------- */
+$('#play').addEventListener('click',()=>{void startItem();});   // a second press is a no-op: `started` is set
+$('#options').addEventListener('click',e=>{const o=e.target.closest('.option');if(o)choose(+o.dataset.i,'tap');});
+$('#lock').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(!started||locked)return;if(selected>=0)animateSequence(options[selected].seq);else if(options.length)animateSequence(options[0].seq);});
+addEventListener('keydown',e=>{if(e.repeat)return;if(gateKey(e))return;if(/^[1-9]$/.test(e.key)){choose(+e.key-1,'key');}else if(e.key==='Enter'){submit();}else return;e.preventDefault();});
+
+/* ---------- host message handling ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+ if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');openGate();}
+ else if(d.type==='start'){openGate();releaseGate();}
+});
+
+/* ---------- standalone fallback (opens by double-click; no host present) ----------
+   Embeds real ServedItems produced by generators/SPA-PICKFOLD-01.mjs so the renderer
+   and the bank stay in sync. Answer keys are NOT present in a ServedItem. */
+const SAMPLES=[{"itemId":"ccba5ea8-052c-4fa7-9021-3f038c42968e","typeCode":"SPA-PICKFOLD-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"content":{"typeCode":"SPA-PICKFOLD-01","question":{"mode":"pick_fold_sequence","prompt":"This sheet was folded, punched, and unfolded. Which fold order made this hole pattern?"},"grid":{"n":8},"punches":[[0,0]],"target":{"cells":[{"x":0,"y":0,"p":0},{"x":7,"y":0,"p":0}]},"optionKind":"fold_sequence","options":[{"key":"A","seq":["R"]},{"key":"B","seq":["B"]}],"scaffold":{"preview":true,"warmup":true}}},{"itemId":"fda69ef1-5bfc-4f77-887e-541fb45bcdd6","typeCode":"SPA-PICKFOLD-01","domain":"spatial","difficulty":7.14,"ageBands":["2-3","4-5"],"content":{"typeCode":"SPA-PICKFOLD-01","question":{"mode":"pick_fold_sequence","prompt":"This sheet was folded, punched, and unfolded. Which fold order made this hole pattern?"},"grid":{"n":8},"punches":[[0,0]],"target":{"cells":[{"x":3,"y":0,"p":0},{"x":4,"y":0,"p":0},{"x":3,"y":3,"p":0},{"x":4,"y":3,"p":0},{"x":3,"y":4,"p":0},{"x":4,"y":4,"p":0},{"x":3,"y":7,"p":0},{"x":4,"y":7,"p":0}]},"optionKind":"fold_sequence","options":[{"key":"A","seq":["L","T","B"]},{"key":"B","seq":["R","T","B"]},{"key":"C","seq":["L","T","T"]}],"scaffold":{"preview":false,"warmup":false}}},{"itemId":"b93a6a64-a5e0-447f-bdc5-ffb307b070d5","typeCode":"SPA-PICKFOLD-01","domain":"spatial","difficulty":15.12,"ageBands":["6-8"],"content":{"typeCode":"SPA-PICKFOLD-01","question":{"mode":"pick_fold_sequence","prompt":"This sheet was folded, punched, and unfolded. Which fold order made this hole pattern?"},"grid":{"n":8},"punches":[[0,0],[1,1]],"target":{"cells":[{"x":0,"y":0,"p":0},{"x":3,"y":0,"p":1},{"x":4,"y":0,"p":1},{"x":7,"y":0,"p":0},{"x":0,"y":1,"p":0},{"x":3,"y":1,"p":1},{"x":4,"y":1,"p":1},{"x":7,"y":1,"p":0},{"x":0,"y":2,"p":0},{"x":3,"y":2,"p":1},{"x":4,"y":2,"p":1},{"x":7,"y":2,"p":0},{"x":0,"y":3,"p":0},{"x":3,"y":3,"p":1},{"x":4,"y":3,"p":1},{"x":7,"y":3,"p":0},{"x":0,"y":4,"p":0},{"x":3,"y":4,"p":1},{"x":4,"y":4,"p":1},{"x":7,"y":4,"p":0},{"x":0,"y":5,"p":0},{"x":3,"y":5,"p":1},{"x":4,"y":5,"p":1},{"x":7,"y":5,"p":0},{"x":0,"y":6,"p":0},{"x":3,"y":6,"p":1},{"x":4,"y":6,"p":1},{"x":7,"y":6,"p":0},{"x":0,"y":7,"p":0},{"x":3,"y":7,"p":1},{"x":4,"y":7,"p":1},{"x":7,"y":7,"p":0}]},"optionKind":"fold_sequence","options":[{"key":"A","seq":["R","T","T","T"]},{"key":"B","seq":["L","T","T","T"]},{"key":"C","seq":["L","R","T","B"]},{"key":"D","seq":["L","L","T","B"]}],"scaffold":{"preview":false,"warmup":false}}},{"itemId":"9fa95f81-7d73-48ac-9282-1aa54208fd3a","typeCode":"SPA-PICKFOLD-01","domain":"spatial","difficulty":19.84,"ageBands":["6-8"],"content":{"typeCode":"SPA-PICKFOLD-01","question":{"mode":"pick_fold_sequence","prompt":"This sheet was folded, punched, and unfolded. Which fold order made this hole pattern?"},"grid":{"n":8},"punches":[[1,0],[0,1]],"target":{"cells":[{"x":0,"y":0,"p":0},{"x":3,"y":0,"p":1},{"x":4,"y":0,"p":1},{"x":7,"y":0,"p":0},{"x":0,"y":1,"p":0},{"x":3,"y":1,"p":1},{"x":4,"y":1,"p":1},{"x":7,"y":1,"p":0},{"x":0,"y":2,"p":0},{"x":3,"y":2,"p":1},{"x":4,"y":2,"p":1},{"x":7,"y":2,"p":0},{"x":0,"y":3,"p":0},{"x":3,"y":3,"p":1},{"x":4,"y":3,"p":1},{"x":7,"y":3,"p":0},{"x":0,"y":4,"p":0},{"x":3,"y":4,"p":1},{"x":4,"y":4,"p":1},{"x":7,"y":4,"p":0},{"x":0,"y":5,"p":0},{"x":3,"y":5,"p":1},{"x":4,"y":5,"p":1},{"x":7,"y":5,"p":0},{"x":0,"y":6,"p":0},{"x":3,"y":6,"p":1},{"x":4,"y":6,"p":1},{"x":7,"y":6,"p":0},{"x":0,"y":7,"p":0},{"x":3,"y":7,"p":1},{"x":4,"y":7,"p":1},{"x":7,"y":7,"p":0}]},"optionKind":"fold_sequence","options":[{"key":"A","seq":["L","T","T","T"]},{"key":"B","seq":["L","L","L","T"]},{"key":"C","seq":["L","L","L","B"]},{"key":"D","seq":["L","R","T","B"]},{"key":"E","seq":["R","T","T","T"]}],"scaffold":{"preview":false,"warmup":false}}}];
+let sampleIdx=0;
+function nextSample(){loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;openGate();}
+
+/* ---------- boot ---------- */
+buildMeters();renderMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit&&!embedded){
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  nextSample();
+}},500);
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

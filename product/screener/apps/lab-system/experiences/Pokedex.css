@@ -1,0 +1,1117 @@
+/* Pokémon. Bold red shell, a hinge down the middle, pale screens, type badges, everything chunky and
+   rounded. Nothing here is shared with the other experiences on purpose: a Pokédex should read as a
+   device you are holding, not as another card layout in another colour. */
+
+.pkd {
+  --pk-red: #e3350d;
+  --pk-red-hi: #ff5a34;
+  --pk-red-lo: #9e1f05;
+  --pk-steel: #1f2937;
+  --pk-screen: #e8f1e0;
+  --pk-screen-lo: #cfe0c6;
+  --pk-ink: #16222c;
+  --pk-dim: #4c5b64;
+  --pk-gold: #ffd23f;
+  --pk-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  min-height: calc(100vh - 48px);
+  padding: 18px;
+  background:
+    radial-gradient(1100px 460px at 50% -8%, #cdeaf7 0%, rgba(205, 234, 247, 0) 62%),
+    linear-gradient(180deg, #eaf6ea 0%, #dcecd6 100%);
+  color: var(--pk-ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ---------------------------------------------------------------- the shell */
+
+.pkd-device {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 336px;
+  gap: 0;
+  background: linear-gradient(180deg, var(--pk-red-hi) 0%, var(--pk-red) 22%, var(--pk-red-lo) 100%);
+  border: 5px solid #7d1704;
+  border-radius: 26px;
+  box-shadow:
+    inset 0 3px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -6px 0 rgba(0, 0, 0, 0.22),
+    0 22px 44px rgba(30, 12, 6, 0.28);
+  overflow: hidden;
+}
+
+.pkd-half {
+  padding: 16px 18px 18px;
+  min-width: 0;
+}
+
+/* The hinge. Two halves of one case rather than two panels side by side. */
+.pkd-right {
+  border-left: 5px solid #7d1704;
+  background:
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0 10px, rgba(255, 255, 255, 0.07) 10px 20px)
+      left / 12px 100% no-repeat,
+    linear-gradient(180deg, #d92d0c 0%, #ac2208 100%);
+  padding-left: 26px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 900px) {
+  .pkd-device {
+    grid-template-columns: 1fr;
+  }
+
+  .pkd-right {
+    border-left: 0;
+    border-top: 5px solid #7d1704;
+    padding-left: 18px;
+    background: linear-gradient(180deg, #d92d0c 0%, #ac2208 100%);
+  }
+}
+
+/* ---------------------------------------------------------------- the lamps */
+
+.pkd-lamps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.pkd-lens {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #9fd8ff 0%, #2f7fd6 46%, #17457c 100%);
+  border: 4px solid #f2f4f5;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+  flex: 0 0 auto;
+}
+
+.pkd-lensglint {
+  position: absolute;
+  inset: 6px auto auto 6px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.pkd-led {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.32);
+  flex: 0 0 auto;
+}
+
+.pkd-led.red {
+  background: #ff6f5e;
+  box-shadow: 0 0 8px rgba(255, 111, 94, 0.8);
+}
+.pkd-led.amber {
+  background: #ffd23f;
+}
+.pkd-led.green {
+  background: #6fd66f;
+}
+
+.pkd-route {
+  margin-left: auto;
+  font: 700 11px/1 var(--pk-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pkd-encounter {
+  font: 700 11px/1 var(--pk-mono);
+  letter-spacing: 0.08em;
+  color: #4a1204;
+  background: var(--pk-gold);
+  padding: 5px 9px;
+  border-radius: 20px;
+}
+
+/* --------------------------------------------------------------- the screen */
+
+.pkd-screen {
+  position: relative;
+  background: linear-gradient(180deg, var(--pk-screen) 0%, var(--pk-screen-lo) 100%);
+  border: 5px solid #cfd6da;
+  border-radius: 14px;
+  box-shadow:
+    inset 0 3px 10px rgba(22, 34, 44, 0.22),
+    0 4px 0 rgba(0, 0, 0, 0.24);
+  overflow: hidden;
+  min-height: 244px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pkd-screeninner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px 14px;
+  min-width: 0;
+}
+
+.pkd-ask {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The stem takes the room left over and sits in the middle of it, so a two-line clue list does not
+   leave a hole the height of a passage underneath it. */
+.pkd-stemwrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+
+/* A strip of grass along the bottom of the screen, so every state is still outdoors. */
+.pkd-grassline {
+  height: 16px;
+  flex: 0 0 auto;
+  background:
+    radial-gradient(6px 12px at 8px 16px, #3d7f3a 98%, transparent 100%) repeat-x left bottom / 16px 16px,
+    linear-gradient(180deg, #4f9440 0%, #33702f 100%);
+}
+
+.pkd-scene {
+  display: block;
+  width: 100%;
+  height: 150px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  border: 3px solid rgba(22, 34, 44, 0.14);
+}
+
+.pkd-intro h2 {
+  margin: 0 0 6px;
+  font-size: 1.22rem;
+  letter-spacing: -0.01em;
+}
+
+.pkd-intro p {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  max-width: 56ch;
+  color: #24323c;
+}
+
+.pkd-sofar {
+  font: 700 0.82rem/1.4 var(--pk-mono) !important;
+  color: var(--pk-dim) !important;
+}
+
+.pkd-fine {
+  font-size: 0.8rem !important;
+  color: var(--pk-dim) !important;
+  margin: 8px 0 0 !important;
+}
+
+.pkd-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 6px;
+  padding: 14px 24px;
+  font: 800 1.02rem/1 system-ui, sans-serif;
+  color: #fff;
+  background: linear-gradient(180deg, #ff5a34 0%, var(--pk-red) 100%);
+  border: 3px solid #7d1704;
+  border-radius: 999px;
+  box-shadow: 0 4px 0 #7d1704;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.pkd-go:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #7d1704;
+}
+
+.pkd-go:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #7d1704;
+}
+
+.pkd-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 30px 0;
+  font-weight: 700;
+  color: var(--pk-dim);
+}
+
+.pkd-note {
+  margin: 0 0 12px;
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+/* ------------------------------------------------------------- the feedback */
+
+.pkd-report {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  background: rgba(0, 0, 0, 0.26);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.34);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pkd-report.caught,
+.pkd-report.fled {
+  animation: pkd-rise 220ms ease-out;
+}
+
+.pkd-report.caught {
+  background: #fff4cf;
+  color: #4a3208;
+  box-shadow: inset 0 0 0 3px #16222c;
+}
+
+.pkd-report.fled {
+  background: #e6ecef;
+  color: #2b3a44;
+  box-shadow: inset 0 0 0 3px #16222c;
+}
+
+.pkd-readline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.pkd-report strong {
+  font-weight: 800;
+}
+
+.pkd-standby {
+  font: 700 0.76rem/1 var(--pk-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.pkd-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pkd-tally {
+  margin-left: auto;
+  font: 700 0.74rem/1 var(--pk-mono);
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+  text-align: right;
+}
+
+@keyframes pkd-rise {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+.pkd-wobble {
+  display: inline-flex;
+  animation: pkd-shake 620ms ease-in-out 2;
+  transform-origin: 50% 85%;
+}
+
+@keyframes pkd-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-18deg);
+  }
+  75% {
+    transform: rotate(18deg);
+  }
+}
+
+.pkd-hop {
+  display: inline-flex;
+  animation: pkd-away 900ms ease-in forwards;
+}
+
+@keyframes pkd-away {
+  to {
+    transform: translate(26px, -6px);
+    opacity: 0.25;
+  }
+}
+
+/* --------------------------------------------------------------- the sprites */
+
+.pkd-sprite {
+  display: block;
+  overflow: visible;
+}
+
+.pkd-sil path,
+.pkd-sil circle,
+.pkd-sil ellipse,
+.pkd-sil rect,
+.pkd-sil polygon {
+  fill: #17222e;
+  stroke: none;
+}
+
+.pkd-mark {
+  display: block;
+  overflow: visible;
+}
+
+.pkd-ball {
+  display: block;
+  flex: 0 0 auto;
+}
+
+/* --------------------------------------------------------------- the choices */
+
+.pkd-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.pkd-choices.wide {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.pkd-choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 118px;
+  min-height: 132px;
+  padding: 14px 12px 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #eef2f4 100%);
+  border: 3px solid #16222c;
+  border-radius: 16px;
+  box-shadow: 0 4px 0 rgba(22, 34, 44, 0.5);
+  color: var(--pk-ink);
+  transition: transform 130ms ease, box-shadow 130ms ease, background 130ms ease;
+}
+
+.pkd-choices.wide .pkd-choice {
+  flex-direction: row;
+  align-items: center;
+  text-align: left;
+  gap: 12px;
+  min-height: 74px;
+  width: 100%;
+  padding: 10px 14px;
+}
+
+.pkd-choice:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 7px 0 rgba(22, 34, 44, 0.5);
+  background: linear-gradient(180deg, #ffffff 0%, #fff6dd 100%);
+}
+
+.pkd-choice:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgba(22, 34, 44, 0.5);
+}
+
+.pkd-choice:focus-visible {
+  outline: 4px solid var(--pk-gold);
+  outline-offset: 3px;
+  box-shadow: 0 4px 0 rgba(22, 34, 44, 0.5), 0 0 0 9px rgba(22, 34, 44, 0.35);
+}
+
+.pkd-choice.picked {
+  background: linear-gradient(180deg, #fff2c4 0%, #ffe58f 100%);
+}
+
+.pkd-choice:disabled {
+  cursor: default;
+  opacity: 0.82;
+}
+
+/* The ball in the corner is the affordance: this is a thing you throw at. */
+.pkd-throw {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.pkd-choice:hover .pkd-throw,
+.pkd-choice:focus-visible .pkd-throw {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.pkd-portrait {
+  position: relative;
+  display: inline-flex;
+  /* Room for the marking, which hangs off the bottom right corner. */
+  margin-bottom: 7px;
+  animation: pkd-bob 2.6s ease-in-out infinite;
+}
+
+.pkd-choices.wide .pkd-portrait {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+  margin-right: 8px;
+}
+
+@keyframes pkd-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* The marking carries the item's real facets: shape, colour, count, rotation, fill, size. Pushed clear
+   of the sprite's face, because a marking sitting over two eyes reads as neither. */
+.pkd-badge {
+  position: absolute;
+  right: -14px;
+  bottom: -10px;
+  padding: 3px;
+  background: #ffffff;
+  border: 2.5px solid #16222c;
+  border-radius: 10px;
+  box-shadow: 0 2px 0 rgba(22, 34, 44, 0.4);
+}
+
+.pkd-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.pkd-choices.wide .pkd-meta {
+  align-items: flex-start;
+  flex: 0 0 auto;
+  min-width: 84px;
+}
+
+.pkd-name {
+  font: 800 0.84rem/1.1 system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.pkd-type {
+  font: 800 0.62rem/1 var(--pk-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.pkd-text {
+  font-size: 0.95rem;
+  line-height: 1.35;
+  text-align: left;
+  flex: 1;
+}
+
+.pkd-value {
+  font: 800 1.7rem/1 var(--pk-mono);
+}
+
+.pkd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+}
+
+.pkd-chip {
+  font: 800 0.6rem/1 var(--pk-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 4px 7px;
+  border-radius: 999px;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+}
+
+/* Left or right patch. Named, because a species here would say nothing about which side it is. */
+.pkd-choice.sidepick {
+  min-width: 168px;
+  min-height: 96px;
+  justify-content: center;
+}
+
+.pkd-sidemark {
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--pk-red);
+}
+
+.pkd-sidename {
+  font-size: 1rem;
+}
+
+.pkd-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pkd-pairlink {
+  font: 800 1rem/1 var(--pk-mono);
+  color: var(--pk-dim);
+}
+
+/* A stem part the bank describes only as a word. Printed, rather than drawn as an anonymous disc. */
+.pkd-word {
+  display: inline-block;
+  max-width: 12ch;
+  padding: 7px 11px;
+  border-radius: 10px;
+  font: 800 0.76rem/1.1 var(--pk-mono);
+  letter-spacing: 0.03em;
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+  border: 2.5px solid rgba(12, 24, 32, 0.34);
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------- facet extras */
+
+.pkd-blocks {
+  display: grid;
+  grid-template-columns: repeat(4, 11px);
+  gap: 2px;
+}
+
+.pkd-blockcell {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: rgba(22, 34, 44, 0.12);
+}
+
+.pkd-blockcell.on {
+  background: var(--pk-red);
+}
+
+.pkd-seq {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.pkd-seqstep {
+  font: 800 0.72rem/1 var(--pk-mono);
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: #16222c;
+  color: #fff;
+}
+
+.pkd-series {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 46px;
+}
+
+.pkd-bar {
+  position: relative;
+  width: 15px;
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(180deg, #ff7a55 0%, var(--pk-red) 100%);
+}
+
+.pkd-barnum {
+  position: absolute;
+  top: -14px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font: 700 0.62rem/1 var(--pk-mono);
+  color: var(--pk-dim);
+}
+
+/* ----------------------------------------------------------------- the stems */
+
+.pkd-compare {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+
+.pkd-patch {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 250px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 3px solid #2c5a2f;
+}
+
+.pkd-patchname {
+  display: block;
+  padding: 5px;
+  text-align: center;
+  font: 800 0.74rem/1.2 var(--pk-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #2c5a2f;
+  color: #eaf7e4;
+}
+
+.pkd-patchbody {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 5px 6px;
+  min-height: 112px;
+  padding: 12px 10px;
+  background: linear-gradient(180deg, #7cc45f 0%, #4d9243 100%);
+}
+
+/* Offsets rather than transforms, so the idle bob still owns the transform and the patch still reads as
+   scattered animals rather than a row of ticks. */
+.pkd-rustle {
+  display: inline-flex;
+  animation: pkd-bob 2.2s ease-in-out infinite;
+}
+
+.pkd-rustle:nth-child(3n) {
+  animation-delay: 0.4s;
+  margin-top: 7px;
+}
+
+.pkd-rustle:nth-child(3n + 1) {
+  animation-delay: 0.8s;
+  margin-top: 2px;
+}
+
+.pkd-rustle:nth-child(4n) {
+  margin-left: 6px;
+}
+
+.pkd-rustle:nth-child(5n) {
+  margin-top: 10px;
+}
+
+.pkd-or {
+  font: 800 0.8rem/1 var(--pk-mono);
+  text-transform: uppercase;
+  color: var(--pk-dim);
+}
+
+.pkd-trail {
+  display: grid;
+  gap: 6px;
+  justify-content: center;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 10px;
+  background: rgba(22, 34, 44, 0.07);
+  border-radius: 12px;
+}
+
+.pkd-step {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  background: #fff;
+  border: 2.5px solid rgba(22, 34, 44, 0.2);
+  border-radius: 12px;
+}
+
+.pkd-step.gap {
+  background: repeating-linear-gradient(45deg, #f4f7f4 0 6px, #e3ebe1 6px 12px);
+  border-style: dashed;
+  border-color: var(--pk-red);
+}
+
+.pkd-machine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.pkd-machineside {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.pkd-tag {
+  font: 800 0.62rem/1 var(--pk-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pk-dim);
+}
+
+.pkd-ops {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pkd-op {
+  font: 800 0.72rem/1 var(--pk-mono);
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #4f7fd8 0%, #2f5eb0 100%);
+  color: #fff;
+  box-shadow: 0 2px 0 #22468a;
+}
+
+.pkd-flow {
+  font-size: 1.2rem;
+  color: var(--pk-dim);
+}
+
+.pkd-outslot {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  border: 3px dashed var(--pk-red);
+  background: #fff;
+}
+
+.pkd-notes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pkd-notes li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.98rem;
+  font-weight: 600;
+  padding: 9px 12px;
+  margin-bottom: 7px;
+  background: #fff;
+  border-left: 6px solid var(--pk-red);
+  border-radius: 0 10px 10px 0;
+  box-shadow: 0 2px 0 rgba(22, 34, 44, 0.14);
+}
+
+.pkd-entry {
+  background: #fff;
+  border: 3px solid rgba(22, 34, 44, 0.18);
+  border-radius: 12px;
+  padding: 12px 15px;
+  max-height: 210px;
+  overflow-y: auto;
+}
+
+.pkd-entry h4 {
+  margin: 0 0 7px;
+  font-size: 0.98rem;
+  letter-spacing: 0.02em;
+}
+
+.pkd-entry p {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.pkd-entryq {
+  margin-top: 10px !important;
+  font-weight: 800;
+  padding-top: 9px;
+  border-top: 2px dashed rgba(22, 34, 44, 0.18);
+}
+
+.pkd-hint,
+.pkd-targetnote {
+  font-size: 0.92rem;
+  margin: 0;
+  color: #24323c;
+}
+
+.pkd-target {
+  text-align: center;
+}
+
+.pkd-targetrow {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 6px 0;
+}
+
+.pkd-radio {
+  background: #fff;
+  border: 3px solid rgba(22, 34, 44, 0.18);
+  border-left: 6px solid #2f5eb0;
+  border-radius: 0 12px 12px 0;
+  padding: 10px 14px;
+}
+
+.pkd-radio p {
+  margin: 3px 0 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+/* --------------------------------------------------------------- the buttons */
+
+.pkd-controls {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 3px solid rgba(0, 0, 0, 0.18);
+}
+
+.pkd-dpad {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+}
+
+.pkd-dpad-v,
+.pkd-dpad-h {
+  position: absolute;
+  background: #2b3440;
+  border-radius: 5px;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.4);
+}
+
+.pkd-dpad-v {
+  left: 18px;
+  top: 0;
+  width: 16px;
+  height: 52px;
+}
+
+.pkd-dpad-h {
+  top: 18px;
+  left: 0;
+  height: 16px;
+  width: 52px;
+}
+
+.pkd-btnrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.pkd-roundbtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffd23f;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.pkd-roundbtn.dark {
+  background: #2b3440;
+}
+
+.pkd-pill {
+  width: 34px;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* --------------------------------------------------------------- the Pokédex */
+
+.pkd-dexhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.pkd-dexhead h3 {
+  margin: 0;
+  font-size: 1.06rem;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.pkd-dexcount {
+  font: 800 1.2rem/1 var(--pk-mono);
+  color: var(--pk-gold);
+}
+
+.pkd-dexcount em {
+  font: 700 0.78rem/1 var(--pk-mono);
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.pkd-dexbar {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.32);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.pkd-dexbar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffd23f 0%, #6fd66f 100%);
+  transition: width 320ms ease;
+}
+
+.pkd-dexgrid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
+  gap: 9px;
+}
+
+.pkd-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 6px 8px;
+  border-radius: 12px;
+  background: rgba(20, 28, 36, 0.34);
+  border: 2.5px solid rgba(0, 0, 0, 0.3);
+}
+
+.pkd-slot.has {
+  background: #f3f7f2;
+  border-color: #16222c;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.32);
+}
+
+.pkd-slot.pop {
+  animation: pkd-pop 620ms ease-out;
+}
+
+@keyframes pkd-pop {
+  0% {
+    transform: scale(0.82);
+  }
+  45% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(255, 210, 63, 0.75);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pkd-slotnum {
+  font: 700 0.62rem/1 var(--pk-mono);
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.pkd-slot.has .pkd-slotnum {
+  color: var(--pk-dim);
+}
+
+.pkd-slotart {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.pkd-slotname {
+  font: 800 0.72rem/1.1 system-ui, sans-serif;
+  color: rgba(255, 255, 255, 0.72);
+  text-align: center;
+}
+
+.pkd-slot.has .pkd-slotname {
+  color: var(--pk-ink);
+}
+
+.pkd-slottype {
+  font: 800 0.55rem/1 var(--pk-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.34);
+  padding: 3px 7px;
+  border-radius: 999px;
+}
+
+.pkd-slot.has .pkd-slottype {
+  color: #fff;
+}
+
+.pkd-dexfoot {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+/* Playful motion is part of the point at this age, so it is real motion by default and gone entirely
+   for anyone who has asked their machine for less of it. */
+@media (prefers-reduced-motion: reduce) {
+  .pkd *,
+  .pkd *::before,
+  .pkd *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

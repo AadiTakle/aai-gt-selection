@@ -1,0 +1,346 @@
+.shell {
+  /* reserve space for the fixed sidebar so the canvas never sits under it */
+  min-height: 100dvh;
+  padding-left: 300px;
+  margin: calc(-1 * var(--gt-space-4)) calc(-1 * var(--gt-space-5)) calc(-3 * var(--gt-space-6));
+}
+
+/* fixed to the viewport so the pinned progress gauge is ALWAYS on screen,
+   independent of page scroll or the app-shell header height. A full-height
+   navy structural panel, consistent with the portal's navy feature fields. */
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 300px;
+  background: linear-gradient(
+    165deg,
+    var(--gt-blue-dark) 0%,
+    var(--gt-navy) 55%,
+    var(--gt-dark-navy) 100%
+  );
+  color: var(--gt-near-white);
+  display: flex;
+  flex-direction: column;
+  padding: var(--gt-space-5) var(--gt-space-4);
+  overflow: hidden;
+  z-index: 5;
+}
+
+/* lowkey engineering-drawing linework over the navy rail */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url('/blueprint-lines.png') center / cover no-repeat;
+  opacity: 0.08;
+  pointer-events: none;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 30%, #000 100%);
+}
+
+.brand {
+  padding: 0 var(--gt-space-2) var(--gt-space-3);
+}
+
+.backToPortal {
+  display: inline-block;
+  margin: 0 0 var(--gt-space-4) var(--gt-space-2);
+  color: var(--gt-gold-light);
+  font-family: var(--font-utility);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.backToPortal:hover {
+  color: #fff;
+}
+
+.backToPortal:focus-visible {
+  outline: 0.1875rem solid var(--gt-gold-light);
+  outline-offset: 0.125rem;
+  border-radius: var(--radius-xs);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 1.3rem;
+  letter-spacing: 0;
+  color: var(--gt-near-white);
+}
+
+.school {
+  color: var(--gt-gold);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.gaugeWrap {
+  flex: none;
+  margin-top: var(--gt-space-4);
+  padding-top: var(--gt-space-4);
+  border-top: 1px solid rgb(255 255 255 / 0.12);
+}
+
+.step {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: var(--gt-space-3);
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-md);
+  color: var(--color-on-navy-soft);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.step:hover {
+  background: rgb(255 255 255 / 0.06);
+  color: var(--gt-near-white);
+}
+
+.step:focus-visible {
+  outline: 0.1875rem solid var(--gt-gold-light);
+  outline-offset: 0.125rem;
+}
+
+.idx {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-utility);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  border: 1.5px solid rgb(255 255 255 / 0.2);
+  color: var(--color-on-navy-soft);
+}
+
+.idxDone {
+  border-color: var(--gt-gold);
+  background: var(--gt-gold);
+  color: var(--color-accent-ink);
+}
+
+.stepLabel {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+}
+
+.stepSub {
+  font-size: 0.7rem;
+  color: var(--color-on-navy-soft);
+  font-weight: 400;
+}
+
+.canvas {
+  min-width: 0;
+  padding: var(--gt-space-6) var(--gt-space-6) var(--gt-space-8);
+  max-width: 860px;
+}
+
+.eyebrow {
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gt-blue);
+  font-weight: 600;
+  margin: 0;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  margin: var(--gt-space-2) 0 var(--gt-space-3);
+  color: var(--color-ink);
+}
+
+.intro {
+  color: var(--color-ink-soft);
+  margin: 0 0 var(--gt-space-6);
+  max-width: 60ch;
+}
+
+.section {
+  scroll-margin-top: var(--gt-space-5);
+  padding: var(--gt-space-6) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--gt-space-3);
+  margin-bottom: var(--gt-space-5);
+}
+
+.sectionNum {
+  font-family: var(--font-utility);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--gt-blue);
+  font-size: 0.9rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 300;
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.actions {
+  margin-top: var(--gt-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-3);
+  align-items: flex-start;
+}
+
+/* Primary action for this screen: Navy fill, Near White label, the one chamfer. */
+.submit {
+  all: unset;
+  position: relative;
+  isolation: isolate;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 13px 18px;
+  color: var(--gt-near-white);
+  font-family: var(--font-utility);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.submit::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--color-primary);
+  border-radius: var(--radius-md);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut-br)),
+    calc(100% - var(--cut-br)) 100%,
+    0 100%
+  );
+  transition: background 150ms ease;
+}
+
+.submit:hover::before {
+  background: var(--color-primary-hover);
+}
+
+.submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.saveError {
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.boundary {
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  margin: var(--gt-space-3) 0 0;
+  padding-top: var(--gt-space-3);
+  width: 100%;
+}
+
+@media (max-width: 860px) {
+  .shell {
+    padding-left: 0;
+    margin: 0;
+  }
+  .sidebar {
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    width: auto;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--gt-space-4);
+  }
+  .nav {
+    order: 3;
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+  }
+  .stepSub {
+    display: none;
+  }
+  .canvas {
+    padding: var(--gt-space-5) var(--gt-space-4) var(--gt-space-8);
+  }
+}
+
+/* Momentary hold while the resume check runs, so a submitted application lands
+   directly on the locked view. Quiet on purpose — it should barely register. */
+.loading {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--gt-space-6);
+  color: var(--gt-navy);
+  font-family: var(--gt-font-utility);
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .loading {
+    animation: loadingPulse 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes loadingPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}

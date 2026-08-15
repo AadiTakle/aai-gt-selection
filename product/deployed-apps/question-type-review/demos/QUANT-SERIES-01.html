@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-SERIES-01 · Pattern Steps (renderer)</title>
+<style>
+  :root{
+    --sky:#fcf4ef;--haze:#fcf4ef;--ink:#004f71;--card:#ffffff;
+    --blue:#e48b53;--violet:#e48b53;--good:#4a6470;--dim:#e48b53;
+    --tel:#002a3a;--tel2:#003b5c;--mint:#ebba9b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    min-height:100vh;display:flex;color:var(--ink);
+    font:16px/1.35 ui-rounded,"Avenir Next",system-ui,sans-serif;
+    background:radial-gradient(circle at 18% 8%,#ffffff 0 5%,transparent 28%),
+      linear-gradient(145deg,var(--sky),var(--haze));
+  }
+  button{font:inherit}
+  #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  #badge{color:#6f4526;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+  #howto{max-width:620px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--blue);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fcf4ef;color:var(--blue);border:2px solid #f5ddcd;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="answer"]{background:var(--blue);color:#ffffff;border-color:var(--blue)}
+  #phasecue[data-phase="sent"]{background:#fcf4ef;color:#4a6470;border-color:#ecd9cb}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center;color:#4a6470}
+  #stagecard{
+    width:min(780px,100%);min-height:480px;padding:24px;border-radius:30px;
+    background:rgba(255,253,249,.94);box-shadow:0 22px 60px -30px #4a6470;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
+  }
+  #trail{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;padding:18px 10px}
+  .step{
+    min-width:82px;height:96px;padding:0 8px;border-radius:44px 44px 22px 22px;
+    border:3px solid #f8e8de;background:linear-gradient(#ffffff,#fcf4ef);
+    display:grid;place-items:center;position:relative;box-shadow:0 8px 0 #f5ddcd;transition:.2s;
+  }
+  .step:not(:last-child)::after{content:"";position:absolute;right:-12px;width:12px;height:4px;border-radius:4px;background:#ecd9cb}
+  .step.slot{border-style:dashed;border-color:var(--violet);background:#fcf4ef;box-shadow:0 8px 0 #f5ddcd;animation:slotglow 1.4s ease-in-out infinite}
+  @keyframes slotglow{50%{box-shadow:0 8px 0 #f5ddcd,0 0 24px #b992e477}}
+  .qty{max-width:74px;display:grid;grid-template-columns:repeat(4,13px);gap:4px;align-content:center;justify-content:center}
+  .unit{width:13px;height:13px;border-radius:50%;background:var(--blue)}
+  .unit.star{border-radius:3px;background:var(--violet);transform:rotate(45deg)}
+  .unit.moon{border-radius:50% 50% 50% 4px;background:#e48b53}
+  .num{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .num .digits{font-size:34px;font-weight:800;color:var(--ink);line-height:1}
+  .num .chip{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+  .num .chip .unit{width:11px;height:11px}
+  #answers{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;min-height:94px}
+  .answer{
+    min-width:92px;height:86px;padding:0 8px;border:3px solid #f8e8de;border-radius:22px;
+    background:#ffffff;display:grid;place-items:center;cursor:pointer;box-shadow:0 7px 0 #f5ddcd;
+    transition:transform .14s,border-color .14s;
+  }
+  .answer:hover,.answer:focus-visible{transform:translateY(-3px);outline:none;border-color:#ebba9b}
+  .answer.selected{border-color:var(--violet);transform:translateY(-4px);box-shadow:0 9px 0 #ecd9cb}
+  .answer[disabled]{opacity:.5;cursor:default;pointer-events:none}
+  #controls{display:flex;gap:18px;align-items:center}
+  #go{
+    width:74px;height:74px;border:0;border-radius:50%;cursor:pointer;display:grid;place-items:center;
+    background:linear-gradient(145deg,var(--blue),var(--violet));color:#ffffff;font-size:31px;
+    box-shadow:0 11px 26px -9px var(--blue);opacity:.34;pointer-events:none;transition:.2s;
+  }
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.15s infinite}
+  @keyframes pulse{50%{transform:scale(1.08)}}
+  #telemetry{width:326px;flex:0 0 326px;background:var(--tel);color:#f5ddcd;display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#ffffff;font-size:12px;letter-spacing:.09em;text-transform:uppercase}
+  #difficulty{padding:11px 13px;border-bottom:1px solid #004f71}
+  #difficulty .cap{display:flex;justify-content:space-between;color:#4a6470;font-size:11px}
+  #dbar{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;margin-top:7px}
+  #dbar i{height:9px;border-radius:3px;background:#33505c}
+  #dbar i.on{background:linear-gradient(90deg,#ebba9b,#ebba9b)}
+  #mlist{padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:104px 1fr;gap:7px}
+  .mid{color:var(--mint);font-weight:800}.mval{color:#ffffff;text-align:right}
+  .mname{grid-column:1/3;color:var(--dim);font-size:11px}
+  #logwrap{border-top:1px solid #004f71;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 3px;color:#4a6470;font-size:11px}
+  #log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:3px 0;border-bottom:1px dotted #004f71}
+  #log .t{color:#6f4526}
+  @media(max-width:860px){
+    body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:320px}
+    #stagecard{min-height:430px}.step{min-width:68px;height:80px}.answer{min-width:78px}
+  }
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">QUANT-SERIES-01 · Pattern Steps</div>
+  <header id="howto">
+    <h1>How to use — Pattern Steps</h1>
+    <p>Look at the pattern across the row of steps. Tap the card that belongs in the empty step (marked ?). You can tap another card to change your pick. Then press the check to send your answer.</p>
+  </header>
+  <div id="phasecue" data-phase="waiting">Loading</div>
+  <section id="stagecard">
+    <div id="trail" aria-label="Pattern sequence"></div>
+    <div id="answers" aria-label="Answer choices"></div>
+    <div id="controls">
+      <button id="go" aria-label="Send answer">&#10003;</button>
+    </div>
+    <div id="status">Waiting for an item.</div>
+  </section>
+  <div id="playgate">
+    <p>The pattern is ready. Press play when you are, and the round starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div class="cap"><span>ITEM DIFFICULTY (design rung)</span><span id="dlabel">— / 20</span></div>
+    <div id="dbar"></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<script>
+'use strict';
+/*
+ * QUANT-SERIES-01 — PURE RENDERER.
+ * Renders one ServedItem's `content` (no answer key ever reaches this file),
+ * captures the child's raw response + behavioural metrics + telemetry, and
+ * hands them back to the host via postMessage. It NEVER shows correct/incorrect;
+ * scoring is server-authoritative (EXAM_ADAPTIVE_BUILD_PLAN.md §2).
+ *
+ * Embedding protocol (postMessage):
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start'}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Double-clicked (standalone), it renders bundled sample items so it still runs.
+ */
+const $=s=>document.querySelector(s);
+const clock=()=>performance.now();
+const EMBEDDED = !!(window.parent && window.parent !== window);
+const SRC_DEMO='gt-exam-demo', SRC_HOST='gt-exam-host';
+const RAPID_MS=800;                              // effort-validity threshold (tracked, not enforced)
+
+/* ---------------- state (reset per item) ---------------- */
+let item=null, renderT0=0, firstT=null, selectedKey=null;
+let pickSeq=[], revisions=0, locked=true, submitted=false;
+let focusedMs=0, focusTs=clock(), isFocused=(document.visibilityState!=='hidden'), blurCount=0;
+
+/* ---------------- shape / quantity rendering ---------------- */
+function unit(shape){return `<i class="unit ${shape&&shape!=='dot'?shape:''}"></i>`;}
+function shapeName(shape){return shape==='star'?'star':shape==='moon'?'moon':'dot';}
+// Render a card body from a term/option datum, per the item's display mode.
+function cardBody(datum, display){
+  const n=Math.max(0, datum.value|0);
+  const shape=datum.shape||'dot';
+  if(display==='numeral'){
+    const chip = datum.shape ? `<span class="chip">${unit(shape)} ${shapeName(shape)}</span>` : '';
+    return `<div class="num"><span class="digits">${n}</span>${chip}</div>`;
+  }
+  // dots / object groups (preliteracy): show the quantity as countable units
+  return `<div class="qty">${Array.from({length:Math.min(n,DOT_RENDER_CAP)},()=>unit(shape)).join('')}</div>`;
+}
+const DOT_RENDER_CAP=24;                          // hard render guard; bank keeps dot values <=12
+
+/* ---------------- telemetry + metrics ---------------- */
+function emit(type,payload){
+  const msg=Object.assign({source:SRC_DEMO,type},payload);
+  if(EMBEDDED){ try{window.parent.postMessage(msg,'*');}catch(e){/* no-op */} }
+}
+function evt(name,extra){
+  const e=Object.assign({t:Math.round(clock()-renderT0),name},extra||{});
+  telemetryLog.push(e);
+  emit('telemetry',{event:e});
+  log(name+(extra&&extra.key?` · ${extra.key}`:'')+(extra&&extra.ms!=null?` · ${extra.ms}ms`:''));
+  return e;
+}
+let telemetryLog=[];
+function tickFocus(){ const t=clock(); if(isFocused) focusedMs+=t-focusTs; focusTs=t; }
+function metricsNow(){
+  tickFocus();
+  const total=Math.max(1,Math.round(clock()-renderT0));
+  const rt=submitted?submitMs:Math.round(clock()-renderT0);
+  return {
+    'M-RTFIRST': firstT!=null?Math.round(firstT):0,        // ms to first selection
+    'M-RT': rt,                                            // ms render->submit
+    'M-REV': revisions,                                    // selection changes
+    'M-RAPIDGUESS': submitted&&submitMs<RAPID_MS?1:0,      // effort flag (tracked)
+    'M-ENGAGE': Math.round(1000*Math.min(1,focusedMs/total))/1000, // focused fraction 0..1
+  };
+}
+let submitMs=0;
+
+/* ---------------- render ---------------- */
+function renderItem(){
+  const c=item.content;
+  const display=c.display||'numeral';
+  const terms=c.terms||[];
+  const slotIndex=(c.slotIndex==null?terms.length:c.slotIndex);
+  const trail=$('#trail'); trail.innerHTML='';
+  // build the row with the empty "?" slot at slotIndex
+  const cells=[];
+  for(let i=0,ti=0;i<terms.length+1;i++){
+    if(i===slotIndex){cells.push(`<div class="step slot" id="slot" aria-label="empty step">?</div>`);}
+    else{const d=terms[ti++];cells.push(`<div class="step">${cardBody(d,display)}</div>`);}
+  }
+  trail.innerHTML=cells.join('');
+  // options as data-driven answer cards (no lure tags are present in served content)
+  $('#answers').innerHTML=(c.options||[]).map(o=>
+    `<button class="answer" data-key="${o.key}" aria-label="Answer ${o.key}">${cardBody(o,display)}</button>`
+  ).join('');
+  // difficulty readout (ServedItem keeps difficulty as a design rung)
+  const d=Number(item.difficulty)||0;
+  $('#dlabel').textContent=`${d?d.toFixed(1):'—'} / 20`;
+  $('#dbar').innerHTML=Array.from({length:20},(_,i)=>`<i class="${i<Math.round(d)?'on':''}"></i>`).join('');
+  renderMeters();
+}
+function optByKey(key){return (item.content.options||[]).find(o=>o.key===key);}
+
+/* ---------------- interaction ---------------- */
+function pick(key){
+  if(locked||submitted)return;
+  const opt=optByKey(key); if(!opt)return;
+  if(firstT===null){firstT=clock()-renderT0;evt('first_action',{key,ms:Math.round(firstT)});}
+  if(selectedKey!==null&&selectedKey!==key){revisions++;evt('revise',{key,from:selectedKey});}
+  selectedKey=key;pickSeq.push(key);
+  evt('select',{key});
+  document.querySelectorAll('.answer').forEach(b=>b.classList.toggle('selected',b.dataset.key===key));
+  const display=item.content.display||'numeral';
+  $('#slot').innerHTML=cardBody(opt,display);      // preview in the slot (NOT a correctness cue)
+  $('#go').classList.add('ready');
+  setCue('answer','Your turn');
+  renderMeters();
+}
+function submit(){
+  if(locked||submitted||selectedKey===null)return;
+  submitted=true;locked=true;
+  submitMs=Math.round(clock()-renderT0);
+  const opt=optByKey(selectedKey)||{};
+  evt('submit',{key:selectedKey,ms:submitMs});
+  document.querySelectorAll('.answer').forEach(b=>b.setAttribute('disabled','')); $('#go').classList.remove('ready');
+  setCue('sent','Answer sent');
+  setStatus('Answer sent. Waiting for the next step.');
+  // ItemResult: raw response + behavioural metrics + telemetry. NO correctness.
+  const result={
+    itemId:item.itemId,typeCode:item.typeCode||'QUANT-SERIES-01',domain:item.domain||'quantitative',
+    response:{
+      selectedKey,
+      selectedValue:(opt.value!=null?opt.value:null),
+      selectedShape:(opt.shape||null),
+      pickSequence:pickSeq.slice(),
+      revisions,
+    },
+    metrics:metricsNow(),
+    telemetry:telemetryLog.slice(),
+  };
+  emit('result',{result});
+  log('RESULT sent · '+JSON.stringify(result.metrics));
+  if(!EMBEDDED) standaloneAdvance();
+}
+
+/* ---------------- meters / cue / log ---------------- */
+const METERS=[
+  {id:'M-RTFIRST',name:'First-action latency (ms)'},
+  {id:'M-RT',name:'Total response time (ms)'},
+  {id:'M-REV',name:'Answer revisions'},
+  {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked)'},
+  {id:'M-ENGAGE',name:'Focused fraction (tracked)'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}">—</span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){const m=metricsNow();METERS.forEach(x=>{const el=$('#v_'+x.id);if(el)el.textContent=(x.id==='M-RTFIRST'&&firstT===null)?'—':String(m[x.id]);});}
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(msg){$('#status').textContent=msg;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+
+/* ---------------- lifecycle ----------------
+   R1 — the row of steps is rendered on `init` but waits behind the play gate. `start` only ARMS
+   the gate; the child's press of play is what makes the item live, and it is where the scored
+   clock starts, so M-RT and M-RTFIRST measure finding the pattern rather than however long the
+   child took to look up after the host handed the item over. */
+function loadItem(served){
+  item=served;submitted=false;locked=true;selectedKey=null;pickSeq=[];revisions=0;
+  firstT=null;telemetryLog=[];focusedMs=0;focusTs=clock();isFocused=(document.visibilityState!=='hidden');blurCount=0;
+  renderT0=clock();
+  renderItem();
+  evt('render',{itemId:item.itemId,display:item.content.display,difficulty:item.difficulty});
+  openGate();
+}
+function openGate(){
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('waiting','Ready when you are');setStatus('Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function begin(){
+  if(!item||submitted||!locked)return;                 // a second press of play is a no-op
+  closeGate();
+  locked=false;
+  renderT0=clock();focusedMs=0;focusTs=clock();        // the scored window opens on the play press
+  setCue('answer','Your turn'); setStatus('Tap the card that comes next, then press the check.'); evt('start');
+}
+
+/* host protocol */
+window.addEventListener('message',e=>{
+  const d=e.data; if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init'&&d.item){evt0('init');loadItem(d.item);}
+  else if(d.type==='start')openGate();
+});
+// pre-render event (renderT0 not set yet) -> timestamp 0
+function evt0(name){const e={t:0,name};telemetryLog.push(e);emit('telemetry',{event:e});log(name);}
+
+/* engagement tracking */
+function onFocus(){tickFocus();isFocused=true;}
+function onBlur(){tickFocus();if(isFocused)blurCount++;isFocused=false;evt('blur',{blurCount});}
+window.addEventListener('focus',onFocus);window.addEventListener('blur',onBlur);
+document.addEventListener('visibilitychange',()=>{document.visibilityState==='hidden'?onBlur():onFocus();});
+
+/* input wiring */
+$('#answers').addEventListener('click',e=>{const b=e.target.closest('.answer');if(b)pick(b.dataset.key);});
+$('#answers').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('answer')){e.preventDefault();pick(e.target.dataset.key);}});
+$('#go').addEventListener('click',submit);
+$('#play').addEventListener('click',begin);
+
+/* ---------------- standalone fallback (double-click) ---------------- */
+const SAMPLES=[
+  {itemId:'sample-repeat',typeCode:'QUANT-SERIES-01',domain:'quantitative',difficulty:2.0,ageBands:['K-1'],
+   content:{typeCode:'QUANT-SERIES-01',display:'dots',attributes:['count'],slotIndex:4,
+     terms:[{value:2},{value:4},{value:2},{value:4}],
+     options:[{key:'A',value:2},{key:'B',value:4},{key:'C',value:3},{key:'D',value:5}],
+     prompt:'Choose the step that comes next.'}},
+  {itemId:'sample-geometric',typeCode:'QUANT-SERIES-01',domain:'quantitative',difficulty:9.0,ageBands:['4-5'],
+   content:{typeCode:'QUANT-SERIES-01',display:'numeral',attributes:['count'],slotIndex:4,
+     terms:[{value:1},{value:2},{value:4},{value:8}],
+     options:[{key:'A',value:16},{key:'B',value:12},{key:'C',value:17},{key:'D',value:18}],
+     prompt:'Choose the step that comes next.'}},
+  {itemId:'sample-interleaved-shape',typeCode:'QUANT-SERIES-01',domain:'quantitative',difficulty:20,ageBands:['6-8'],
+   content:{typeCode:'QUANT-SERIES-01',display:'numeral',attributes:['count','shape'],slotIndex:6,
+     terms:[{value:8,shape:'dot'},{value:5,shape:'star'},{value:12,shape:'dot'},{value:10,shape:'star'},{value:16,shape:'dot'},{value:15,shape:'star'}],
+     options:[{key:'A',value:14,shape:'dot'},{key:'B',value:20,shape:'star'},{key:'C',value:21,shape:'dot'},{key:'D',value:20,shape:'dot'}],
+     prompt:'Choose the step that comes next.'}},
+];
+let sampleIx=0;
+function standaloneAdvance(){setTimeout(()=>{sampleIx=(sampleIx+1)%SAMPLES.length;loadItem(SAMPLES[sampleIx]);},1200);}
+
+/* ---------------- boot ---------------- */
+buildMeters();
+emit('ready');                                    // announce readiness to the host
+if(EMBEDDED){ setCue('waiting','Waiting for host'); log('ready · awaiting host init'); }
+else{ log('standalone · no host detected'); loadItem(SAMPLES[0]); }
+</script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+{
+  "generatedAt": "2026-08-12T05:42:40.624Z",
+  "sessions": 4000,
+  "cut": 1.645,
+  "precision": {
+    "confidenceAbove": 0.75,
+    "confidenceBelow": 0.97,
+    "minItems": 12,
+    "maxItems": 24
+  },
+  "perDomainMinimum": 2,
+  "recommendProbability": 0.3,
+  "poolSize": 800,
+  "questions": {
+    "median": 12,
+    "p90": 17,
+    "max": 24,
+    "mean": 13.20475,
+    "reachedConfidenceShare": 0.92925,
+    "hitCapShare": 0.07075
+  },
+  "decisions": {
+    "accuracy": 0.96925,
+    "sensitivity": 0.7736842105263158,
+    "specificity": 0.979002624671916,
+    "deterministicAccuracy": 0.9675,
+    "trulyAbove": 190
+  },
+  "difficulty": {
+    "openingMedian": 1.4100000000000001,
+    "openingMin": 0.86,
+    "openingMax": 2.043333333333333,
+    "servedMedian": 1.4166666666666667,
+    "aboveGradeCeilingShare": 1
+  },
+  "variety": {
+    "varied": {
+      "distinctOpenings": 93,
+      "modalOpeningShare": 0.017,
+      "maxExposure": 0.20425,
+      "poolTouched": 119,
+      "sameDomainAdjacency": 0.03308138224871464,
+      "meanTopTypeShare": 0.16657218535407184,
+      "distinctSequences": 4000
+    },
+    "deterministic": {
+      "distinctOpenings": 1,
+      "modalOpeningShare": 1,
+      "maxExposure": 1,
+      "poolTouched": 24,
+      "sameDomainAdjacency": 0.7527913971406205,
+      "meanTopTypeShare": 0.3498741558315136,
+      "distinctSequences": 12
+    }
+  },
+  "sweep": [
+    {
+      "maxItems": 16,
+      "recommendProbability": 0.2,
+      "medianItems": 12,
+      "sensitivity": 0.8052631578947368,
+      "specificity": 0.9587926509186352,
+      "accuracy": 0.9515,
+      "trulyAbove": 190
+    },
+    {
+      "maxItems": 16,
+      "recommendProbability": 0.3,
+      "medianItems": 12,
+      "sensitivity": 0.7105263157894737,
+      "specificity": 0.9748031496062992,
+      "accuracy": 0.96225,
+      "trulyAbove": 190
+    },
+    {
+      "maxItems": 16,
+      "recommendProbability": 0.4,
+      "medianItems": 12,
+      "sensitivity": 0.6684210526315789,
+      "specificity": 0.9805774278215224,
+      "accuracy": 0.96575,
+      "trulyAbove": 190
+    },
+    {
+      "maxItems": 24,
+      "recommendProbability": 0.2,
+      "medianItems": 12,
+      "sensitivity": 0.8368421052631579,
+      "specificity": 0.9671916010498688,
+      "accuracy": 0.961,
+      "trulyAbove": 190
+    },
+    {
+      "maxItems": 24,
+      "recommendProbability": 0.3,
+      "medianItems": 12,
+      "sensitivity": 0.7736842105263158,
+      "specificity": 0.979002624671916,
+      "accuracy": 0.96925,
+      "trulyAbove": 190
+    },
+    {
+      "maxItems": 24,
+      "recommendProbability": 0.4,
+      "medianItems": 12,
+      "sensitivity": 0.7421052631578947,
+      "specificity": 0.9832020997375328,
+      "accuracy": 0.97175,
+      "trulyAbove": 190
+    },
+    {
+      "maxItems": 32,
+      "recommendProbability": 0.2,
+      "medianItems": 12,
+      "sensitivity": 0.8473684210526315,
+      "specificity": 0.9695538057742782,
+      "accuracy": 0.96375,
+      "trulyAbove": 190
+    },
+    {
+      "maxItems": 32,
+      "recommendProbability": 0.3,
+      "medianItems": 12,
+      "sensitivity": 0.8263157894736842,
+      "specificity": 0.9784776902887139,
+      "accuracy": 0.97125,
+      "trulyAbove": 190
+    },
+    {
+      "maxItems": 32,
+      "recommendProbability": 0.4,
+      "medianItems": 12,
+      "sensitivity": 0.7684210526315789,
+      "specificity": 0.9824146981627296,
+      "accuracy": 0.97225,
+      "trulyAbove": 190
+    }
+  ]
+}

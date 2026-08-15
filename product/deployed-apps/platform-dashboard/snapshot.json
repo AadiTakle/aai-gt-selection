@@ -1,0 +1,215 @@
+{
+ "generatedAt": "2026-08-13T07:48:15+00:00",
+ "account": "056956104102",
+ "region": "us-east-1",
+ "api": "https://0yz8m5z48k.execute-api.us-east-1.amazonaws.com",
+ "tables": [
+  {
+   "label": "Platform table",
+   "role": "types, items, apps, sessions, exposure counters",
+   "name": "GtQuestionPlatformData-PlatformTable5198EBA1-12660HI1VJNVV",
+   "rows": 5406,
+   "bytes": 0,
+   "gsis": 6,
+   "billing": "PAY_PER_REQUEST",
+   "kinds": [
+    {
+     "kind": "TYPE",
+     "rows": 5040
+    },
+    {
+     "kind": "SESSION",
+     "rows": 202
+    },
+    {
+     "kind": "APP",
+     "rows": 160
+    },
+    {
+     "kind": "APIKEY",
+     "rows": 3
+    },
+    {
+     "kind": "SNAPSHOT",
+     "rows": 1
+    }
+   ]
+  },
+  {
+   "label": "Answer keys",
+   "role": "kept in a separate table so serving code cannot read a key",
+   "name": "GtQuestionPlatformData-AnswerKeyTable354C1E80-19LYC66BIS17N",
+   "rows": 4934,
+   "bytes": 0,
+   "gsis": 0,
+   "billing": "PAY_PER_REQUEST",
+   "kinds": []
+  },
+  {
+   "label": "Personas",
+   "role": "pseudonymous identities, encrypted with a dedicated KMS key",
+   "name": "GtQuestionPlatformData-PersonaTable3E72C0D6-1NKAYX7L6OFTD",
+   "rows": 3,
+   "bytes": 0,
+   "gsis": 0,
+   "billing": "\u2014",
+   "sse": "ENABLED",
+   "kinds": []
+  }
+ ],
+ "stacks": [
+  {
+   "Name": "GtQuestionPlatformWeb",
+   "Status": "CREATE_COMPLETE",
+   "Updated": "2026-08-13T05:14:44.470000+00:00"
+  },
+  {
+   "Name": "GtQuestionPlatformApi",
+   "Status": "UPDATE_COMPLETE",
+   "Updated": "2026-08-13T05:19:46.828000+00:00"
+  },
+  {
+   "Name": "GtQuestionPlatformData",
+   "Status": "UPDATE_COMPLETE",
+   "Updated": "2026-08-13T05:00:17.946000+00:00"
+  }
+ ],
+ "lambdas": [
+  {
+   "Name": "GtQuestionPlatformApi-AdminFn81E922BC-tiBnKyZMj6w8",
+   "Runtime": "nodejs24.x",
+   "Memory": 2048,
+   "Timeout": 600,
+   "Modified": "2026-08-13T04:56:08.000+0000"
+  },
+  {
+   "Name": "GtQuestionPlatformWeb-CustomS3AutoDeleteObjectsCus-gjDAhVZ1ibWh",
+   "Runtime": "nodejs24.x",
+   "Memory": 128,
+   "Timeout": 900,
+   "Modified": "2026-08-13T05:15:07.492+0000"
+  },
+  {
+   "Name": "GtQuestionPlatformWeb-CustomCDKBucketDeployment869-J1P16aAliARX",
+   "Runtime": "python3.13",
+   "Memory": 128,
+   "Timeout": 900,
+   "Modified": "2026-08-13T05:15:23.992+0000"
+  },
+  {
+   "Name": "GtQuestionPlatformApi-CatalogFnBCFD74AE-Wx8XG0noAWFX",
+   "Runtime": "nodejs24.x",
+   "Memory": 512,
+   "Timeout": 15,
+   "Modified": "2026-08-13T04:55:50.000+0000"
+  },
+  {
+   "Name": "GtQuestionPlatformApi-RescoreWorkerFnF73EB3EA-xWRg6AH2M8Yt",
+   "Runtime": "nodejs24.x",
+   "Memory": 1024,
+   "Timeout": 300,
+   "Modified": "2026-08-13T04:55:51.000+0000"
+  },
+  {
+   "Name": "GtQuestionPlatformApi-ScoreFn93DD6C82-ubb21bTP9VhL",
+   "Runtime": "nodejs24.x",
+   "Memory": 768,
+   "Timeout": 15,
+   "Modified": "2026-08-13T04:56:07.000+0000"
+  },
+  {
+   "Name": "GtQuestionPlatformApi-AuthorizerFn97B9AA7C-HEgxGvqslWP4",
+   "Runtime": "nodejs24.x",
+   "Memory": 256,
+   "Timeout": 5,
+   "Modified": "2026-08-13T04:56:08.000+0000"
+  },
+  {
+   "Name": "GtQuestionPlatformApi-ServeFnBA855C13-49CaPPfjxWzK",
+   "Runtime": "nodejs24.x",
+   "Memory": 1024,
+   "Timeout": 15,
+   "Modified": "2026-08-13T04:56:07.000+0000"
+  }
+ ],
+ "snapshots": [
+  {
+   "Key": "snapshots/snap-20260813-001.json.gz",
+   "Size": 151554,
+   "Modified": "2026-08-13T04:51:18+00:00"
+  }
+ ],
+ "queue": {
+  "ApproximateNumberOfMessages": "0",
+  "ApproximateNumberOfMessagesNotVisible": "0"
+ },
+ "appRunner": [
+  {
+   "Name": "gt-cogat-prep-2",
+   "Url": "scunwsuf4i.us-east-1.awsapprunner.com",
+   "Status": "RUNNING"
+  },
+  {
+   "Name": "gt-speedrun-bot",
+   "Url": "tuxwtz8rqi.us-east-1.awsapprunner.com",
+   "Status": "RUNNING"
+  },
+  {
+   "Name": "gt-web",
+   "Url": "azkxhfwkvm.us-east-1.awsapprunner.com",
+   "Status": "RUNNING"
+  }
+ ],
+ "cloudfront": [
+  {
+   "Id": "E1RYXYCW8WZBVI",
+   "Domain": "d3vfqn9jn3gagq.cloudfront.net",
+   "Comment": "gt-evidence-sandbox assets",
+   "Status": "Deployed"
+  },
+  {
+   "Id": "E22XBMDC3G1AQV",
+   "Domain": "dpsudm7dfi1wf.cloudfront.net",
+   "Comment": "gt-evidence-sandbox application entrypoint",
+   "Status": "Deployed"
+  },
+  {
+   "Id": "E3LAY2ZROGPRPB",
+   "Domain": "d14xlnxxtsczg9.cloudfront.net",
+   "Comment": "GT question platform: the Bramblebrook game bundle.",
+   "Status": "Deployed"
+  },
+  {
+   "Id": "E3VCI457TMLIXD",
+   "Domain": "d284xy6sbvs9mb.cloudfront.net",
+   "Comment": "GT question-type review UI",
+   "Status": "Deployed"
+  }
+ ],
+ "demos": [
+  {
+   "name": "Question-type review",
+   "url": "https://d284xy6sbvs9mb.cloudfront.net",
+   "host": "S3 + CloudFront",
+   "connected": true
+  },
+  {
+   "name": "CogAT prep site",
+   "url": "https://scunwsuf4i.us-east-1.awsapprunner.com/about-the-test",
+   "host": "App Runner",
+   "connected": false
+  },
+  {
+   "name": "GT screener (example assessment)",
+   "url": "https://kt49a2xvq5.us-east-1.awsapprunner.com/demo/exam?telemetry=1",
+   "host": "App Runner",
+   "connected": false
+  },
+  {
+   "name": "Bramblebrook game",
+   "url": "https://d14xlnxxtsczg9.cloudfront.net",
+   "host": "S3 + CloudFront",
+   "connected": true
+  }
+ ]
+}

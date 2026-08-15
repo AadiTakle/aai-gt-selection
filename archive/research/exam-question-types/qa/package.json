@@ -1,0 +1,13 @@
+{
+  "name": "qtype-demo-qa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone headless-Chromium browser-QA harness for the self-contained question-type demos. Not an app dependency.",
+  "scripts": {
+    "qa": "node qa.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.61.1"
+  }
+}

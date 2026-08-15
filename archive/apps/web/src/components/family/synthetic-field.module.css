@@ -1,0 +1,203 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2);
+}
+
+.label {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 620;
+  color: var(--color-ink);
+}
+
+.req {
+  color: var(--color-danger);
+}
+
+.opt {
+  color: var(--color-muted);
+  font-weight: 400;
+  font-size: 0.75rem;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.control {
+  appearance: none;
+  width: 100%;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.8rem;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--color-ink);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background 150ms ease;
+}
+
+.control:hover {
+  border-color: var(--color-muted);
+}
+
+.control:focus {
+  outline: none;
+  border-color: var(--color-focus);
+  background: var(--color-panel);
+  box-shadow: 0 0 0 3px rgb(0 79 113 / 0.16);
+}
+
+.selectWrap {
+  position: relative;
+}
+
+.selectWrap::after {
+  content: '';
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--color-muted);
+  border-bottom: 2px solid var(--color-muted);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+/* Consistent stacked layout: legend on top, buttons below — every toggle looks
+   the same regardless of legend length. */
+.toggleRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gt-space-2);
+}
+
+.toggleLegend {
+  font-size: 0.9rem;
+  color: var(--color-ink);
+  font-weight: 500;
+}
+
+.segmented {
+  display: inline-flex;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 3px;
+}
+
+.segmented button {
+  all: unset;
+  padding: 0.5rem 1.4rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 620;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.segmented button:hover {
+  color: var(--color-ink);
+}
+
+.segmented button:focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 0.125rem;
+}
+
+/* Selected option: Navy fill, Near White label (white on Gold would fail).
+   Scoped under .segmented so it outranks `.segmented button { all: unset }`. */
+.segmented button.segActive {
+  background: var(--color-primary);
+  color: var(--gt-near-white);
+}
+
+.segmented button.segActive:hover {
+  color: var(--gt-near-white);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gt-space-2);
+}
+
+.chip {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-panel);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-ink);
+}
+
+.chip:focus-visible {
+  outline: 0.1875rem solid var(--color-focus);
+  outline-offset: 0.125rem;
+}
+
+.chipActive {
+  border-color: var(--gt-gold-light);
+  background: var(--color-surface);
+  color: #6f4526;
+}
+
+.reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition:
+    grid-template-rows 0.35s var(--gt-ease),
+    opacity 0.3s,
+    margin 0.35s;
+  opacity: 0;
+}
+
+.revealOpen {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: var(--gt-space-4);
+}
+
+.revealInner {
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-4);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--gt-space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    transition: none;
+  }
+}

@@ -1,0 +1,237 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-5);
+  padding-top: var(--gt-space-4);
+}
+
+/* navy field with the blueprint linework — same language as the dashboard */
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    var(--gt-dark-navy) 0%,
+    var(--gt-navy) 45%,
+    var(--gt-blue-dark) 100%
+  );
+  color: var(--gt-near-white);
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-8) var(--gt-space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gt-space-6);
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/blueprint-lines.png') right center / cover no-repeat;
+  opacity: 0.16;
+  pointer-events: none;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 45%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 45%, #000 100%);
+}
+
+.heroText {
+  position: relative;
+  z-index: 1;
+  max-width: 34rem;
+}
+
+.eyebrow {
+  font-family: var(--font-utility);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gt-gold-light);
+  font-weight: 600;
+  margin: 0;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: var(--gt-space-3) 0 var(--gt-space-4);
+  color: var(--gt-near-white);
+}
+
+.intro {
+  color: rgb(251 251 251 / 0.82);
+  font-size: 1.05rem;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 48ch;
+}
+
+.actions {
+  display: flex;
+  gap: var(--gt-space-4);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: var(--gt-space-5);
+}
+
+/* Secondary button (Gold fill, Dark Navy label) — the CTA sits on the navy
+   hero, and it carries the single chamfer for this screen. */
+.primary {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 13px 18px;
+  color: var(--color-accent-ink);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  font-family: var(--font-utility);
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primary::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: var(--color-accent);
+  border-radius: var(--radius-md);
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--cut-br)),
+    calc(100% - var(--cut-br)) 100%,
+    0 100%
+  );
+  transition: background 150ms ease;
+}
+
+.primary:hover::before {
+  background: var(--gt-gold-deep);
+}
+
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--gt-near-white);
+  font-family: var(--font-utility);
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.secondary:hover {
+  color: #fff;
+}
+
+/* the GT spiral centerpiece, on a restrained warm halo */
+.heroMark {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 220px;
+  height: 220px;
+  display: grid;
+  place-items: center;
+}
+
+.heroMark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(228 139 83 / 0.22), transparent 68%);
+}
+
+.spiral {
+  position: relative;
+  width: 118px;
+  height: 118px;
+}
+
+.spiral svg {
+  width: 100%;
+  height: 100%;
+}
+
+.spiral path {
+  fill: var(--gt-near-white);
+}
+
+/* three-phase "what to expect" preview */
+.journey {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gt-space-5);
+}
+
+.jStep {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--gt-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gt-space-2);
+}
+
+.jNum {
+  font-family: var(--font-utility);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--gt-blue);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.jLabel {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 300;
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.jDetail {
+  font-size: 0.9rem;
+  color: var(--color-ink-soft);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.boundary {
+  font-size: 0.78rem;
+  color: var(--color-muted);
+  margin: 0;
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--gt-space-6);
+  }
+  .heroMark {
+    width: 160px;
+    height: 160px;
+    align-self: center;
+  }
+  .journey {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,50 +1,16 @@
 {
   "name": "gt-selection-capstone",
-  "version": "0.0.0",
   "private": true,
-  "type": "module",
-  "packageManager": "pnpm@10.34.5",
-  "engines": {
-    "node": "24.x",
-    "pnpm": "10.x"
-  },
+  "version": "0.0.0",
+  "description": "Repo-root shortcuts. There is nothing to install here: every script below delegates into product/screener/, which is the npm project. archive/ is a separate pnpm workspace with its own scripts.",
   "scripts": {
-    "build": "pnpm -r --if-present run build",
-    "boundaries:check": "tsx scripts/check-workspace-boundaries.ts",
-    "db:lint": "supabase db lint --local --schema app,api,public --fail-on error",
-    "db:reset": "supabase db reset --local",
-    "db:start": "supabase start",
-    "db:stop": "supabase stop --no-backup",
-    "db:test": "supabase test db --local",
-    "db:types": "supabase gen types typescript --local --schema api > packages/db-types/src/database.generated.ts",
-    "db:types:check": "tsx scripts/check-generated-types.ts",
-    "db:users": "tsx scripts/create-local-auth-users.ts",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "lint": "eslint . && pnpm -r --if-present run lint",
-    "security:scan": "tsx scripts/check-security-boundaries.ts",
-    "typecheck": "tsc --showConfig -p tsconfig.base.json > /dev/null && pnpm -r --if-present run typecheck",
-    "test": "pnpm -r --if-present run test",
-    "test:coverage": "pnpm -r --if-present run test:coverage",
-    "verify": "tsx scripts/verify.ts"
-  },
-  "devDependencies": {
-    "@eslint/js": "9.39.5",
-    "@supabase/supabase-js": "2.110.7",
-    "@types/node": "24.13.3",
-    "eslint": "9.39.5",
-    "prettier": "3.9.5",
-    "supabase": "2.109.1",
-    "tsx": "4.23.1",
-    "typescript": "5.9.3",
-    "typescript-eslint": "8.64.0",
-    "vitest": "4.1.10"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp",
-      "unrs-resolver"
-    ]
+    "ui": "npm --prefix product/screener run ui --",
+    "test": "npm --prefix product/screener test",
+    "typecheck": "npm --prefix product/screener run typecheck",
+    "dev": "npm --prefix product/screener run dev",
+    "sim": "npm --prefix product/screener run sim",
+    "verify": "npm --prefix product/screener run verify",
+    "planner": "npm --prefix product/screener run planner",
+    "review": "npm --prefix product/screener run review"
   }
 }

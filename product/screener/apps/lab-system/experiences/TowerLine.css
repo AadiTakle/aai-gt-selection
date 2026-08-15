@@ -1,0 +1,1260 @@
+/* Tower Line only. Every selector is prefixed `tl-` so parallel work on other experiences cannot
+   collide with this file, and so nothing here leaks into the launcher shell. */
+
+/* ---------- Tower Line (4-5) ----------
+   A vertical arena: enemy crowns at the top, a river with three bridges, three lanes of deploy posts,
+   your king tower at the bottom. Gold trim over royal purple, arena blue floor, magenta elixir. The
+   numerals are the loudest thing on screen after the board, because the whole loop is a price and a
+   balance. */
+
+.tl {
+  --tl-void: #100322;
+  --tl-deep: #1e0940;
+  --tl-purple: #3d1a6e;
+  --tl-purple-lo: #240d4c;
+  --tl-royal: #7b3fbf;
+  --tl-gold: #f7c948;
+  --tl-gold-hi: #ffe9a8;
+  --tl-gold-lo: #b8860b;
+  --tl-gold-sh: #96600a;
+  --tl-arena: #23589e;
+  --tl-arena-lo: #0b2247;
+  --tl-elixir: #ff5ce0;
+  --tl-elixir-lo: #c02fb8;
+  --tl-text: #ece1ff;
+  --tl-dim: #b79ae0;
+  --tl-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  flex: 1;
+  min-height: 0;
+  padding: 20px 18px 46px;
+  color: var(--tl-text);
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgba(123, 63, 191, 0.45), transparent 62%),
+    radial-gradient(90% 60% at 50% 110%, rgba(38, 13, 80, 0.9), transparent 60%),
+    linear-gradient(180deg, var(--tl-deep), var(--tl-void));
+  font-synthesis-weight: none;
+}
+
+/* A gold ring rather than the launcher's blue, so focus reads as part of the arena and still clears
+   contrast against every surface in this file. */
+.tl :focus-visible {
+  outline: 3px solid var(--tl-gold-hi);
+  outline-offset: 3px;
+}
+
+.tl-kicker {
+  font: 800 0.62rem/1 var(--tl-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tl-gold);
+}
+
+.tl-stroke {
+  text-shadow:
+    0 2px 0 rgba(12, 3, 26, 0.9),
+    0 -1px 0 rgba(12, 3, 26, 0.6),
+    1px 0 0 rgba(12, 3, 26, 0.6),
+    -1px 0 0 rgba(12, 3, 26, 0.6);
+}
+
+/* Big numbers get a struck-gold treatment. They are the read-out the whole economy hangs on. */
+.tl-num {
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  background: linear-gradient(180deg, #fff3cd, var(--tl-gold) 48%, #dc9c14);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(12, 3, 26, 0.75));
+}
+
+.tl-glyph {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  --cut: rgba(20, 6, 42, 0.55);
+  flex: 0 0 auto;
+}
+
+.tl-drop {
+  width: 16px;
+  height: 16px;
+  fill: var(--tl-elixir);
+  --drop-shine: rgba(255, 255, 255, 0.8);
+  flex: 0 0 auto;
+}
+
+/* ---------- rarity ---------- */
+
+.tl-r-common {
+  --r-hi: #9db2c9;
+  --r-lo: #59718e;
+  --r-edge: #cddbe9;
+  --r-sh: #3a4d61;
+}
+.tl-r-rare {
+  --r-hi: #ffb452;
+  --r-lo: #d97a12;
+  --r-edge: #ffd79a;
+  --r-sh: #a2560a;
+}
+.tl-r-epic {
+  --r-hi: #c47dff;
+  --r-lo: #8a34d6;
+  --r-edge: #e2bcff;
+  --r-sh: #5f1c99;
+}
+.tl-r-legendary {
+  --r-hi: #ffe9a8;
+  --r-lo: #e0932a;
+  --r-edge: #fff6d6;
+  --r-sh: #9c6410;
+}
+
+/* ---------- layout ---------- */
+
+.tl-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+@media (min-width: 1060px) {
+  .tl-layout {
+    grid-template-columns: minmax(0, 1fr) 356px;
+    align-items: start;
+  }
+}
+
+/* ---------- the arena ---------- */
+
+.tl-arena {
+  border-radius: 22px;
+  padding: 9px;
+  background: linear-gradient(180deg, var(--tl-gold-hi), var(--tl-gold) 20%, var(--tl-gold-lo));
+  box-shadow:
+    0 22px 46px -20px #000,
+    inset 0 0 0 2px rgba(60, 30, 0, 0.35);
+}
+
+.tl-arena-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 15px;
+  /* Checkerboard arena tiling over a lit floor. */
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.04) 75%),
+    linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25% 75%, rgba(255, 255, 255, 0.04) 75%),
+    radial-gradient(130% 80% at 50% 0%, var(--tl-arena), #123566 55%, var(--tl-arena-lo));
+  background-size:
+    28px 28px,
+    28px 28px,
+    100% 100%;
+  background-position:
+    0 0,
+    14px 14px,
+    0 0;
+  box-shadow: inset 0 0 40px rgba(4, 12, 30, 0.75);
+}
+
+/* One grid template shared by the tower rows, the bridges and the lanes, so the three columns line
+   up exactly down the whole board. */
+.tl-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.tl-row-enemy,
+.tl-row-home {
+  justify-items: center;
+  align-items: end;
+}
+
+/* ---------- towers ---------- */
+
+.tl-tower {
+  width: clamp(38px, 5.6vw, 50px);
+  height: auto;
+  filter: drop-shadow(0 5px 6px rgba(0, 0, 0, 0.45));
+}
+
+.tl-tower-enemy {
+  --t-body: #4c2a56;
+  --t-cren: #5e3768;
+  --t-base: #2a1430;
+  --t-win: #ff5f5f;
+}
+.tl-tower-home {
+  --t-body: #6a34b4;
+  --t-cren: #7f45cc;
+  --t-base: #34125f;
+  --t-win: var(--tl-gold);
+}
+.tl-tower-king {
+  --t-body: #7b3fbf;
+  --t-cren: #9257d9;
+  --t-base: #34125f;
+  --t-win: var(--tl-gold-hi);
+  width: clamp(48px, 7.2vw, 64px);
+}
+
+.tl-t-body {
+  fill: var(--t-body);
+}
+.tl-t-crenel {
+  fill: var(--t-cren);
+}
+.tl-t-base {
+  fill: var(--t-base);
+}
+.tl-t-window {
+  fill: var(--t-win);
+}
+.tl-t-shade {
+  fill: rgba(0, 0, 0, 0.22);
+}
+.tl-t-crown {
+  fill: var(--tl-gold);
+}
+
+/* ---------- river ---------- */
+
+.tl-river {
+  position: relative;
+  height: 34px;
+  border-radius: 7px;
+  overflow: hidden;
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.45);
+}
+
+.tl-water {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.12) 0 6px, transparent 6px 18px),
+    linear-gradient(180deg, #3d8ede, #1f5fae);
+  background-size: 120px 100%, 100% 100%;
+  animation: tl-current 7s linear infinite;
+}
+
+@keyframes tl-current {
+  to {
+    background-position: 120px 0, 0 0;
+  }
+}
+
+.tl-bridges {
+  position: relative;
+  height: 100%;
+}
+
+.tl-bridge {
+  width: min(70%, 92px);
+  height: 100%;
+  margin: 0 auto;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #a9713a 0 7px, #8a5a2c 7px 14px);
+  border-top: 3px solid #c98b4b;
+  border-bottom: 3px solid #6b4320;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+}
+
+/* ---------- lanes and posts ---------- */
+
+.tl-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.2));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+}
+
+.tl-lane-plate {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--tl-purple), #290f56);
+  box-shadow: inset 0 0 0 1px rgba(247, 201, 72, 0.4);
+}
+
+.tl-lane-name {
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: #fff;
+}
+
+.tl-lane-read {
+  margin-left: auto;
+  font: 800 0.56rem/1 var(--tl-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tl-gold);
+}
+
+.tl-lane-pips {
+  display: flex;
+  gap: 3px;
+}
+
+.tl-lane-pips i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tl-lane-pips i.on {
+  background: var(--tl-gold);
+  box-shadow: 0 0 6px rgba(247, 201, 72, 0.85);
+}
+
+.tl-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 68px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  color: #fff;
+  transition:
+    transform 160ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    background 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+/* Cold start lives here: nine of these, and they have to look like an invitation rather than a
+   missing thing. Dashed gold pads on a lit floor, each labelled with the post it is. */
+.tl-slot.empty {
+  border: 2px dashed rgba(247, 201, 72, 0.5);
+  background: rgba(6, 22, 46, 0.5);
+}
+
+.tl-slot.empty:hover {
+  background: rgba(14, 44, 86, 0.72);
+  border-color: rgba(247, 201, 72, 0.85);
+  transform: translateY(-2px);
+}
+
+.tl-slot-plus {
+  font: 900 1.45rem/1 system-ui, sans-serif;
+  color: rgba(247, 201, 72, 0.8);
+}
+
+.tl-slot-post {
+  font: 800 0.55rem/1 var(--tl-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(236, 225, 255, 0.55);
+}
+
+.tl-slot.targetable {
+  border-style: solid;
+  border-color: var(--tl-gold);
+  animation: tl-invite 1.7s ease-in-out infinite;
+}
+
+@keyframes tl-invite {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(247, 201, 72, 0.34);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(247, 201, 72, 0);
+  }
+}
+
+.tl-slot.filled {
+  border: 2px solid var(--r-edge);
+  background: linear-gradient(180deg, var(--r-hi), var(--r-lo));
+  box-shadow:
+    0 4px 0 var(--r-sh),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.tl-slot.filled .tl-glyph {
+  width: 27px;
+  height: 27px;
+  color: #fff6dd;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.45));
+}
+
+.tl-slot-name {
+  font: 800 0.66rem/1 system-ui, sans-serif;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.tl-shock {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.tl-slot.landed {
+  animation: tl-land 640ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.tl-slot.landed .tl-shock {
+  animation: tl-ring 640ms ease-out;
+}
+
+@keyframes tl-land {
+  0% {
+    transform: translateY(-28px) scale(0.84);
+    opacity: 0.25;
+  }
+  55% {
+    transform: translateY(3px) scale(1.06);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes tl-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(247, 201, 72, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 0 20px rgba(247, 201, 72, 0);
+  }
+}
+
+/* ---------- the rail ---------- */
+
+.tl-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tl-hud {
+  padding: 14px 15px 13px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--tl-purple), var(--tl-purple-lo));
+  box-shadow:
+    inset 0 0 0 2px rgba(247, 201, 72, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 16px 32px -20px #000;
+}
+
+.tl-elixir {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.tl-elixir .tl-drop {
+  width: 27px;
+  height: 27px;
+  align-self: center;
+  filter: drop-shadow(0 0 9px rgba(255, 92, 224, 0.55));
+}
+
+.tl-elixir .tl-num {
+  font-size: clamp(2.1rem, 5.4vw, 2.7rem);
+}
+
+.tl-elixir-bar {
+  position: relative;
+  height: 13px;
+  margin-top: 9px;
+  border-radius: 999px;
+  background: #190735;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.13);
+  overflow: hidden;
+}
+
+.tl-elixir-bar > span {
+  display: block;
+  height: 100%;
+  width: calc(var(--tl-fill, 0) * 100%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--tl-elixir-lo), var(--tl-elixir));
+  box-shadow: 0 0 12px rgba(255, 92, 224, 0.6);
+  transition: width 720ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* Segment ticks, the way an elixir bar is always drawn. */
+.tl-elixir-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(12.5% - 2px), rgba(12, 3, 26, 0.55) calc(12.5% - 2px) 12.5%);
+  pointer-events: none;
+}
+
+.tl-elixir-hint {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  color: var(--tl-dim);
+}
+
+.tl-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.tl-stats div {
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
+.tl-stats dt {
+  font: 800 0.56rem/1.2 var(--tl-mono);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tl-dim);
+}
+
+.tl-stats dd {
+  margin: 4px 0 0;
+  font: 900 1.14rem/1 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+
+.tl-of {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--tl-dim);
+}
+
+/* ---------- the push button ---------- */
+
+.tl-go {
+  display: block;
+  width: 100%;
+  padding: 13px 16px;
+  border: 0;
+  border-radius: 14px;
+  text-align: left;
+  color: #2a0f47;
+  background: linear-gradient(180deg, #ffdc70, #f0a91f 55%, #dc8f0e);
+  box-shadow:
+    0 6px 0 var(--tl-gold-sh),
+    0 16px 28px -14px #000;
+  transition:
+    transform 110ms ease,
+    box-shadow 110ms ease;
+}
+
+.tl-go:hover {
+  background: linear-gradient(180deg, #ffe589, #f5b12a 55%, #e5980f);
+}
+
+.tl-go:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--tl-gold-sh);
+}
+
+.tl-go-label {
+  display: block;
+  font: 900 1.06rem/1.15 system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+
+.tl-go-sub {
+  display: block;
+  margin-top: 3px;
+  font: 700 0.7rem/1.2 system-ui, sans-serif;
+  color: rgba(42, 15, 71, 0.72);
+}
+
+.tl-go.compact {
+  text-align: center;
+}
+
+/* ---------- readout ---------- */
+
+.tl-log {
+  margin: 0;
+  padding: 9px 12px;
+  min-height: 3.2em;
+  font-size: 0.83rem;
+  line-height: 1.4;
+  color: var(--tl-text);
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 3px solid var(--tl-gold);
+  border-radius: 0 10px 10px 0;
+}
+
+.tl-fault {
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(120, 62, 0, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(247, 201, 72, 0.4);
+}
+
+.tl-fault p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #ffe1a8;
+}
+
+.tl-fault code {
+  display: block;
+  margin-top: 6px;
+  font: 600 0.68rem/1.4 var(--tl-mono);
+  color: rgba(255, 225, 168, 0.62);
+  word-break: break-word;
+}
+
+/* ---------- the deck ---------- */
+
+.tl-deck-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.tl-deck-hint {
+  font-size: 0.72rem;
+  color: var(--tl-dim);
+}
+
+.tl-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(94px, 1fr));
+  gap: 16px 11px;
+}
+
+.tl-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 8px 6px 10px;
+  border: 2px solid var(--r-edge);
+  border-radius: 13px;
+  color: #fff;
+  background: linear-gradient(180deg, var(--r-hi), var(--r-lo));
+  box-shadow:
+    0 4px 0 var(--r-sh),
+    0 12px 20px -12px #000;
+  transition:
+    transform 140ms cubic-bezier(0.2, 0.8, 0.3, 1),
+    box-shadow 140ms ease,
+    filter 140ms ease;
+}
+
+.tl-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 7px 0 var(--r-sh),
+    0 16px 24px -12px #000;
+}
+
+.tl-card:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--r-sh);
+}
+
+.tl-card.picked {
+  transform: translateY(-5px);
+  box-shadow:
+    0 9px 0 var(--r-sh),
+    0 0 0 3px var(--tl-gold),
+    0 18px 26px -12px #000;
+}
+
+/* Not a lock. A card you cannot afford yet is dimmed and carries the number you are short by, and it
+   still selects, because planning the next purchase is the point. */
+.tl-card.short {
+  filter: saturate(0.45) brightness(0.76);
+}
+
+.tl-card.short:hover,
+.tl-card.short.picked {
+  filter: saturate(0.8) brightness(0.95);
+}
+
+.tl-card-art {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 1 / 0.8;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: radial-gradient(circle at 50% 26%, rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.24));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+}
+
+.tl-card .tl-glyph {
+  width: 34px;
+  height: 34px;
+  color: #fff8e4;
+  --cut: rgba(18, 4, 40, 0.62);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
+}
+
+.tl-r-legendary .tl-card-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.55) 50%, transparent 58%);
+  background-size: 260% 100%;
+  animation: tl-sheen 3.6s ease-in-out infinite;
+}
+
+@keyframes tl-sheen {
+  0%,
+  62% {
+    background-position: 160% 0;
+  }
+  100% {
+    background-position: -60% 0;
+  }
+}
+
+.tl-card-name {
+  font: 800 0.74rem/1 system-ui, sans-serif;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+.tl-cost {
+  position: absolute;
+  left: -6px;
+  bottom: -9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px 3px 5px;
+  border: 2px solid #ffd3f6;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ff7ae8, var(--tl-elixir-lo));
+  box-shadow: 0 3px 0 #7d1877;
+  font: 900 0.8rem/1 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.tl-cost .tl-drop {
+  width: 13px;
+  height: 13px;
+  fill: #fff;
+  --drop-shine: rgba(192, 47, 184, 0.9);
+}
+
+.tl-card-short {
+  position: absolute;
+  right: -4px;
+  bottom: -9px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #240d4c;
+  box-shadow: inset 0 0 0 1px rgba(247, 201, 72, 0.55);
+  font: 800 0.6rem/1.4 var(--tl-mono);
+  color: var(--tl-gold);
+}
+
+/* ---------- battle ---------- */
+
+.tl-battle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 13px;
+}
+
+.tl-battlebar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  width: min(1000px, 96vw);
+  padding: 12px 18px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--tl-purple), var(--tl-purple-lo));
+  box-shadow:
+    inset 0 0 0 2px rgba(247, 201, 72, 0.45),
+    0 16px 32px -20px #000;
+}
+
+.tl-bb-id {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-bb-id strong {
+  font: 900 1.06rem/1 system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.tl-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tl-meter-track {
+  position: relative;
+  height: 20px;
+  border-radius: 999px;
+  background: #170733;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.tl-meter-fill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(var(--tl-adv, 0) * (100% - 6px));
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--tl-royal), var(--tl-gold));
+  transition: width 560ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.tl-meter-pips {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 10px;
+}
+
+.tl-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  transition: background 260ms ease;
+}
+
+.tl-pip.on {
+  background: rgba(20, 6, 42, 0.5);
+}
+
+.tl-marcher {
+  position: absolute;
+  top: 50%;
+  left: calc(3px + var(--tl-adv, 0) * (100% - 6px));
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fff3cd, var(--tl-gold));
+  box-shadow:
+    0 0 0 3px rgba(20, 6, 42, 0.6),
+    0 3px 8px rgba(0, 0, 0, 0.5);
+  transition: left 560ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.tl-marcher svg {
+  width: 13px;
+  height: 13px;
+  fill: #3d1a6e;
+  margin-left: 1px;
+}
+
+.tl-marcher-pop {
+  display: grid;
+  place-items: center;
+  animation: tl-pop 520ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes tl-pop {
+  0% {
+    transform: scale(0.62);
+  }
+  55% {
+    transform: scale(1.28);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.tl-meter-label {
+  font: 800 0.58rem/1 var(--tl-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tl-dim);
+  text-align: center;
+}
+
+.tl-bb-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  text-align: right;
+}
+
+.tl-bb-count .tl-num {
+  font-size: clamp(1.8rem, 4.4vw, 2.4rem);
+}
+
+.tl-bb-count > span {
+  font: 700 0.66rem/1.3 var(--tl-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tl-dim);
+}
+
+.tl-extra {
+  display: block;
+  font-style: normal;
+  color: var(--tl-gold);
+}
+
+.tl-battle .tl-log {
+  width: min(1000px, 96vw);
+  min-height: 0;
+}
+
+.tl-frame {
+  width: min(1000px, 96vw);
+  height: min(64vh, 590px);
+  border: 0;
+  border-radius: 16px;
+  background: #f2ebff;
+  box-shadow:
+    0 0 0 4px var(--tl-gold),
+    0 0 0 9px var(--tl-purple),
+    0 28px 54px -26px #000;
+}
+
+.tl-forming {
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  width: min(1000px, 96vw);
+  height: min(64vh, 590px);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.24);
+  box-shadow: inset 0 0 0 2px rgba(247, 201, 72, 0.32);
+}
+
+.tl-forming p {
+  margin: 0;
+  font-weight: 700;
+  color: var(--tl-dim);
+}
+
+.tl-forming-bar {
+  display: flex;
+  gap: 9px;
+  align-items: flex-end;
+  height: 46px;
+}
+
+.tl-forming-bar span {
+  width: 15px;
+  height: 46px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, var(--tl-royal), var(--tl-purple));
+  box-shadow: inset 0 0 0 1px rgba(247, 201, 72, 0.4);
+  animation: tl-form 1.1s ease-in-out infinite;
+}
+
+.tl-forming-bar span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.tl-forming-bar span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+
+@keyframes tl-form {
+  0%,
+  100% {
+    transform: scaleY(0.42);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.tl-holdline {
+  width: min(1000px, 96vw);
+  padding: 11px 14px 13px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.26);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.tl-holdline-empty {
+  margin: 7px 0 0;
+  font-size: 0.8rem;
+  color: var(--tl-dim);
+}
+
+.tl-holdline-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tl-holdline-lane {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.tl-holdline-name {
+  font: 800 0.56rem/1 var(--tl-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tl-gold);
+}
+
+.tl-holdline-none {
+  font-size: 0.72rem;
+  color: rgba(183, 154, 224, 0.75);
+}
+
+.tl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 6px;
+  border: 1px solid var(--r-edge);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--r-hi), var(--r-lo));
+  font: 800 0.68rem/1 system-ui, sans-serif;
+  color: #fff;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.tl-chip .tl-glyph {
+  width: 14px;
+  height: 14px;
+  color: #fff6dd;
+  --cut: rgba(20, 6, 42, 0.62);
+}
+
+/* ---------- the payout ---------- */
+
+.tl-reward-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(9, 2, 22, 0.74);
+  backdrop-filter: blur(5px);
+  animation: tl-fade 220ms ease;
+}
+
+@keyframes tl-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.tl-reward {
+  position: relative;
+  width: min(420px, 94vw);
+  padding: 24px 22px 22px;
+  text-align: center;
+  border: 3px solid var(--tl-gold);
+  border-radius: 20px;
+  background: linear-gradient(180deg, #4a1f86, #240d50);
+  box-shadow:
+    0 34px 70px -26px #000,
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  animation: tl-rise 400ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes tl-rise {
+  from {
+    transform: translateY(22px) scale(0.94);
+    opacity: 0;
+  }
+}
+
+.tl-reward h2 {
+  margin: 6px 0 4px;
+  font: 900 1.7rem/1.05 system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.tl-reward-sub {
+  margin: 0 0 16px;
+  font-size: 0.86rem;
+  color: var(--tl-dim);
+}
+
+.tl-reward-pay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 13px 0 14px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 92, 224, 0.35);
+}
+
+.tl-reward-pay .tl-drop {
+  width: 30px;
+  height: 30px;
+  filter: drop-shadow(0 0 10px rgba(255, 92, 224, 0.6));
+}
+
+.tl-reward-pay .tl-num {
+  font-size: 2.5rem;
+}
+
+.tl-reward-pay > span {
+  align-self: flex-end;
+  padding-bottom: 5px;
+  font: 800 0.66rem/1 var(--tl-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tl-dim);
+}
+
+.tl-reward-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  margin: 14px 0 18px;
+}
+
+.tl-badge {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(123, 63, 191, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(247, 201, 72, 0.5);
+  font: 800 0.7rem/1.3 system-ui, sans-serif;
+  color: #fff;
+}
+
+.tl-badge.quiet {
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  color: var(--tl-dim);
+}
+
+.tl-badge.gold {
+  background: linear-gradient(180deg, #ffdc70, #dc9c14);
+  box-shadow: 0 3px 0 var(--tl-gold-sh);
+  color: #2a0f47;
+}
+
+.tl-reward-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.tl-again {
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(247, 201, 72, 0.45);
+  font: 800 0.84rem/1 system-ui, sans-serif;
+  color: var(--tl-gold);
+  transition: background 140ms ease;
+}
+
+.tl-again:hover {
+  background: rgba(123, 63, 191, 0.42);
+}
+
+/* ---------- narrow ---------- */
+
+@media (max-width: 700px) {
+  .tl {
+    padding: 14px 10px 36px;
+  }
+
+  .tl-battlebar {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .tl-bb-count {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 8px;
+    text-align: left;
+  }
+
+  .tl-holdline-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tl-slot {
+    min-height: 58px;
+  }
+
+  .tl-lane-read {
+    display: none;
+  }
+}
+
+/* ---------- reduced motion ----------
+   The launcher already flattens durations globally; this block is here so this file stands on its own
+   and so the two purely decorative loops stop rather than merely speed up. */
+
+@media (prefers-reduced-motion: reduce) {
+  .tl *,
+  .tl *::before,
+  .tl *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .tl-water,
+  .tl-r-legendary .tl-card-art::after,
+  .tl-slot.targetable {
+    animation: none;
+  }
+
+  .tl-water {
+    background: linear-gradient(180deg, #3d8ede, #1f5fae);
+  }
+
+  .tl-slot.targetable {
+    box-shadow: 0 0 0 3px rgba(247, 201, 72, 0.45);
+  }
+}

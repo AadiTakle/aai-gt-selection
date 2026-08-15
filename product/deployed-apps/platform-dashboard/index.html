@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GT question platform — backend dashboard</title>
+<style>
+  :root{
+    --navy:#0d2440; --navy2:#123054; --gold:#f0b429; --ink:#16202c; --mute:#5b6b7d;
+    --line:#dbe3ec; --bg:#f4f6f9; --card:#fff; --good:#1a7f4b; --warn:#b45309; --bad:#b42318;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+
+  header{background:var(--navy);color:#fff;padding:18px 24px;border-bottom:3px solid var(--gold)}
+  header h1{margin:0;font-size:19px;font-weight:650;letter-spacing:.2px}
+  header p{margin:5px 0 0;color:#b9cbe0;font-size:13px}
+  .wrap{max-width:1220px;margin:0 auto;padding:22px 24px 60px}
+
+  section{margin:0 0 26px}
+  h2{font-size:12px;letter-spacing:.10em;text-transform:uppercase;color:var(--mute);
+     margin:0 0 10px;font-weight:700}
+  .grid{display:grid;gap:14px}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 16px}
+  .card h3{margin:0 0 3px;font-size:15px}
+  .card .role{color:var(--mute);font-size:12.5px;margin:0 0 12px}
+
+  .stat{font-size:27px;font-weight:680;letter-spacing:-.5px;line-height:1.1}
+  .stat small{font-size:12px;font-weight:500;color:var(--mute);letter-spacing:0}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid #eef2f6}
+  .kv span:first-child{color:var(--mute)}
+  .kv span:last-child{text-align:right}
+
+  table{width:100%;border-collapse:collapse;background:var(--card);
+        border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid #eef2f6;vertical-align:top}
+  th{background:#f8fafc;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+  tr:last-child td{border-bottom:0}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+
+  .pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:650}
+  .ok{background:#e7f6ee;color:var(--good)} .warnp{background:#fef3e2;color:var(--warn)}
+  .badp{background:#fdeceb;color:var(--bad)} .neut{background:#eef2f6;color:var(--mute)}
+
+  .bar{height:7px;background:#eef2f6;border-radius:4px;overflow:hidden;margin-top:6px}
+  .bar i{display:block;height:100%;background:var(--navy2)}
+  .spark{display:flex;gap:1px;align-items:flex-end;height:34px;margin-top:8px}
+  .spark i{flex:1;background:#c3d3e5;min-height:2px;border-radius:1px}
+  .spark i.hot{background:var(--gold)}
+
+  a{color:#12507f} a:hover{color:var(--navy)}
+  .note{color:var(--mute);font-size:12.5px;margin:8px 2px 0}
+  .live{font-size:11px;font-weight:650;color:var(--good)}
+  .asof{font-size:11px;color:var(--mute)}
+</style>
+</head>
+<body>
+<header>
+  <h1>GT question platform — backend dashboard</h1>
+  <p id="sub">loading…</p>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <h2>Deployed demos <span class="live" id="probeNote"></span></h2>
+    <table id="demos"><thead><tr>
+      <th>Demo</th><th>Link</th><th>Hosting</th><th>Reads the library</th><th class="num">Status</th>
+    </tr></thead><tbody></tbody></table>
+  </section>
+
+  <section>
+    <h2>Question library <span class="live">live</span></h2>
+    <div class="grid g4" id="libStats"></div>
+    <div class="card" style="margin-top:14px">
+      <h3>Difficulty coverage across the servable bank</h3>
+      <p class="role">Every scorable item on the 1&ndash;20 design scale. A gap is a rung the engine can aim at and find nothing.</p>
+      <div class="spark" id="spark"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Registered apps <span class="live">live</span></h2>
+    <table id="apps"><thead><tr>
+      <th>App</th><th class="mono">appId</th><th class="num">Approved types</th><th>Snapshot</th>
+    </tr></thead><tbody></tbody></table>
+    <p class="note">Each app carries its own supported-type list. Serving refuses anything outside it.</p>
+  </section>
+
+  <section>
+    <h2>Databases <span class="asof" id="asof1"></span></h2>
+    <div class="grid g3" id="tables"></div>
+  </section>
+
+  <section>
+    <h2>Compute and storage <span class="asof" id="asof2"></span></h2>
+    <div class="grid g3">
+      <div class="card"><h3>Lambda functions</h3>
+        <p class="role">Catalog, serving, scoring, admin and the rescore worker.</p>
+        <div id="lambdas"></div></div>
+      <div class="card"><h3>Catalogue snapshots</h3>
+        <p class="role">Every publish writes an immutable gzipped snapshot to S3.</p>
+        <div id="snaps"></div></div>
+      <div class="card"><h3>Rescore queue</h3>
+        <p class="role">Sessions waiting to be re-marked after an item revision.</p>
+        <div id="queue"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Stacks <span class="asof" id="asof3"></span></h2>
+    <table id="stacks"><thead><tr><th>Stack</th><th>Status</th><th>Last updated</th></tr></thead><tbody></tbody></table>
+  </section>
+
+</div>
+
+<script>
+/**
+ * Two sources, deliberately distinguished on screen.
+ *
+ * Anything about the QUESTION LIBRARY is fetched live from the platform's own catalogue routes with
+ * an app key, so it cannot go stale and it is the same data an app sees. Anything about the
+ * INFRASTRUCTURE — row counts, table sizes, Lambdas, stacks — is a snapshot taken at deploy time,
+ * because a browser holds no AWS credentials and should not. Every snapshot panel is stamped with
+ * when it was taken rather than pretending to be current.
+ */
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const n = x => Number(x ?? 0).toLocaleString();
+const mb = b => (Number(b ?? 0) / 1e6).toFixed(2) + ' MB';
+const when = t => t ? new Date(t).toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'}) : '—';
+
+let CFG = null;
+async function api(path, key) {
+  const res = await fetch(`${CFG.apiBaseUrl}${path}`, { headers: { 'x-api-key': key } });
+  if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+  return res.json();
+}
+
+function renderSnapshot(s) {
+  document.getElementById('sub').textContent =
+    `account ${s.account} · ${s.region} · ${s.api}`;
+  const stamp = `snapshot ${when(s.generatedAt)}`;
+  for (const id of ['asof1','asof2','asof3']) document.getElementById(id).textContent = stamp;
+
+  document.getElementById('tables').innerHTML = s.tables.map(t => `
+    <div class="card">
+      <h3>${esc(t.label)}</h3>
+      <p class="role">${esc(t.role)}</p>
+      <div class="stat">${n(t.rows)} <small>rows</small></div>
+      ${t.kinds && t.kinds.length ? `<div style="margin-top:10px">${t.kinds.map(k => {
+        const pct = Math.max(1, Math.round(k.rows / t.rows * 100));
+        return `<div class="kv"><span>${esc(k.kind)}</span><span>${n(k.rows)}</span></div>
+                <div class="bar"><i style="width:${pct}%"></i></div>`;
+      }).join('')}</div>` : ''}
+      ${t.bytes ? `<div class="kv"><span>size</span><span>${mb(t.bytes)}</span></div>`
+        : `<div class="kv"><span>size</span><span title="DynamoDB refreshes TableSizeBytes and ItemCount roughly every six hours, so both read zero on a recently filled table. The row counts above are scanned, not read from that metadata.">not yet reported</span></div>`}
+      ${t.gsis ? `<div class="kv"><span>indexes</span><span>${t.gsis} GSIs</span></div>` : ''}
+      ${t.sse ? `<div class="kv"><span>encryption</span><span>${esc(t.sse)} (KMS)</span></div>` : ''}
+      <div class="kv"><span class="mono" style="word-break:break-all;font-size:10.5px">${esc(t.name)}</span><span></span></div>
+    </div>`).join('');
+
+  document.getElementById('lambdas').innerHTML = s.lambdas.map(l => {
+    const short = l.Name.replace(/^GtQuestionPlatformApi-/, '').replace(/-[A-Za-z0-9]{10,}$/, '');
+    return `<div class="kv"><span>${esc(short)}</span><span>${esc(l.Runtime)} · ${l.Memory}MB</span></div>`;
+  }).join('') || '<p class="role">none found</p>';
+
+  document.getElementById('snaps').innerHTML = s.snapshots.length
+    ? s.snapshots.map(o => `<div class="kv"><span class="mono">${esc(o.Key)}</span><span>${(o.Size/1024).toFixed(0)} KB</span></div>
+        <div class="kv"><span>written</span><span>${when(o.Modified)}</span></div>`).join('')
+    : '<p class="role">no snapshot objects</p>';
+
+  const q = s.queue || {};
+  const waiting = Number(q.ApproximateNumberOfMessages ?? 0);
+  document.getElementById('queue').innerHTML =
+    `<div class="stat">${n(waiting)} <small>waiting</small></div>
+     <div class="kv"><span>in flight</span><span>${n(q.ApproximateNumberOfMessagesNotVisible)}</span></div>
+     <div class="kv"><span>state</span><span class="pill ${waiting ? 'warnp' : 'ok'}">${waiting ? 'backlog' : 'drained'}</span></div>`;
+
+  document.getElementById('stacks').querySelector('tbody').innerHTML = s.stacks.map(st => `
+    <tr><td><b>${esc(st.Name)}</b></td>
+        <td><span class="pill ${/COMPLETE/.test(st.Status) ? 'ok' : 'warnp'}">${esc(st.Status)}</span></td>
+        <td>${when(st.Updated)}</td></tr>`).join('');
+
+  document.getElementById('demos').querySelector('tbody').innerHTML = s.demos.map((d, i) => `
+    <tr><td><b>${esc(d.name)}</b></td>
+        <td><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.url)}</a></td>
+        <td>${esc(d.host)}</td>
+        <td>${d.connected ? '<span class="pill ok">yes</span>' : '<span class="pill neut">no</span>'}</td>
+        <td class="num" id="probe${i}"><span class="pill neut">checking</span></td></tr>`).join('');
+
+  // A no-cors probe cannot read the status, but it does distinguish "reachable" from "not".
+  s.demos.forEach((d, i) => {
+    fetch(d.url, { mode: 'no-cors', cache: 'no-store' })
+      .then(() => { document.getElementById(`probe${i}`).innerHTML = '<span class="pill ok">reachable</span>'; })
+      .catch(() => { document.getElementById(`probe${i}`).innerHTML = '<span class="pill badp">unreachable</span>'; });
+  });
+}
+
+async function renderLive() {
+  const types = (await api('/v1/catalog/types', CFG.appKey)).types;
+  const servable = types.filter(t => (t.scorableCount ?? 0) > 0);
+  const items = types.reduce((a, t) => a + (t.itemCount ?? 0), 0);
+  const scorable = types.reduce((a, t) => a + (t.scorableCount ?? 0), 0);
+  const domains = new Set(types.map(t => t.domain).filter(Boolean));
+
+  document.getElementById('libStats').innerHTML = [
+    ['Question types', types.length, `${servable.length} with scorable items`],
+    ['Items', items, `${n(scorable)} markable`],
+    ['Domains', domains.size, [...domains].join(', ')],
+    ['Answer keys', scorable, 'in their own table, never served'],
+  ].map(([label, value, sub]) => `
+    <div class="card"><p class="role" style="margin:0 0 4px">${esc(label)}</p>
+      <div class="stat">${n(value)}</div>
+      <p class="role" style="margin:6px 0 0">${esc(sub)}</p></div>`).join('');
+
+  /**
+   * Difficulty coverage: one bar per rung, gold where the bank is thin.
+   *
+   * Fetched a few at a time rather than all at once. Firing 36 concurrent requests at the catalogue
+   * function returned 503 for roughly half of them, which silently drew a coverage chart missing half
+   * the bank — worse than not drawing one.
+   */
+  const bins = Array(20).fill(0);
+  const queue = servable.slice();
+  const worker = async () => {
+    while (queue.length) {
+      const t = queue.shift();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const d = await api(`/v1/catalog/types/${encodeURIComponent(t.typeCode)}`, CFG.appKey);
+          for (const v of d.difficulties ?? []) bins[Math.max(0, Math.min(19, Math.floor(v) - 1))]++;
+          break;
+        } catch {
+          await new Promise(r => setTimeout(r, 350 * (attempt + 1)));
+        }
+      }
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  const peak = Math.max(...bins, 1);
+  document.getElementById('spark').innerHTML = bins.map((c, i) =>
+    `<i class="${c < peak * 0.15 ? 'hot' : ''}" style="height:${Math.max(2, c / peak * 100)}%"
+        title="difficulty ${i + 1}: ${c} items"></i>`).join('');
+
+  const rows = [];
+  for (const [label, key] of Object.entries(CFG.apps ?? {})) {
+    try {
+      const a = await api('/v1/catalog/app', key);
+      rows.push(`<tr><td><b>${esc(a.app?.name ?? label)}</b></td>
+        <td class="mono">${esc(a.app?.appId ?? '—')}</td>
+        <td class="num">${n(a.approvedTypes?.length)}</td>
+        <td class="mono">${esc(a.snapshotId ?? '—')}</td></tr>`);
+    } catch (e) {
+      rows.push(`<tr><td><b>${esc(label)}</b></td><td colspan="3"><span class="pill badp">${esc(e.message)}</span></td></tr>`);
+    }
+  }
+  document.getElementById('apps').querySelector('tbody').innerHTML = rows.join('');
+}
+
+(async () => {
+  CFG = await fetch('dashboard-config.json', { cache: 'no-store' }).then(r => r.json());
+  const snap = await fetch('snapshot.json', { cache: 'no-store' }).then(r => r.json());
+  renderSnapshot(snap);
+  try { await renderLive(); }
+  catch (e) {
+    document.getElementById('libStats').innerHTML =
+      `<div class="card"><span class="pill badp">live catalogue unreachable</span>
+       <p class="role" style="margin-top:8px">${esc(e.message)}</p></div>`;
+  }
+})();
+</script>
+</body>
+</html>

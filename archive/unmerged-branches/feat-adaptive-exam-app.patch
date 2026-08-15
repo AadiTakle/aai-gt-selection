@@ -1,0 +1,4296 @@
+From eef1d28b65620ddad9a711d8656e62c2911b8c4a Mon Sep 17 00:00:00 2001
+From: Aadi Takle <aadiatakle@gmail.com>
+Date: Fri, 24 Jul 2026 02:18:16 -0500
+Subject: [PATCH 1/6] feat(gov): reconcile R11/D-015/R5 and record D-016
+ adaptive screener
+
+Bring the R11 screener requirement, D-015 Timeback-fit reframe, and the R5
+capability-and-fit standard onto this branch, then add D-016: build the R11
+screener as a born-synthetic adaptive test that supplements (not replaces) the
+D-014 external-CogAT path. Register feature IDs AX-01..AX-06 and work item
+TECH-004. All synthetic, validated=false; no live launch.
+---
+ PROJECT_CHARTER.md                         | 14 +++++----
+ docs/governance/DECISION_LOG.md            | 26 +++++++++++++++++
+ docs/product/FEATURE_TO_REQUIREMENT_MAP.md | 16 ++++++++++-
+ docs/product/TRACEABILITY_MATRIX.md        |  7 ++++-
+ docs/product/project-requirements.md       | 33 +++++++++++++++-------
+ docs/research/ASSUMPTIONS_AND_EVIDENCE.md  |  7 +++++
+ 6 files changed, 86 insertions(+), 17 deletions(-)
+
+diff --git a/PROJECT_CHARTER.md b/PROJECT_CHARTER.md
+index f1dca3d..271b141 100644
+--- a/PROJECT_CHARTER.md
++++ b/PROJECT_CHARTER.md
+@@ -2,9 +2,11 @@
+ 
+ ## Mission
+ 
+-Build a workable student-selection product that allows GT School to distinguish its program effect from the advantages students bring with them more credibly than its current selected-cohort reporting allows.
++Build a workable student-selection product with two complementary aims: (1) a scalable, tunable in-house **screener** that identifies applicants who are gifted *and* able to thrive and accelerate on GT School's Timeback learning platform, validated against GT's own data and with a cut GT owns; and (2) a **credible counterfactual** that lets GT School distinguish its program effect from the advantages students bring with them, more credibly than its current selected-cohort reporting allows.
+ 
+-The project succeeds by making GT School's contribution testable. It does not need to prove a positive effect and must permit null or negative findings.
++Giftedness remains a core, necessary component of the target, but the criterion the screener predicts is fit — the ability to thrive and accelerate on the platform (some gifted students do not fit it; some students who accelerate on it would not clear a conventional gifted cutoff).
++
++The project succeeds by making GT School's contribution testable and by producing a defensible, operable selection decision. It does not need to prove a positive effect and must permit null or negative findings.
+ 
+ ## Problem
+ 
+@@ -18,15 +20,17 @@ GT School currently selects students using factors correlated with later success
+ 4. Measure growth from baseline with adequate upper-range precision.
+ 5. Make selection, evaluation, and claim boundaries auditable.
+ 6. Protect applicants and remain feasible under real school constraints.
++7. Identify applicants who are gifted and able to thrive and accelerate on the Timeback platform, validated against GT's existing signals (CogAT, MAP) and, where available, platform acceleration.
++8. Produce a screener operable algorithmically at applicant volumes in the thousands, exposing parameters and a cut that GT admissions tunes and owns, while preserving a human path for near-miss and behavioral (shadow-day) review.
+ 
+ ## Non-goals
+ 
+-- Predetermine a lottery, test, threshold, workflow, or technical stack.
+-- Modify the Timeback learning platform.
++- Lock a final threshold or cut on GT's behalf (GT tunes and owns the cut), or dictate a technical stack.
++- Modify the Timeback learning platform (deeply understanding it is now a dependency, since the screener predicts fit to it).
+ - Defend GT School or guarantee a positive result.
+ - Prove long-term elite attainment during the capstone.
+ - Solve gifted-education policy beyond this selection and evaluation problem.
+-- Launch a production admissions system unless separately approved.
++- Operate a live production admissions system; a GT-tunable screener model and validation harness intended for GT-side integration is in scope (D-015), but running it in production is not, unless separately approved.
+ 
+ ## Stakeholders
+ 
+diff --git a/docs/governance/DECISION_LOG.md b/docs/governance/DECISION_LOG.md
+index 8ab8fb0..7676350 100644
+--- a/docs/governance/DECISION_LOG.md
++++ b/docs/governance/DECISION_LOG.md
+@@ -200,6 +200,32 @@ Each decision must include the requirements served, alternatives considered, evi
+ - **Owner:** Team lead
+ - **Relationship to prior decisions:** Operationalizes D-008’s review mechanics, D-010’s claim/remedy boundaries, and D-013’s account/application lifecycle; it does not change Track A policy, allocation, causal evaluation, or production authorization.
+ 
++### D-015 — Reframe the selection target to Timeback-fit (giftedness core) and adopt a scalable, tunable, GT-validated screener
++
++- **Date:** 2026-07-24
++- **Status:** Approved
++- **Decision:** Reframe the selection target from "identify giftedness" to "identify applicants who are gifted *and* able to thrive and accelerate on the Timeback platform," with giftedness a necessary but not sufficient component. Adopt a scalable, tunable, GT-validated screener as a first-class deliverable (new R11) and reframe R5 to a capability-and-fit standard. Retain the counterfactual/lottery design (R2; D-010) unchanged as the program-effect evaluation arm — the screener defines the capable/fit pool, the lottery measures program effect. Record GT's current operational anchors — the multi-path admission rubric (high CogAT; or two MAP screeners above the 95th percentile; or a blended CogAT+MAP aggregate above the 90th percentile; or a 99th-percentile composite waiver) and the 85th-percentile fall MAP reading gate with an ESL/exceptional-cognitive exception — as documented validation references, not a locked cut. The screener must run algorithmically at applicant volumes in the thousands (GT Anywhere at scale), with a human shadow-day retained for behavioral fit. North-star context: the "MIT-ready by 8th grade, ~100,000 students" leadership goal (expansion-dependent; current cohorts ~40-46 physical + ~300 virtual).
++- **Requirements served:** R1, R5, R8, R11; complements R2–R4, R6, R7, R9, R10; H1, H4, H10
++- **Alternatives considered:** Keep the giftedness-only target; target Timeback-fit only (dropping giftedness); keep the charter counterfactual-only and treat the screener as "not predetermined."
++- **Evidence:** E-071–E-077 (GT admissions-director interview, Crystal Martel, 2026-07-23, Otter transcripts pt.1/pt.2)
++- **Rationale:** The GT admissions director specified that the platform serves a specific learner profile: some gifted students do not thrive on Timeback (twice-exceptional, ESL, heavy-repetition needs, non-academic prodigies), while some students who are not conventionally "gifted" accelerate on it. Optimizing the screener for platform fit (with giftedness necessary) matches what GT actually selects for and what its data can validate, while the retained counterfactual keeps program-effect claims honest and non-circular (R4, R10).
++- **Consequences:** `PROJECT_CHARTER.md` (mission, goals, non-goals) and `docs/product/project-requirements.md` (core success, R5, new R11, non-requirements) are updated. Deferred, tracked follow-ups (not this pass): reframing the two brainlifts toward the Timeback-fit target (counterfactual brainlift 10K→100K figure and a forward note; reconciling the assessment-quality brainlift's Insight 14 "never a will-benefit prediction" — proposed to the author, not rewritten); designing the GT-data validation study (new-test vs CogAT/MAP overlap; Timeback-acceleration criterion); re-orienting the question-type catalog toward the Timeback-fit / learning-rate construct. Tracked as RES-012 and RES-013. Does not supersede D-008 (Track A/B), D-010 (two-stage evaluation), D-012 (platform), or D-014 (personas/journey).
++- **Owner:** Team lead
++- **Relationship to prior decisions:** Refines the charter mission and R5; retains D-008's Track A/Track B and D-010's evaluation design; does not change platform (D-012) or MVP persona/journey (D-014) decisions.
++
++### D-016 — Build the R11 screener as a born-synthetic adaptive test sub-application
++
++- **Date:** 2026-07-24
++- **Status:** Approved
++- **Decision:** Build the R11 screening instrument as a bounded, born-synthetic adaptive test sub-application inside the existing pnpm monorepo (Mode A per D-011), on the runnable local Supabase/PostgreSQL stack (D-012 keeps this code runnable until the AWS binding migration). Scope: (1) an item bank of interactive question types drawn from the `research/exam-question-types` catalog, each item carrying versioned IRT parameters; (2) an in-stack TypeScript IRT/CAT engine (`packages/cat-engine`) that estimates per-domain ability (theta), selects each next item by maximizing item information, applies an engagement gate and consistency weighting, and stops on a target standard error or item cap with exposure control; (3) private `app.*` tables + `api.*` `SECURITY DEFINER` RPCs + forced RLS for participants, sessions, item responses, raw telemetry events, and derived per-domain metrics, exposed only through RPCs and generated `api` types; (4) a Next.js test-taking surface that embeds the existing self-contained demos through a `postMessage` telemetry contract and drives the adaptive loop. All item parameters, stopping rules, and cut scores are versioned synthetic policy (`synthetic_only=true`, `validated=false`), tunable and owned by GT (R11).
++- **Reconciliation with D-014:** This instrument is GT's own screening tool — **not** embedded CogAT and **not** a live testing integration. The D-014 external-CogAT handoff and the `api.record_assessment_version` import path are unchanged; CogAT remains GT's trusted signal and a validation anchor (E-074). The screener is a parallel R11 capability whose outputs feed the capability-and-fit decision only after GT-data validation (RES-012). It does not supersede D-014.
++- **Requirements served:** R11 (primary), R5, R8; bounded by R7, R9, R10; advances H1, H4, H6, H10; complements R1.
++- **Alternatives considered:** Embedded CogAT (rejected in D-014); a separate off-stack FastAPI/Python service (rejected — breaks the RLS/definer-RPC firewall, generated-type discipline, and D-012 portability); a client-only prototype with no backend (rejected — cannot persist metrics server-side or run server-side adaptive selection); deferring the build (rejected — R11/D-015 make the screener a first-class deliverable).
++- **Evidence:** D-015 (R11 adoption), E-071/E-075 (GT validation data), `research/exam-question-types/` catalog + `measurements.json`; D-011 (Mode A architecture), D-012 (portable PostgreSQL design). No item parameters are empirically calibrated; initial IRT parameters are assumed/synthetic pending GT data (validated=false).
++- **Consequences:** Remains born-synthetic per D-006/D-011/D-013 — no live child data, no production deployment, loopback-only, no service-role/elevated key in app runtime. The "production-oriented" build follows the repo's production-shaped RLS/definer-RPC/immutable-versioning design, portable to the D-012 AWS target; per-app containerization/Terraform is not added now. Pseudonymous test-takers use a proctor/admin-authenticated session-token pattern with no PII (participant records store only a synthetic pseudonym code). Adds feature IDs AX-01–AX-06 and traceability work item TECH-004; the question-type catalog re-orientation remains RES-013 and the validation study RES-012. Does not supersede D-014 (external CogAT), D-011/D-012 (architecture/platform), or D-006 (synthetic scope).
++- **Owner:** Team lead
++- **Relationship to prior decisions:** Implements R11/D-015; extends D-011's Mode A sub-application and D-012's portable PostgreSQL design; reconciles with D-014 without superseding it.
++
+ ## Entry template
+ 
+ ### D-XXX — Decision title
+diff --git a/docs/product/FEATURE_TO_REQUIREMENT_MAP.md b/docs/product/FEATURE_TO_REQUIREMENT_MAP.md
+index a4eaba2..9d030e3 100644
+--- a/docs/product/FEATURE_TO_REQUIREMENT_MAP.md
++++ b/docs/product/FEATURE_TO_REQUIREMENT_MAP.md
+@@ -4,7 +4,7 @@
+ 
+ This living index gives contributors one development-facing map from every required product,
+ technical, governance, security, operations, and future-evaluation feature to the project
+-requirements it fulfills or advances. The current decomposition contains 99 mapped feature units.
++requirements it fulfills or advances. The current decomposition contains 105 mapped feature units.
+ 
+ It is derived from, and remains subordinate to, the canonical documents in `AGENTS.md` and
+ `PROJECT_CHARTER.md`. If this map conflicts with a higher-precedence document, follow the
+@@ -64,6 +64,7 @@ Do not interpret:
+ | R8 | Remain feasible under real GT constraints. | In progress | B-01–B-08 still gate policy, staffing, privacy, allocation, and evaluation feasibility. |
+ | R9 | Protect students and families. | Partially specified | Synthetic safeguards exist; legal consent, production data rights, and live controls do not. |
+ | R10 | Bound every conclusion. | Specified | End-to-end message and claim-register enforcement remain. |
++| R11 | Provide a scalable, tunable, GT-validated screening instrument (giftedness + Timeback-fit). | Building (D-016) | Born-synthetic adaptive test instrument under construction (AX-01–AX-06); IRT params synthetic/`validated=false`; GT-data validation is RES-012. |
+ | H1 | Use broader, evidence-backed capability measures. | Specified pending validation | The Snapshot is specified; production anchors and validation are outstanding. |
+ | H2 | Separate capability from family advantage. | Specified | Database prohibited-field invariance and operational monitoring remain. |
+ | H3 | Prefer designs that address unobserved selection. | Deferred | No live offer randomization or quasi-experimental implementation exists. |
+@@ -142,6 +143,19 @@ Canonical sources: `PROJECT_CHARTER.md`, `docs/product/project-requirements.md`,
+ Primary sources: `docs/product/USER_STORY_FEATURE_MAP.md`,
+ `docs/product/GT_ADMISSIONS_APPLICATION_MVP_PRD.md`, and the backend research implementation contracts.
+ 
++### Adaptive screening instrument (R11 / D-016)
++
++| ID | Feature | Requirements | Scope | Current status | Remaining work / dependency |
++|---|---|---|---|---|---|
++| AX-01 | Assessment/session/telemetry contracts (`packages/contracts`) + demo `postMessage` embedding protocol | R11, R5, R7, R9, R10 | MVP-bounded | In progress | Zod schemas for items, sessions, responses, telemetry events, and per-domain metrics; versioned and `synthetic_only`. |
++| AX-02 | IRT/CAT adaptive engine (`packages/cat-engine`) | R11, R5, H6 | MVP-bounded | In progress | 2PL/3PL information, EAP/MLE theta, max-information selection, engagement gate, SE/max-item stop, exposure control; unit-tested; params synthetic/`validated=false`. |
++| AX-03 | Item bank seeded from the question-type catalog with versioned IRT parameters | R11, R5, H1, H10 | MVP-bounded | In progress | `app.*` type/item tables; synthetic difficulty ladder per domain; catalog re-orientation is RES-013. |
++| AX-04 | Session/response/telemetry/metric data model + `api.*` RPCs + forced RLS | R11, R7, R9 | MVP-bounded | In progress | start/next/submit/finalize RPCs; append-only telemetry; derived per-domain θ/SE; pgTAP; regenerate db-types. |
++| AX-05 | Test-taker delivery surface (demo host + adaptive session runner + results) | R11, R5, H4, H9 | MVP-bounded | In progress | Next.js route embedding demos via the AX-01 contract; born-synthetic proctor-issued session tokens; no PII. |
++| AX-06 | Screener decision output (admit / defer / retry) with tunable cut and claim boundary | R11, R1, R5, R10 | MVP-bounded | In progress | Tunable GT-owned cut over per-domain θ + fit index; R10 boundary (screening ≠ program impact); validation is RES-012. |
++
++Primary sources: `docs/governance/DECISION_LOG.md` (D-016), `research/exam-question-types/`, and the `packages/cat-engine` + `apps/*` implementation.
++
+ ### User surfaces
+ 
+ | ID | Feature | Requirements | Scope | Current status | Remaining work / dependency |
+diff --git a/docs/product/TRACEABILITY_MATRIX.md b/docs/product/TRACEABILITY_MATRIX.md
+index 88194fb..bf5d195 100644
+--- a/docs/product/TRACEABILITY_MATRIX.md
++++ b/docs/product/TRACEABILITY_MATRIX.md
+@@ -15,12 +15,13 @@
+ | R2 | Create a credible counterfactual | Allocation/evaluation remains undecided | Future identification review | Evaluation owner | Deferred |
+ | R3 | Define the causal question prospectively | No causal protocol ratified | Future prospective evaluation specification | Evaluation owner | Deferred |
+ | R4 | Avoid circular selection and measurement | PRD separates admissions evidence from future impact outcomes | Selection-to-outcome field firewall test | Product and evaluation owners | Partially specified |
+-| R5 | Preserve a defensible capability standard | Profile-aware CogAT gate plus Talent Evidence Snapshot | Reviewer rubric, boundary, prohibited-input, and validation plan | Selection owner | Specified pending validation |
++| R5 | Preserve a defensible capability-and-fit standard (giftedness + Timeback-fit; D-015) | Profile-aware CogAT gate plus Talent Evidence Snapshot; screener target reframed to platform fit | Reviewer rubric, boundary, prohibited-input, and validation plan against GT CogAT/MAP data (E-075) | Selection owner | Specified pending validation |
+ | R6 | Measure growth without ceiling effects | No impact outcome ratified | Future measurement validation | Measurement owner | Deferred |
+ | R7 | Make the process auditable and falsifiable | Versioned routing, reviewer, decision, correction, and claim traces | Deterministic replay and claim-boundary tests | Product owner | Specified |
+ | R8 | Operate under real GT constraints | Four-week synthetic workflow; GT values remain configurable; D-010 clarifies the applicant-volume assumption and future evaluation-design boundaries for `B-08`, while allocation method and seat scarcity remain open GT decisions | Synthetic feasibility review and open-decision register | Operations owner | In progress |
+ | R9 | Protect students and families | Access, privacy, consent, correction, and manual re-entry workflows; substantive rubric appeal and automated re-entry are deferred beyond MVP (D-010) | Applicant-rights, access-fulfillment, translation, and prohibited-field acceptance tests | Student/family advocate | Partially specified |
+ | R10 | State claim boundaries | Eligibility separated from allocation and program-effect claims; future two-stage evaluation causal-claim boundaries (D-010) prevent any Track A/Track B equal-effect claim without a Track A counterfactual | Claims register and adversarial notice tests | Team lead | Specified |
++| R11 | Provide a scalable, tunable, GT-validated screening instrument (D-015) | Screener target = giftedness + Timeback-fit; born-synthetic adaptive test instrument under construction (D-016, TECH-004); algorithmic at scale; GT-tunable cut; validation study pending GT data | Runnable adaptive session + IRT/CAT engine + telemetry persistence; screener spec, tunability, and CogAT/MAP validation plan (RES-012; E-071, E-075) | Selection owner | In progress |
+ | H1 | Use broader capability measures | Any demonstrable talent domain may support Track B | Domain-neutral rubric and domain-anchor validation | Selection owner | Specified pending validation |
+ | H2 | Separate capability from family advantage | Prose, income, prestige, awards, paid enrichment, and recommender access prohibited | Field-firewall and route-outcome audits | Selection owner | Specified |
+ | H3 | Address unobserved selection | No allocation/evaluation method chosen | Future identification-strength review | Evaluation owner | Deferred |
+@@ -66,6 +67,10 @@ Add one row before beginning substantive work.
+ | RES-010 | Integrate comparator, final-paper, and durable-learning evidence into the BrainLift | R2–R10, H2, H3, H5, H6, H8, H9, H10 | Correct the gifted-program counter-evidence, distinguish lottery design transfer from effect-size transfer, add a live qualified-pool comparator, and bound what a causal MAP effect can establish | BrainLift DOK 1/2 and source register trace to the final Bui article, final KIPP article, official SSP materials, Kirschner commentary, and primary learning/persistence studies; unverified SSP counts and final DOK 3/4 synthesis remain excluded | Evidence owner | Team | Verified | None |
+ | RES-011 | Integrate overnight test-effectiveness and dev cognitive-test research into the unified BrainLift | R2, R4–R10, H1, H2, H4, H6, H7, H10 | Replace global/underspecified test-quality claims with source-traceable tail, comparison, fairness, administration, and child-game evidence while keeping human-authored DOK 3/4 intact | One Categories 1–15 knowledge tree incorporates selected source-verified A1–A12 and dev-research findings; Green et al. attribution and stale child-GBA/SSP/citation statements are corrected; source and evidence registers preserve labels; checks confirm one DOK 3/4 pair and no unprefixed Part-II citations | Evidence owner | Team | Verified | None |
+ | GOV-004 | Ratify future evaluation design and correct MVP scope contradictions (D-010) | R2–R4, R6–R10, H3, H5, H6, H8, H9 | Align the PRD, traceability matrix, and feature map with the corrected two-stage evaluation design, MAP outcome measure, resource-questionnaire boundary, and MVP remedy/consent scope | D-010 recorded in the decision log; PRD-001 and H9 status/evidence and USER_STORY_FEATURE_MAP MVP-cut language are consistent with the decision and contain no remaining contradiction | Team lead | Team | Verified | None |
++| GOV-007 | Reframe the selection target to Timeback-fit and adopt the R11 screener (D-015) | R1, R5, R8, R11, H1, H4, H10 | Encode the interview-driven reframe in the canonical governance docs without disturbing the retained counterfactual/lottery | PROJECT_CHARTER mission/goals/non-goals updated; R5 reframed and R11 added in project-requirements; D-015 recorded; E-071–E-077 added; this row and the R5/R11 coverage rows are consistent and precedence-safe | Team lead | Team | Verified | None |
++| RES-012 | Design the GT-data screener validation study | R5, R8, R11, H6 | Turn GT's committed data (E-075) into a study checking whether the new screener's admitted cohort overlaps CogAT/MAP and, where available, Timeback acceleration | Validation-study design specifying comparison to CogAT/MAP (and Timeback acceleration), sample/power notes, and a tunable-cut analysis; pending GT data delivery | Evaluation owner | Team | Proposed | None |
++| RES-013 | Reframe the brainlifts and question-type catalog toward the Timeback-fit target | R5, R11, H1, H10 | Reconcile the assessment-quality brainlift's Insight 14 ("never a will-benefit prediction") and the counterfactual brainlift's 10K→100K figure with D-015, and re-weight the catalog toward the learning-rate/fit construct | Proposed brainlift edits presented to the author (DOK 3/4 not rewritten); catalog re-orientation note; deferred pending GT data + Timeback access | Evidence owner | Team | Proposed | None |
++| TECH-004 | Build the born-synthetic adaptive screening instrument (D-016) | R11, R5, R8, R7, R9, R10, H1, H4, H6, H10 | Deliver the R11 screener: item bank + IRT/CAT engine + telemetry persistence + adaptive test-taking surface, born-synthetic and GT-tunable | Runnable adaptive session that serves items by information-maximizing selection, persists responses/telemetry, estimates per-domain θ/SE, and returns a tunable screening output; pgTAP + engine unit tests pass; IRT params `synthetic_only`/`validated=false` | Technical owner | Team | In progress | None (authorized by D-016) |
+ 
+ ## Requirement coverage statuses
+ 
+diff --git a/docs/product/project-requirements.md b/docs/product/project-requirements.md
+index ffe3a41..459537c 100644
+--- a/docs/product/project-requirements.md
++++ b/docs/product/project-requirements.md
+@@ -12,14 +12,14 @@ Use it to evaluate product concepts and PRD decisions:
+ 
+ ## Core success statement
+ 
+-The product must create a workable student-selection process that lets GT School estimate its contribution to student outcomes more credibly than its current selected-cohort reporting allows.
++The product must create a workable student-selection process that (a) produces a scalable, defensible screening decision identifying applicants who are gifted and able to thrive and accelerate on GT School's Timeback platform, and (b) lets GT School estimate its contribution to student outcomes more credibly than its current selected-cohort reporting allows.
+ 
+ It must improve the distinction between:
+ 
+ - **Selection effect:** Outcomes explained by who was admitted, family resources, prior achievement, motivation, or other pre-existing factors.
+ - **Program effect:** Outcomes caused by participating in GT School's program.
+ 
+-The product does not need to prove that GT School works. It must make the program's effect more credibly testable, including the possibility of a null or negative result.
++The product does not need to prove that GT School works. It must make the program's effect more credibly testable, including the possibility of a null or negative result. Giftedness is a necessary component of the screening target, but the criterion is fit — thriving and accelerating on the platform.
+ 
+ ---
+ 
+@@ -75,17 +75,18 @@ Selection inputs may predict future performance, but program impact must be eval
+ - Prior achievement is treated as a starting condition or covariate, not proof of impact.
+ - National-percentile standing alone is not presented as evidence that the program caused growth.
+ 
+-### R5. Preserve a defensible capability standard
++### R5. Preserve a defensible capability-and-fit standard
+ 
+-The selection process must identify students with a credible ability to benefit from the program. Broadening access cannot mean arbitrarily lowering the capability bar.
++The selection process must identify students with a credible ability to benefit from and accelerate on the program's Timeback platform. Capability includes giftedness as a necessary component but is judged by fit — the ability to thrive and accelerate on the platform. Broadening access cannot mean arbitrarily lowering the capability bar.
+ 
+ Any selection measure used must have a defensible relationship to the capability it claims to measure. Weak, vague, or easily coached constructs cannot carry the admission decision without validation.
+ 
+ **Evidence that this is met**
+ 
+-- “Capability” is operationally defined.
+-- Each decision-used measure has a stated purpose and validity rationale.
++- “Capability-and-fit” is operationally defined (giftedness plus the ability to thrive and accelerate on the platform).
++- Each decision-used measure has a stated purpose and validity rationale, validated against GT's existing signals (CogAT, MAP) and, where available, platform acceleration.
+ - The process accounts for measurement error and boundary cases.
++- GT's current operational anchors — the multi-path CogAT/MAP rubric and the 85th-percentile MAP reading gate — are documented (D-015, E-071) as validation references, not as a locked cut.
+ - Broad self-reported grit, motivation, or growth mindset is not used as a standalone proxy for capability.
+ 
+ ### R6. Measure growth without a gifted-student ceiling
+@@ -147,6 +148,18 @@ The product must distinguish among:
+ 
+ Success on the first four cannot be presented as proof of the fifth.
+ 
++### R11. Provide a scalable, tunable, GT-validated screening instrument
++
++The selection product must include a screener that predicts giftedness and Timeback-fit and can drive the admission decision at real scale.
++
++**Evidence that this is met**
++
++- The screener targets giftedness *and* the ability to thrive and accelerate on the Timeback platform, not giftedness alone.
++- It is operable algorithmically at applicant volumes in the thousands, producing an admit / defer / "try again" decision without per-applicant human scoring.
++- Its parameters and cut are exposed for GT admissions to tune and own; the product does not lock a final cut on GT's behalf.
++- Its outputs are validated against GT's existing signals (CogAT, MAP) and, where available, Timeback acceleration, using GT-provided data (E-071, E-075).
++- A human path is preserved for near-miss cases and behavioral (shadow-day) review; R10's claim boundaries still apply — a reliable screener does not by itself establish program impact.
++
+ ---
+ 
+ ## High-leverage requirements
+@@ -219,15 +232,15 @@ Prefer signals that are difficult to manipulate through coaching, family resourc
+ The capstone does **not** inherently require:
+ 
+ - an admission lottery, although randomization is the strongest option under the right conditions;
+-- a specific test, threshold, composite formula, or number of measures;
++- a *locked* threshold, composite formula, or number of measures (the screener itself is now in scope per R11, but it is tunable and GT owns the cut);
+ - a specific user interface, application flow, database, or technical stack;
+ - modification of the Timeback learning platform;
+ - proof of long-term elite attainment within the initial product or pilot;
+ - proof that GT School produces a positive program effect;
+-- replacing all cognitive testing;
+-- selecting on motivation, grit, or conscientiousness;
++- replacing all cognitive testing (CogAT remains GT's most trusted single signal and a validation anchor — E-074);
++- selecting primarily on motivation, grit, or conscientiousness (bounded Track B artifacts may supplement, not carry, the decision);
+ - solving gifted-education equity beyond what is necessary for credible selection and evaluation;
+-- a production launch during the capstone.
++- operating a live production admissions system during the capstone (a GT-tunable screener model and validation harness intended for GT-side integration is in scope per D-015; live operation is not).
+ 
+ ---
+ 
+diff --git a/docs/research/ASSUMPTIONS_AND_EVIDENCE.md b/docs/research/ASSUMPTIONS_AND_EVIDENCE.md
+index 7e9fe1a..6a35733 100644
+--- a/docs/research/ASSUMPTIONS_AND_EVIDENCE.md
++++ b/docs/research/ASSUMPTIONS_AND_EVIDENCE.md
+@@ -84,6 +84,13 @@ Do not silently promote a claim from one class to another.
+ | E-068 | Child game-based cognitive assessments show genuine but usually low-to-medium convergence with established tests; no located study validates a game for high-stakes K–8 gifted identification, and gaming/device/motor familiarity remains construct-irrelevant-variance risk. | Verified review findings with explicit use gap | Aneni et al. 2023; Song et al. 2020; Bipp et al. 2024; Ohlms et al. 2025; BrainLift 12.4–12.6 | Engagement evidence could be misrepresented as gifted-identification validity or a game could disadvantage low-experience children | Measurement and access owners | Supported with high-stakes-use gap |
+ | E-069 | Cognitive-test retesting and form reuse can raise scores, while task comprehension, device mode, and administration error can also change observed performance; no CogAT-specific coaching trial was located. | Verified general research plus instrument-specific gap | Scharfen et al. 2018; Bors & Vigneau 2003; National Academies testing overview; BrainLift 6.3, 7.4–7.5, 13.7 | Repeated or mode-varying scores could be treated as stable capability, or absence of CogAT-specific evidence could be mistaken for proof of coach-resistance | Measurement and operations owners | Supported generally; CogAT-specific effect unverified |
+ | E-070 | Predicting high achievement level is distinct from predicting who benefits from gifted placement; in Card & Giuliano's setting, an achievement-rank RD was positive while a separate IQ-threshold RD was essentially null. | Verified causal research finding with local-generalizability limit | Card & Giuliano 2016, DOI 10.1257/aer.20150484; BrainLift 3.7 and DOK 2; overnight A11 | A valid ability predictor could be misrepresented as a validated benefit-allocation rule | Selection and evaluation owners | Supported locally; GT benefit validity unverified |
++| E-071 | GT School's current admission rubric is multi-path: high CogAT; or two MAP screeners above the 95th percentile (CogAT may be ~90th); or a blended CogAT+MAP aggregate above the 90th percentile; or a 99th-percentile composite exceptional-ability waiver — with a hard 85th-percentile fall MAP reading gate for every student, excepting exceptional-cognitive (often ESL) applicants expected to catch up in reading. | Company claim (GT admissions-director interview) | Crystal Martel interview 2026-07-23 (Otter pt.2); confirm against GT admissions materials and forthcoming CogAT/MAP data | Screener validation could target the wrong operational rule or reading gate | Selection owner | Reported by GT; confirm against materials |
++| E-072 | GT's selection target is thriving and accelerating on the Timeback platform, not giftedness alone: some gifted students (twice-exceptional, ESL, heavy-repetition needs, non-academic prodigies) do not fit the platform, and some students who are not conventionally gifted accelerate on it and "mimic giftedness." Giftedness is a necessary but not sufficient component. | Company claim / approved project direction (D-015) | Crystal Martel interview 2026-07-23 (Otter pt.1); ratified in D-015 | The screener could optimize a criterion GT does not actually select for | Selection owner | Approved direction (D-015) |
++| E-073 | The "speed" GT values is the rate of absorbing and adapting to new information (mastering a concept in ~1-2 exposures, then advancing) plus fast pattern/spatial recognition and relational connection-drawing — not raw response latency. | Company claim (GT admissions-director interview) | Crystal Martel interview 2026-07-23 (Otter pt.1) | A screener could reward peak speed rather than learning rate, mis-ranking reflective high-ability children | Measurement owner | Reported by GT |
++| E-074 | In GT's operational experience CogAT shows few false positives and some false negatives (especially in young children); a prior Mindprint-based admission produced students who struggled, so giftedness must be paired with predicted acceleration; CogAT remains GT's most trusted single measure. | Company claim (GT admissions-director interview) | Crystal Martel interview 2026-07-23 (Otter pt.1); relates to E-002 | Dropping or over-trusting a single measure could reduce selection validity | Selection owner | Reported by GT operator experience |
++| E-075 | GT can provide screener-validation data: dummy-testing its ~46 GT School students (a <=45-minute test), plus every student's CogAT and MAP screeners, plus historical CogAT score ranges from Riverside. | Company claim (GT commitment) | Crystal Martel interview 2026-07-23 (Otter pt.1); data delivery pending | Without this data the screener cannot be validated against GT's cohort; partially relaxes E-010's data-availability gap for validation | Evaluation owner | Committed by GT; delivery pending |
++| E-076 | Current cohorts are ~40-46 students (physical GT School) and ~300 (GT Anywhere virtual), K-8; campuses open at >=20-30 committed students (cap ~100), with 3-4 new physical campuses targeted next year; the screener must scale to thousands of applicants. North-star: ~100,000 "MIT-ready by 8th grade" (leadership goal, expansion-dependent). | Company claim (current numbers reported; 100K is a leadership goal) | Crystal Martel interview 2026-07-23 (Otter pt.1); Joe Liemandt goal | Volume/scale assumptions could be mis-set; the 100K north-star must not be treated as a near-term deliverable | Operations owner | Reported by GT; 100K aspirational |
++| E-077 | The requested deliverable is a tunable model plus facilities for GT admissions to tune the parameters/cut themselves (GT owns the cut), integrated into a unified "GT Universe" portal; algorithmic screening replaces per-applicant human review at scale, while a human shadow-day for behavioral fit remains. | Company claim / approved project direction (D-015) | Crystal Martel interview 2026-07-23 (Otter pt.1/pt.2); ratified in D-015 | Building a locked, non-tunable, or fully-automated end-to-end system would not match GT's request | Product owner | Approved direction (D-015) |
+ 
+ ## Update procedure
+ 
+-- 
+2.50.1 (Apple Git-155)
+
+
+From 27e3a3d1650f0a173f02c11bbe4111a71b1c5b80 Mon Sep 17 00:00:00 2001
+From: Aadi Takle <aadiatakle@gmail.com>
+Date: Fri, 24 Jul 2026 02:18:16 -0500
+Subject: [PATCH 2/6] feat(contracts): add adaptive-exam contract (AX-01)
+
+Zod schemas for items (with IRT params), sessions, responses, telemetry,
+per-domain metrics, tunable policy, and screening outcome, plus the demo
+postMessage embedding protocol. Framework/Supabase-free; born-synthetic.
+---
+ packages/contracts/src/assessment-exam.ts | 452 ++++++++++++++++++++++
+ packages/contracts/src/index.ts           |   1 +
+ 2 files changed, 453 insertions(+)
+ create mode 100644 packages/contracts/src/assessment-exam.ts
+
+diff --git a/packages/contracts/src/assessment-exam.ts b/packages/contracts/src/assessment-exam.ts
+new file mode 100644
+index 0000000..d9e0d6e
+--- /dev/null
++++ b/packages/contracts/src/assessment-exam.ts
+@@ -0,0 +1,452 @@
++import { z } from 'zod';
++
++import { apiSuccessSchema } from './api-envelope';
++
++/**
++ * Adaptive screening-instrument contracts (AX-01, D-016; serves R11/R5).
++ *
++ * Framework- and Supabase-free Zod schemas shared by the CAT engine
++ * (`@gt-selection/cat-engine`), the Supabase RPC adapter, and the test-taking
++ * surface. Everything here is born-synthetic (`synthetic_only`, `validated=false`);
++ * no item parameter or cut is empirically calibrated (see RES-012).
++ */
++
++// --- Core enums ---------------------------------------------------------------
++
++/** The four testable reasoning domains. Working memory / processing speed /
++ * engagement are cross-cutting measured signals, not domains. */
++export const examDomainSchema = z.enum(['fluid_reasoning', 'verbal', 'quantitative', 'spatial']);
++
++export const ageBandSchema = z.enum(['K-1', '2-3', '4-5', '6-8']);
++
++export const sessionStatusSchema = z.enum(['active', 'completed', 'abandoned']);
++
++/** Tunable, GT-owned screening decision (R11). Screening only — not admission. */
++export const screenDecisionSchema = z.enum(['admit', 'defer', 'retry']);
++
++// --- Identifiers --------------------------------------------------------------
++
++const codeSchema = z
++  .string()
++  .trim()
++  .min(1)
++  .max(64)
++  .regex(/^[A-Z0-9_-]+$/);
++
++/** Question-type code from the catalog, e.g. `FLU-MATRIX-01`. */
++export const questionTypeCodeSchema = z
++  .string()
++  .trim()
++  .regex(/^[A-Z]+-[A-Z0-9]+-\d+$/);
++
++/** Pseudonymous, PII-free participant code, e.g. `PART-SYN-0001`. */
++export const participantCodeSchema = codeSchema.regex(/^PART-SYN-[A-Z0-9-]+$/);
++
++/** Measurement id from `measurements.json`, e.g. `M-ACC`, `M-DIFFREACH`. */
++export const measurementIdSchema = z.string().regex(/^M-[A-Z]+$/);
++
++/** Per-item measurement values keyed by measurement id (fully automated). */
++export const measurementMapSchema = z.record(measurementIdSchema, z.number());
++
++// --- IRT parameters (2PL / 3PL) ----------------------------------------------
++
++export const irtParametersSchema = z
++  .object({
++    /** Discrimination (a). */
++    a: z.number().positive(),
++    /** Difficulty (b) on the theta scale. */
++    b: z.number(),
++    /** Pseudo-guessing (c); 0 for a 2PL item. */
++    c: z.number().min(0).max(1),
++    model: z.enum(['2PL', '3PL']),
++  })
++  .strict();
++
++// --- Items --------------------------------------------------------------------
++
++/** Full item as stored in the bank (engine/DB side; includes IRT params). */
++export const examItemSchema = z
++  .object({
++    itemId: z.uuid(),
++    typeCode: questionTypeCodeSchema,
++    domain: examDomainSchema,
++    /** Ordinal difficulty rung within the type's ladder. */
++    difficultyLevel: z.int().min(1).max(20),
++    ageBands: z.array(ageBandSchema).min(1),
++    irt: irtParametersSchema,
++    /** Renderer, relative to the demos root, e.g. `demos/FLU-MATRIX-01.html`. */
++    demoPath: z.string().min(1),
++    /** Item-specific config the demo interprets (seed, variant, options). */
++    params: z.record(z.string(), z.unknown()),
++    syntheticOnly: z.literal(true),
++  })
++  .strict();
++
++/** Item as delivered to the client — no IRT parameters leak to the browser. */
++export const servedItemSchema = z
++  .object({
++    itemId: z.uuid(),
++    typeCode: questionTypeCodeSchema,
++    domain: examDomainSchema,
++    difficultyLevel: z.int().min(1).max(20),
++    demoPath: z.string().min(1),
++    params: z.record(z.string(), z.unknown()),
++  })
++  .strict();
++
++// --- Responses & telemetry ----------------------------------------------------
++
++/** A scored response plus its automatically-derived measurements. */
++export const itemResponseSchema = z
++  .object({
++    itemId: z.uuid(),
++    correct: z.boolean(),
++    /** Partial-credit score in [0,1]; 1 for a correct dichotomous item. */
++    score: z.number().min(0).max(1),
++    rtMs: z.number().nonnegative(),
++    firstActionMs: z.number().nonnegative().nullable(),
++    revisions: z.int().nonnegative(),
++    /** Engagement gate: false = rapid-guess / off-task; speed signals discounted. */
++    engaged: z.boolean(),
++    measurements: measurementMapSchema,
++    syntheticOnly: z.literal(true),
++  })
++  .strict();
++
++export const telemetryEventKindSchema = z.enum([
++  'session_start',
++  'item_shown',
++  'ready',
++  'warmup_done',
++  'first_action',
++  'action',
++  'hint',
++  'revision',
++  'idle',
++  'response',
++  'item_end',
++]);
++
++/** One raw interaction event streamed from a demo (append-only in the DB). */
++export const telemetryEventSchema = z
++  .object({
++    kind: telemetryEventKindSchema,
++    itemId: z.uuid().nullable(),
++    /** Milliseconds since the referenced item was shown (or session start). */
++    tOffsetMs: z.number().nonnegative(),
++    payload: z.record(z.string(), z.unknown()),
++  })
++  .strict();
++
++// --- Ability state, policy, and screening outcome -----------------------------
++
++/** Live per-domain adaptive state (theta/SE updated after each response). */
++export const domainAbilitySchema = z
++  .object({
++    domain: examDomainSchema,
++    theta: z.number(),
++    se: z.number().nonnegative(),
++    itemsAdministered: z.int().nonnegative(),
++    done: z.boolean(),
++  })
++  .strict();
++
++/** Tunable, GT-owned screening policy — versioned synthetic config (R11). */
++export const examPolicySchema = z
++  .object({
++    policyVersion: z.string().min(1),
++    domains: z.array(examDomainSchema).min(1),
++    minItemsPerDomain: z.int().min(1),
++    maxItemsPerDomain: z.int().min(1),
++    /** Stop a domain when its standard error falls to/below this. */
++    targetSe: z.number().positive(),
++    priorMean: z.number(),
++    priorSd: z.number().positive(),
++    /** Randomesque exposure control: choose randomly among the top-K by info. */
++    exposureTopK: z.int().min(1),
++    /** Timeback-fit composite weights per domain (sum need not be 1). */
++    fitWeights: z.record(examDomainSchema, z.number()),
++    /** fitIndex >= admitCut => admit. */
++    admitCut: z.number(),
++    /** fitIndex < retryCut => retry; between the two => defer. */
++    retryCut: z.number(),
++    /** Timeback-fit modifiers folded into fitIndex (0 = theta-only, GT-tunable). */
++    learningRateWeight: z.number().default(0),
++    consistencyWeight: z.number().default(0),
++    syntheticOnly: z.literal(true),
++    validated: z.literal(false),
++  })
++  .strict();
++
++/** Final per-domain summary, including Timeback-fit signals. */
++export const domainScoreSchema = z
++  .object({
++    domain: examDomainSchema,
++    theta: z.number(),
++    se: z.number().nonnegative(),
++    percentile: z.number().min(0).max(100).nullable(),
++    itemsAdministered: z.int().nonnegative(),
++    /** M-DIFFREACH: hardest difficulty rung answered correctly. */
++    maxDifficultyReached: z.int().nonnegative(),
++    /** M-LEARNRATE: within-session ability growth slope (Timeback-fit core). */
++    learningRate: z.number().nullable(),
++    /** Consistency from RT variability / lapse rate (higher = steadier). */
++    consistency: z.number().nullable(),
++  })
++  .strict();
++
++export const screeningOutcomeSchema = z
++  .object({
++    domainScores: z.array(domainScoreSchema),
++    compositeTheta: z.number(),
++    /** Tunable Timeback-fit composite index. */
++    fitIndex: z.number(),
++    /** Overall engagement gate (false = results provisional). */
++    engagementValid: z.boolean(),
++    decision: screenDecisionSchema,
++    policyVersion: z.string().min(1),
++    /** R10 boundary — a reliable screen is not program-impact evidence. */
++    claimBoundary: z.string().min(1),
++    syntheticOnly: z.literal(true),
++    validated: z.literal(false),
++  })
++  .strict();
++
++// --- Session ------------------------------------------------------------------
++
++export const participantSchema = z
++  .object({
++    participantId: z.uuid(),
++    pseudonymCode: participantCodeSchema,
++    ageBand: ageBandSchema,
++    syntheticOnly: z.literal(true),
++  })
++  .strict();
++
++export const sessionSchema = z
++  .object({
++    sessionId: z.uuid(),
++    participantId: z.uuid(),
++    status: sessionStatusSchema,
++    ageBand: ageBandSchema,
++    policyVersion: z.string().min(1),
++    abilities: z.array(domainAbilitySchema),
++    startedAt: z.iso.datetime({ offset: true }),
++  })
++  .strict();
++
++// --- RPC request / response envelopes ----------------------------------------
++
++export const createParticipantRequestSchema = z
++  .object({
++    pseudonymCode: participantCodeSchema,
++    ageBand: ageBandSchema,
++    correlationId: z.uuid(),
++  })
++  .strict();
++
++export const createParticipantResponseDataSchema = z
++  .object({ participant: participantSchema })
++  .strict();
++
++export const createParticipantResponseSchema = apiSuccessSchema(createParticipantResponseDataSchema);
++
++export const startSessionRequestSchema = z
++  .object({
++    participantId: z.uuid(),
++    policyVersion: z.string().min(1),
++    idempotencyKey: z.uuid(),
++    correlationId: z.uuid(),
++  })
++  .strict();
++
++export const startSessionResponseDataSchema = z
++  .object({
++    session: sessionSchema,
++    nextItem: servedItemSchema.nullable(),
++  })
++  .strict();
++
++export const startSessionResponseSchema = apiSuccessSchema(startSessionResponseDataSchema);
++
++export const submitResponseRequestSchema = z
++  .object({
++    sessionId: z.uuid(),
++    response: itemResponseSchema,
++    telemetry: z.array(telemetryEventSchema).max(2000),
++    idempotencyKey: z.uuid(),
++    correlationId: z.uuid(),
++  })
++  .strict();
++
++export const submitResponseResponseDataSchema = z
++  .object({
++    session: sessionSchema,
++    /** null once the whole session is complete. */
++    nextItem: servedItemSchema.nullable(),
++    /** present only when the session completes on this submission. */
++    outcome: screeningOutcomeSchema.nullable(),
++  })
++  .strict();
++
++export const submitResponseResponseSchema = apiSuccessSchema(submitResponseResponseDataSchema);
++
++export const getSessionRequestSchema = z
++  .object({
++    sessionId: z.uuid(),
++    correlationId: z.uuid(),
++  })
++  .strict();
++
++export const getSessionResponseDataSchema = z
++  .object({
++    session: sessionSchema,
++    nextItem: servedItemSchema.nullable(),
++    outcome: screeningOutcomeSchema.nullable(),
++  })
++  .strict();
++
++export const getSessionResponseSchema = apiSuccessSchema(getSessionResponseDataSchema);
++
++// --- RPC response schemas (server adapter reads config/state) -----------------
++
++export const getExamPolicyResponseDataSchema = z.object({ policy: examPolicySchema }).strict();
++export const getExamPolicyResponseSchema = apiSuccessSchema(getExamPolicyResponseDataSchema);
++
++export const listExamItemsResponseDataSchema = z.object({ items: z.array(examItemSchema) }).strict();
++export const listExamItemsResponseSchema = apiSuccessSchema(listExamItemsResponseDataSchema);
++
++/** start/submit RPCs persist and return the updated session only. */
++export const examSessionResponseDataSchema = z.object({ session: sessionSchema }).strict();
++export const examSessionResponseSchema = apiSuccessSchema(examSessionResponseDataSchema);
++
++/** A response as stored in the DB (used to rebuild engine state server-side). */
++export const persistedResponseSchema = z
++  .object({
++    itemId: z.uuid(),
++    domain: examDomainSchema,
++    orderNo: z.int().positive(),
++    correct: z.boolean(),
++    score: z.number().min(0).max(1),
++    rtMs: z.number().nonnegative(),
++    firstActionMs: z.number().nonnegative().nullable(),
++    revisions: z.int().nonnegative(),
++    engaged: z.boolean(),
++    measurements: measurementMapSchema,
++  })
++  .strict();
++
++export const examSessionStateResponseDataSchema = z
++  .object({
++    session: sessionSchema,
++    responses: z.array(persistedResponseSchema),
++    outcome: screeningOutcomeSchema.nullable(),
++  })
++  .strict();
++export const examSessionStateResponseSchema = apiSuccessSchema(examSessionStateResponseDataSchema);
++
++/** Client-facing step returned by the exam service (adapter-built). */
++export type ExamStep = z.infer<typeof submitResponseResponseDataSchema>;
++export type PersistedResponse = z.infer<typeof persistedResponseSchema>;
++
++// --- Demo embedding protocol (postMessage; AX-01) -----------------------------
++
++export const HOST_MESSAGE_SOURCE = 'gt-exam-host';
++export const DEMO_MESSAGE_SOURCE = 'gt-exam-demo';
++
++/** host -> demo: load an item into the embedded demo. */
++export const hostInitMessageSchema = z
++  .object({
++    source: z.literal(HOST_MESSAGE_SOURCE),
++    type: z.literal('init'),
++    sessionId: z.uuid(),
++    item: servedItemSchema,
++  })
++  .strict();
++
++/** host -> demo: begin the scored phase (after the wordless warm-up). */
++export const hostStartMessageSchema = z
++  .object({
++    source: z.literal(HOST_MESSAGE_SOURCE),
++    type: z.literal('start'),
++    itemId: z.uuid(),
++  })
++  .strict();
++
++export const hostMessageSchema = z.discriminatedUnion('type', [
++  hostInitMessageSchema,
++  hostStartMessageSchema,
++]);
++
++/** demo -> host: renderer mounted and ready (before an item is loaded). */
++export const demoReadyMessageSchema = z
++  .object({
++    source: z.literal(DEMO_MESSAGE_SOURCE),
++    type: z.literal('ready'),
++    itemId: z.uuid().optional(),
++  })
++  .strict();
++
++/** demo -> host: unscored warm-up finished; scoring may begin. */
++export const demoWarmupDoneMessageSchema = z
++  .object({
++    source: z.literal(DEMO_MESSAGE_SOURCE),
++    type: z.literal('warmup_done'),
++    itemId: z.uuid(),
++  })
++  .strict();
++
++/** demo -> host: a raw telemetry event. */
++export const demoTelemetryMessageSchema = z
++  .object({
++    source: z.literal(DEMO_MESSAGE_SOURCE),
++    type: z.literal('telemetry'),
++    event: telemetryEventSchema,
++  })
++  .strict();
++
++/** demo -> host: the scored response for the current item. */
++export const demoResponseMessageSchema = z
++  .object({
++    source: z.literal(DEMO_MESSAGE_SOURCE),
++    type: z.literal('response'),
++    response: itemResponseSchema,
++  })
++  .strict();
++
++export const demoMessageSchema = z.discriminatedUnion('type', [
++  demoReadyMessageSchema,
++  demoWarmupDoneMessageSchema,
++  demoTelemetryMessageSchema,
++  demoResponseMessageSchema,
++]);
++
++// --- Inferred types -----------------------------------------------------------
++
++export type ExamDomain = z.infer<typeof examDomainSchema>;
++export type AgeBand = z.infer<typeof ageBandSchema>;
++export type SessionStatus = z.infer<typeof sessionStatusSchema>;
++export type ScreenDecision = z.infer<typeof screenDecisionSchema>;
++export type MeasurementMap = z.infer<typeof measurementMapSchema>;
++export type IrtParameters = z.infer<typeof irtParametersSchema>;
++export type ExamItem = z.infer<typeof examItemSchema>;
++export type ServedItem = z.infer<typeof servedItemSchema>;
++export type ItemResponse = z.infer<typeof itemResponseSchema>;
++export type TelemetryEventKind = z.infer<typeof telemetryEventKindSchema>;
++export type TelemetryEvent = z.infer<typeof telemetryEventSchema>;
++export type DomainAbility = z.infer<typeof domainAbilitySchema>;
++export type ExamPolicy = z.infer<typeof examPolicySchema>;
++export type DomainScore = z.infer<typeof domainScoreSchema>;
++export type ScreeningOutcome = z.infer<typeof screeningOutcomeSchema>;
++export type Participant = z.infer<typeof participantSchema>;
++export type ExamSession = z.infer<typeof sessionSchema>;
++export type CreateParticipantRequest = z.infer<typeof createParticipantRequestSchema>;
++export type CreateParticipantResponse = z.infer<typeof createParticipantResponseSchema>;
++export type StartSessionRequest = z.infer<typeof startSessionRequestSchema>;
++export type StartSessionResponse = z.infer<typeof startSessionResponseSchema>;
++export type SubmitResponseRequest = z.infer<typeof submitResponseRequestSchema>;
++export type SubmitResponseResponse = z.infer<typeof submitResponseResponseSchema>;
++export type GetSessionRequest = z.infer<typeof getSessionRequestSchema>;
++export type GetSessionResponse = z.infer<typeof getSessionResponseSchema>;
++export type HostMessage = z.infer<typeof hostMessageSchema>;
++export type DemoMessage = z.infer<typeof demoMessageSchema>;
+diff --git a/packages/contracts/src/index.ts b/packages/contracts/src/index.ts
+index 75ce9d4..c9330b1 100644
+--- a/packages/contracts/src/index.ts
++++ b/packages/contracts/src/index.ts
+@@ -16,6 +16,7 @@ export type {
+   RecordAssessmentVersionRequest,
+   RecordAssessmentVersionResponse,
+ } from './application';
++export * from './assessment-exam';
+ export * from './correction';
+ export * from './decision';
+ export * from './errors';
+-- 
+2.50.1 (Apple Git-155)
+
+
+From ebd5f41fbb76ac8517e2bb564cb2abc1e1276510 Mon Sep 17 00:00:00 2001
+From: Aadi Takle <aadiatakle@gmail.com>
+Date: Fri, 24 Jul 2026 02:18:16 -0500
+Subject: [PATCH 3/6] feat(cat-engine): IRT/CAT adaptive engine (AX-02)
+
+2PL/3PL information, EAP + MLE theta, maximum-information selection with
+exposure control, SE/max-item stopping, domain-balanced orchestration,
+learning-rate/consistency scoring, and a tunable Timeback-fit index + decision.
+Pure TypeScript with 20 unit tests.
+---
+ packages/cat-engine/package.json        |  23 ++++
+ packages/cat-engine/src/index.ts        |   6 +
+ packages/cat-engine/src/irt.test.ts     |  47 +++++++
+ packages/cat-engine/src/irt.ts          |  42 ++++++
+ packages/cat-engine/src/rng.ts          |  26 ++++
+ packages/cat-engine/src/scoring.ts      |  91 ++++++++++++
+ packages/cat-engine/src/select.test.ts  |  38 +++++
+ packages/cat-engine/src/select.ts       |  31 +++++
+ packages/cat-engine/src/session.test.ts | 126 +++++++++++++++++
+ packages/cat-engine/src/session.ts      | 176 ++++++++++++++++++++++++
+ packages/cat-engine/src/theta.test.ts   |  58 ++++++++
+ packages/cat-engine/src/theta.ts        | 102 ++++++++++++++
+ packages/cat-engine/tsconfig.json       |   7 +
+ 13 files changed, 773 insertions(+)
+ create mode 100644 packages/cat-engine/package.json
+ create mode 100644 packages/cat-engine/src/index.ts
+ create mode 100644 packages/cat-engine/src/irt.test.ts
+ create mode 100644 packages/cat-engine/src/irt.ts
+ create mode 100644 packages/cat-engine/src/rng.ts
+ create mode 100644 packages/cat-engine/src/scoring.ts
+ create mode 100644 packages/cat-engine/src/select.test.ts
+ create mode 100644 packages/cat-engine/src/select.ts
+ create mode 100644 packages/cat-engine/src/session.test.ts
+ create mode 100644 packages/cat-engine/src/session.ts
+ create mode 100644 packages/cat-engine/src/theta.test.ts
+ create mode 100644 packages/cat-engine/src/theta.ts
+ create mode 100644 packages/cat-engine/tsconfig.json
+
+diff --git a/packages/cat-engine/package.json b/packages/cat-engine/package.json
+new file mode 100644
+index 0000000..ead5412
+--- /dev/null
++++ b/packages/cat-engine/package.json
+@@ -0,0 +1,23 @@
++{
++  "name": "@gt-selection/cat-engine",
++  "version": "0.0.0",
++  "private": true,
++  "type": "module",
++  "exports": {
++    ".": "./src/index.ts"
++  },
++  "scripts": {
++    "lint": "eslint src",
++    "test": "vitest run",
++    "test:coverage": "vitest run --coverage",
++    "typecheck": "tsc -p tsconfig.json"
++  },
++  "dependencies": {
++    "@gt-selection/contracts": "workspace:*"
++  },
++  "devDependencies": {
++    "@vitest/coverage-v8": "4.1.10",
++    "typescript": "5.9.3",
++    "vitest": "4.1.10"
++  }
++}
+diff --git a/packages/cat-engine/src/index.ts b/packages/cat-engine/src/index.ts
+new file mode 100644
+index 0000000..8844d37
+--- /dev/null
++++ b/packages/cat-engine/src/index.ts
+@@ -0,0 +1,6 @@
++export * from './irt';
++export * from './theta';
++export * from './select';
++export * from './scoring';
++export * from './session';
++export * from './rng';
+diff --git a/packages/cat-engine/src/irt.test.ts b/packages/cat-engine/src/irt.test.ts
+new file mode 100644
+index 0000000..35f461c
+--- /dev/null
++++ b/packages/cat-engine/src/irt.test.ts
+@@ -0,0 +1,47 @@
++import { describe, expect, it } from 'vitest';
++
++import type { IrtParameters } from '@gt-selection/contracts';
++
++import { itemInformation, probabilityCorrect, testInformation } from './irt';
++
++const twoPl = (a: number, b: number): IrtParameters => ({ a, b, c: 0, model: '2PL' });
++const threePl = (a: number, b: number, c: number): IrtParameters => ({ a, b, c, model: '3PL' });
++
++describe('probabilityCorrect', () => {
++  it('is 0.5 at theta = b for a 2PL item', () => {
++    expect(probabilityCorrect(0, twoPl(1, 0))).toBeCloseTo(0.5, 6);
++  });
++
++  it('increases monotonically in theta', () => {
++    const item = twoPl(1.2, 0);
++    expect(probabilityCorrect(-1, item)).toBeLessThan(probabilityCorrect(0, item));
++    expect(probabilityCorrect(0, item)).toBeLessThan(probabilityCorrect(1, item));
++  });
++
++  it('respects the 3PL guessing asymptote c', () => {
++    expect(probabilityCorrect(-8, threePl(1, 0, 0.25))).toBeCloseTo(0.25, 2);
++  });
++});
++
++describe('itemInformation', () => {
++  it('peaks near b for a 2PL item', () => {
++    const item = twoPl(1.5, 0.5);
++    const atB = itemInformation(0.5, item);
++    expect(atB).toBeGreaterThan(itemInformation(-1.5, item));
++    expect(atB).toBeGreaterThan(itemInformation(2.5, item));
++  });
++
++  it('equals a^2 * p * q for a 2PL item', () => {
++    const item = twoPl(1.3, 0.2);
++    const p = probabilityCorrect(0.4, item);
++    expect(itemInformation(0.4, item)).toBeCloseTo(1.3 * 1.3 * p * (1 - p), 6);
++  });
++
++  it('sums item information in testInformation', () => {
++    const items = [twoPl(1, 0), twoPl(1, 0.5)];
++    expect(testInformation(0.1, items)).toBeCloseTo(
++      itemInformation(0.1, items[0]!) + itemInformation(0.1, items[1]!),
++      9,
++    );
++  });
++});
+diff --git a/packages/cat-engine/src/irt.ts b/packages/cat-engine/src/irt.ts
+new file mode 100644
+index 0000000..cd8a8ac
+--- /dev/null
++++ b/packages/cat-engine/src/irt.ts
+@@ -0,0 +1,42 @@
++import type { IrtParameters } from '@gt-selection/contracts';
++
++/**
++ * Item Response Theory primitives (2PL / 3PL) for the adaptive engine (AX-02).
++ * Pure numeric functions; no I/O, no framework, no Supabase.
++ */
++
++/** Probability of a correct response at ability `theta` under the 2PL/3PL model. */
++export function probabilityCorrect(theta: number, irt: IrtParameters): number {
++  const { a, b, c } = irt;
++  const logistic = 1 / (1 + Math.exp(-a * (theta - b)));
++  return c + (1 - c) * logistic;
++}
++
++/**
++ * Fisher item information at `theta`. For the 3PL:
++ *   I = a^2 * (q/p) * ((p - c)/(1 - c))^2
++ * which reduces to the 2PL a^2 * p * q when c = 0.
++ */
++export function itemInformation(theta: number, irt: IrtParameters): number {
++  const { a, c } = irt;
++  const p = probabilityCorrect(theta, irt);
++  const q = 1 - p;
++  if (p <= 0 || p >= 1) return 0;
++  const denom = p * (1 - c) * (1 - c);
++  if (denom === 0) return 0;
++  return (a * a * q * (p - c) * (p - c)) / denom;
++}
++
++/** Log-likelihood of one dichotomous response, guarded against log(0). */
++export function responseLogLikelihood(theta: number, irt: IrtParameters, correct: boolean): number {
++  const p = probabilityCorrect(theta, irt);
++  const eps = 1e-12;
++  return correct ? Math.log(Math.max(p, eps)) : Math.log(Math.max(1 - p, eps));
++}
++
++/** Total test information at `theta` across a set of items. */
++export function testInformation(theta: number, items: readonly IrtParameters[]): number {
++  let sum = 0;
++  for (const irt of items) sum += itemInformation(theta, irt);
++  return sum;
++}
+diff --git a/packages/cat-engine/src/rng.ts b/packages/cat-engine/src/rng.ts
+new file mode 100644
+index 0000000..a7ae9e0
+--- /dev/null
++++ b/packages/cat-engine/src/rng.ts
+@@ -0,0 +1,26 @@
++/**
++ * Deterministic PRNG utilities for reproducible exposure control (AX-02).
++ * Selection must be stable when recomputed from stored responses, so the RNG
++ * is seeded from a string (session id + item count) rather than Math.random.
++ */
++
++/** FNV-ish string hash → 32-bit unsigned int seed. */
++export function hashSeed(seed: string): number {
++  let h = 1779033703 ^ seed.length;
++  for (let i = 0; i < seed.length; i++) {
++    h = Math.imul(h ^ seed.charCodeAt(i), 3432918353);
++    h = (h << 13) | (h >>> 19);
++  }
++  return h >>> 0;
++}
++
++/** mulberry32 PRNG → function returning floats in [0, 1). */
++export function mulberry32(seed: number): () => number {
++  let a = seed >>> 0;
++  return function next(): number {
++    a = (a + 0x6d2b79f5) | 0;
++    let t = Math.imul(a ^ (a >>> 15), 1 | a);
++    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
++    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
++  };
++}
+diff --git a/packages/cat-engine/src/scoring.ts b/packages/cat-engine/src/scoring.ts
+new file mode 100644
+index 0000000..8dcdfcb
+--- /dev/null
++++ b/packages/cat-engine/src/scoring.ts
+@@ -0,0 +1,91 @@
++import type { DomainScore, ExamPolicy, ScreenDecision } from '@gt-selection/contracts';
++
++/**
++ * Screening scoring (AX-02): percentile mapping, within-session learning rate,
++ * RT consistency, the tunable Timeback-fit composite, and the GT-owned decision.
++ */
++
++/** Standard normal CDF (Abramowitz & Stegun 7.1.26). */
++export function normalCdf(x: number): number {
++  const t = 1 / (1 + 0.2316419 * Math.abs(x));
++  const d = 0.3989422804014327 * Math.exp(-0.5 * x * x);
++  const poly =
++    t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
++  const p = d * poly;
++  return x >= 0 ? 1 - p : p;
++}
++
++/** Percentile (0-100) of a theta on the N(0,1) reference scale. */
++export function thetaToPercentile(theta: number): number {
++  return Math.max(0, Math.min(100, normalCdf(theta) * 100));
++}
++
++/** OLS slope of y on x; null when there is no x variation. */
++export function slope(xs: readonly number[], ys: readonly number[]): number | null {
++  const n = xs.length;
++  if (n < 2) return null;
++  const meanX = xs.reduce((a, b) => a + b, 0) / n;
++  const meanY = ys.reduce((a, b) => a + b, 0) / n;
++  let num = 0;
++  let den = 0;
++  for (let i = 0; i < n; i++) {
++    const dx = xs[i]! - meanX;
++    num += dx * (ys[i]! - meanY);
++    den += dx * dx;
++  }
++  return den === 0 ? null : num / den;
++}
++
++/** Within-session learning rate: slope of item score over administration order. */
++export function learningRate(order: readonly number[], scores: readonly number[]): number | null {
++  return slope(order, scores);
++}
++
++/** Consistency in [0,1]: 1 - coefficient of variation of RT (steadier = higher). */
++export function consistencyFromRts(rts: readonly number[]): number | null {
++  const clean = rts.filter((r) => r > 0);
++  if (clean.length < 2) return null;
++  const mean = clean.reduce((a, b) => a + b, 0) / clean.length;
++  if (mean === 0) return null;
++  const variance = clean.reduce((a, b) => a + (b - mean) * (b - mean), 0) / clean.length;
++  const cv = Math.sqrt(variance) / mean;
++  return Math.max(0, Math.min(1, 1 - cv));
++}
++
++/** Tunable Timeback-fit composite: weighted mean theta plus optional modifiers. */
++export function computeFitIndex(domainScores: readonly DomainScore[], policy: ExamPolicy): number {
++  let weightSum = 0;
++  let thetaSum = 0;
++  let lrSum = 0;
++  let lrCount = 0;
++  let consSum = 0;
++  let consCount = 0;
++  for (const ds of domainScores) {
++    const weight = policy.fitWeights[ds.domain] ?? 0;
++    weightSum += weight;
++    thetaSum += weight * ds.theta;
++    if (ds.learningRate != null) {
++      lrSum += ds.learningRate;
++      lrCount += 1;
++    }
++    if (ds.consistency != null) {
++      consSum += ds.consistency;
++      consCount += 1;
++    }
++  }
++  const meanTheta = weightSum > 0 ? thetaSum / weightSum : 0;
++  const meanLearningRate = lrCount > 0 ? lrSum / lrCount : 0;
++  const meanConsistency = consCount > 0 ? consSum / consCount : 0;
++  return (
++    meanTheta +
++    policy.learningRateWeight * meanLearningRate +
++    policy.consistencyWeight * meanConsistency
++  );
++}
++
++/** Tunable, GT-owned screening decision from the fit index. */
++export function decisionFromFit(fitIndex: number, policy: ExamPolicy): ScreenDecision {
++  if (fitIndex >= policy.admitCut) return 'admit';
++  if (fitIndex < policy.retryCut) return 'retry';
++  return 'defer';
++}
+diff --git a/packages/cat-engine/src/select.test.ts b/packages/cat-engine/src/select.test.ts
+new file mode 100644
+index 0000000..93acab9
+--- /dev/null
++++ b/packages/cat-engine/src/select.test.ts
+@@ -0,0 +1,38 @@
++import { describe, expect, it } from 'vitest';
++
++import type { ExamItem } from '@gt-selection/contracts';
++
++import { selectByMaxInformation } from './select';
++
++function mkItem(id: string, a: number, b: number): ExamItem {
++  return {
++    itemId: id,
++    typeCode: 'FLU-MATRIX-01',
++    domain: 'fluid_reasoning',
++    difficultyLevel: 1,
++    ageBands: ['4-5'],
++    irt: { a, b, c: 0, model: '2PL' },
++    demoPath: 'demos/x.html',
++    params: {},
++    syntheticOnly: true,
++  };
++}
++
++describe('selectByMaxInformation', () => {
++  it('returns null for no candidates', () => {
++    expect(selectByMaxInformation(0, [], { topK: 1, seed: 's' })).toBeNull();
++  });
++
++  it('picks the most informative item at the current theta (topK = 1)', () => {
++    const near = mkItem('near', 1.5, 0);
++    const far = mkItem('far', 1.5, 2.5);
++    expect(selectByMaxInformation(0, [far, near], { topK: 1, seed: 's' })?.itemId).toBe('near');
++  });
++
++  it('is deterministic for a fixed seed', () => {
++    const items = [mkItem('a', 1, 0), mkItem('b', 1, 0.1), mkItem('c', 1, -0.1)];
++    const first = selectByMaxInformation(0, items, { topK: 3, seed: 'fixed' });
++    const second = selectByMaxInformation(0, items, { topK: 3, seed: 'fixed' });
++    expect(first?.itemId).toBe(second?.itemId);
++  });
++});
+diff --git a/packages/cat-engine/src/select.ts b/packages/cat-engine/src/select.ts
+new file mode 100644
+index 0000000..e53a551
+--- /dev/null
++++ b/packages/cat-engine/src/select.ts
+@@ -0,0 +1,31 @@
++import type { ExamItem } from '@gt-selection/contracts';
++
++import { itemInformation } from './irt';
++import { hashSeed, mulberry32 } from './rng';
++
++/**
++ * Item selection (AX-02): Maximum Fisher Information at the current theta with
++ * randomesque exposure control (pick uniformly among the top-K by information),
++ * seeded for reproducibility when recomputed from stored responses.
++ */
++
++export interface SelectOptions {
++  topK: number;
++  /** Deterministic seed, e.g. `${sessionId}:${domain}:${itemsAnswered}`. */
++  seed: string;
++}
++
++export function selectByMaxInformation(
++  theta: number,
++  candidates: readonly ExamItem[],
++  options: SelectOptions,
++): ExamItem | null {
++  if (candidates.length === 0) return null;
++  const ranked = candidates
++    .map((item) => ({ item, info: itemInformation(theta, item.irt) }))
++    .sort((left, right) => right.info - left.info);
++  const k = Math.max(1, Math.min(options.topK, ranked.length));
++  const rng = mulberry32(hashSeed(options.seed));
++  const index = Math.min(Math.floor(rng() * k), k - 1);
++  return ranked[index]!.item;
++}
+diff --git a/packages/cat-engine/src/session.test.ts b/packages/cat-engine/src/session.test.ts
+new file mode 100644
+index 0000000..ddff78f
+--- /dev/null
++++ b/packages/cat-engine/src/session.test.ts
+@@ -0,0 +1,126 @@
++import { describe, expect, it } from 'vitest';
++
++import type { ExamItem, ExamPolicy, ItemResponse } from '@gt-selection/contracts';
++
++import { probabilityCorrect } from './irt';
++import {
++  buildOutcome,
++  chooseNextItem,
++  isComplete,
++  type AdministeredItem,
++  type EngineState,
++} from './session';
++
++const DOMAINS = ['fluid_reasoning', 'verbal', 'quantitative', 'spatial'] as const;
++
++function buildBank(): ExamItem[] {
++  const items: ExamItem[] = [];
++  for (const domain of DOMAINS) {
++    for (let level = 1; level <= 8; level++) {
++      items.push({
++        itemId: `${domain}-${level}`,
++        typeCode: 'FLU-MATRIX-01',
++        domain,
++        difficultyLevel: level,
++        ageBands: ['4-5'],
++        irt: { a: 1.2, b: (level - 4) * 0.6, c: 0, model: '2PL' },
++        demoPath: 'demos/x.html',
++        params: {},
++        syntheticOnly: true,
++      });
++    }
++  }
++  return items;
++}
++
++const policy: ExamPolicy = {
++  policyVersion: 'test-v1',
++  domains: [...DOMAINS],
++  minItemsPerDomain: 3,
++  maxItemsPerDomain: 6,
++  targetSe: 0.4,
++  priorMean: 0,
++  priorSd: 1,
++  exposureTopK: 1,
++  fitWeights: { fluid_reasoning: 1, verbal: 1, quantitative: 1, spatial: 1 },
++  admitCut: 0.7,
++  retryCut: -0.7,
++  learningRateWeight: 0,
++  consistencyWeight: 0,
++  syntheticOnly: true,
++  validated: false,
++};
++
++function respond(item: ExamItem, trueTheta: number, order: number): AdministeredItem {
++  const correct = probabilityCorrect(trueTheta, item.irt) >= 0.5;
++  const response: ItemResponse = {
++    itemId: item.itemId,
++    correct,
++    score: correct ? 1 : 0,
++    rtMs: 3000,
++    firstActionMs: 500,
++    revisions: 0,
++    engaged: true,
++    measurements: { 'M-ACC': correct ? 1 : 0 },
++    syntheticOnly: true,
++  };
++  return { item, response, order };
++}
++
++function simulate(trueTheta: number): EngineState {
++  const bank = buildBank();
++  let state: EngineState = { sessionId: 'sess-1', ageBand: '4-5', policy, administered: [] };
++  let order = 1;
++  while (!isComplete(state, bank) && order <= 200) {
++    const next = chooseNextItem(state, bank);
++    if (!next) break;
++    state = { ...state, administered: [...state.administered, respond(next, trueTheta, order)] };
++    order += 1;
++  }
++  return state;
++}
++
++describe('adaptive session', () => {
++  it('serves items across all four domains and terminates', () => {
++    const state = simulate(1);
++    expect(isComplete(state, buildBank())).toBe(true);
++    expect(new Set(state.administered.map((a) => a.item.domain)).size).toBe(4);
++    for (const domain of DOMAINS) {
++      expect(state.administered.filter((a) => a.item.domain === domain).length).toBeGreaterThanOrEqual(
++        3,
++      );
++    }
++  });
++
++  it('never repeats an item', () => {
++    const ids = simulate(0.5).administered.map((a) => a.item.itemId);
++    expect(new Set(ids).size).toBe(ids.length);
++  });
++
++  it('admits a strong responder with high estimated ability', () => {
++    const outcome = buildOutcome(simulate(2));
++    expect(outcome.compositeTheta).toBeGreaterThan(0.7);
++    expect(outcome.decision).toBe('admit');
++    expect(outcome.validated).toBe(false);
++  });
++
++  it('does not admit a weak responder', () => {
++    const outcome = buildOutcome(simulate(-2));
++    expect(outcome.compositeTheta).toBeLessThan(0);
++    expect(outcome.decision).not.toBe('admit');
++  });
++
++  it('marks a disengaged session provisional (retry)', () => {
++    const strong = simulate(2);
++    const disengaged: EngineState = {
++      ...strong,
++      administered: strong.administered.map((a) => ({
++        ...a,
++        response: { ...a.response, engaged: false },
++      })),
++    };
++    const outcome = buildOutcome(disengaged);
++    expect(outcome.engagementValid).toBe(false);
++    expect(outcome.decision).toBe('retry');
++  });
++});
+diff --git a/packages/cat-engine/src/session.ts b/packages/cat-engine/src/session.ts
+new file mode 100644
+index 0000000..a52a350
+--- /dev/null
++++ b/packages/cat-engine/src/session.ts
+@@ -0,0 +1,176 @@
++import type {
++  AgeBand,
++  DomainAbility,
++  DomainScore,
++  ExamDomain,
++  ExamItem,
++  ExamPolicy,
++  ItemResponse,
++  ScreeningOutcome,
++  ServedItem,
++} from '@gt-selection/contracts';
++
++import { selectByMaxInformation } from './select';
++import {
++  computeFitIndex,
++  consistencyFromRts,
++  decisionFromFit,
++  learningRate,
++  thetaToPercentile,
++} from './scoring';
++import { estimateThetaEap, type ScoredResponse } from './theta';
++
++/**
++ * Adaptive session orchestrator (AX-02). Pure functions over the item bank,
++ * policy, and administered responses: the Supabase RPC layer persists state and
++ * calls these to (a) pick the next item by information and (b) score the outcome.
++ */
++
++const CLAIM_BOUNDARY =
++  'Synthetic screening result (validated=false). A reliable screen indicates likely giftedness and ' +
++  'Timeback-fit; it is not an admission decision and is not evidence of program impact (R10).';
++
++/** One administered item with its scored response (server-side; includes IRT). */
++export interface AdministeredItem {
++  item: ExamItem;
++  response: ItemResponse;
++  /** 1-based administration order across the whole session. */
++  order: number;
++}
++
++export interface EngineState {
++  sessionId: string;
++  ageBand: AgeBand;
++  policy: ExamPolicy;
++  administered: readonly AdministeredItem[];
++}
++
++function domainResponses(state: EngineState, domain: ExamDomain): AdministeredItem[] {
++  return state.administered
++    .filter((a) => a.item.domain === domain)
++    .sort((l, r) => l.order - r.order);
++}
++
++function domainDone(count: number, se: number, policy: ExamPolicy): boolean {
++  if (count < policy.minItemsPerDomain) return false;
++  return se <= policy.targetSe || count >= policy.maxItemsPerDomain;
++}
++
++function candidateItems(
++  state: EngineState,
++  bank: readonly ExamItem[],
++  domain: ExamDomain,
++): ExamItem[] {
++  const used = new Set(state.administered.map((a) => a.item.itemId));
++  return bank.filter(
++    (item) =>
++      item.domain === domain && !used.has(item.itemId) && item.ageBands.includes(state.ageBand),
++  );
++}
++
++/** Per-domain ability (EAP theta/SE) recomputed from all administered responses. */
++export function computeAbilities(state: EngineState): DomainAbility[] {
++  return state.policy.domains.map((domain) => {
++    const admin = domainResponses(state, domain);
++    const scored: ScoredResponse[] = admin.map((a) => ({
++      irt: a.item.irt,
++      correct: a.response.correct,
++    }));
++    const { theta, se } = estimateThetaEap(scored, {
++      priorMean: state.policy.priorMean,
++      priorSd: state.policy.priorSd,
++    });
++    return {
++      domain,
++      theta,
++      se,
++      itemsAdministered: admin.length,
++      done: domainDone(admin.length, se, state.policy),
++    };
++  });
++}
++
++/**
++ * Choose the next item: pick the not-done domain with the fewest administered
++ * items (ties broken by higher SE, then policy order) that still has candidates,
++ * then select within it by maximum information with exposure control.
++ */
++export function chooseNextItem(state: EngineState, bank: readonly ExamItem[]): ExamItem | null {
++  const abilities = computeAbilities(state);
++  const pending = abilities
++    .filter((ab) => !ab.done && candidateItems(state, bank, ab.domain).length > 0)
++    .sort(
++      (l, r) =>
++        l.itemsAdministered - r.itemsAdministered ||
++        r.se - l.se ||
++        state.policy.domains.indexOf(l.domain) - state.policy.domains.indexOf(r.domain),
++    );
++  const target = pending[0];
++  if (!target) return null;
++  return selectByMaxInformation(target.theta, candidateItems(state, bank, target.domain), {
++    topK: state.policy.exposureTopK,
++    seed: `${state.sessionId}:${target.domain}:${state.administered.length}`,
++  });
++}
++
++/** True when no further item can/should be administered. */
++export function isComplete(state: EngineState, bank: readonly ExamItem[]): boolean {
++  return chooseNextItem(state, bank) === null;
++}
++
++/** Client-safe projection of a chosen item (drops IRT parameters). */
++export function toServedItem(item: ExamItem): ServedItem {
++  return {
++    itemId: item.itemId,
++    typeCode: item.typeCode,
++    domain: item.domain,
++    difficultyLevel: item.difficultyLevel,
++    demoPath: item.demoPath,
++    params: item.params,
++  };
++}
++
++/** Final per-domain scores, Timeback-fit composite, and the tunable decision. */
++export function buildOutcome(state: EngineState): ScreeningOutcome {
++  const abilities = computeAbilities(state);
++  const domainScores: DomainScore[] = abilities.map((ab) => {
++    const admin = domainResponses(state, ab.domain);
++    const orders = admin.map((a) => a.order);
++    const scores = admin.map((a) => a.response.score);
++    const rts = admin.map((a) => a.response.rtMs);
++    const correctDifficulties = admin
++      .filter((a) => a.response.correct)
++      .map((a) => a.item.difficultyLevel);
++    return {
++      domain: ab.domain,
++      theta: ab.theta,
++      se: ab.se,
++      percentile: admin.length > 0 ? thetaToPercentile(ab.theta) : null,
++      itemsAdministered: ab.itemsAdministered,
++      maxDifficultyReached: correctDifficulties.length > 0 ? Math.max(...correctDifficulties) : 0,
++      learningRate: learningRate(orders, scores),
++      consistency: consistencyFromRts(rts),
++    };
++  });
++
++  const withItems = domainScores.filter((d) => d.itemsAdministered > 0);
++  const compositeTheta =
++    withItems.length > 0 ? withItems.reduce((s, d) => s + d.theta, 0) / withItems.length : 0;
++  const fitIndex = computeFitIndex(domainScores, state.policy);
++  const engagedCount = state.administered.filter((a) => a.response.engaged).length;
++  const engagementValid =
++    state.administered.length > 0 && engagedCount / state.administered.length >= 0.8;
++  const decision = engagementValid ? decisionFromFit(fitIndex, state.policy) : 'retry';
++
++  return {
++    domainScores,
++    compositeTheta,
++    fitIndex,
++    engagementValid,
++    decision,
++    policyVersion: state.policy.policyVersion,
++    claimBoundary: CLAIM_BOUNDARY,
++    syntheticOnly: true,
++    validated: false,
++  };
++}
+diff --git a/packages/cat-engine/src/theta.test.ts b/packages/cat-engine/src/theta.test.ts
+new file mode 100644
+index 0000000..79dd590
+--- /dev/null
++++ b/packages/cat-engine/src/theta.test.ts
+@@ -0,0 +1,58 @@
++import { describe, expect, it } from 'vitest';
++
++import type { IrtParameters } from '@gt-selection/contracts';
++
++import { estimateThetaEap, estimateThetaMle, type ScoredResponse } from './theta';
++
++const item = (a: number, b: number): IrtParameters => ({ a, b, c: 0, model: '2PL' });
++
++describe('estimateThetaEap', () => {
++  it('returns the prior with no responses', () => {
++    const estimate = estimateThetaEap([], { priorMean: 0, priorSd: 1 });
++    expect(estimate.theta).toBeCloseTo(0, 6);
++    // Grid-truncated posterior SD is ~0.9996, not exactly the prior SD.
++    expect(estimate.se).toBeCloseTo(1, 2);
++  });
++
++  it('estimates high theta after correct answers on hard items', () => {
++    const responses: ScoredResponse[] = [item(1.5, 1), item(1.5, 1.5), item(1.5, 2)].map((irt) => ({
++      irt,
++      correct: true,
++    }));
++    expect(estimateThetaEap(responses).theta).toBeGreaterThan(0.8);
++  });
++
++  it('estimates low theta after wrong answers on easy items', () => {
++    const responses: ScoredResponse[] = [item(1.5, -1), item(1.5, -1.5)].map((irt) => ({
++      irt,
++      correct: false,
++    }));
++    expect(estimateThetaEap(responses).theta).toBeLessThan(-0.5);
++  });
++
++  it('reduces SE as more informative items arrive', () => {
++    const few = estimateThetaEap([{ irt: item(1.5, 0), correct: true }]);
++    const many = estimateThetaEap(
++      Array.from({ length: 10 }, (_, i) => ({ irt: item(1.5, (i - 5) * 0.3), correct: i < 5 })),
++    );
++    expect(many.se).toBeLessThan(few.se);
++  });
++});
++
++describe('estimateThetaMle', () => {
++  it('stays finite (falls back to EAP) for an all-correct string', () => {
++    const responses = [item(1, 0), item(1, 0.5)].map((irt) => ({ irt, correct: true }));
++    expect(Number.isFinite(estimateThetaMle(responses).theta)).toBe(true);
++  });
++
++  it('recovers a moderate theta for a mixed string', () => {
++    const responses: ScoredResponse[] = [
++      { irt: item(1.5, -1), correct: true },
++      { irt: item(1.5, 0), correct: true },
++      { irt: item(1.5, 1), correct: false },
++    ];
++    const mle = estimateThetaMle(responses);
++    expect(mle.theta).toBeGreaterThan(-1);
++    expect(mle.theta).toBeLessThan(1.5);
++  });
++});
+diff --git a/packages/cat-engine/src/theta.ts b/packages/cat-engine/src/theta.ts
+new file mode 100644
+index 0000000..18178f4
+--- /dev/null
++++ b/packages/cat-engine/src/theta.ts
+@@ -0,0 +1,102 @@
++import type { IrtParameters } from '@gt-selection/contracts';
++
++import { probabilityCorrect, itemInformation, responseLogLikelihood } from './irt';
++
++/**
++ * Ability (theta) estimation for the adaptive engine (AX-02): EAP over a
++ * quadrature grid (primary) and MLE via Fisher scoring (secondary).
++ */
++
++export interface ScoredResponse {
++  irt: IrtParameters;
++  correct: boolean;
++}
++
++export interface ThetaEstimate {
++  theta: number;
++  se: number;
++}
++
++export interface ThetaOptions {
++  priorMean?: number;
++  priorSd?: number;
++  gridPoints?: number;
++  gridMin?: number;
++  gridMax?: number;
++}
++
++function normalPdf(x: number, mean: number, sd: number): number {
++  const z = (x - mean) / sd;
++  return Math.exp(-0.5 * z * z) / (sd * Math.sqrt(2 * Math.PI));
++}
++
++/**
++ * Expected a posteriori (EAP) theta with a normal prior over a fixed grid.
++ * Robust for short adaptive tests and all-correct / all-incorrect strings,
++ * where the MLE diverges. Returns the posterior mean and posterior SD (as SE).
++ */
++export function estimateThetaEap(
++  responses: readonly ScoredResponse[],
++  options: ThetaOptions = {},
++): ThetaEstimate {
++  const { priorMean = 0, priorSd = 1, gridPoints = 61, gridMin = -4, gridMax = 4 } = options;
++  const step = (gridMax - gridMin) / (gridPoints - 1);
++  const nodes: number[] = [];
++  const weights: number[] = [];
++  let wSum = 0;
++  let wThetaSum = 0;
++  for (let i = 0; i < gridPoints; i++) {
++    const node = gridMin + i * step;
++    let logLik = 0;
++    for (const r of responses) logLik += responseLogLikelihood(node, r.irt, r.correct);
++    const w = normalPdf(node, priorMean, priorSd) * Math.exp(logLik);
++    nodes.push(node);
++    weights.push(w);
++    wSum += w;
++    wThetaSum += w * node;
++  }
++  if (wSum === 0) return { theta: priorMean, se: priorSd };
++  const theta = wThetaSum / wSum;
++  let varSum = 0;
++  for (let i = 0; i < gridPoints; i++) {
++    const d = nodes[i]! - theta;
++    varSum += weights[i]! * d * d;
++  }
++  return { theta, se: Math.sqrt(varSum / wSum) };
++}
++
++/**
++ * Maximum-likelihood theta via Newton-Raphson / Fisher scoring. Falls back to
++ * EAP for uninformative (all-same) response strings where the MLE is +/- Inf.
++ */
++export function estimateThetaMle(
++  responses: readonly ScoredResponse[],
++  options: ThetaOptions = {},
++): ThetaEstimate {
++  if (responses.length === 0) {
++    return { theta: options.priorMean ?? 0, se: options.priorSd ?? 1 };
++  }
++  const firstCorrect = responses[0]!.correct;
++  if (responses.every((r) => r.correct === firstCorrect)) {
++    return estimateThetaEap(responses, options);
++  }
++
++  let theta = 0;
++  for (let iter = 0; iter < 50; iter++) {
++    let score = 0;
++    let info = 0;
++    for (const r of responses) {
++      const p = probabilityCorrect(theta, r.irt);
++      const { a, c } = r.irt;
++      const u = r.correct ? 1 : 0;
++      if (p > 0 && p < 1) score += (a * (p - c) * (u - p)) / (p * (1 - c));
++      info += itemInformation(theta, r.irt);
++    }
++    if (info === 0) break;
++    const delta = score / info;
++    theta = Math.max(-6, Math.min(6, theta + delta));
++    if (Math.abs(delta) < 1e-5) break;
++  }
++  const info = responses.reduce((s, r) => s + itemInformation(theta, r.irt), 0);
++  return { theta, se: info > 0 ? 1 / Math.sqrt(info) : (options.priorSd ?? 1) };
++}
+diff --git a/packages/cat-engine/tsconfig.json b/packages/cat-engine/tsconfig.json
+new file mode 100644
+index 0000000..4491d1b
+--- /dev/null
++++ b/packages/cat-engine/tsconfig.json
+@@ -0,0 +1,7 @@
++{
++  "extends": "../../tsconfig.base.json",
++  "compilerOptions": {
++    "rootDir": "src"
++  },
++  "include": ["src/**/*.ts"]
++}
+-- 
+2.50.1 (Apple Git-155)
+
+
+From 37c84b7335881965f8ccee339640f80b1581bfd0 Mon Sep 17 00:00:00 2001
+From: Aadi Takle <aadiatakle@gmail.com>
+Date: Fri, 24 Jul 2026 02:18:34 -0500
+Subject: [PATCH 4/6] feat(db): adaptive-exam schema, RPCs, and synthetic item
+ bank (AX-03/AX-04)
+
+Private app.* tables (participants, sessions, per-domain ability, responses,
+append-only telemetry, outcomes) with forced RLS, and api.* SECURITY DEFINER
+RPCs (create_participant/start_session/list_items/get_policy/get_session/
+submit_response). Deterministic synthetic item bank + default tunable policy.
+Regenerated api database types.
+---
+ packages/db-types/src/database.generated.ts   |  45 ++
+ .../migrations/20260724120000_exam_core.sql   | 288 ++++++++
+ .../migrations/20260724120100_exam_api.sql    | 617 ++++++++++++++++++
+ .../migrations/20260724120200_exam_seed.sql   |  73 +++
+ 4 files changed, 1023 insertions(+)
+ create mode 100644 supabase/migrations/20260724120000_exam_core.sql
+ create mode 100644 supabase/migrations/20260724120100_exam_api.sql
+ create mode 100644 supabase/migrations/20260724120200_exam_seed.sql
+
+diff --git a/packages/db-types/src/database.generated.ts b/packages/db-types/src/database.generated.ts
+index 480e405..9da0f53 100644
+--- a/packages/db-types/src/database.generated.ts
++++ b/packages/db-types/src/database.generated.ts
+@@ -15,6 +15,14 @@ export type Database = {
+       [_ in never]: never
+     }
+     Functions: {
++      create_exam_participant: {
++        Args: {
++          p_age_band: string
++          p_correlation_id: string
++          p_pseudonym_code: string
++        }
++        Returns: Json
++      }
+       get_application: {
+         Args: { p_application_id: string; p_correlation_id: string }
+         Returns: Json
+@@ -23,11 +31,27 @@ export type Database = {
+         Args: { p_application_id: string; p_correlation_id: string }
+         Returns: Json
+       }
++      get_exam_policy: {
++        Args: { p_correlation_id: string; p_policy_version: string }
++        Returns: Json
++      }
++      get_exam_session: {
++        Args: { p_correlation_id: string; p_session_id: string }
++        Returns: Json
++      }
+       get_student_profile: {
+         Args: { p_correlation_id: string; p_profile_id: string }
+         Returns: Json
+       }
+       list_active_schools: { Args: { p_correlation_id: string }; Returns: Json }
++      list_exam_items: {
++        Args: {
++          p_age_band: string
++          p_correlation_id: string
++          p_policy_version: string
++        }
++        Returns: Json
++      }
+       list_student_profiles: {
+         Args: { p_correlation_id: string }
+         Returns: Json
+@@ -53,6 +77,15 @@ export type Database = {
+         }
+         Returns: Json
+       }
++      start_exam_session: {
++        Args: {
++          p_correlation_id: string
++          p_idempotency_key: string
++          p_participant_id: string
++          p_policy_version: string
++        }
++        Returns: Json
++      }
+       submit_application: {
+         Args: {
+           p_application_version_id: string
+@@ -62,6 +95,18 @@ export type Database = {
+         }
+         Returns: Json
+       }
++      submit_exam_response: {
++        Args: {
++          p_abilities: Json
++          p_correlation_id: string
++          p_idempotency_key: string
++          p_outcome: Json
++          p_response: Json
++          p_session_id: string
++          p_telemetry: Json
++        }
++        Returns: Json
++      }
+     }
+     Enums: {
+       [_ in never]: never
+diff --git a/supabase/migrations/20260724120000_exam_core.sql b/supabase/migrations/20260724120000_exam_core.sql
+new file mode 100644
+index 0000000..f159959
+--- /dev/null
++++ b/supabase/migrations/20260724120000_exam_core.sql
+@@ -0,0 +1,288 @@
++-- Adaptive screening instrument core schema (AX-03/AX-04, D-016; serves R11).
++-- Born-synthetic only: every row is synthetic_only=true and validated=false.
++-- Private `app` tables; access is exclusively through `api` SECURITY DEFINER RPCs.
++-- The proctor/admin persona is the existing `admissions_operator` role.
++
++set role app_owner;
++
++-- --- Tunable config: policy, question types, item bank (with IRT params) ------
++
++create table app.exam_policy (
++  policy_version text primary key check (policy_version ~ '^[A-Za-z0-9._-]{1,64}$'),
++  config jsonb not null check (jsonb_typeof(config) = 'object'),
++  synthetic_only boolean not null default true check (synthetic_only),
++  validated boolean not null default false check (validated = false),
++  created_at timestamptz not null default statement_timestamp()
++);
++
++create table app.exam_question_type (
++  type_code text primary key check (type_code ~ '^[A-Z]+-[A-Z0-9]+-[0-9]+$'),
++  domain text not null
++    check (domain in ('fluid_reasoning', 'verbal', 'quantitative', 'spatial')),
++  name text not null check (char_length(name) between 1 and 200),
++  demo_path text not null check (char_length(demo_path) between 1 and 300),
++  synthetic_only boolean not null default true check (synthetic_only)
++);
++
++create table app.exam_item (
++  item_id uuid primary key,
++  type_code text not null references app.exam_question_type(type_code),
++  domain text not null
++    check (domain in ('fluid_reasoning', 'verbal', 'quantitative', 'spatial')),
++  difficulty_level integer not null check (difficulty_level between 1 and 20),
++  irt_a numeric not null check (irt_a > 0),
++  irt_b numeric not null,
++  irt_c numeric not null check (irt_c >= 0 and irt_c < 1),
++  irt_model text not null check (irt_model in ('2PL', '3PL')),
++  age_bands text[] not null
++    check (
++      array_length(age_bands, 1) >= 1
++      and age_bands <@ array['K-1', '2-3', '4-5', '6-8']
++    ),
++  params jsonb not null default '{}'::jsonb check (jsonb_typeof(params) = 'object'),
++  synthetic_only boolean not null default true check (synthetic_only)
++);
++create index exam_item_domain_difficulty_idx on app.exam_item (domain, difficulty_level);
++
++-- --- Owned session state (proctor-owned; pseudonymous participants, no PII) ---
++
++create table app.exam_participant (
++  participant_id uuid primary key,
++  owner_user_id uuid not null,
++  pseudonym_code text not null unique check (pseudonym_code ~ '^PART-SYN-[A-Z0-9-]+$'),
++  age_band text not null check (age_band in ('K-1', '2-3', '4-5', '6-8')),
++  synthetic_only boolean not null default true check (synthetic_only),
++  created_at timestamptz not null default statement_timestamp()
++);
++
++create table app.exam_session (
++  session_id uuid primary key,
++  owner_user_id uuid not null,
++  participant_id uuid not null references app.exam_participant(participant_id),
++  policy_version text not null references app.exam_policy(policy_version),
++  age_band text not null check (age_band in ('K-1', '2-3', '4-5', '6-8')),
++  status text not null default 'active'
++    check (status in ('active', 'completed', 'abandoned')),
++  started_at timestamptz not null default statement_timestamp(),
++  completed_at timestamptz
++);
++
++create table app.exam_session_domain (
++  session_id uuid not null references app.exam_session(session_id),
++  owner_user_id uuid not null,
++  domain text not null
++    check (domain in ('fluid_reasoning', 'verbal', 'quantitative', 'spatial')),
++  theta numeric not null default 0,
++  se numeric not null default 1,
++  items_administered integer not null default 0 check (items_administered >= 0),
++  done boolean not null default false,
++  primary key (session_id, domain)
++);
++
++create table app.exam_item_response (
++  response_id uuid primary key,
++  session_id uuid not null references app.exam_session(session_id),
++  owner_user_id uuid not null,
++  item_id uuid not null references app.exam_item(item_id),
++  domain text not null
++    check (domain in ('fluid_reasoning', 'verbal', 'quantitative', 'spatial')),
++  order_no integer not null check (order_no > 0),
++  correct boolean not null,
++  score numeric not null check (score >= 0 and score <= 1),
++  rt_ms integer not null check (rt_ms >= 0),
++  first_action_ms integer check (first_action_ms >= 0),
++  revisions integer not null default 0 check (revisions >= 0),
++  engaged boolean not null default true,
++  measurements jsonb not null default '{}'::jsonb
++    check (jsonb_typeof(measurements) = 'object'),
++  created_at timestamptz not null default statement_timestamp(),
++  unique (session_id, item_id),
++  unique (session_id, order_no)
++);
++
++create table app.exam_telemetry_event (
++  event_id uuid primary key,
++  session_id uuid not null references app.exam_session(session_id),
++  owner_user_id uuid not null,
++  item_id uuid,
++  kind text not null check (char_length(kind) between 1 and 40),
++  t_offset_ms integer not null check (t_offset_ms >= 0),
++  payload jsonb not null default '{}'::jsonb check (jsonb_typeof(payload) = 'object'),
++  created_at timestamptz not null default statement_timestamp()
++);
++create index exam_telemetry_session_idx on app.exam_telemetry_event (session_id);
++
++create table app.exam_session_outcome (
++  session_id uuid primary key references app.exam_session(session_id),
++  owner_user_id uuid not null,
++  composite_theta numeric not null,
++  fit_index numeric not null,
++  engagement_valid boolean not null,
++  decision text not null check (decision in ('admit', 'defer', 'retry')),
++  domain_scores jsonb not null check (jsonb_typeof(domain_scores) = 'array'),
++  policy_version text not null,
++  claim_boundary text not null,
++  created_at timestamptz not null default statement_timestamp()
++);
++
++-- --- Forced RLS on every table ------------------------------------------------
++
++alter table app.exam_policy enable row level security;
++alter table app.exam_policy force row level security;
++alter table app.exam_question_type enable row level security;
++alter table app.exam_question_type force row level security;
++alter table app.exam_item enable row level security;
++alter table app.exam_item force row level security;
++alter table app.exam_participant enable row level security;
++alter table app.exam_participant force row level security;
++alter table app.exam_session enable row level security;
++alter table app.exam_session force row level security;
++alter table app.exam_session_domain enable row level security;
++alter table app.exam_session_domain force row level security;
++alter table app.exam_item_response enable row level security;
++alter table app.exam_item_response force row level security;
++alter table app.exam_telemetry_event enable row level security;
++alter table app.exam_telemetry_event force row level security;
++alter table app.exam_session_outcome enable row level security;
++alter table app.exam_session_outcome force row level security;
++
++revoke all on app.exam_policy from public, anon, authenticated, service_role;
++revoke all on app.exam_question_type from public, anon, authenticated, service_role;
++revoke all on app.exam_item from public, anon, authenticated, service_role;
++revoke all on app.exam_participant from public, anon, authenticated, service_role;
++revoke all on app.exam_session from public, anon, authenticated, service_role;
++revoke all on app.exam_session_domain from public, anon, authenticated, service_role;
++revoke all on app.exam_item_response from public, anon, authenticated, service_role;
++revoke all on app.exam_telemetry_event from public, anon, authenticated, service_role;
++revoke all on app.exam_session_outcome from public, anon, authenticated, service_role;
++
++-- Config tables: read-only to the operator (seeded by migration as superuser).
++create policy exam_policy_read on app.exam_policy
++  for select to api_executor
++  using (synthetic_only and app.current_user_role() = 'admissions_operator');
++create policy exam_question_type_read on app.exam_question_type
++  for select to api_executor
++  using (synthetic_only and app.current_user_role() = 'admissions_operator');
++create policy exam_item_read on app.exam_item
++  for select to api_executor
++  using (synthetic_only and app.current_user_role() = 'admissions_operator');
++
++-- Owned tables: operator may read/write only its own synthetic rows.
++create policy exam_participant_read on app.exam_participant
++  for select to api_executor
++  using (
++    synthetic_only
++    and app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++create policy exam_participant_insert on app.exam_participant
++  for insert to api_executor
++  with check (
++    synthetic_only
++    and app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++
++create policy exam_session_read on app.exam_session
++  for select to api_executor
++  using (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++create policy exam_session_insert on app.exam_session
++  for insert to api_executor
++  with check (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++create policy exam_session_update on app.exam_session
++  for update to api_executor
++  using (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  )
++  with check (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++
++create policy exam_session_domain_read on app.exam_session_domain
++  for select to api_executor
++  using (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++create policy exam_session_domain_insert on app.exam_session_domain
++  for insert to api_executor
++  with check (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++create policy exam_session_domain_update on app.exam_session_domain
++  for update to api_executor
++  using (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  )
++  with check (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++
++create policy exam_item_response_read on app.exam_item_response
++  for select to api_executor
++  using (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++create policy exam_item_response_insert on app.exam_item_response
++  for insert to api_executor
++  with check (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++
++create policy exam_telemetry_read on app.exam_telemetry_event
++  for select to api_executor
++  using (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++create policy exam_telemetry_insert on app.exam_telemetry_event
++  for insert to api_executor
++  with check (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++
++create policy exam_outcome_read on app.exam_session_outcome
++  for select to api_executor
++  using (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++create policy exam_outcome_insert on app.exam_session_outcome
++  for insert to api_executor
++  with check (
++    app.current_user_role() = 'admissions_operator'
++    and owner_user_id = app.current_user_id()
++  );
++
++comment on table app.exam_item is
++  'Born-synthetic item bank with per-item IRT parameters; tunable policy config (validated=false, D-016).';
++comment on table app.exam_item_response is
++  'Append-only scored responses plus automatically-derived measurements (AX-04).';
++comment on table app.exam_telemetry_event is
++  'Append-only raw interaction telemetry streamed from embedded demos (AX-04).';
++
++reset role;
++
++grant select on app.exam_policy to api_executor;
++grant select on app.exam_question_type to api_executor;
++grant select on app.exam_item to api_executor;
++grant select, insert on app.exam_participant to api_executor;
++grant select, insert, update on app.exam_session to api_executor;
++grant select, insert, update on app.exam_session_domain to api_executor;
++grant select, insert on app.exam_item_response to api_executor;
++grant select, insert on app.exam_telemetry_event to api_executor;
++grant select, insert on app.exam_session_outcome to api_executor;
+diff --git a/supabase/migrations/20260724120100_exam_api.sql b/supabase/migrations/20260724120100_exam_api.sql
+new file mode 100644
+index 0000000..e35585b
+--- /dev/null
++++ b/supabase/migrations/20260724120100_exam_api.sql
+@@ -0,0 +1,617 @@
++-- Adaptive screening instrument API (AX-04, D-016; serves R11).
++-- SECURITY DEFINER RPCs on the `api` schema. The IRT/CAT math runs in the
++-- Next.js server (@gt-selection/cat-engine); these RPCs read config/state and
++-- persist responses, telemetry, abilities, and the final outcome. Proctor role
++-- is `admissions_operator`. All rows born-synthetic.
++
++set role app_owner;
++
++create function app.exam_session_json(p_session_id uuid)
++returns jsonb
++language sql
++stable
++set search_path = pg_catalog
++as $$
++  select jsonb_build_object(
++    'sessionId', s.session_id,
++    'participantId', s.participant_id,
++    'status', s.status,
++    'ageBand', s.age_band,
++    'policyVersion', s.policy_version,
++    'startedAt', to_char(s.started_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS') || 'Z',
++    'abilities', coalesce(
++      (
++        select jsonb_agg(
++          jsonb_build_object(
++            'domain', d.domain,
++            'theta', d.theta,
++            'se', d.se,
++            'itemsAdministered', d.items_administered,
++            'done', d.done
++          )
++          order by d.domain
++        )
++        from app.exam_session_domain d
++        where d.session_id = s.session_id
++      ),
++      '[]'::jsonb
++    )
++  )
++  from app.exam_session s
++  where s.session_id = p_session_id
++$$;
++
++revoke execute on function app.exam_session_json(uuid)
++  from public, anon, authenticated, service_role;
++
++reset role;
++grant execute on function app.exam_session_json(uuid) to api_executor;
++
++set role api_executor;
++
++-- Read the tunable policy config.
++create function api.get_exam_policy(p_policy_version text, p_correlation_id uuid)
++returns jsonb
++language plpgsql
++security definer
++set search_path = pg_catalog, extensions
++as $$
++declare
++  v_config jsonb;
++begin
++  perform app.bind_local_synthetic_principal();
++  if app.current_user_id() is null then
++    raise exception using errcode = 'PT401', message = 'AUTH_REQUIRED';
++  end if;
++  if app.current_user_role() is distinct from 'admissions_operator' then
++    raise exception using errcode = 'PT403', message = 'ROLE_FORBIDDEN';
++  end if;
++  if p_policy_version is null or p_correlation_id is null then
++    raise exception using errcode = 'PT400', message = 'VALIDATION_FAILED';
++  end if;
++
++  select config into v_config from app.exam_policy where policy_version = p_policy_version;
++  if v_config is null then
++    raise exception using errcode = 'PT404', message = 'RESOURCE_NOT_FOUND';
++  end if;
++
++  return jsonb_build_object(
++    'apiVersion', 'v1',
++    'syntheticOnly', true,
++    'data', jsonb_build_object('policy', v_config),
++    'meta', jsonb_build_object(
++      'correlationId', p_correlation_id,
++      'idempotencyKey', null,
++      'idempotentReplay', false
++    )
++  );
++end
++$$;
++
++-- List the item bank (with IRT parameters) for a policy's domains + age band.
++-- IRT parameters are returned to the trusted server only; never to the browser.
++create function api.list_exam_items(
++  p_policy_version text,
++  p_age_band text,
++  p_correlation_id uuid
++)
++returns jsonb
++language plpgsql
++security definer
++set search_path = pg_catalog, extensions
++as $$
++declare
++  v_domains jsonb;
++  v_items jsonb;
++begin
++  perform app.bind_local_synthetic_principal();
++  if app.current_user_id() is null then
++    raise exception using errcode = 'PT401', message = 'AUTH_REQUIRED';
++  end if;
++  if app.current_user_role() is distinct from 'admissions_operator' then
++    raise exception using errcode = 'PT403', message = 'ROLE_FORBIDDEN';
++  end if;
++  if p_policy_version is null or p_age_band is null or p_correlation_id is null then
++    raise exception using errcode = 'PT400', message = 'VALIDATION_FAILED';
++  end if;
++
++  select config -> 'domains' into v_domains
++  from app.exam_policy
++  where policy_version = p_policy_version;
++  if v_domains is null then
++    raise exception using errcode = 'PT404', message = 'RESOURCE_NOT_FOUND';
++  end if;
++
++  select coalesce(
++    jsonb_agg(
++      jsonb_build_object(
++        'itemId', i.item_id,
++        'typeCode', i.type_code,
++        'domain', i.domain,
++        'difficultyLevel', i.difficulty_level,
++        'ageBands', to_jsonb(i.age_bands),
++        'irt', jsonb_build_object(
++          'a', i.irt_a,
++          'b', i.irt_b,
++          'c', i.irt_c,
++          'model', i.irt_model
++        ),
++        'demoPath', qt.demo_path,
++        'params', i.params,
++        'syntheticOnly', true
++      )
++      order by i.domain, i.difficulty_level, i.item_id
++    ),
++    '[]'::jsonb
++  )
++  into v_items
++  from app.exam_item i
++  join app.exam_question_type qt on qt.type_code = i.type_code
++  where i.domain in (select jsonb_array_elements_text(v_domains))
++    and p_age_band = any (i.age_bands);
++
++  return jsonb_build_object(
++    'apiVersion', 'v1',
++    'syntheticOnly', true,
++    'data', jsonb_build_object('items', v_items),
++    'meta', jsonb_build_object(
++      'correlationId', p_correlation_id,
++      'idempotencyKey', null,
++      'idempotentReplay', false
++    )
++  );
++end
++$$;
++
++-- Create a pseudonymous participant (idempotent by pseudonym code).
++create function api.create_exam_participant(
++  p_pseudonym_code text,
++  p_age_band text,
++  p_correlation_id uuid
++)
++returns jsonb
++language plpgsql
++security definer
++set search_path = pg_catalog, extensions
++as $$
++declare
++  v_actor uuid;
++  v_participant app.exam_participant%rowtype;
++begin
++  perform app.bind_local_synthetic_principal();
++  v_actor := app.current_user_id();
++  if v_actor is null then
++    raise exception using errcode = 'PT401', message = 'AUTH_REQUIRED';
++  end if;
++  if app.current_user_role() is distinct from 'admissions_operator' then
++    raise exception using errcode = 'PT403', message = 'ROLE_FORBIDDEN';
++  end if;
++  if p_pseudonym_code is null
++    or p_pseudonym_code !~ '^PART-SYN-[A-Z0-9-]+$'
++    or p_age_band not in ('K-1', '2-3', '4-5', '6-8')
++    or p_correlation_id is null
++  then
++    raise exception using errcode = 'PT400', message = 'VALIDATION_FAILED';
++  end if;
++
++  select * into v_participant
++  from app.exam_participant
++  where pseudonym_code = p_pseudonym_code and owner_user_id = v_actor;
++
++  if not found then
++    insert into app.exam_participant (participant_id, owner_user_id, pseudonym_code, age_band)
++    values (extensions.gen_random_uuid(), v_actor, p_pseudonym_code, p_age_band)
++    returning * into v_participant;
++  end if;
++
++  return jsonb_build_object(
++    'apiVersion', 'v1',
++    'syntheticOnly', true,
++    'data', jsonb_build_object(
++      'participant', jsonb_build_object(
++        'participantId', v_participant.participant_id,
++        'pseudonymCode', v_participant.pseudonym_code,
++        'ageBand', v_participant.age_band,
++        'syntheticOnly', true
++      )
++    ),
++    'meta', jsonb_build_object(
++      'correlationId', p_correlation_id,
++      'idempotencyKey', null,
++      'idempotentReplay', false
++    )
++  );
++end
++$$;
++
++-- Start a session and seed per-domain ability rows from the policy prior.
++create function api.start_exam_session(
++  p_participant_id uuid,
++  p_policy_version text,
++  p_idempotency_key uuid,
++  p_correlation_id uuid
++)
++returns jsonb
++language plpgsql
++security definer
++set search_path = pg_catalog, extensions
++as $$
++declare
++  v_actor uuid;
++  v_config jsonb;
++  v_age_band text;
++  v_prior_mean numeric;
++  v_prior_sd numeric;
++  v_session_id uuid;
++  v_domain text;
++  request_hash text;
++  existing_idempotency app.idempotency_record%rowtype;
++  response_payload jsonb;
++begin
++  perform app.bind_local_synthetic_principal();
++  v_actor := app.current_user_id();
++  if v_actor is null then
++    raise exception using errcode = 'PT401', message = 'AUTH_REQUIRED';
++  end if;
++  if app.current_user_role() is distinct from 'admissions_operator' then
++    raise exception using errcode = 'PT403', message = 'ROLE_FORBIDDEN';
++  end if;
++  if p_participant_id is null
++    or p_policy_version is null
++    or p_idempotency_key is null
++    or p_correlation_id is null
++  then
++    raise exception using errcode = 'PT400', message = 'VALIDATION_FAILED';
++  end if;
++
++  request_hash := 'sha256:' || encode(
++    extensions.digest(
++      convert_to(
++        jsonb_build_object(
++          'participantId', p_participant_id,
++          'policyVersion', p_policy_version
++        )::text,
++        'UTF8'
++      ),
++      'sha256'
++    ),
++    'hex'
++  );
++
++  perform pg_advisory_xact_lock(
++    hashtextextended(v_actor::text || ':start_exam_session:' || p_idempotency_key::text, 0)
++  );
++
++  select * into existing_idempotency
++  from app.idempotency_record record
++  where record.actor_id = v_actor
++    and record.rpc_name = 'start_exam_session'
++    and record.idempotency_key = p_idempotency_key;
++  if found then
++    if existing_idempotency.request_hash <> request_hash then
++      raise exception using errcode = 'PT409', message = 'IDEMPOTENCY_KEY_REUSED';
++    end if;
++    return jsonb_set(
++      jsonb_set(existing_idempotency.response_payload, '{meta,idempotentReplay}', 'true'::jsonb),
++      '{meta,correlationId}',
++      to_jsonb(p_correlation_id::text)
++    );
++  end if;
++
++  select config into v_config from app.exam_policy where policy_version = p_policy_version;
++  if v_config is null then
++    raise exception using errcode = 'PT404', message = 'RESOURCE_NOT_FOUND';
++  end if;
++  select age_band into v_age_band
++  from app.exam_participant
++  where participant_id = p_participant_id and owner_user_id = v_actor;
++  if v_age_band is null then
++    raise exception using errcode = 'PT404', message = 'RESOURCE_NOT_FOUND';
++  end if;
++
++  v_prior_mean := coalesce((v_config ->> 'priorMean')::numeric, 0);
++  v_prior_sd := coalesce((v_config ->> 'priorSd')::numeric, 1);
++  v_session_id := extensions.gen_random_uuid();
++
++  insert into app.exam_session (session_id, owner_user_id, participant_id, policy_version, age_band)
++  values (v_session_id, v_actor, p_participant_id, p_policy_version, v_age_band);
++
++  for v_domain in select jsonb_array_elements_text(v_config -> 'domains') loop
++    insert into app.exam_session_domain (session_id, owner_user_id, domain, theta, se)
++    values (v_session_id, v_actor, v_domain, v_prior_mean, v_prior_sd);
++  end loop;
++
++  response_payload := jsonb_build_object(
++    'apiVersion', 'v1',
++    'syntheticOnly', true,
++    'data', jsonb_build_object('session', app.exam_session_json(v_session_id)),
++    'meta', jsonb_build_object(
++      'correlationId', p_correlation_id,
++      'idempotencyKey', p_idempotency_key,
++      'idempotentReplay', false
++    )
++  );
++
++  insert into app.idempotency_record (
++    actor_id, rpc_name, idempotency_key, request_hash, response_payload, synthetic_only
++  )
++  values (v_actor, 'start_exam_session', p_idempotency_key, request_hash, response_payload, true);
++
++  return response_payload;
++end
++$$;
++
++-- Read full session state for reconstruction / results.
++create function api.get_exam_session(p_session_id uuid, p_correlation_id uuid)
++returns jsonb
++language plpgsql
++security definer
++set search_path = pg_catalog, extensions
++as $$
++declare
++  v_exists boolean;
++begin
++  perform app.bind_local_synthetic_principal();
++  if app.current_user_id() is null then
++    raise exception using errcode = 'PT401', message = 'AUTH_REQUIRED';
++  end if;
++  if app.current_user_role() is distinct from 'admissions_operator' then
++    raise exception using errcode = 'PT403', message = 'ROLE_FORBIDDEN';
++  end if;
++  if p_session_id is null or p_correlation_id is null then
++    raise exception using errcode = 'PT400', message = 'VALIDATION_FAILED';
++  end if;
++
++  select true into v_exists
++  from app.exam_session
++  where session_id = p_session_id and owner_user_id = app.current_user_id();
++  if not found then
++    raise exception using errcode = 'PT404', message = 'RESOURCE_NOT_FOUND';
++  end if;
++
++  return jsonb_build_object(
++    'apiVersion', 'v1',
++    'syntheticOnly', true,
++    'data', jsonb_build_object(
++      'session', app.exam_session_json(p_session_id),
++      'responses', coalesce(
++        (
++          select jsonb_agg(
++            jsonb_build_object(
++              'itemId', r.item_id,
++              'domain', r.domain,
++              'orderNo', r.order_no,
++              'correct', r.correct,
++              'score', r.score,
++              'rtMs', r.rt_ms,
++              'firstActionMs', r.first_action_ms,
++              'revisions', r.revisions,
++              'engaged', r.engaged,
++              'measurements', r.measurements
++            )
++            order by r.order_no
++          )
++          from app.exam_item_response r
++          where r.session_id = p_session_id
++        ),
++        '[]'::jsonb
++      ),
++      'outcome', (
++        select jsonb_build_object(
++          'compositeTheta', o.composite_theta,
++          'fitIndex', o.fit_index,
++          'engagementValid', o.engagement_valid,
++          'decision', o.decision,
++          'domainScores', o.domain_scores,
++          'policyVersion', o.policy_version,
++          'claimBoundary', o.claim_boundary,
++          'syntheticOnly', true,
++          'validated', false
++        )
++        from app.exam_session_outcome o
++        where o.session_id = p_session_id
++      )
++    ),
++    'meta', jsonb_build_object(
++      'correlationId', p_correlation_id,
++      'idempotencyKey', null,
++      'idempotentReplay', false
++    )
++  );
++end
++$$;
++
++-- Persist one scored response + telemetry + engine-computed abilities, and (when
++-- the session completes) the final outcome. Adaptive selection/scoring happen in
++-- the server engine; this RPC is the durable write surface.
++create function api.submit_exam_response(
++  p_session_id uuid,
++  p_response jsonb,
++  p_telemetry jsonb,
++  p_abilities jsonb,
++  p_outcome jsonb,
++  p_idempotency_key uuid,
++  p_correlation_id uuid
++)
++returns jsonb
++language plpgsql
++security definer
++set search_path = pg_catalog, extensions
++as $$
++declare
++  v_actor uuid;
++  v_status text;
++  v_item_id uuid;
++  v_domain text;
++  v_order integer;
++  request_hash text;
++  existing_idempotency app.idempotency_record%rowtype;
++  ability jsonb;
++  response_payload jsonb;
++begin
++  perform app.bind_local_synthetic_principal();
++  v_actor := app.current_user_id();
++  if v_actor is null then
++    raise exception using errcode = 'PT401', message = 'AUTH_REQUIRED';
++  end if;
++  if app.current_user_role() is distinct from 'admissions_operator' then
++    raise exception using errcode = 'PT403', message = 'ROLE_FORBIDDEN';
++  end if;
++  if p_session_id is null
++    or p_response is null
++    or p_idempotency_key is null
++    or p_correlation_id is null
++    or (p_response ->> 'itemId') is null
++  then
++    raise exception using errcode = 'PT400', message = 'VALIDATION_FAILED';
++  end if;
++
++  request_hash := 'sha256:' || encode(
++    extensions.digest(
++      convert_to(
++        jsonb_build_object('sessionId', p_session_id, 'response', p_response)::text,
++        'UTF8'
++      ),
++      'sha256'
++    ),
++    'hex'
++  );
++
++  perform pg_advisory_xact_lock(
++    hashtextextended(v_actor::text || ':submit_exam_response:' || p_idempotency_key::text, 0)
++  );
++
++  select * into existing_idempotency
++  from app.idempotency_record record
++  where record.actor_id = v_actor
++    and record.rpc_name = 'submit_exam_response'
++    and record.idempotency_key = p_idempotency_key;
++  if found then
++    if existing_idempotency.request_hash <> request_hash then
++      raise exception using errcode = 'PT409', message = 'IDEMPOTENCY_KEY_REUSED';
++    end if;
++    return jsonb_set(
++      jsonb_set(existing_idempotency.response_payload, '{meta,idempotentReplay}', 'true'::jsonb),
++      '{meta,correlationId}',
++      to_jsonb(p_correlation_id::text)
++    );
++  end if;
++
++  select status into v_status
++  from app.exam_session
++  where session_id = p_session_id and owner_user_id = v_actor;
++  if not found then
++    raise exception using errcode = 'PT404', message = 'RESOURCE_NOT_FOUND';
++  end if;
++  if v_status <> 'active' then
++    raise exception using errcode = 'PT409', message = 'SESSION_NOT_ACTIVE';
++  end if;
++
++  v_item_id := (p_response ->> 'itemId')::uuid;
++  select domain into v_domain from app.exam_item where item_id = v_item_id;
++  if v_domain is null then
++    raise exception using errcode = 'PT400', message = 'VALIDATION_FAILED';
++  end if;
++
++  select coalesce(max(order_no), 0) + 1 into v_order
++  from app.exam_item_response
++  where session_id = p_session_id;
++
++  insert into app.exam_item_response (
++    response_id, session_id, owner_user_id, item_id, domain, order_no,
++    correct, score, rt_ms, first_action_ms, revisions, engaged, measurements
++  )
++  values (
++    extensions.gen_random_uuid(), p_session_id, v_actor, v_item_id, v_domain, v_order,
++    (p_response ->> 'correct')::boolean,
++    (p_response ->> 'score')::numeric,
++    (p_response ->> 'rtMs')::integer,
++    (p_response ->> 'firstActionMs')::integer,
++    coalesce((p_response ->> 'revisions')::integer, 0),
++    coalesce((p_response ->> 'engaged')::boolean, true),
++    coalesce(p_response -> 'measurements', '{}'::jsonb)
++  );
++
++  if p_telemetry is not null and jsonb_typeof(p_telemetry) = 'array' then
++    insert into app.exam_telemetry_event (
++      event_id, session_id, owner_user_id, item_id, kind, t_offset_ms, payload
++    )
++    select
++      extensions.gen_random_uuid(),
++      p_session_id,
++      v_actor,
++      nullif(event ->> 'itemId', '')::uuid,
++      event ->> 'kind',
++      (event ->> 'tOffsetMs')::integer,
++      coalesce(event -> 'payload', '{}'::jsonb)
++    from jsonb_array_elements(p_telemetry) event;
++  end if;
++
++  if p_abilities is not null and jsonb_typeof(p_abilities) = 'array' then
++    for ability in select jsonb_array_elements(p_abilities) loop
++      update app.exam_session_domain d
++      set theta = (ability ->> 'theta')::numeric,
++          se = (ability ->> 'se')::numeric,
++          items_administered = (ability ->> 'itemsAdministered')::integer,
++          done = (ability ->> 'done')::boolean
++      where d.session_id = p_session_id and d.domain = (ability ->> 'domain');
++    end loop;
++  end if;
++
++  if p_outcome is not null and p_outcome <> 'null'::jsonb then
++    insert into app.exam_session_outcome (
++      session_id, owner_user_id, composite_theta, fit_index, engagement_valid,
++      decision, domain_scores, policy_version, claim_boundary
++    )
++    values (
++      p_session_id, v_actor,
++      (p_outcome ->> 'compositeTheta')::numeric,
++      (p_outcome ->> 'fitIndex')::numeric,
++      (p_outcome ->> 'engagementValid')::boolean,
++      p_outcome ->> 'decision',
++      p_outcome -> 'domainScores',
++      p_outcome ->> 'policyVersion',
++      p_outcome ->> 'claimBoundary'
++    );
++    update app.exam_session
++    set status = 'completed', completed_at = statement_timestamp()
++    where session_id = p_session_id;
++  end if;
++
++  response_payload := jsonb_build_object(
++    'apiVersion', 'v1',
++    'syntheticOnly', true,
++    'data', jsonb_build_object('session', app.exam_session_json(p_session_id)),
++    'meta', jsonb_build_object(
++      'correlationId', p_correlation_id,
++      'idempotencyKey', p_idempotency_key,
++      'idempotentReplay', false
++    )
++  );
++
++  insert into app.idempotency_record (
++    actor_id, rpc_name, idempotency_key, request_hash, response_payload, synthetic_only
++  )
++  values (v_actor, 'submit_exam_response', p_idempotency_key, request_hash, response_payload, true);
++
++  return response_payload;
++end
++$$;
++
++reset role;
++
++revoke execute on function api.get_exam_policy(text, uuid) from public, anon, service_role;
++revoke execute on function api.list_exam_items(text, text, uuid) from public, anon, service_role;
++revoke execute on function api.create_exam_participant(text, text, uuid) from public, anon, service_role;
++revoke execute on function api.start_exam_session(uuid, text, uuid, uuid) from public, anon, service_role;
++revoke execute on function api.get_exam_session(uuid, uuid) from public, anon, service_role;
++revoke execute on function api.submit_exam_response(uuid, jsonb, jsonb, jsonb, jsonb, uuid, uuid)
++  from public, anon, service_role;
++
++grant execute on function api.get_exam_policy(text, uuid) to authenticated;
++grant execute on function api.list_exam_items(text, text, uuid) to authenticated;
++grant execute on function api.create_exam_participant(text, text, uuid) to authenticated;
++grant execute on function api.start_exam_session(uuid, text, uuid, uuid) to authenticated;
++grant execute on function api.get_exam_session(uuid, uuid) to authenticated;
++grant execute on function api.submit_exam_response(uuid, jsonb, jsonb, jsonb, jsonb, uuid, uuid)
++  to authenticated;
+diff --git a/supabase/migrations/20260724120200_exam_seed.sql b/supabase/migrations/20260724120200_exam_seed.sql
+new file mode 100644
+index 0000000..53aa38e
+--- /dev/null
++++ b/supabase/migrations/20260724120200_exam_seed.sql
+@@ -0,0 +1,73 @@
++-- Born-synthetic seed for the adaptive screening instrument (AX-03, D-016).
++-- A default tunable policy and a deterministic item bank with a spread of IRT
++-- difficulties per domain. Runs as the migration superuser (bypasses RLS).
++-- All parameters are synthetic and validated=false; RES-012 covers real calibration.
++
++insert into app.exam_policy (policy_version, config)
++values (
++  'exam-syn-v1',
++  jsonb_build_object(
++    'policyVersion', 'exam-syn-v1',
++    'domains', jsonb_build_array('fluid_reasoning', 'verbal', 'quantitative', 'spatial'),
++    'minItemsPerDomain', 3,
++    'maxItemsPerDomain', 6,
++    'targetSe', 0.42,
++    'priorMean', 0,
++    'priorSd', 1,
++    'exposureTopK', 3,
++    'fitWeights', jsonb_build_object(
++      'fluid_reasoning', 1,
++      'verbal', 1,
++      'quantitative', 1,
++      'spatial', 1
++    ),
++    'admitCut', 0.8,
++    'retryCut', -0.8,
++    'learningRateWeight', 0,
++    'consistencyWeight', 0,
++    'syntheticOnly', true,
++    'validated', false
++  )
++)
++on conflict (policy_version) do nothing;
++
++insert into app.exam_question_type (type_code, domain, name, demo_path)
++values
++  ('FLU-MATRIX-01', 'fluid_reasoning', 'Machine Matrix', 'FLU-MATRIX-01.html'),
++  ('FLU-ANALOGY-01', 'fluid_reasoning', 'Shape Morph', 'FLU-ANALOGY-01.html'),
++  ('VER-CLOZE-01', 'verbal', 'Fill the Gap', 'VER-CLOZE-01.html'),
++  ('VER-EVIDENCE-01', 'verbal', 'Proof Hunt', 'VER-EVIDENCE-01.html'),
++  ('QUANT-SERIES-01', 'quantitative', 'Number Series Stepping Stones', 'QUANT-SERIES-01.html'),
++  ('QUANT-FUNCMACHINE-01', 'quantitative', 'Function Machine', 'QUANT-FUNCMACHINE-01.html'),
++  ('SPA-ROLL-01', 'spatial', 'Rolling Cube', 'SPA-ROLL-01.html'),
++  ('SPA-XSCAN-01', 'spatial', 'Scan Stacker', 'SPA-XSCAN-01.html')
++on conflict (type_code) do nothing;
++
++insert into app.exam_item (
++  item_id, type_code, domain, difficulty_level,
++  irt_a, irt_b, irt_c, irt_model, age_bands, params, synthetic_only
++)
++select
++  extensions.gen_random_uuid(),
++  t.type_code,
++  t.domain,
++  lvl,
++  round((1.0 + 0.05 * lvl)::numeric, 3),
++  round(((lvl - 4.5) * 0.55)::numeric, 3),
++  0,
++  '2PL',
++  array['K-1', '2-3', '4-5', '6-8'],
++  jsonb_build_object('seed', t.type_code || '-' || lvl, 'difficulty', lvl),
++  true
++from (
++  values
++    ('FLU-MATRIX-01', 'fluid_reasoning'),
++    ('FLU-ANALOGY-01', 'fluid_reasoning'),
++    ('VER-CLOZE-01', 'verbal'),
++    ('VER-EVIDENCE-01', 'verbal'),
++    ('QUANT-SERIES-01', 'quantitative'),
++    ('QUANT-FUNCMACHINE-01', 'quantitative'),
++    ('SPA-ROLL-01', 'spatial'),
++    ('SPA-XSCAN-01', 'spatial')
++) as t(type_code, domain)
++cross join generate_series(1, 8) as lvl;
+-- 
+2.50.1 (Apple Git-155)
+
+
+From 152eacb44ec326ac91b5ad1b00a8e27819fc07fc Mon Sep 17 00:00:00 2001
+From: Aadi Takle <aadiatakle@gmail.com>
+Date: Fri, 24 Jul 2026 02:18:34 -0500
+Subject: [PATCH 5/6] feat(web): adaptive exam surface, engine adapter, and
+ reference demo (AX-05)
+
+Operator-gated /exam surface: session runner hosts question demos over the
+postMessage contract, streams telemetry, drives the adaptive loop, and renders
+results. Server-side adapter runs the CAT engine across the RPCs; Server Actions
+expose it. Adds embed-shim.js contract library, generic.html reference renderer,
+and a live end-to-end integration smoke.
+---
+ apps/web/package.json                         |   1 +
+ apps/web/public/exam-demos/embed-shim.js      | 101 ++++++
+ apps/web/public/exam-demos/generic.html       | 276 ++++++++++++++++
+ apps/web/scripts/exam-smoke.ts                | 168 ++++++++++
+ apps/web/src/app/(embed)/exam/exam-runner.tsx | 260 +++++++++++++++
+ apps/web/src/app/(embed)/exam/page.tsx        |  24 ++
+ .../src/app/(embed)/exam/proctor-sign-in.tsx  |  61 ++++
+ apps/web/src/lib/exam/actions.ts              |  24 ++
+ .../src/lib/exam/local-synthetic-adapter.ts   | 306 ++++++++++++++++++
+ apps/web/src/lib/exam/service.ts              |  26 ++
+ pnpm-lock.yaml                                |  19 ++
+ 11 files changed, 1266 insertions(+)
+ create mode 100644 apps/web/public/exam-demos/embed-shim.js
+ create mode 100644 apps/web/public/exam-demos/generic.html
+ create mode 100644 apps/web/scripts/exam-smoke.ts
+ create mode 100644 apps/web/src/app/(embed)/exam/exam-runner.tsx
+ create mode 100644 apps/web/src/app/(embed)/exam/page.tsx
+ create mode 100644 apps/web/src/app/(embed)/exam/proctor-sign-in.tsx
+ create mode 100644 apps/web/src/lib/exam/actions.ts
+ create mode 100644 apps/web/src/lib/exam/local-synthetic-adapter.ts
+ create mode 100644 apps/web/src/lib/exam/service.ts
+
+diff --git a/apps/web/package.json b/apps/web/package.json
+index 525ed19..db45579 100644
+--- a/apps/web/package.json
++++ b/apps/web/package.json
+@@ -15,6 +15,7 @@
+     "typecheck": "tsc --noEmit"
+   },
+   "dependencies": {
++    "@gt-selection/cat-engine": "workspace:*",
+     "@gt-selection/contracts": "workspace:*",
+     "@gt-selection/db-types": "workspace:*",
+     "@gt-selection/test-fixtures": "workspace:*",
+diff --git a/apps/web/public/exam-demos/embed-shim.js b/apps/web/public/exam-demos/embed-shim.js
+new file mode 100644
+index 0000000..6707f75
+--- /dev/null
++++ b/apps/web/public/exam-demos/embed-shim.js
+@@ -0,0 +1,101 @@
++/*
++ * GT adaptive-exam demo embedding shim (AX-01, D-016).
++ * A tiny contract library any question-type demo includes to speak the host
++ * postMessage protocol. Catalog demos call GTExam.onInit/telemetry/respond
++ * instead of re-implementing the message plumbing. No dependencies.
++ */
++/* global window, parent, performance */
++(function () {
++  var HOST = 'gt-exam-host';
++  var DEMO = 'gt-exam-demo';
++  var itemShownAt = null;
++  var firstActionAt = null;
++  var currentItem = null;
++  var currentSession = null;
++  var initCallback = null;
++
++  function post(message) {
++    message.source = DEMO;
++    parent.postMessage(message, '*');
++  }
++
++  window.addEventListener('message', function (event) {
++    var message = event.data;
++    if (!message || message.source !== HOST) return;
++    if (message.type === 'init') {
++      currentItem = message.item;
++      currentSession = message.sessionId;
++      itemShownAt = performance.now();
++      firstActionAt = null;
++      if (initCallback) initCallback(message.item);
++    }
++  });
++
++  function telemetry(kind, payload) {
++    post({
++      type: 'telemetry',
++      event: {
++        kind: kind,
++        itemId: currentItem ? currentItem.itemId : null,
++        tOffsetMs: itemShownAt != null ? Math.round(performance.now() - itemShownAt) : 0,
++        payload: payload || {},
++      },
++    });
++  }
++
++  window.GTExam = {
++    ready: function () {
++      post({ type: 'ready' });
++    },
++    onInit: function (callback) {
++      initCallback = callback;
++      if (currentItem) callback(currentItem);
++    },
++    item: function () {
++      return currentItem;
++    },
++    sessionId: function () {
++      return currentSession;
++    },
++    /** Reset timing when the scored phase begins (after any warm-up). */
++    startScored: function () {
++      itemShownAt = performance.now();
++      firstActionAt = null;
++    },
++    markFirstAction: function () {
++      if (firstActionAt === null) {
++        firstActionAt = performance.now();
++        telemetry('first_action', {});
++      }
++    },
++    telemetry: telemetry,
++    warmupDone: function () {
++      post({ type: 'warmup_done', itemId: currentItem ? currentItem.itemId : undefined });
++    },
++    respond: function (options) {
++      var now = performance.now();
++      var rt = itemShownAt != null ? Math.round(now - itemShownAt) : 0;
++      var firstAction = firstActionAt != null ? Math.round(firstActionAt - itemShownAt) : null;
++      var measurements = options.measurements || {};
++      measurements['M-ACC'] = options.correct ? 1 : 0;
++      measurements['M-RT'] = rt;
++      if (firstAction != null) measurements['M-RTFIRST'] = firstAction;
++      measurements['M-REV'] = options.revisions || 0;
++      var engaged = options.engaged !== undefined ? options.engaged : rt >= 700;
++      post({
++        type: 'response',
++        response: {
++          itemId: currentItem ? currentItem.itemId : options.itemId,
++          correct: !!options.correct,
++          score: options.score != null ? options.score : options.correct ? 1 : 0,
++          rtMs: rt,
++          firstActionMs: firstAction,
++          revisions: options.revisions || 0,
++          engaged: engaged,
++          measurements: measurements,
++          syntheticOnly: true,
++        },
++      });
++    },
++  };
++})();
+diff --git a/apps/web/public/exam-demos/generic.html b/apps/web/public/exam-demos/generic.html
+new file mode 100644
+index 0000000..e8831b8
+--- /dev/null
++++ b/apps/web/public/exam-demos/generic.html
+@@ -0,0 +1,276 @@
++<!doctype html>
++<html lang="en">
++  <head>
++    <meta charset="utf-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1" />
++    <title>GT adaptive item</title>
++    <style>
++      html,
++      body {
++        margin: 0;
++        height: 100%;
++        font-family: system-ui, sans-serif;
++        color: #0f172a;
++      }
++      #app {
++        display: flex;
++        flex-direction: column;
++        align-items: center;
++        justify-content: center;
++        gap: 1.25rem;
++        min-height: 100%;
++        padding: 1.5rem;
++        box-sizing: border-box;
++      }
++      .prompt {
++        font-size: 1.15rem;
++        font-weight: 600;
++        text-align: center;
++        margin: 0;
++      }
++      .prompt.ok {
++        color: #15803d;
++      }
++      .grid {
++        display: flex;
++        flex-wrap: wrap;
++        gap: 1rem;
++        justify-content: center;
++      }
++      .tile {
++        background: #f8fafc;
++        border: 3px solid #e2e8f0;
++        border-radius: 16px;
++        padding: 1rem;
++        min-width: 96px;
++        min-height: 96px;
++        cursor: pointer;
++        display: flex;
++        align-items: center;
++        justify-content: center;
++        transition: border-color 0.12s, transform 0.12s;
++      }
++      .tile:hover {
++        border-color: #c7d2fe;
++      }
++      .tile.sel {
++        border-color: #4f46e5;
++        transform: translateY(-2px);
++        box-shadow: 0 6px 16px rgba(79, 70, 229, 0.18);
++      }
++      .shapes {
++        display: flex;
++        gap: 3px;
++        align-items: center;
++      }
++      .submit {
++        padding: 0.6rem 1.6rem;
++        border-radius: 10px;
++        border: none;
++        background: #4f46e5;
++        color: white;
++        font-size: 1rem;
++        cursor: pointer;
++      }
++      .submit:disabled {
++        background: #cbd5e1;
++        cursor: default;
++      }
++    </style>
++  </head>
++  <body>
++    <div id="app"><p class="prompt">Loading…</p></div>
++    <script src="embed-shim.js"></script>
++    <script>
++      (function () {
++        var app = document.getElementById('app');
++        var PALETTE = {
++          blue: '#2563eb',
++          red: '#dc2626',
++          green: '#16a34a',
++          amber: '#d97706',
++          purple: '#7c3aed',
++          teal: '#0d9488',
++          pink: '#db2777',
++          slate: '#475569',
++        };
++        var SHAPES = ['circle', 'square', 'triangle', 'diamond', 'star', 'hexagon'];
++        var DOMAIN_PROMPT = {
++          fluid_reasoning: 'Tap the picture that does not belong.',
++          spatial: 'Tap the shape that is different from the others.',
++          quantitative: 'Tap the group that is different.',
++          verbal: 'Tap the one that does not match the others.',
++        };
++
++        function hash(s) {
++          var h = 1779033703 ^ s.length;
++          for (var i = 0; i < s.length; i++) {
++            h = Math.imul(h ^ s.charCodeAt(i), 3432918353);
++            h = (h << 13) | (h >>> 19);
++          }
++          return h >>> 0;
++        }
++        function rng(seed) {
++          var a = seed >>> 0;
++          return function () {
++            a = (a + 0x6d2b79f5) | 0;
++            var t = Math.imul(a ^ (a >>> 15), 1 | a);
++            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
++            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
++          };
++        }
++        function pick(r, arr) {
++          return arr[Math.floor(r() * arr.length)];
++        }
++
++        function shapeSvg(shape, color, rot) {
++          var body;
++          switch (shape) {
++            case 'square':
++              body = '<rect x="5" y="5" width="34" height="34" rx="3"/>';
++              break;
++            case 'triangle':
++              body = '<polygon points="22,5 39,39 5,39"/>';
++              break;
++            case 'diamond':
++              body = '<polygon points="22,4 40,22 22,40 4,22"/>';
++              break;
++            case 'hexagon':
++              body = '<polygon points="14,6 30,6 40,22 30,38 14,38 4,22"/>';
++              break;
++            case 'star':
++              body = '<polygon points="22,4 27,17 41,17 30,25 34,39 22,31 10,39 14,25 3,17 17,17"/>';
++              break;
++            default:
++              body = '<circle cx="22" cy="22" r="18"/>';
++          }
++          return (
++            '<svg width="34" height="34" viewBox="0 0 44 44" fill="' +
++            color +
++            '" style="transform:rotate(' +
++            (rot || 0) +
++            'deg)">' +
++            body +
++            '</svg>'
++          );
++        }
++
++        function tileHtml(tile) {
++          var inner = '';
++          for (var i = 0; i < tile.count; i++) inner += shapeSvg(tile.shape, tile.color, tile.rot);
++          return '<div class="shapes">' + inner + '</div>';
++        }
++
++        function buildPuzzle(item) {
++          var diff = item.difficultyLevel || 1;
++          var r = rng(hash(item.itemId + ':' + diff));
++          var tileCount = diff <= 3 ? 4 : diff <= 6 ? 5 : 6;
++          var colorKeys = Object.keys(PALETTE);
++          var base = {
++            shape: pick(r, SHAPES),
++            color: PALETTE[pick(r, colorKeys)],
++            count: 1 + Math.floor(r() * 3),
++            rot: 0,
++          };
++          var odd = { shape: base.shape, color: base.color, count: base.count, rot: 0 };
++          var otherShapes = SHAPES.filter(function (s) {
++            return s !== base.shape;
++          });
++          var otherColors = colorKeys
++            .map(function (k) {
++              return PALETTE[k];
++            })
++            .filter(function (c) {
++              return c !== base.color;
++            });
++          if (diff <= 2) {
++            odd.shape = pick(r, otherShapes);
++            odd.color = pick(r, otherColors);
++          } else if (diff <= 4) {
++            odd.color = pick(r, otherColors);
++          } else if (diff <= 6) {
++            if (Math.floor(r() * 2) === 0) odd.shape = pick(r, otherShapes);
++            else odd.count = base.count + 1;
++          } else {
++            if (Math.floor(r() * 2) === 0) odd.rot = 45;
++            else odd.count = base.count + 1;
++          }
++          var oddIndex = Math.floor(r() * tileCount);
++          var tiles = [];
++          for (var i = 0; i < tileCount; i++) tiles.push(i === oddIndex ? odd : base);
++          return { tiles: tiles, oddIndex: oddIndex };
++        }
++
++        var currentItem = null;
++
++        function renderPuzzle(item, puzzle, isWarmup) {
++          var prompt =
++            (isWarmup ? 'Warm-up: ' : '') +
++            (DOMAIN_PROMPT[item.domain] || 'Tap the one that does not belong.');
++          var html = '<p class="prompt">' + prompt + '</p><div class="grid">';
++          for (var i = 0; i < puzzle.tiles.length; i++) {
++            html += '<button class="tile" data-i="' + i + '">' + tileHtml(puzzle.tiles[i]) + '</button>';
++          }
++          html += '</div>';
++          if (!isWarmup) html += '<button id="submit" class="submit" disabled>Submit</button>';
++          app.innerHTML = html;
++
++          var selected = -1;
++          var revisions = 0;
++          var firstDone = false;
++          var tiles = app.querySelectorAll('.tile');
++          tiles.forEach(function (btn) {
++            btn.addEventListener('click', function () {
++              if (!firstDone) {
++                GTExam.markFirstAction();
++                firstDone = true;
++              } else if (!isWarmup) {
++                revisions += 1;
++              }
++              if (isWarmup) {
++                app.innerHTML = '<p class="prompt ok">Nice! Now try the real ones.</p>';
++                setTimeout(startScored, 700);
++                return;
++              }
++              selected = parseInt(btn.getAttribute('data-i'), 10);
++              tiles.forEach(function (b) {
++                b.classList.remove('sel');
++              });
++              btn.classList.add('sel');
++              document.getElementById('submit').disabled = false;
++              GTExam.telemetry('action', { selected: selected });
++            });
++          });
++
++          if (!isWarmup) {
++            document.getElementById('submit').addEventListener('click', function () {
++              if (selected < 0) return;
++              GTExam.respond({ correct: selected === puzzle.oddIndex, revisions: revisions });
++            });
++          }
++        }
++
++        function startScored() {
++          GTExam.warmupDone();
++          GTExam.startScored();
++          GTExam.telemetry('item_shown', { difficulty: currentItem.difficultyLevel });
++          renderPuzzle(currentItem, buildPuzzle(currentItem), false);
++        }
++
++        GTExam.onInit(function (item) {
++          currentItem = item;
++          var warmup = {
++            tiles: [
++              { shape: 'circle', color: PALETTE.blue, count: 1, rot: 0 },
++              { shape: 'circle', color: PALETTE.blue, count: 1, rot: 0 },
++              { shape: 'star', color: PALETTE.red, count: 1, rot: 0 },
++            ],
++            oddIndex: 2,
++          };
++          renderPuzzle(item, warmup, true);
++        });
++        GTExam.ready();
++      })();
++    </script>
++  </body>
++</html>
+diff --git a/apps/web/scripts/exam-smoke.ts b/apps/web/scripts/exam-smoke.ts
+new file mode 100644
+index 0000000..24bd5d7
+--- /dev/null
++++ b/apps/web/scripts/exam-smoke.ts
+@@ -0,0 +1,168 @@
++/*
++ * End-to-end integration smoke for the adaptive screening instrument (D-016).
++ * Signs in as the born-synthetic proctor, then runs a full adaptive session
++ * against the LIVE local Supabase RPCs, driving item selection with the real
++ * CAT engine (exactly as the Next.js Server Action adapter does) and a
++ * deterministic simulated responder. Prints the final screening outcome.
++ *
++ * Run from apps/web:  pnpm exec tsx scripts/exam-smoke.ts
++ */
++import { randomUUID } from 'node:crypto';
++
++import {
++  buildOutcome,
++  chooseNextItem,
++  computeAbilities,
++  probabilityCorrect,
++  type AdministeredItem,
++  type EngineState,
++} from '@gt-selection/cat-engine';
++import {
++  createParticipantResponseSchema,
++  examSessionResponseSchema,
++  examSessionStateResponseSchema,
++  getExamPolicyResponseSchema,
++  listExamItemsResponseSchema,
++  type ExamItem,
++  type ItemResponse,
++} from '@gt-selection/contracts';
++import { createClient } from '@supabase/supabase-js';
++
++const URL = 'http://127.0.0.1:65421';
++const ANON = 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH';
++const POLICY = 'exam-syn-v1';
++const TRUE_THETA = 1.8; // simulate a strong responder
++
++function simulate(item: ExamItem, order: number): AdministeredItem {
++  const correct = probabilityCorrect(TRUE_THETA, item.irt) >= 0.5;
++  const response: ItemResponse = {
++    itemId: item.itemId,
++    correct,
++    score: correct ? 1 : 0,
++    rtMs: 2500,
++    firstActionMs: 400,
++    revisions: 0,
++    engaged: true,
++    measurements: { 'M-ACC': correct ? 1 : 0 },
++    syntheticOnly: true,
++  };
++  return { item, order, response };
++}
++
++async function main() {
++  const client = createClient(URL, ANON, {
++    db: { schema: 'api' },
++    auth: { persistSession: false },
++  });
++  const signIn = await client.auth.signInWithPassword({
++    email: 'admissions@example.test',
++    password: 'Synthetic-Only-2026!',
++  });
++  if (signIn.error) throw new Error(`sign-in failed: ${signIn.error.message}`);
++
++  const call = async <T>(
++    name: string,
++    args: Record<string, unknown>,
++    schema: { parse: (value: unknown) => T },
++  ): Promise<T> => {
++    const { data, error } = await client.rpc(name as never, args as never);
++    if (error) throw new Error(`${name} failed: ${error.message}`);
++    return schema.parse(data);
++  };
++
++  const participant = (
++    await call(
++      'create_exam_participant',
++      {
++        p_pseudonym_code: `PART-SYN-${randomUUID().slice(0, 6).toUpperCase()}`,
++        p_age_band: '4-5',
++        p_correlation_id: randomUUID(),
++      },
++      createParticipantResponseSchema,
++    )
++  ).data.participant;
++
++  const started = (
++    await call(
++      'start_exam_session',
++      {
++        p_participant_id: participant.participantId,
++        p_policy_version: POLICY,
++        p_idempotency_key: randomUUID(),
++        p_correlation_id: randomUUID(),
++      },
++      examSessionResponseSchema,
++    )
++  ).data.session;
++
++  const policy = (
++    await call(
++      'get_exam_policy',
++      { p_policy_version: POLICY, p_correlation_id: randomUUID() },
++      getExamPolicyResponseSchema,
++    )
++  ).data.policy;
++  const bank = (
++    await call(
++      'list_exam_items',
++      { p_policy_version: POLICY, p_age_band: started.ageBand, p_correlation_id: randomUUID() },
++      listExamItemsResponseSchema,
++    )
++  ).data.items;
++
++  const administered: AdministeredItem[] = [];
++  let state: EngineState = {
++    sessionId: started.sessionId,
++    ageBand: started.ageBand,
++    policy,
++    administered,
++  };
++  let next = chooseNextItem(state, bank);
++  let count = 0;
++
++  while (next && count < 200) {
++    administered.push(simulate(next, administered.length + 1));
++    state = { ...state, administered: [...administered] };
++    const abilities = computeAbilities(state);
++    const following = chooseNextItem(state, bank);
++    const outcome = following === null ? buildOutcome(state) : null;
++    const lastResponse = administered[administered.length - 1]!.response;
++    await call(
++      'submit_exam_response',
++      {
++        p_session_id: started.sessionId,
++        p_response: lastResponse,
++        p_telemetry: [{ kind: 'response', itemId: lastResponse.itemId, tOffsetMs: 2500, payload: {} }],
++        p_abilities: abilities,
++        p_outcome: outcome,
++        p_idempotency_key: randomUUID(),
++        p_correlation_id: randomUUID(),
++      },
++      examSessionResponseSchema,
++    );
++    next = following;
++    count += 1;
++  }
++
++  const finalState = (
++    await call(
++      'get_exam_session',
++      { p_session_id: started.sessionId, p_correlation_id: randomUUID() },
++      examSessionStateResponseSchema,
++    )
++  ).data;
++
++  console.log(`items administered: ${count}`);
++  console.log(`session status: ${finalState.session.status}`);
++  console.log(`persisted responses: ${finalState.responses.length}`);
++  console.log('outcome:', JSON.stringify(finalState.outcome, null, 2));
++  if (!finalState.outcome) throw new Error('no outcome persisted');
++  console.log(
++    `DECISION=${finalState.outcome.decision} fitIndex=${finalState.outcome.fitIndex.toFixed(3)}`,
++  );
++}
++
++main().catch((error) => {
++  console.error(error);
++  process.exit(1);
++});
+diff --git a/apps/web/src/app/(embed)/exam/exam-runner.tsx b/apps/web/src/app/(embed)/exam/exam-runner.tsx
+new file mode 100644
+index 0000000..31e345a
+--- /dev/null
++++ b/apps/web/src/app/(embed)/exam/exam-runner.tsx
+@@ -0,0 +1,260 @@
++'use client';
++
++import type {
++  ExamSession,
++  ItemResponse,
++  ScreeningOutcome,
++  ServedItem,
++  TelemetryEvent,
++} from '@gt-selection/contracts';
++import { useCallback, useEffect, useRef, useState } from 'react';
++
++import {
++  createExamParticipantAction,
++  startExamSessionAction,
++  submitExamResponseAction,
++} from '@/lib/exam/actions';
++
++type Phase = 'starting' | 'in_progress' | 'complete' | 'error';
++
++const DEMO_SRC = '/exam-demos/generic.html';
++
++function randomPseudonym(): string {
++  return `PART-SYN-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
++}
++
++function fmt(value: number | null): string {
++  return value == null ? '—' : value.toFixed(2);
++}
++
++const decisionColor: Record<string, string> = {
++  admit: '#15803d',
++  defer: '#b45309',
++  retry: '#b91c1c',
++};
++
++export function ExamRunner({ policyVersion }: { policyVersion: string }) {
++  const [phase, setPhase] = useState<Phase>('starting');
++  const [session, setSession] = useState<ExamSession | null>(null);
++  const [item, setItem] = useState<ServedItem | null>(null);
++  const [outcome, setOutcome] = useState<ScreeningOutcome | null>(null);
++  const [answered, setAnswered] = useState(0);
++  const [error, setError] = useState<string | null>(null);
++
++  const sessionIdRef = useRef<string | null>(null);
++  const itemRef = useRef<ServedItem | null>(null);
++  const telemetryRef = useRef<TelemetryEvent[]>([]);
++  const iframeRef = useRef<HTMLIFrameElement | null>(null);
++  const lastInitRef = useRef<string | null>(null);
++  const submittingRef = useRef(false);
++
++  useEffect(() => {
++    let cancelled = false;
++    (async () => {
++      try {
++        const participant = await createExamParticipantAction({
++          pseudonymCode: randomPseudonym(),
++          ageBand: '4-5',
++        });
++        const step = await startExamSessionAction({
++          participantId: participant.participantId,
++          policyVersion,
++        });
++        if (cancelled) return;
++        sessionIdRef.current = step.session.sessionId;
++        setSession(step.session);
++        itemRef.current = step.nextItem;
++        setItem(step.nextItem);
++        setPhase(step.nextItem ? 'in_progress' : 'complete');
++      } catch (startError) {
++        if (!cancelled) {
++          setError(startError instanceof Error ? startError.message : 'Failed to start session.');
++          setPhase('error');
++        }
++      }
++    })();
++    return () => {
++      cancelled = true;
++    };
++  }, [policyVersion]);
++
++  const postInit = useCallback(() => {
++    const frame = iframeRef.current;
++    const current = itemRef.current;
++    if (!frame?.contentWindow || !current || !sessionIdRef.current) return;
++    if (lastInitRef.current === current.itemId) return;
++    lastInitRef.current = current.itemId;
++    frame.contentWindow.postMessage(
++      { source: 'gt-exam-host', type: 'init', sessionId: sessionIdRef.current, item: current },
++      '*',
++    );
++  }, []);
++
++  const handleResponse = useCallback(async (response: ItemResponse) => {
++    if (submittingRef.current || !sessionIdRef.current) return;
++    submittingRef.current = true;
++    try {
++      const step = await submitExamResponseAction({
++        sessionId: sessionIdRef.current,
++        response,
++        telemetry: telemetryRef.current,
++      });
++      telemetryRef.current = [];
++      setSession(step.session);
++      setAnswered((count) => count + 1);
++      if (step.outcome) {
++        setOutcome(step.outcome);
++        itemRef.current = null;
++        setItem(null);
++        setPhase('complete');
++      } else {
++        itemRef.current = step.nextItem;
++        setItem(step.nextItem);
++      }
++    } catch (submitError) {
++      setError(submitError instanceof Error ? submitError.message : 'Failed to submit response.');
++      setPhase('error');
++    } finally {
++      submittingRef.current = false;
++    }
++  }, []);
++
++  useEffect(() => {
++    function onMessage(event: MessageEvent) {
++      const frame = iframeRef.current;
++      if (frame && event.source !== frame.contentWindow) return;
++      const message = event.data as {
++        source?: string;
++        type?: string;
++        event?: TelemetryEvent;
++        response?: ItemResponse;
++      };
++      if (!message || message.source !== 'gt-exam-demo') return;
++      if (message.type === 'ready') {
++        postInit();
++      } else if (message.type === 'telemetry' && message.event) {
++        telemetryRef.current.push(message.event);
++      } else if (message.type === 'response' && message.response) {
++        void handleResponse(message.response);
++      }
++    }
++    window.addEventListener('message', onMessage);
++    return () => window.removeEventListener('message', onMessage);
++  }, [handleResponse, postInit]);
++
++  return (
++    <main className="exam-shell">
++      <style>{STYLES}</style>
++      <header className="exam-head">
++        <div>
++          <h1>Adaptive Screening</h1>
++          <p className="sub">
++            Synthetic prototype · policy <code>{policyVersion}</code> · items answered: {answered}
++          </p>
++        </div>
++        <span className="badge">born-synthetic · validated=false</span>
++      </header>
++
++      {session ? (
++        <section className="ability-grid" aria-label="Per-domain ability">
++          {session.abilities.map((ability) => (
++            <div key={ability.domain} className={`ability ${ability.done ? 'done' : ''}`}>
++              <span className="dom">{ability.domain.replace('_', ' ')}</span>
++              <span className="theta">θ {fmt(ability.theta)}</span>
++              <span className="se">SE {fmt(ability.se)}</span>
++              <span className="n">{ability.itemsAdministered} items{ability.done ? ' ✓' : ''}</span>
++            </div>
++          ))}
++        </section>
++      ) : null}
++
++      {phase === 'starting' ? <p className="notice">Preparing adaptive session…</p> : null}
++      {phase === 'error' ? <p className="notice error">{error}</p> : null}
++
++      {phase === 'in_progress' && item ? (
++        <section className="stage">
++          <div className="item-meta">
++            Serving <strong>{item.typeCode}</strong> · {item.domain.replace('_', ' ')} · difficulty{' '}
++            {item.difficultyLevel}
++          </div>
++          <iframe
++            key={item.itemId}
++            ref={iframeRef}
++            title="Question renderer"
++            src={DEMO_SRC}
++            className="demo-frame"
++            onLoad={postInit}
++          />
++        </section>
++      ) : null}
++
++      {phase === 'complete' && outcome ? (
++        <section className="results">
++          <div className="decision" style={{ background: decisionColor[outcome.decision] ?? '#334155' }}>
++            {outcome.decision.toUpperCase()}
++          </div>
++          <div className="summary">
++            <div>
++              Timeback-fit index <strong>{fmt(outcome.fitIndex)}</strong>
++            </div>
++            <div>
++              Composite θ <strong>{fmt(outcome.compositeTheta)}</strong>
++            </div>
++            <div>Engagement valid: {outcome.engagementValid ? 'yes' : 'no (provisional)'}</div>
++          </div>
++          <table className="scores">
++            <thead>
++              <tr>
++                <th>Domain</th>
++                <th>θ</th>
++                <th>%ile</th>
++                <th>Items</th>
++                <th>Max diff.</th>
++                <th>Learning rate</th>
++                <th>Consistency</th>
++              </tr>
++            </thead>
++            <tbody>
++              {outcome.domainScores.map((score) => (
++                <tr key={score.domain}>
++                  <td>{score.domain.replace('_', ' ')}</td>
++                  <td>{fmt(score.theta)}</td>
++                  <td>{score.percentile == null ? '—' : Math.round(score.percentile)}</td>
++                  <td>{score.itemsAdministered}</td>
++                  <td>{score.maxDifficultyReached}</td>
++                  <td>{fmt(score.learningRate)}</td>
++                  <td>{fmt(score.consistency)}</td>
++                </tr>
++              ))}
++            </tbody>
++          </table>
++          <p className="claim">{outcome.claimBoundary}</p>
++        </section>
++      ) : null}
++    </main>
++  );
++}
++
++const STYLES = `
++.exam-shell { max-width: 60rem; margin: 1.5rem auto; padding: 0 1.5rem; font-family: system-ui, sans-serif; color: #0f172a; }
++.exam-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
++.exam-head h1 { font-size: 1.4rem; margin: 0; }
++.exam-head .sub { color: #64748b; margin: 0.25rem 0 0; font-size: 0.85rem; }
++.badge { background: #eef2ff; color: #4338ca; border-radius: 999px; padding: 0.25rem 0.7rem; font-size: 0.72rem; white-space: nowrap; }
++.ability-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin: 1rem 0; }
++.ability { border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.6rem; display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.8rem; }
++.ability.done { border-color: #86efac; background: #f0fdf4; }
++.ability .dom { font-weight: 600; text-transform: capitalize; }
++.ability .theta { color: #4f46e5; }
++.ability .se, .ability .n { color: #64748b; }
++.notice { padding: 1rem; color: #475569; }
++.notice.error { color: #b91c1c; }
++.stage .item-meta { font-size: 0.8rem; color: #64748b; margin-bottom: 0.4rem; text-transform: capitalize; }
++.demo-frame { width: 100%; height: 30rem; border: 1px solid #e2e8f0; border-radius: 12px; background: white; }
++.results .decision { display: inline-block; color: white; font-weight: 700; letter-spacing: 0.05em; padding: 0.5rem 1.25rem; border-radius: 10px; }
++.results .summary { display: flex; gap: 1.5rem; margin: 1rem 0; flex-wrap: wrap; color: #334155; }
++.scores { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
++.scores th, .scores td { border-bottom: 1px solid #e2e8f0; padding: 0.4rem 0.5rem; text-align: left; text-transform: capitalize; }
++.scores th { color: #64748b; font-weight: 600; }
++.claim { margin-top: 1rem; font-size: 0.8rem; color: #64748b; border-left: 3px solid #cbd5e1; padding-left: 0.75rem; }
++`;
+diff --git a/apps/web/src/app/(embed)/exam/page.tsx b/apps/web/src/app/(embed)/exam/page.tsx
+new file mode 100644
+index 0000000..ca34206
+--- /dev/null
++++ b/apps/web/src/app/(embed)/exam/page.tsx
+@@ -0,0 +1,24 @@
++import { parseUserRoleClaim } from '@/lib/role-claims';
++import { createSupabaseServerClient } from '@/lib/supabase/server';
++
++import { ExamRunner } from './exam-runner';
++import { ProctorSignIn } from './proctor-sign-in';
++
++export const dynamic = 'force-dynamic';
++
++/**
++ * Adaptive screening surface (AX-05, D-016). Operator-gated. Born-synthetic:
++ * the proctor drives a pseudonymous test-taker through an adaptive session.
++ */
++export default async function ExamPage() {
++  const supabase = await createSupabaseServerClient();
++  const { data } = await supabase.auth.getClaims();
++  const parsedRole = parseUserRoleClaim(data?.claims);
++  const isOperator = parsedRole.success && parsedRole.data === 'admissions_operator';
++
++  if (!isOperator) {
++    return <ProctorSignIn />;
++  }
++
++  return <ExamRunner policyVersion="exam-syn-v1" />;
++}
+diff --git a/apps/web/src/app/(embed)/exam/proctor-sign-in.tsx b/apps/web/src/app/(embed)/exam/proctor-sign-in.tsx
+new file mode 100644
+index 0000000..9c73272
+--- /dev/null
++++ b/apps/web/src/app/(embed)/exam/proctor-sign-in.tsx
+@@ -0,0 +1,61 @@
++'use client';
++
++import { useState } from 'react';
++
++import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
++
++/**
++ * Dev-only convenience sign-in for the born-synthetic proctor account created by
++ * `pnpm db:users` (admissions_operator). Not a production auth surface.
++ */
++export function ProctorSignIn() {
++  const [busy, setBusy] = useState(false);
++  const [error, setError] = useState<string | null>(null);
++
++  async function signIn() {
++    setBusy(true);
++    setError(null);
++    const supabase = createSupabaseBrowserClient();
++    const { error: signInError } = await supabase.auth.signInWithPassword({
++      email: 'admissions@example.test',
++      password: 'Synthetic-Only-2026!',
++    });
++    if (signInError) {
++      setError(signInError.message);
++      setBusy(false);
++      return;
++    }
++    window.location.reload();
++  }
++
++  return (
++    <main style={{ maxWidth: '32rem', margin: '4rem auto', padding: '0 1.5rem', fontFamily: 'system-ui' }}>
++      <h1 style={{ fontSize: '1.4rem' }}>Adaptive Screening (synthetic)</h1>
++      <p style={{ color: '#475569', lineHeight: 1.5 }}>
++        This born-synthetic prototype is proctor-operated. Sign in as the synthetic
++        <code> admissions_operator</code> to run an adaptive session.
++      </p>
++      <button
++        type="button"
++        onClick={signIn}
++        disabled={busy}
++        style={{
++          marginTop: '1rem',
++          padding: '0.6rem 1rem',
++          borderRadius: 8,
++          border: 'none',
++          background: '#4f46e5',
++          color: 'white',
++          fontSize: '0.95rem',
++          cursor: busy ? 'default' : 'pointer',
++        }}
++      >
++        {busy ? 'Signing in…' : 'Sign in as synthetic proctor'}
++      </button>
++      {error ? <p style={{ color: '#b91c1c', marginTop: '0.75rem' }}>{error}</p> : null}
++      <p style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '1.5rem' }}>
++        Requires the local synthetic users (<code>pnpm db:users</code>). No live data.
++      </p>
++    </main>
++  );
++}
+diff --git a/apps/web/src/lib/exam/actions.ts b/apps/web/src/lib/exam/actions.ts
+new file mode 100644
+index 0000000..2e60c5c
+--- /dev/null
++++ b/apps/web/src/lib/exam/actions.ts
+@@ -0,0 +1,24 @@
++'use server';
++
++import { createServerLocalSyntheticExamAdapter } from './local-synthetic-adapter';
++import type { CreateParticipantInput, StartSessionInput, SubmitResponseInput } from './service';
++
++export async function createExamParticipantAction(input: CreateParticipantInput) {
++  const service = await createServerLocalSyntheticExamAdapter();
++  return service.createParticipant(input);
++}
++
++export async function startExamSessionAction(input: StartSessionInput) {
++  const service = await createServerLocalSyntheticExamAdapter();
++  return service.startSession(input);
++}
++
++export async function submitExamResponseAction(input: SubmitResponseInput) {
++  const service = await createServerLocalSyntheticExamAdapter();
++  return service.submitResponse(input);
++}
++
++export async function getExamSessionAction(sessionId: string) {
++  const service = await createServerLocalSyntheticExamAdapter();
++  return service.getSession(sessionId);
++}
+diff --git a/apps/web/src/lib/exam/local-synthetic-adapter.ts b/apps/web/src/lib/exam/local-synthetic-adapter.ts
+new file mode 100644
+index 0000000..dacd366
+--- /dev/null
++++ b/apps/web/src/lib/exam/local-synthetic-adapter.ts
+@@ -0,0 +1,306 @@
++import 'server-only';
++
++import { randomUUID } from 'node:crypto';
++
++import {
++  buildOutcome,
++  chooseNextItem,
++  computeAbilities,
++  toServedItem,
++  type AdministeredItem,
++  type EngineState,
++} from '@gt-selection/cat-engine';
++import {
++  apiErrorCodeSchema,
++  createParticipantResponseSchema,
++  examSessionResponseSchema,
++  examSessionStateResponseSchema,
++  getExamPolicyResponseSchema,
++  itemResponseSchema,
++  listExamItemsResponseSchema,
++  telemetryEventSchema,
++  type ApiErrorCode,
++  type ExamItem,
++  type ExamPolicy,
++} from '@gt-selection/contracts';
++import type { Json } from '@gt-selection/db-types';
++import { z } from 'zod';
++
++import {
++  getLocalSyntheticAdapterEnvironment,
++  validateLocalSyntheticAdapterEnvironment,
++} from '@/lib/env';
++import { createSupabaseServerClient } from '@/lib/supabase/server';
++
++import type { ExamService } from './service';
++
++const trustedOperatorClaimsSchema = z.looseObject({
++  sub: z.uuid(),
++  app_metadata: z.looseObject({
++    synthetic_only: z.literal(true),
++    user_role: z.literal('admissions_operator'),
++  }),
++});
++
++type ExamRpcName =
++  | 'get_exam_policy'
++  | 'list_exam_items'
++  | 'create_exam_participant'
++  | 'start_exam_session'
++  | 'get_exam_session'
++  | 'submit_exam_response';
++
++interface RpcError {
++  code?: string;
++  message: string;
++}
++
++export interface LocalExamRpcClient {
++  auth: {
++    getClaims(): Promise<{ data: { claims?: unknown } | null; error: unknown }>;
++  };
++  rpc(
++    name: ExamRpcName,
++    args: Record<string, unknown>,
++  ): PromiseLike<{ data: unknown; error: RpcError | null }>;
++}
++
++export class LocalSyntheticExamError extends Error {
++  readonly code: ApiErrorCode | null;
++
++  constructor(message: string, code: ApiErrorCode | null = null) {
++    super(message);
++    this.name = 'LocalSyntheticExamError';
++    this.code = code;
++  }
++}
++
++function toJson(value: unknown): Json {
++  return value as Json;
++}
++
++async function assertOperatorSession(client: LocalExamRpcClient) {
++  const { data, error } = await client.auth.getClaims();
++  const parsed = trustedOperatorClaimsSchema.safeParse(data?.claims);
++  if (error || !parsed.success) {
++    throw new LocalSyntheticExamError(
++      'A trusted synthetic proctor (admissions_operator) session is required.',
++      'AUTH_REQUIRED',
++    );
++  }
++}
++
++async function invokeRpc<Output>(
++  client: LocalExamRpcClient,
++  name: ExamRpcName,
++  args: Record<string, unknown>,
++  responseSchema: z.ZodType<Output>,
++): Promise<Output> {
++  const { data, error } = await client.rpc(name, args);
++  if (error) {
++    const parsedCode = apiErrorCodeSchema.safeParse(error.message);
++    throw new LocalSyntheticExamError(
++      parsedCode.success
++        ? `The exam request was rejected (${parsedCode.data}).`
++        : 'The local synthetic exam request failed safely.',
++      parsedCode.success ? parsedCode.data : null,
++    );
++  }
++  return responseSchema.parse(data);
++}
++
++async function loadPolicy(client: LocalExamRpcClient, policyVersion: string): Promise<ExamPolicy> {
++  const response = await invokeRpc(
++    client,
++    'get_exam_policy',
++    { p_policy_version: policyVersion, p_correlation_id: randomUUID() },
++    getExamPolicyResponseSchema,
++  );
++  return response.data.policy;
++}
++
++async function loadBank(
++  client: LocalExamRpcClient,
++  policyVersion: string,
++  ageBand: string,
++): Promise<ExamItem[]> {
++  const response = await invokeRpc(
++    client,
++    'list_exam_items',
++    { p_policy_version: policyVersion, p_age_band: ageBand, p_correlation_id: randomUUID() },
++    listExamItemsResponseSchema,
++  );
++  return response.data.items;
++}
++
++function rebuildAdministered(
++  responses: z.infer<typeof examSessionStateResponseSchema>['data']['responses'],
++  bank: readonly ExamItem[],
++): AdministeredItem[] {
++  const byId = new Map(bank.map((item) => [item.itemId, item]));
++  return responses.map((record) => {
++    const item = byId.get(record.itemId);
++    if (!item) {
++      throw new LocalSyntheticExamError('A stored response references an unknown item.', 'VALIDATION_FAILED');
++    }
++    return {
++      item,
++      order: record.orderNo,
++      response: {
++        itemId: record.itemId,
++        correct: record.correct,
++        score: record.score,
++        rtMs: record.rtMs,
++        firstActionMs: record.firstActionMs,
++        revisions: record.revisions,
++        engaged: record.engaged,
++        measurements: record.measurements,
++        syntheticOnly: true,
++      },
++    };
++  });
++}
++
++export function createLocalSyntheticExamAdapter({
++  client,
++  environment = process.env,
++}: {
++  client: LocalExamRpcClient;
++  environment?: Record<string, string | undefined>;
++}): ExamService {
++  validateLocalSyntheticAdapterEnvironment(environment);
++
++  return {
++    async createParticipant(input) {
++      await assertOperatorSession(client);
++      const response = await invokeRpc(
++        client,
++        'create_exam_participant',
++        {
++          p_pseudonym_code: input.pseudonymCode,
++          p_age_band: input.ageBand,
++          p_correlation_id: randomUUID(),
++        },
++        createParticipantResponseSchema,
++      );
++      return response.data.participant;
++    },
++
++    async startSession(input) {
++      await assertOperatorSession(client);
++      const started = await invokeRpc(
++        client,
++        'start_exam_session',
++        {
++          p_participant_id: input.participantId,
++          p_policy_version: input.policyVersion,
++          p_idempotency_key: randomUUID(),
++          p_correlation_id: randomUUID(),
++        },
++        examSessionResponseSchema,
++      );
++      const session = started.data.session;
++      const [policy, bank] = await Promise.all([
++        loadPolicy(client, session.policyVersion),
++        loadBank(client, session.policyVersion, session.ageBand),
++      ]);
++      const state: EngineState = {
++        sessionId: session.sessionId,
++        ageBand: session.ageBand,
++        policy,
++        administered: [],
++      };
++      const next = chooseNextItem(state, bank);
++      return { session, nextItem: next ? toServedItem(next) : null, outcome: null };
++    },
++
++    async submitResponse(input) {
++      await assertOperatorSession(client);
++      const response = itemResponseSchema.parse(input.response);
++      const telemetry = z.array(telemetryEventSchema).parse(input.telemetry);
++
++      const stateResponse = await invokeRpc(
++        client,
++        'get_exam_session',
++        { p_session_id: input.sessionId, p_correlation_id: randomUUID() },
++        examSessionStateResponseSchema,
++      );
++      const session = stateResponse.data.session;
++      const [policy, bank] = await Promise.all([
++        loadPolicy(client, session.policyVersion),
++        loadBank(client, session.policyVersion, session.ageBand),
++      ]);
++
++      const prior = rebuildAdministered(stateResponse.data.responses, bank);
++      const newItem = bank.find((item) => item.itemId === response.itemId);
++      if (!newItem) {
++        throw new LocalSyntheticExamError('The submitted item is not in the bank.', 'VALIDATION_FAILED');
++      }
++      const administered = [...prior, { item: newItem, order: prior.length + 1, response }];
++      const state: EngineState = {
++        sessionId: session.sessionId,
++        ageBand: session.ageBand,
++        policy,
++        administered,
++      };
++      const abilities = computeAbilities(state);
++      const next = chooseNextItem(state, bank);
++      const outcome = next === null ? buildOutcome(state) : null;
++
++      const persisted = await invokeRpc(
++        client,
++        'submit_exam_response',
++        {
++          p_session_id: input.sessionId,
++          p_response: toJson(response),
++          p_telemetry: toJson(telemetry),
++          p_abilities: toJson(abilities),
++          p_outcome: outcome ? toJson(outcome) : null,
++          p_idempotency_key: randomUUID(),
++          p_correlation_id: randomUUID(),
++        },
++        examSessionResponseSchema,
++      );
++      return {
++        session: persisted.data.session,
++        nextItem: next ? toServedItem(next) : null,
++        outcome,
++      };
++    },
++
++    async getSession(sessionId) {
++      await assertOperatorSession(client);
++      const stateResponse = await invokeRpc(
++        client,
++        'get_exam_session',
++        { p_session_id: sessionId, p_correlation_id: randomUUID() },
++        examSessionStateResponseSchema,
++      );
++      const session = stateResponse.data.session;
++      if (session.status === 'completed') {
++        return { session, nextItem: null, outcome: stateResponse.data.outcome };
++      }
++      const [policy, bank] = await Promise.all([
++        loadPolicy(client, session.policyVersion),
++        loadBank(client, session.policyVersion, session.ageBand),
++      ]);
++      const state: EngineState = {
++        sessionId: session.sessionId,
++        ageBand: session.ageBand,
++        policy,
++        administered: rebuildAdministered(stateResponse.data.responses, bank),
++      };
++      const next = chooseNextItem(state, bank);
++      return { session, nextItem: next ? toServedItem(next) : null, outcome: null };
++    },
++  };
++}
++
++export async function createServerLocalSyntheticExamAdapter() {
++  getLocalSyntheticAdapterEnvironment();
++  const client = await createSupabaseServerClient();
++  return createLocalSyntheticExamAdapter({
++    client: client as unknown as LocalExamRpcClient,
++    environment: process.env,
++  });
++}
+diff --git a/apps/web/src/lib/exam/service.ts b/apps/web/src/lib/exam/service.ts
+new file mode 100644
+index 0000000..d235756
+--- /dev/null
++++ b/apps/web/src/lib/exam/service.ts
+@@ -0,0 +1,26 @@
++import type { AgeBand, ExamStep, ItemResponse, Participant, TelemetryEvent } from '@gt-selection/contracts';
++
++/** Exam delivery service surface (AX-05). Implemented by the local synthetic adapter. */
++
++export interface CreateParticipantInput {
++  pseudonymCode: string;
++  ageBand: AgeBand;
++}
++
++export interface StartSessionInput {
++  participantId: string;
++  policyVersion: string;
++}
++
++export interface SubmitResponseInput {
++  sessionId: string;
++  response: ItemResponse;
++  telemetry: TelemetryEvent[];
++}
++
++export interface ExamService {
++  createParticipant(input: CreateParticipantInput): Promise<Participant>;
++  startSession(input: StartSessionInput): Promise<ExamStep>;
++  submitResponse(input: SubmitResponseInput): Promise<ExamStep>;
++  getSession(sessionId: string): Promise<ExamStep>;
++}
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 0281863..9f3fdf6 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -41,6 +41,9 @@ importers:
+ 
+   apps/web:
+     dependencies:
++      '@gt-selection/cat-engine':
++        specifier: workspace:*
++        version: link:../../packages/cat-engine
+       '@gt-selection/contracts':
+         specifier: workspace:*
+         version: link:../../packages/contracts
+@@ -106,6 +109,22 @@ importers:
+         specifier: 4.1.10
+         version: 4.1.10(@types/node@24.13.3)(@vitest/coverage-v8@4.1.10)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(tsx@4.23.1))
+ 
++  packages/cat-engine:
++    dependencies:
++      '@gt-selection/contracts':
++        specifier: workspace:*
++        version: link:../contracts
++    devDependencies:
++      '@vitest/coverage-v8':
++        specifier: 4.1.10
++        version: 4.1.10(vitest@4.1.10)
++      typescript:
++        specifier: 5.9.3
++        version: 5.9.3
++      vitest:
++        specifier: 4.1.10
++        version: 4.1.10(@types/node@24.13.3)(@vitest/coverage-v8@4.1.10)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.1.5(@types/node@24.13.3)(esbuild@0.28.1)(tsx@4.23.1))
++
+   packages/contracts:
+     dependencies:
+       zod:
+-- 
+2.50.1 (Apple Git-155)
+
+
+From 301801fe5780129a189a0de46ccac4fd6fa618a6 Mon Sep 17 00:00:00 2001
+From: Aadi Takle <aadiatakle@gmail.com>
+Date: Fri, 24 Jul 2026 02:18:34 -0500
+Subject: [PATCH 6/6] docs(exam): add demo embedding contract seam
+
+DEMO_EMBEDDING_CONTRACT.md: exactly what a question demo must do to run inside
+/exam (init params incl. sessionId + item, ready/warmup_done/telemetry/response
+events, origin/security, conformance checklist), referencing embed-shim.js +
+generic.html. Lets the recategorized rebuilt demos plug in cleanly later.
+---
+ .../exam-demos/DEMO_EMBEDDING_CONTRACT.md     | 130 ++++++++++++++++++
+ 1 file changed, 130 insertions(+)
+ create mode 100644 apps/web/public/exam-demos/DEMO_EMBEDDING_CONTRACT.md
+
+diff --git a/apps/web/public/exam-demos/DEMO_EMBEDDING_CONTRACT.md b/apps/web/public/exam-demos/DEMO_EMBEDDING_CONTRACT.md
+new file mode 100644
+index 0000000..507f63f
+--- /dev/null
++++ b/apps/web/public/exam-demos/DEMO_EMBEDDING_CONTRACT.md
+@@ -0,0 +1,130 @@
++# Demo Embedding Contract (`/exam`)
++
++How a question-type demo plugs into the adaptive screening surface (AX-01, D-016).
++The host (`apps/web/src/app/(embed)/exam/exam-runner.tsx`) loads each demo in an
++`<iframe>` and talks to it over `window.postMessage`. Reference implementation:
++[`embed-shim.js`](./embed-shim.js) + [`generic.html`](./generic.html).
++
++A demo is **one self-contained page** served from `apps/web/public/exam-demos/<file>`
++(HTML+CSS+JS, no build step, no external network). The host reloads the iframe for
++every item, so each demo instance renders exactly one item.
++
++## Lifecycle
++
++```
++iframe load
++  demo → host : { type: 'ready' }                 // listener attached
++  host → demo : { type: 'init', sessionId, item } // render this item
++  demo shows a wordless warm-up (≈10s, unscored)
++  demo → host : { type: 'warmup_done', itemId }
++  demo → host : { type: 'telemetry', event }      // 0..N, throughout the scored item
++  demo → host : { type: 'response', response }     // exactly once, ends the item
++host submits, then reloads the iframe with the next item (or shows results)
++```
++
++The host also posts `init` on iframe `onLoad` as a fallback, and de-dupes by
++`item.itemId`, so a demo that misses the `ready→init` handshake still receives its item.
++
++## Messages: host → demo
++
++Every message includes `source: 'gt-exam-host'`.
++
++| type | payload | meaning |
++|---|---|---|
++| `init` | `{ sessionId: uuid, item: ServedItem }` | render this item; reset your timers |
++| `start` | `{ itemId: uuid }` | (optional) begin the scored phase after warm-up |
++
++`ServedItem` (no IRT parameters or answer key are ever sent to the browser):
++
++```ts
++{ itemId: string, typeCode: string, domain: 'fluid_reasoning'|'verbal'|'quantitative'|'spatial',
++  difficultyLevel: number /* 1..20 */, demoPath: string, params: Record<string, unknown> }
++```
++
++Scale your difficulty from `item.difficultyLevel`; read any item-specific config
++(seed, variant, options) from `item.params`.
++
++## Messages: demo → host
++
++Every message must include `source: 'gt-exam-demo'`.
++
++| type | payload | when |
++|---|---|---|
++| `ready` | `{}` | once, after your message listener is attached |
++| `warmup_done` | `{ itemId }` | once, when the unscored warm-up ends |
++| `telemetry` | `{ event: TelemetryEvent }` | any time during the scored item |
++| `response` | `{ response: ItemResponse }` | exactly once; ends the item |
++
++`TelemetryEvent`:
++
++```ts
++{ kind: string /* e.g. 'item_shown'|'first_action'|'action'|'hint'|'revision' */,
++  itemId: string | null, tOffsetMs: number /* ms since scored item shown */,
++  payload: Record<string, unknown> }
++```
++
++`ItemResponse` — the demo computes correctness locally (the host stores it and
++updates ability; it never sees your key):
++
++```ts
++{ itemId: string,
++  correct: boolean,
++  score: number,            // [0,1]; 1 for a correct dichotomous item
++  rtMs: number,             // ms from scored-item shown to submit
++  firstActionMs: number|null,
++  revisions: number,        // answer changes before submit
++  engaged: boolean,         // false = rapid-guess/off-task (speed signals discounted)
++  measurements: Record<string, number>, // keys match /^M-[A-Z]+$/
++  syntheticOnly: true }
++```
++
++Standard `measurements` keys (add more as numbers where meaningful):
++`M-ACC` accuracy · `M-RT` total RT · `M-RTFIRST` first-action latency · `M-REV`
++revisions. Optional examples: `M-PATH`, `M-HINT`, `M-EXPLORE`, `M-DIFFREACH`.
++
++## Origin & security
++
++- Demos are **same-origin** (served under `/exam-demos/` by the web app).
++- Host ignores any message whose `source !== 'gt-exam-demo'` and whose
++  `event.source` is not this demo's iframe; demos must ignore any message whose
++  `source !== 'gt-exam-host'`.
++- **Born-synthetic**: no external network, no persistence, no PII. The demo receives
++  only an item + a session id for correlation — never IRT parameters, the answer key,
++  or participant identity.
++- Exactly one `response` per item. Do not post after `response`.
++
++## Easiest path — use `embed-shim.js`
++
++Include the shim and skip all message plumbing:
++
++```html
++<script src="embed-shim.js"></script>
++<script>
++  GTExam.onInit(function (item) {
++    // render warm-up for item.domain / item.difficultyLevel, then:
++    GTExam.warmupDone();
++    GTExam.startScored();                     // resets rt / first-action timers
++    GTExam.telemetry('item_shown', { difficulty: item.difficultyLevel });
++    // on the learner's first interaction: GTExam.markFirstAction();
++    // on each change:                     GTExam.telemetry('action', { ... });
++    // on submit:                          GTExam.respond({ correct: true, revisions: 0 });
++  });
++  GTExam.ready();
++</script>
++```
++
++`GTExam.respond({ correct, revisions, score?, engaged?, measurements? })` auto-fills
++`rtMs`, `firstActionMs`, `M-ACC/M-RT/M-RTFIRST/M-REV`, and infers `engaged`
++(rapid-guess if RT < 700ms) unless you override it. `GTExam.sessionId()` and
++`GTExam.item()` are available if needed.
++
++## Conformance checklist
++
++- [ ] Single self-contained page under `apps/web/public/exam-demos/`; no external network.
++- [ ] Posts `ready`; renders on `init`; reads `difficultyLevel` + `params`.
++- [ ] Wordless self-teaching warm-up, then `warmup_done`; scored timing starts after.
++- [ ] Streams `telemetry` (at least `item_shown` + `first_action`).
++- [ ] Posts exactly one `response` with real `correct`, `rtMs`, `firstActionMs`,
++      `revisions`, `engaged`, and `M-*` measurements; `syntheticOnly: true`.
++- [ ] Fully automated scoring (no human-in-the-loop); unambiguous single correct answer.
++- [ ] Ignores non-`gt-exam-host` messages; never leaks/needs the answer key or PII.
+-- 
+2.50.1 (Apple Git-155)
+

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SPA-FOLDNET-01 · Fold-the-Net</title>
+<style>
+:root{--ink:#004f71;--indigo:#e48b53;--rose:#9fb6bd;--gold:#e48b53;--teal:#4a6470;--good:#4a6470;--bad:#e48b53;--tel:#002a3a;--tel2:#003b5c}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{display:flex;background:linear-gradient(145deg,#f8e8de,#fcf4ef);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
+#wrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px}#badge{font-size:12px;font-weight:850;color:#6f4526;letter-spacing:.09em;text-transform:uppercase}#howto{max-width:760px;width:100%;background:#ffffff;border:1px solid #f8e8de;border-left:5px solid var(--indigo);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a6470}#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--indigo)}#howto p{margin:0;font-size:14px;color:#4a6470;line-height:1.5}#prompt{max-width:760px;width:100%;font-size:16px;font-weight:800;color:#33505c;text-align:center;min-height:22px}#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fcf4ef;color:var(--indigo);border:2px solid #f8e8de;min-height:30px}#phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}#phasecue[data-phase="ready"]{background:#fcf4ef;color:var(--indigo);border-color:#f8e8de}#phasecue[data-phase="locked"]{background:var(--indigo);color:#ffffff;border-color:var(--indigo)}#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}#status.ok{color:var(--good)}#status.neutral{color:#6f4526}
+#stagecard{width:min(760px,100%);background:#ffffff;border-radius:27px;padding:16px;display:grid;gap:13px;box-shadow:0 24px 60px -32px #4a6470}
+.panel{height:300px;border-radius:20px;overflow:hidden;position:relative}.netPanel{background:#fcf4ef;border:2px solid #ebba9b;display:grid;place-items:center}.netPanel:before{content:"NET";position:absolute;top:9px;left:12px;color:#6f4526;font-size:11px;font-weight:900;letter-spacing:.12em}#netSvg{width:100%;height:100%}
+#options{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.option{border:3px solid #f8e8de;background:#ffffff;border-radius:16px;padding:7px;display:grid;grid-template-columns:28px 1fr;align-items:center;min-height:104px;cursor:pointer;transition:.15s}.option:hover,.option:focus-visible{outline:none;transform:translateY(-2px);border-color:#ebba9b}.option.sel{border-color:var(--indigo);box-shadow:0 0 0 4px #f8e8de}.option[disabled]{cursor:default;opacity:.85}.key{width:26px;height:25px;border-radius:8px;background:#004f71;color:#ffffff;display:grid;place-items:center;font-weight:900;box-shadow:0 3px 0 #002a3a}.solidIcon{width:100%;height:78px}.swatch{width:100%;height:74px;border-radius:12px;display:grid;place-items:center;color:#ffffff;font-weight:900;font-size:30px;border:2px solid #ffffffcc;box-shadow:inset 0 0 0 3px #00000016}
+#hotkeys{text-align:center;color:#6f4526;font:700 11px ui-monospace,monospace}.kbd{display:inline-grid;place-items:center;height:22px;min-width:23px;padding:0 5px;border:1px solid #ebba9b;border-bottom-width:3px;border-radius:6px;background:#ffffff;color:#33505c;margin:0 2px}
+#controls{display:flex;justify-content:center;align-items:center;gap:12px}.round{border:0;border-radius:50%;cursor:pointer;font:800 24px system-ui}.round:focus-visible{outline:4px solid #ecd9cb;outline-offset:2px}#lock{width:66px;height:66px;background:var(--indigo);color:#ffffff;box-shadow:0 10px 24px -10px var(--indigo)}#lock:disabled{opacity:.25;cursor:not-allowed}
+#telemetry{width:335px;flex:0 0 335px;min-height:100vh;background:var(--tel);color:#f8e8de;display:flex;flex-direction:column;font:13px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace}#telemetry h3{margin:0;padding:13px 15px;background:var(--tel2);color:#ffffff;font-size:12px;text-transform:uppercase;letter-spacing:.1em}
+#itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #33505c;border-radius:12px}.itemRow{display:flex;justify-content:space-between;color:#4a6470;font-size:11px;padding:2px 0}.itemRow b{color:#f8e8de}
+#mlist{padding:8px 12px;display:grid;gap:7px}.mrow{display:grid;grid-template-columns:112px 1fr;gap:6px}.mid{color:#6f4526;font-weight:800}.mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:#6f4526;font-size:11px;margin-top:-4px}#logwrap{border-top:1px solid #004f71;margin-top:auto}#logwrap b{display:block;padding:8px 12px 4px;color:#6f4526;font-size:11px;letter-spacing:.08em}#log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:3px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:325px;flex:none}}@media(max-width:600px){.panel{height:230px}#options{grid-template-columns:1fr 1fr}.option{min-height:82px}.solidIcon{height:58px}.swatch{height:56px}}@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+<div id="wrap">
+  <div id="badge">SPA-FOLDNET-01 · Fold-the-Net</div>
+  <header id="howto">
+    <h1>How to use — Fold-the-Net</h1>
+    <p>Look at the flat net and picture it folding up in your head — nothing folds on screen, that part is the puzzle. Then answer the question by choosing a tile and pressing the check.</p>
+  </header>
+  <div id="phasecue" data-phase="waiting">Waiting for item</div>
+  <div id="prompt"></div>
+  <main id="stagecard">
+    <div class="panel netPanel"><svg id="netSvg" viewBox="0 0 360 260" aria-label="flat net"></svg></div>
+    <div id="options" aria-label="answer choices"></div>
+    <div id="hotkeys"><span class="kbd">1</span>…<span class="kbd">6</span> choose · <span class="kbd">↵</span> lock</div>
+    <div id="controls"><button id="lock" class="round" title="lock answer" aria-label="lock answer" disabled>✓</button></div>
+    <div id="status" class="neutral">Waiting for an item from the host…</div>
+  </main>
+  <div id="playgate">
+    <p>The net is ready. Press play when you are, and it starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
+</div>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="itemcard">
+    <div class="itemRow"><span>ITEM</span><b id="i_id">—</b></div>
+    <div class="itemRow"><span>MODE</span><b id="i_mode">—</b></div>
+    <div class="itemRow"><span>SOLID</span><b id="i_solid">—</b></div>
+    <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">—</b></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const NS='http://www.w3.org/2000/svg';
+
+/* ---- postMessage embedding contract (EXAM_ADAPTIVE_BUILD_PLAN.md §2) ----
+   host->demo : {source:'gt-exam-host', type:'init', item:ServedItem} , {type:'start'}
+   demo->host : {source:'gt-exam-demo', type:'ready'} , {type:'result', result:ItemResult} , {type:'telemetry', event}
+   The demo renders ServedItem.content only. It NEVER receives or shows the answer key,
+   and it emits the child's raw response + numeric metrics + telemetry — no correctness. */
+const HOST = 'gt-exam-host', SELF = 'gt-exam-demo';
+const embedded = window.parent && window.parent !== window;
+function post(type, extra){ const msg=Object.assign({source:SELF,type},extra||{}); if(embedded){try{window.parent.postMessage(msg,'*')}catch(e){}} }
+
+/* ---------- answer-tile icons ----------
+   The net itself is the only stimulus: there is no 3D viewport and no fold, so a
+   child has to imagine the solid rather than watch it (rule R2). These icons
+   draw the CANDIDATE solids on the answer tiles, which are the answer set. */
+const COLOR=['#ef6b8f','#5267df','#28ad9c','#f5ad32','#9b6be8','#3eb7d3','#f07f4f','#62b86c'];
+function icon(k,color){const common=`fill="${color}bb" stroke="${color}" stroke-width="4" stroke-linejoin="round"`;let body='';
+ if(k==='cube')body=`<polygon points="24,28 54,12 82,29 52,46" ${common}/><polygon points="24,28 52,46 52,76 24,57" ${common}/><polygon points="52,46 82,29 82,59 52,76" ${common}/>`;
+ else if(k==='rect')body=`<polygon points="12,32 55,14 88,28 45,47" ${common}/><polygon points="12,32 45,47 45,72 12,58" ${common}/><polygon points="45,47 88,28 88,53 45,72" ${common}/>`;
+ else if(k==='tetra')body=`<polygon points="50,9 16,72 84,72" ${common}/><path d="M50 9L50 72M16 72L50 42L84 72" fill="none" stroke="#fff" stroke-width="2"/>`;
+ else if(k==='pyramid')body=`<polygon points="50,8 12,65 50,78 88,65" ${common}/><path d="M50 8L50 78M12 65L88 65" fill="none" stroke="#fff" stroke-width="2"/>`;
+ else{const n=k==='tri'?3:k==='pent'?5:6,pts=Array.from({length:n},(_,i)=>[31+22*Math.cos(-Math.PI/2+i*2*Math.PI/n),42+24*Math.sin(-Math.PI/2+i*2*Math.PI/n)]),pts2=pts.map(p=>[p[0]+31,p[1]-11]);body=`<polygon points="${pts.map(p=>p.join(',')).join(' ')}" ${common}/><polygon points="${pts2.map(p=>p.join(',')).join(' ')}" ${common}/>`+pts.map((p,i)=>`<line x1="${p[0]}" y1="${p[1]}" x2="${pts2[i][0]}" y2="${pts2[i][1]}" stroke="${color}" stroke-width="4"/>`).join('')}
+ return `<svg class="solidIcon" viewBox="0 0 100 86" aria-hidden="true">${body}</svg>`;}
+
+/* ---------- state ---------- */
+let item=null,content=null,kind='cube',options=[];
+let selected=-1,locked=true,started=false;
+const T={itemStart:0,first:0,revs:0,rt:0,rapid:false,blur:false,committed:false,lastActivity:performance.now(),events:[]};
+
+const PHASE={waiting:'Waiting for item',ready:'Ready',locked:'Answer locked'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+
+/* ---------- telemetry ---------- */
+const METERS=[
+ {id:'M-RTFIRST',name:'Time to first action',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-RT',name:'Commit time (engagement-gated)',get:()=>T.committed?`${T.rt} ms${T.rapid?' · gated':''}`:'—'},
+ {id:'M-REV',name:'Answer revisions',get:()=>String(T.revs)},
+ {id:'M-RAPIDGUESS',name:'Rapid/idle flag (tracked)',get:()=>T.committed?(T.rapid?'1':'0'):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get()});}
+function nowRel(){return Math.max(0,performance.now()-(T.itemStart||performance.now()));}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function emit(kindEv,data){const ev=Object.assign({t:Math.round(nowRel()),kind:kindEv},data||{});T.events.push(ev);post('telemetry',{event:ev});}
+function first(){if(!T.first&&started){T.first=performance.now()-T.itemStart;emit('first_action',{ms:Math.round(T.first)});log(`first action @ ${Math.round(T.first)}ms`);renderMeters();}}
+function activity(){T.lastActivity=performance.now();}
+addEventListener('pointerdown',activity);addEventListener('keydown',activity);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!locked){T.blur=true;emit('blur');}});
+
+/* ---------- net rendering (data-driven from content.net.cells) ---------- */
+function svgEl(name,attrs){const e=document.createElementNS(NS,name);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));return e;}
+function centroid(cell){if(cell.shape==='rect')return[cell.x+cell.w/2,cell.y+cell.h/2];const xs=cell.points.map(p=>p[0]),ys=cell.points.map(p=>p[1]);return[xs.reduce((a,b)=>a+b,0)/xs.length,ys.reduce((a,b)=>a+b,0)/ys.length];}
+function starPoints(cx,cy,ro,ri){const pts=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?ri:ro;pts.push(`${(cx+r*Math.cos(a)).toFixed(1)},${(cy+r*Math.sin(a)).toFixed(1)}`)}return pts.join(' ');}
+function drawNet(cells){const s=$('#netSvg');s.innerHTML='';
+ cells.forEach(cell=>{
+   let shapeEl;
+   if(cell.shape==='rect')shapeEl=svgEl('rect',{x:cell.x,y:cell.y,width:cell.w,height:cell.h,rx:4,fill:cell.color,stroke:'#5f6171','stroke-width':2});
+   else shapeEl=svgEl('polygon',{points:cell.points.map(p=>p.join(',')).join(' '),fill:cell.color,stroke:'#5f6171','stroke-width':2});
+   s.appendChild(shapeEl);
+   const [cx,cy]=centroid(cell);
+   if(cell.symbol){const t=svgEl('text',{x:cx,y:cy+7,'text-anchor':'middle','font-size':20,'font-weight':900,fill:'#fff'});t.textContent=cell.symbol;s.appendChild(t);}
+   if(cell.marked){const star=svgEl('polygon',{points:starPoints(cx,cy,17,7),fill:'none',stroke:'#fff2c9','stroke-width':3,'stroke-linejoin':'round'});const halo=svgEl('polygon',{points:starPoints(cx,cy,17,7),fill:'#f5ad32','fill-opacity':.28,stroke:'#f5ad32','stroke-width':1.5,'stroke-linejoin':'round'});s.appendChild(halo);s.appendChild(star);}
+ });
+}
+
+/* ---------- options ---------- */
+function buildOptions(){const wrap=$('#options');options=content.options;wrap.style.gridTemplateColumns=`repeat(${Math.min(options.length,4)},1fr)`;
+ wrap.innerHTML=options.map((o,i)=>{
+   const body=content.optionKind==='solid'?icon(o.kind,COLOR[i%COLOR.length]):`<span class="swatch" style="background:${o.color}">${o.symbol||''}</span>`;
+   return `<button class="option" data-i="${i}" aria-label="choice ${o.key}"><span class="key">${o.key}</span>${body}</button>`;
+ }).join('');}
+function choose(i,modality){if(locked||i<0||i>=options.length)return;first();if(selected>=0&&selected!==i){T.revs++;}selected=i;$$('.option').forEach((o,k)=>o.classList.toggle('sel',k===i));$('#lock').disabled=false;emit('select',{key:options[i].key,index:i,modality});log(`choose ${options[i].key} via ${modality}`);renderMeters();}
+
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;kind=content.solid.kind;
+  selected=-1;locked=true;started=false;
+  Object.assign(T,{itemStart:0,first:0,revs:0,rt:0,rapid:false,blur:false,committed:false,lastActivity:performance.now(),events:[]});
+  drawNet(content.net.cells);buildOptions();
+  $('#prompt').textContent=content.question.prompt;
+  $('#lock').disabled=true;$$('.option').forEach(o=>o.disabled=false);
+  $('#i_id').textContent=(served.itemId||'—').slice(0,8);
+  $('#i_mode').textContent=content.question.mode;
+  $('#i_solid').textContent=`${content.solid.kind} · ${content.solid.faceCount} faces`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'—');
+  setCue('ready');setStatus('neutral','Picture the net folding up, then choose a tile.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} · ${content.question.mode} · ${kind}`);renderMeters();
+}
+/* R1 — the net waits behind the play gate. `start` used to release the lock and set
+   `T.itemStart` the instant the host sent it, so the scored M-RT and M-RTFIRST began before the
+   child had looked at the net. `init` renders behind the gate, `start` only arms it, and the
+   press of play is what unlocks the answer controls and starts the clock. Once past the gate
+   the controls are live immediately — nothing has to play or finish first, so there is no state
+   in which the demo renders but cannot be answered (the historical `locked` bug). */
+function openGate(){
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');setStatus('neutral','Press play when you are ready.');
+}
+/* The play gate is armed as always, then released immediately: this type has no
+   transient stimulus, so arming it buys the child nothing and costs a click.
+   Reading time is separated from thinking time by first-action latency
+   (M-RTFIRST), not by a play press. #play is used rather than the begin
+   function directly because each demo names that function differently. */
+function releaseGate(){const p=document.querySelector('#play');if(p)p.click();}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+/* Every route through this item is keyboard-reachable, so the gate is too. Behind a closed
+   gate the item's own shortcuts do nothing, so any key the child presses means "I am ready":
+   it presses play and is consumed rather than silently going nowhere. */
+function gateKey(e){
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return false;
+  if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/^(Tab|Escape|Shift|Control|Alt|Meta|CapsLock)$/.test(e.key)){
+    $('#play').click();e.preventDefault();
+  }
+  return true;
+}
+function startItem(){if(!content||started)return;closeGate();started=true;locked=false;T.itemStart=performance.now();emit('start');
+  setStatus('neutral','Picture the net folding up, then choose a tile.');}
+async function submit(){if(locked||selected<0||!started)return;locked=true;$('#lock').disabled=true;$$('.option').forEach(o=>o.disabled=true);
+  T.rt=Math.round(performance.now()-T.itemStart);T.committed=true;
+  const idle=performance.now()-T.lastActivity;T.rapid=T.rt<350||idle>22000;
+  const response={selectedKey:options[selected].key,selectedIndex:selected,mode:content.question.mode,revisions:T.revs,msToCommit:T.rt};
+  const metrics={'M-RT':T.rt,'M-RTFIRST':Math.round(T.first),'M-REV':T.revs,'M-RAPIDGUESS':T.rapid?1:0};
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('commit',{key:response.selectedKey});
+  setCue('locked');setStatus('ok','Answer locked.');   // never reveal correct/incorrect
+  log(`LOCK ${response.selectedKey} · ${T.rt}ms · rev${T.revs}`);renderMeters();
+  post('result',{result});
+  if(!embedded){ // standalone: rotate to the next sample so a double-click user can keep exploring
+    await sleep(1100);nextSample();
+  }
+}
+
+/* ---------- input ---------- */
+$('#play').addEventListener('click',startItem);   // a second press is a no-op: `started` is set
+$('#options').addEventListener('click',e=>{const o=e.target.closest('.option');if(o)choose(+o.dataset.i,'tap');});
+$('#lock').addEventListener('click',submit);
+addEventListener('keydown',e=>{if(e.repeat)return;if(gateKey(e))return;
+ if(/^[1-9]$/.test(e.key))choose(+e.key-1,'key');
+ else if(e.key==='Enter')submit();
+ else return;e.preventDefault();});
+
+/* ---------- host message handling ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+ if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');openGate();}
+ else if(d.type==='start'){openGate();releaseGate();}
+});
+
+/* ---------- standalone fallback (opens by double-click; no host present) ----------
+   Embeds real ServedItems produced by generators/SPA-FOLDNET-01.mjs so the renderer
+   and the bank stay in sync. Answer keys are NOT present in a ServedItem. */
+const SAMPLES=[{"itemId":"c2151b96-18a7-4b44-86aa-b9e31e0ddb39","typeCode":"SPA-FOLDNET-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"content":{"typeCode":"SPA-FOLDNET-01","question":{"mode":"net_to_solid","relation":"net_to_solid","prompt":"Which shape does this net fold into?","markedFaceId":null},"solid":{"kind":"cube","family":"box","faceCount":6},"net":{"kind":"cube","regular":true,"variant":"cross","cells":[{"faceId":2,"shape":"rect","x":136,"y":64,"w":44,"h":44,"color":"#4a8fd6","symbol":"","marked":false},{"faceId":4,"shape":"rect","x":92,"y":108,"w":44,"h":44,"color":"#28ad9c","symbol":"","marked":false},{"faceId":1,"shape":"rect","x":136,"y":108,"w":44,"h":44,"color":"#9b6be8","symbol":"","marked":false},{"faceId":5,"shape":"rect","x":180,"y":108,"w":44,"h":44,"color":"#f07f4f","symbol":"","marked":false},{"faceId":0,"shape":"rect","x":224,"y":108,"w":44,"h":44,"color":"#3eb7d3","symbol":"","marked":false},{"faceId":3,"shape":"rect","x":136,"y":152,"w":44,"h":44,"color":"#d94f7a","symbol":"","marked":false}]},"faceStyle":"color","optionKind":"solid","options":[{"key":"A","kind":"cube"},{"key":"B","kind":"rect"}],"scaffold":{"autoFold":true,"warmup":true}}},{"itemId":"90fbdf9f-b84f-4bc5-a7c5-3b7e4d0d8113","typeCode":"SPA-FOLDNET-01","domain":"spatial","difficulty":5.13,"ageBands":["2-3","4-5"],"content":{"typeCode":"SPA-FOLDNET-01","question":{"mode":"opposite_face","relation":"opposite_face","prompt":"Fold the net. Which face ends up OPPOSITE the star face?","markedFaceId":3},"solid":{"kind":"cube","family":"box","faceCount":6},"net":{"kind":"cube","regular":true,"variant":"tee","cells":[{"faceId":2,"shape":"rect","x":114,"y":42,"w":44,"h":44,"color":"#f5ad32","symbol":"","marked":false},{"faceId":5,"shape":"rect","x":158,"y":42,"w":44,"h":44,"color":"#ef6b8f","symbol":"","marked":false},{"faceId":3,"shape":"rect","x":202,"y":42,"w":44,"h":44,"color":"#28ad9c","symbol":"","marked":true},{"faceId":1,"shape":"rect","x":158,"y":86,"w":44,"h":44,"color":"#5267df","symbol":"","marked":false},{"faceId":4,"shape":"rect","x":158,"y":130,"w":44,"h":44,"color":"#d94f7a","symbol":"","marked":false},{"faceId":0,"shape":"rect","x":158,"y":174,"w":44,"h":44,"color":"#4a8fd6","symbol":"","marked":false}]},"faceStyle":"color","optionKind":"face","options":[{"key":"A","faceId":4,"color":"#d94f7a","symbol":""},{"key":"B","faceId":1,"color":"#5267df","symbol":""},{"key":"C","faceId":2,"color":"#f5ad32","symbol":""}],"scaffold":{"autoFold":true,"warmup":true}}},{"itemId":"8e8529af-ce6b-40b2-8944-526f3b5707f2","typeCode":"SPA-FOLDNET-01","domain":"spatial","difficulty":16.08,"ageBands":["6-8"],"content":{"typeCode":"SPA-FOLDNET-01","question":{"mode":"adjacent_face","relation":"adjacent_face","prompt":"Fold the net. Which face TOUCHES the star face?","markedFaceId":3},"solid":{"kind":"hex","family":"prism","faceCount":8},"net":{"kind":"hex","regular":true,"variant":"centered","cells":[{"faceId":0,"shape":"rect","x":60,"y":98,"w":40,"h":64,"color":"#62b86c","symbol":"","marked":false},{"faceId":1,"shape":"rect","x":100,"y":98,"w":40,"h":64,"color":"#ef6b8f","symbol":"","marked":false},{"faceId":2,"shape":"rect","x":140,"y":98,"w":40,"h":64,"color":"#f07f4f","symbol":"","marked":false},{"faceId":3,"shape":"rect","x":180,"y":98,"w":40,"h":64,"color":"#28ad9c","symbol":"","marked":true},{"faceId":4,"shape":"rect","x":220,"y":98,"w":40,"h":64,"color":"#4a8fd6","symbol":"","marked":false},{"faceId":5,"shape":"rect","x":260,"y":98,"w":40,"h":64,"color":"#3eb7d3","symbol":"","marked":false},{"faceId":6,"shape":"poly","points":[[200,48],[220.78,60],[220.78,84],[200,96],[179.22,84],[179.22,60]],"color":"#5267df","symbol":"","marked":false},{"faceId":7,"shape":"poly","points":[[200,164],[220.78,176],[220.78,200],[200,212],[179.22,200],[179.22,176]],"color":"#d94f7a","symbol":"","marked":false}]},"faceStyle":"color","optionKind":"face","options":[{"key":"A","faceId":0,"color":"#62b86c","symbol":""},{"key":"B","faceId":2,"color":"#f07f4f","symbol":""},{"key":"C","faceId":1,"color":"#ef6b8f","symbol":""},{"key":"D","faceId":5,"color":"#3eb7d3","symbol":""}]},"scaffold":{"autoFold":false,"warmup":false}},{"itemId":"75c60716-ea26-43ee-b4ae-871c57254542","typeCode":"SPA-FOLDNET-01","domain":"spatial","difficulty":12.13,"ageBands":["4-5","6-8"],"content":{"typeCode":"SPA-FOLDNET-01","question":{"mode":"opposite_face","relation":"opposite_face","prompt":"Fold the net. Which face ends up OPPOSITE the star face?","markedFaceId":3},"solid":{"kind":"hex","family":"prism","faceCount":8},"net":{"kind":"hex","regular":true,"variant":"centered","cells":[{"faceId":0,"shape":"rect","x":60,"y":98,"w":40,"h":64,"color":"#5267df","symbol":"\u2b1f","marked":false},{"faceId":1,"shape":"rect","x":100,"y":98,"w":40,"h":64,"color":"#62b86c","symbol":"\u271a","marked":false},{"faceId":2,"shape":"rect","x":140,"y":98,"w":40,"h":64,"color":"#28ad9c","symbol":"\u25a0","marked":false},{"faceId":3,"shape":"rect","x":180,"y":98,"w":40,"h":64,"color":"#f07f4f","symbol":"\u25d6","marked":true},{"faceId":4,"shape":"rect","x":220,"y":98,"w":40,"h":64,"color":"#ef6b8f","symbol":"\u2b22","marked":false},{"faceId":5,"shape":"rect","x":260,"y":98,"w":40,"h":64,"color":"#f5ad32","symbol":"\u2605","marked":false},{"faceId":6,"shape":"poly","points":[[200,48],[220.78,60],[220.78,84],[200,96],[179.22,84],[179.22,60]],"color":"#3eb7d3","symbol":"\u25cf","marked":false},{"faceId":7,"shape":"poly","points":[[200,164],[220.78,176],[220.78,200],[200,212],[179.22,200],[179.22,176]],"color":"#9b6be8","symbol":"\u25b2","marked":false}]},"faceStyle":"symbol","optionKind":"face","options":[{"key":"A","faceId":7,"color":"#9b6be8","symbol":"\u25b2"},{"key":"B","faceId":6,"color":"#3eb7d3","symbol":"\u25cf"},{"key":"C","faceId":0,"color":"#5267df","symbol":"\u2b1f"},{"key":"D","faceId":2,"color":"#28ad9c","symbol":"\u25a0"}]},"scaffold":{"autoFold":false,"warmup":false}}];
+let sampleIdx=0;
+function nextSample(){loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;openGate();}
+
+/* ---------- boot ---------- */
+buildMeters();renderMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit&&!embedded){ // no host -> run standalone
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  nextSample();
+}},500);
+</script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-DOTS-01 · More or Fewer (renderer)</title>
+<style>
+  :root{
+    --sky:#fcf4ef;--mist:#f5ddcd;--ink:#003b5c;--paper:#ffffff;
+    --firefly:#003b5c;--accent:#e48b53;--dim:#e48b53;
+    --tel:#002a3a;--tel2:#003b5c;--key:#9fb6bd;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{
+    display:flex;background:radial-gradient(circle at 35% 10%,#ffffff 0,var(--sky) 48%,#f5ddcd 100%);
+    color:var(--ink);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;
+  }
+  button{font:inherit;border:0;cursor:pointer}
+  #wrap{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding:18px}
+  #badge{color:#6f4526;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+  #howto{max-width:720px;width:100%;background:#ffffff;border:1px solid #f5ddcd;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #33505c}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#4a6470}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#4a6470;border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="flash"]{background:#fcf4ef;color:#6f4526;border-color:#f5ddcd}
+  #phasecue[data-phase="answer"]{background:var(--accent);color:#003b5c;border-color:var(--accent)}
+  #phasecue[data-phase="sent"]{background:#f8e8de;color:#4a6470;border-color:#ecd9cb}
+  #stagecard{width:min(720px,100%);background:rgba(255,255,255,.9);border-radius:30px;box-shadow:0 24px 65px -35px #33505c;padding:22px;display:grid;gap:16px;border:1px solid #ffffff}
+  #sky{display:grid;grid-template-columns:1fr 1fr;gap:16px;position:relative}
+  .window{min-height:238px;border-radius:26px;position:relative;overflow:hidden;background:linear-gradient(#f5ddcd,#fcf4ef);border:3px solid #ffffff;box-shadow:inset 0 0 0 1px #ecd9cb}
+  .cloud{position:absolute;inset:0}
+  .dot{position:absolute;border-radius:50%;background:var(--firefly);box-shadow:0 0 0 2px rgba(255,255,255,.65),0 2px 7px rgba(22,48,58,.25);transform:translate(-50%,-50%)}
+  .cover{position:absolute;inset:0;display:grid;place-items:center;z-index:5;background:repeating-linear-gradient(135deg,#f5ddcd 0,#f5ddcd 15px,#ecd9cb 15px,#ecd9cb 30px);color:#4a6470;font-size:56px;opacity:0;pointer-events:none;transition:opacity .16s}
+  .cover.closed{opacity:1}
+  #answers{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .side{height:82px;border-radius:22px;background:#f8e8de;color:#4a6470;font-size:38px;box-shadow:0 8px 18px -14px #004f71;transition:.18s;position:relative}
+  .side:not(:disabled):hover{transform:translateY(-2px);background:#f5ddcd}
+  .side:disabled{opacity:.38;cursor:default}
+  .side.chosen{background:#f8e8de;color:#4a6470;transform:scale(1.02);box-shadow:0 0 0 4px #ffd9a655}
+  .keycap{position:absolute;right:12px;bottom:9px;font:700 11px ui-monospace,monospace;border:1px solid #ebba9b;border-bottom-width:3px;border-radius:6px;padding:2px 6px}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center;color:#6f4526}
+  #telemetry{width:330px;flex:0 0 330px;min-height:100vh;background:var(--tel);color:#6f4526;display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#ffffff;text-transform:uppercase;font-size:12px;letter-spacing:.09em}
+  #difficulty{padding:11px 13px;border-bottom:1px solid #004f71}
+  #diffhead{display:flex;justify-content:space-between;color:#4a6470;font-size:11px}
+  #diffbar{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;margin:7px 0}
+  #diffbar i{height:9px;border-radius:3px;background:#004f71}
+  #diffbar i.on{background:linear-gradient(90deg,#9fb6bd,#ebba9b)}
+  #mlist{padding:11px 13px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:100px 1fr;gap:7px}
+  .mid{color:var(--key);font-weight:800}.mval{color:#ffffff;text-align:right}
+  .mname{grid-column:1/3;color:var(--dim);font-size:11px;margin-top:-4px}
+  #logwrap{margin-top:auto;border-top:1px solid #004f71}
+  #logwrap b{display:block;padding:8px 12px 3px;color:#6f4526;font-size:11px;letter-spacing:.08em}
+  #log{height:230px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
+  #log div{padding:3px 0;border-bottom:1px dotted #004f71}#log .t{color:#4a6470}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:330px;flex:none}}
+  @media(max-width:520px){#wrap{padding:10px}.window{min-height:190px}#stagecard{padding:14px}#sky{gap:9px}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">QUANT-DOTS-01 · More or Fewer</div>
+  <header id="howto">
+    <h1>How to use — More or Fewer</h1>
+    <p>Two groups of dots flash and then hide. Choose the side that had MORE dots — tap it, or press F for left and J for right.</p>
+  </header>
+  <div id="phasecue" data-phase="waiting">Loading</div>
+  <section id="stagecard">
+    <div id="sky">
+      <div class="window" id="winL"><div class="cloud" id="cloudL"></div><div class="cover" id="coverL">&#9676;</div></div>
+      <div class="window" id="winR"><div class="cloud" id="cloudR"></div><div class="cover" id="coverR">&#9676;</div></div>
+    </div>
+    <div id="answers">
+      <button class="side" id="pickL" disabled aria-label="choose left">&#9664;<span class="keycap">F</span></button>
+      <button class="side" id="pickR" disabled aria-label="choose right">&#9654;<span class="keycap">J</span></button>
+    </div>
+    <div id="status">Waiting for an item.</div>
+  </section>
+  <div id="playgate">
+    <p>The dots are ready. Press play when you are, and they flash then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child</h3>
+  <div id="difficulty">
+    <div id="diffhead"><span>ITEM DIFFICULTY (design rung)</span><span id="dlevel">— / 20</span></div>
+    <div id="diffbar"></div>
+  </div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<script>
+'use strict';
+/*
+ * QUANT-DOTS-01 — PURE RENDERER (nonsymbolic 2AFC).
+ * Renders one ServedItem's `content` (two dot arrays; no answer key ever reaches
+ * this file), flashes both arrays for content.exposureMs, hides them behind
+ * neutral covers, captures which side the child taps + timing, and hands the
+ * result to the host via postMessage. It NEVER reveals which side had more;
+ * scoring is server-authoritative (EXAM_ADAPTIVE_BUILD_PLAN.md §2).
+ *
+ * Embedding protocol (postMessage):
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start'}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Double-clicked (standalone), it renders bundled sample items so it still runs.
+ */
+const $=s=>document.querySelector(s);
+const clock=()=>performance.now();
+const EMBEDDED = !!(window.parent && window.parent !== window);
+const SRC_DEMO='gt-exam-demo', SRC_HOST='gt-exam-host';
+const RAPID_MS=250;                               // ANS effort-validity threshold (tracked)
+
+/* ---------------- state (reset per item) ---------------- */
+let item=null, renderT0=0, decisionT0=null, firstT=null, selectedKey=null;
+let submitted=false, locked=true, loadToken=0, began=false;
+let focusedMs=0, focusTs=clock(), isFocused=(document.visibilityState!=='hidden'), blurCount=0;
+let telemetryLog=[];
+
+/* ---------------- rendering ---------------- */
+function paintCloud(el,side){
+  el.innerHTML='';
+  const d=2*side.r;                                // px diameter
+  (side.dots||[]).forEach(p=>{
+    const dot=document.createElement('i');
+    dot.className='dot';
+    dot.style.cssText=`width:${d}px;height:${d}px;left:${p.x}%;top:${p.y}%`;
+    el.appendChild(dot);
+  });
+}
+function renderItem(){
+  const c=item.content;
+  paintCloud($('#cloudL'),c.left);paintCloud($('#cloudR'),c.right);
+  $('#coverL').classList.add('closed');$('#coverR').classList.add('closed'); // hidden until the flash
+  $('#pickL').disabled=true;$('#pickR').disabled=true;
+  $('#pickL').classList.remove('chosen');$('#pickR').classList.remove('chosen');
+  const dd=Number(item.difficulty)||0;
+  $('#dlevel').textContent=`${dd?dd.toFixed(1):'—'} / 20`;
+  $('#diffbar').innerHTML=Array.from({length:20},(_,i)=>`<i class="${i<Math.round(dd)?'on':''}"></i>`).join('');
+  renderMeters();
+}
+
+/* ---------------- telemetry + metrics ---------------- */
+function emit(type,payload){const msg=Object.assign({source:SRC_DEMO,type},payload);if(EMBEDDED){try{window.parent.postMessage(msg,'*');}catch(e){/* no-op */}}}
+function evt(name,extra){const e=Object.assign({t:Math.round(clock()-renderT0),name},extra||{});telemetryLog.push(e);emit('telemetry',{event:e});log(name+(extra&&extra.key?` · ${extra.key}`:'')+(extra&&extra.ms!=null?` · ${extra.ms}ms`:''));return e;}
+function evt0(name){const e={t:0,name};telemetryLog.push(e);emit('telemetry',{event:e});log(name);}
+function tickFocus(){const t=clock();if(isFocused)focusedMs+=t-focusTs;focusTs=t;}
+function decisionRt(){return decisionT0==null?0:Math.round((submitted&&firstT!=null?firstT:clock())-decisionT0);}
+function metricsNow(){
+  tickFocus();
+  const total=Math.max(1,Math.round(clock()-renderT0));
+  const rt=decisionRt();
+  return {
+    'M-RTFIRST': rt,                                // ms from stimulus offset to the tap
+    'M-RT': rt,                                     // single-decision RT (== first action)
+    'M-REV': 0,                                     // 2AFC: no revision channel
+    'M-RAPIDGUESS': submitted&&rt<RAPID_MS?1:0,      // impulsive-tap flag (tracked)
+    'M-ENGAGE': Math.round(1000*Math.min(1,focusedMs/total))/1000,
+  };
+}
+
+/* ---------------- interaction ---------------- */
+function choose(side,modality){
+  if(locked||submitted||decisionT0==null)return;
+  if(side!=='L'&&side!=='R')return;
+  submitted=true;locked=true;selectedKey=side;
+  firstT=clock();                                   // moment of decision
+  (side==='L'?$('#pickL'):$('#pickR')).classList.add('chosen');
+  $('#pickL').disabled=true;$('#pickR').disabled=true;
+  const rt=decisionRt();
+  evt('choose',{key:side,ms:rt,modality:modality||'tap'});
+  setCue('sent','Answer sent');setStatus('Answer sent. Waiting for the next item.');
+  // ItemResult: raw choice + timing. NO correctness, NO reveal of the bigger side.
+  const result={
+    itemId:item.itemId,typeCode:item.typeCode||'QUANT-DOTS-01',domain:item.domain||'quantitative',
+    response:{selectedKey:side,rtMs:rt,exposureMs:item.content.exposureMs,modality:modality||'tap'},
+    metrics:metricsNow(),
+    telemetry:telemetryLog.slice(),
+  };
+  emit('result',{result});
+  log('RESULT sent · '+side+' · '+JSON.stringify(result.metrics));
+  if(!EMBEDDED) standaloneAdvance();
+}
+
+/* ---------------- meters / cue / log ---------------- */
+const METERS=[
+  {id:'M-RTFIRST',name:'Decision latency from flash off (ms)'},
+  {id:'M-RT',name:'Total response time (ms)'},
+  {id:'M-REV',name:'Revisions (2AFC = 0)'},
+  {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked)'},
+  {id:'M-ENGAGE',name:'Focused fraction (tracked)'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}">—</span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){const m=metricsNow();METERS.forEach(x=>{const el=$('#v_'+x.id);if(el)el.textContent=String(m[x.id]);});}
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(msg){$('#status').textContent=msg;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">${new Date().toLocaleTimeString([],{minute:'2-digit',second:'2-digit'})}</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+
+/* ---------------- lifecycle ---------------- */
+function loadItem(served){
+  item=served;submitted=false;locked=true;began=false;selectedKey=null;decisionT0=null;firstT=null;
+  telemetryLog=[];focusedMs=0;focusTs=clock();isFocused=(document.visibilityState!=='hidden');blurCount=0;
+  renderT0=clock();loadToken++;
+  renderItem();
+  evt('render',{itemId:item.itemId,exposureMs:item.content.exposureMs,difficulty:item.difficulty});
+  openGate();
+}
+/* R1 — the flash waits behind the play gate. The dots are painted on `init` but stay
+   covered by the gate, and the fixed exposure only runs once the child presses play,
+   so a child who was still looking away cannot lose the one look they get. */
+function openGate(){
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('waiting','Ready when you are');setStatus('Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+// Flash both arrays, then hide and RELEASE the lock so the child can answer.
+function begin(){
+  if(!item||submitted||began)return;                 // a second play press is a no-op
+  began=true;
+  const token=loadToken;
+  closeGate();
+  // The item clock restarts here, so however long the child waited at the gate is
+  // not counted against them in the timing or engagement metrics.
+  renderT0=clock();focusedMs=0;focusTs=clock();
+  setCue('flash','Look');setStatus('Which side has more?');
+  $('#coverL').classList.remove('closed');$('#coverR').classList.remove('closed'); // reveal dots
+  evt('flash_on',{exposureMs:item.content.exposureMs});
+  setTimeout(()=>{
+    if(token!==loadToken||submitted)return;
+    $('#coverL').classList.add('closed');$('#coverR').classList.add('closed');       // hide dots
+    decisionT0=clock();locked=false;                                                 // RELEASE lock
+    $('#pickL').disabled=false;$('#pickR').disabled=false;
+    setCue('answer','Your turn');setStatus('Tap the side that had more dots (or press F / J).');
+    evt('flash_off');renderMeters();
+  }, Math.max(120, item.content.exposureMs|0));
+}
+
+/* host protocol */
+window.addEventListener('message',e=>{
+  const d=e.data; if(!d||d.source!==SRC_HOST)return;
+  if(d.type==='init'&&d.item){evt0('init');loadItem(d.item);}
+  else if(d.type==='start')openGate();   // ARMS the gate; the flash starts on the play press
+});
+
+/* engagement tracking */
+function onFocus(){tickFocus();isFocused=true;}
+function onBlur(){tickFocus();if(isFocused)blurCount++;isFocused=false;evt('blur',{blurCount});}
+window.addEventListener('focus',onFocus);window.addEventListener('blur',onBlur);
+document.addEventListener('visibilitychange',()=>{document.visibilityState==='hidden'?onBlur():onFocus();});
+
+/* input wiring */
+$('#play').addEventListener('click',()=>begin());
+$('#pickL').addEventListener('click',()=>choose('L','tap'));
+$('#pickR').addEventListener('click',()=>choose('R','tap'));
+document.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(k==='f')choose('L','key');if(k==='j')choose('R','key');});
+
+/* ---------------- standalone fallback (double-click) ---------------- */
+function ring(n,cx,cy,rad,r){return Array.from({length:n},(_,i)=>({x:Math.round((cx+rad*Math.cos(i/n*6.283))*10)/10,y:Math.round((cy+rad*Math.sin(i/n*6.283))*10)/10}));}
+const SAMPLES=[
+  {itemId:'sample-easy',typeCode:'QUANT-DOTS-01',domain:'quantitative',difficulty:2.0,ageBands:['K-1'],
+   content:{typeCode:'QUANT-DOTS-01',mode:'compare_more',
+     left:{count:5,r:20,dots:ring(5,50,50,26,20)},right:{count:10,r:20,dots:ring(10,50,50,30,20)},
+     exposureMs:1100,cueCondition:'equal-size',options:[{key:'L'},{key:'R'}],prompt:'Which side had more dots?'}},
+  {itemId:'sample-hard',typeCode:'QUANT-DOTS-01',domain:'quantitative',difficulty:15.0,ageBands:['2-3'],
+   content:{typeCode:'QUANT-DOTS-01',mode:'compare_more',
+     left:{count:19,r:11,dots:ring(19,50,50,34,11)},right:{count:16,r:14,dots:ring(16,50,50,32,14)},
+     exposureMs:400,cueCondition:'incongruent',options:[{key:'L'},{key:'R'}],prompt:'Which side had more dots?'}},
+];
+let sampleIx=0;
+// Standalone shows the same gate the child sees, so the double-click QA flow exercises it.
+function standaloneAdvance(){setTimeout(()=>{sampleIx=(sampleIx+1)%SAMPLES.length;loadItem(SAMPLES[sampleIx]);},1300);}
+
+/* ---------------- boot ---------------- */
+buildMeters();
+emit('ready');
+if(EMBEDDED){ setCue('waiting','Waiting for host'); log('ready · awaiting host init'); }
+else{ log('standalone · no host detected'); loadItem(SAMPLES[0]); }
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

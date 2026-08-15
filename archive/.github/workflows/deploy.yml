@@ -1,0 +1,77 @@
+name: Deploy (ECS)
+
+# Builds the family-portal image, pushes it to ECR, and rolls the ECS service.
+# DORMANT BY DEFAULT: every step is gated on the deploy secrets existing, so
+# with no AWS account wired the job runs and cleanly no-ops instead of failing.
+# Enable by setting the repo secrets listed below, then trigger from the Actions
+# tab (workflow_dispatch) or on a push to staging/main.
+#
+# Governance: this deploys "hosted mode" (GT_DEPLOY_MODE=hosted) on the D-012
+# interim Supabase Cloud path — see docs/DEPLOYMENT_RUNBOOK.md.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [staging, main]
+    paths:
+      - apps/**
+      - packages/**
+      - infra/**
+      - .github/workflows/deploy.yml
+
+permissions:
+  id-token: write # for OIDC assume-role
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check deploy configuration
+        id: cfg
+        run: |
+          if [ -n "${{ secrets.AWS_DEPLOY_ROLE_ARN }}" ] \
+            && [ -n "${{ secrets.ECR_REPOSITORY }}" ] \
+            && [ -n "${{ secrets.ECS_CLUSTER }}" ] \
+            && [ -n "${{ secrets.ECS_SERVICE }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deploy secrets not set — skipping deploy (no-op)."
+          fi
+
+      - name: Checkout
+        if: steps.cfg.outputs.configured == 'true'
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        if: steps.cfg.outputs.configured == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: steps.cfg.outputs.configured == 'true'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        if: steps.cfg.outputs.configured == 'true'
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f apps/web/Dockerfile -t "$REGISTRY/$REPOSITORY:$IMAGE_TAG" -t "$REGISTRY/$REPOSITORY:latest" .
+          docker push "$REGISTRY/$REPOSITORY:$IMAGE_TAG"
+          docker push "$REGISTRY/$REPOSITORY:latest"
+
+      - name: Force new ECS deployment
+        if: steps.cfg.outputs.configured == 'true'
+        run: |
+          aws ecs update-service \
+            --cluster "${{ secrets.ECS_CLUSTER }}" \
+            --service "${{ secrets.ECS_SERVICE }}" \
+            --force-new-deployment >/dev/null
+          echo "::notice::Triggered ECS rollout for ${{ secrets.ECS_SERVICE }}."

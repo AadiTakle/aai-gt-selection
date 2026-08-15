@@ -1,0 +1,181 @@
+{
+  "cohort_diagnostics": {
+    "applicant_theta_z_mean": 0.8140158046437519,
+    "applicant_theta_z_sd": 0.8465022840825417,
+    "instrument_standing_reliability_in_pool": 0.8218387102338961,
+    "instrument_standing_se_fisher": 0.375,
+    "instrument_standing_se_total": 1.0680004681646913,
+    "lambda_noise_sd_current": 0.05395444439641917,
+    "lambda_noise_sd_improved": 0.021674043100046007,
+    "lambda_recovery_r_realised_current": 0.33722659101685376,
+    "lambda_recovery_r_realised_improved": 0.6537620816367682,
+    "map_cgi_reliability": 0.6596875,
+    "map_growth_error_sd_rit": 4.666904755831213,
+    "map_reliability_level": 0.9516,
+    "map_true_growth_sd_rit": 6.497691897897283,
+    "n_applicants": 4000,
+    "officer_admit_rate_open": 0.97,
+    "officer_admit_rate_selective": 0.14825,
+    "officer_gate_pass_rate": 0.26975,
+    "seed": 20260730
+  },
+  "figures": {
+    "fig:cluster-projection": {
+      "admit_rate": 0.14825,
+      "lambda_noise_share_of_readout_variance": 0.8862782263111516,
+      "lambda_recovery_r_current": 0.33722659101685376,
+      "lambda_weight_ratio_current": 0.33366448530704246,
+      "lambda_weight_ratio_improved": 0.6938929266977508,
+      "smallest_separable_reference_sd": 0.1454
+    },
+    "fig:criterion-contamination": {
+      "auc_map_drift": 0.0,
+      "auc_mastery_correlated": 0.7437995535714286,
+      "auc_mastery_drift": 0.09780357142857143,
+      "auc_mastery_neutral": 0.6702848214285714,
+      "r_map_constant": 0.2385200405989579,
+      "r_mastery_correlated": 0.5070901880527532,
+      "r_mastery_neutral": 0.3667934581188707
+    },
+    "fig:decision-accuracy-roc": {
+      "auc_cogat_mastery": [
+        0.6362788690476191,
+        0.6173512236195531,
+        0.6559708327634872
+      ],
+      "auc_combined_mastery": [
+        0.6715413690476191,
+        0.6527202953425475,
+        0.6893803289927511
+      ],
+      "auc_difference_instrument_minus_cogat": [
+        0.034005952380952276,
+        0.02009390858788431,
+        0.049007227806658255
+      ],
+      "auc_instrument_mastery": [
+        0.6702848214285714,
+        0.6513455850293071,
+        0.6879824909143568
+      ],
+      "average_precision_cogat_map": 0.3792140132796052,
+      "average_precision_instrument_map": 0.3813772057589419,
+      "map_success_base_rate": 0.3
+    },
+    "fig:incremental-validity": {
+      "available|+ \u03bb\u0302 at 30 trials\n(as administered)|MAP conditional growth\n(external anchor)": [
+        0.06432621796585924,
+        0.051467466651769225,
+        0.07786347389573565
+      ],
+      "available|+ \u03bb\u0302 at 30 trials\n(as administered)|mastery pace\n(platform-internal)": [
+        0.14624010892058603,
+        0.12664406411817872,
+        0.16673428683648162
+      ],
+      "available|+ \u03bb\u0302 at 60 trials\n(hypothetical)|MAP conditional growth\n(external anchor)": [
+        0.07218528581125894,
+        0.057534430759309176,
+        0.08890241324010846
+      ],
+      "available|+ \u03bb\u0302 at 60 trials\n(hypothetical)|mastery pace\n(platform-internal)": [
+        0.19125480375728576,
+        0.17004124020160952,
+        0.2135728839012144
+      ],
+      "available|standing alone|MAP conditional growth\n(external anchor)": [
+        0.05689180976732866,
+        0.044511692650462856,
+        0.07102790901364384
+      ],
+      "available|standing alone|mastery pace\n(platform-internal)": [
+        0.1345374409187996,
+        0.11407171420806167,
+        0.15462143944881723
+      ],
+      "delta_r2_lambda_current_map": 0.007275945829435138,
+      "delta_r2_lambda_improved_map": 0.014899825150260337,
+      "delta_r2_standing_over_cogat_map": 0.01702598051430082,
+      "projected|+ \u03bb\u0302 at 30 trials\n(as administered)|MAP conditional growth\n(external anchor)": [
+        0.06662471674799764,
+        0.05359204394715934,
+        0.08274782733086855
+      ],
+      "projected|+ \u03bb\u0302 at 30 trials\n(as administered)|mastery pace\n(platform-internal)": [
+        0.1508933228792103,
+        0.13080398894381107,
+        0.16909441521884683
+      ],
+      "projected|+ \u03bb\u0302 at 60 trials\n(hypothetical)|MAP conditional growth\n(external anchor)": [
+        0.07424859606882284,
+        0.05890960744456598,
+        0.09015890260439408
+      ],
+      "projected|+ \u03bb\u0302 at 60 trials\n(hypothetical)|mastery pace\n(platform-internal)": [
+        0.19513074334982594,
+        0.1753136173549958,
+        0.2168246767250653
+      ],
+      "projected|CogAT + standing|MAP conditional growth\n(external anchor)": [
+        0.0593487709185625,
+        0.046793688665357186,
+        0.0748617468592775
+      ],
+      "projected|CogAT + standing|mastery pace\n(platform-internal)": [
+        0.1394727725806978,
+        0.12192420789297705,
+        0.1596997465987252
+      ],
+      "projected|CogAT alone|MAP conditional growth\n(external anchor)": [
+        0.04232279040426168,
+        0.031136832758312426,
+        0.055230023311215654
+      ],
+      "projected|CogAT alone|mastery pace\n(platform-internal)": [
+        0.09747085628290153,
+        0.07939033304624712,
+        0.11475427163090686
+      ],
+      "projected|standing alone|MAP conditional growth\n(external anchor)": [
+        0.05689180976732866,
+        0.043912228710228915,
+        0.06873518644674663
+      ],
+      "projected|standing alone|mastery pace\n(platform-internal)": [
+        0.1345374409187996,
+        0.11580503626442823,
+        0.15480882747350322
+      ]
+    },
+    "fig:officer-agreement": {
+      "irrelevant_feature_gap_sd": 0.2909846517347751,
+      "kappa_mimic_rule_ceiling": 0.7881556224636215,
+      "kappa_proposed_rule_vs_officer": 0.4337617572392123,
+      "n_officer_only": 286,
+      "n_rule_only": 286,
+      "raw_agreement": 0.857,
+      "reading_gap_sd": -0.91891656588092,
+      "success_rate_officer_only": 0.32867132867132864,
+      "success_rate_pool": 0.3,
+      "success_rate_rule_only": 0.4020979020979021
+    },
+    "fig:ppv-base-rate": {
+      "operating_admit_rate": 0.14825,
+      "ppv_at_2pct_base_rate": 0.03537638831756478,
+      "ppv_at_60pct_base_rate": 0.7294022617124394,
+      "ppv_at_operating_base_rate": 0.43507588532883645,
+      "sensitivity_instrument": 0.215,
+      "specificity_instrument": 0.8803571428571428
+    },
+    "fig:range-restriction": {
+      "attenuation_from_selection": 0.09905359318930995,
+      "r_full_range": 0.2385200405989579,
+      "r_open_enrolment_observed": 0.22216466890375178,
+      "r_open_enrolment_thorndike_corrected": 0.22960816923263982,
+      "r_selective_observed": 0.13946644740964795,
+      "r_selective_thorndike_corrected": 0.17577021482956542,
+      "selection_ratio_open": 0.97,
+      "selection_ratio_selective": 0.14825
+    }
+  }
+}

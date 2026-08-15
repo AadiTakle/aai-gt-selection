@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPA-TANGRAM-01 · Shape-Fill Form Board</title>
+<style>
+  :root{--bg1:#fcf4ef;--bg2:#f8e8de;--ink:#001117;--card:#ffffff;--accent:#e48b53;--good:#146c43;
+    --tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+  #howto{max-width:620px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:var(--accent);border:2px solid #f5ddcd;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="ready"]{background:#f8e8de;color:var(--accent);border-color:#f5ddcd}
+  #phasecue[data-phase="locked"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
+  #prompt{max-width:620px;width:100%;font-size:15px;font-weight:800;color:#33505c;text-align:center;min-height:20px}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}#status.ok{color:var(--good)}#status.neutral{color:#4a6470}
+  #stagecard{background:var(--card);border-radius:24px;padding:20px;box-shadow:0 18px 50px -22px #002a3a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:660px;width:100%}
+  #boards{display:flex;gap:16px;justify-content:center;align-items:flex-start;flex-wrap:wrap}
+  .board{display:grid;gap:4px;background:#ebba9b;padding:8px;border-radius:12px}
+  .board.layerB{background:#ebba9b}
+  .cell{width:40px;height:40px;border-radius:8px;background:transparent}
+  .cell.out{background:#fcf4ef;box-shadow:inset 0 0 0 2px #f5ddcd}
+  .cell.filled{box-shadow:none;cursor:pointer}
+  .cell.dropok{box-shadow:inset 0 0 0 3px var(--accent)}
+  .cell.dropbad{box-shadow:inset 0 0 0 3px #a4442f}
+  .cell.cursor{outline:3px solid #004f71;outline-offset:-3px}
+  .boardlbl{font-size:10px;text-align:center;color:#4a6470;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+  #tray{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;min-height:64px;align-items:center}
+  .tp{padding:6px;border-radius:10px;background:#f8e8de;border:3px solid #f8e8de;cursor:grab;display:flex;gap:5px;align-items:center;position:relative;touch-action:none;user-select:none}
+  .tp.carry{border-color:var(--accent);box-shadow:0 0 0 3px #f5ddcd}
+  .tp.dragging{opacity:.3;cursor:grabbing}
+  .player{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .plyr-lbl{font-size:8px;color:#6f4526;font-weight:800}
+  .pgrid{display:grid;gap:2px}
+  .pc{width:14px;height:14px;border-radius:3px;background:transparent}
+  #dragimg{position:fixed;left:0;top:0;display:none;gap:4px;z-index:70;pointer-events:none}
+  .dc{width:40px;height:40px;border-radius:8px}
+  .dc.other{opacity:.45}
+  #row{display:flex;gap:12px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:12px}
+  #done{background:var(--accent);color:#ffffff;padding:10px 22px;font-weight:700;font-size:16px;opacity:.5;pointer-events:none;transition:.2s}
+  #done.ready{opacity:1;pointer-events:auto}
+  #replay{width:44px;height:44px;background:#f8e8de;color:#6f4526;font-size:19px;border-radius:50%}
+  .shake{animation:shake .4s}@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+  .hotkeys{font-size:11px;color:#4a6470}
+  #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:60;opacity:0;transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}#ghost .ring{position:absolute;left:-6px;top:-6px;width:26px;height:26px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;min-height:100vh;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #33505c;border-radius:12px}.itemRow{display:flex;justify-content:space-between;color:#4a6470;font-size:11px;padding:2px 0}.itemRow b{color:#f8e8de}
+  #mlist{padding:8px 12px;display:grid;gap:7px}.mrow{display:grid;grid-template-columns:112px 1fr;gap:6px}.mid{color:var(--tel-key);font-weight:800}.mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-4px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}#logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+  #log{height:200px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}#log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;min-height:0;height:300px}}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">SPA-TANGRAM-01 · Shape-Fill Form Board</div>
+    <header id="howto">
+      <h1>How to use — Shape-Fill Form Board</h1>
+      <p>Drag a tray piece onto the outline to place it. Tap a piece while it is still in the tray to turn it. Fill the whole outline with no gaps — some tray pieces are extra and will not fit. Tap a placed piece to pick it back up. Press done when the board is full.</p>
+    </header>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
+    <div id="stagecard">
+      <div id="boards"></div>
+      <div id="tray"></div>
+      <div id="row">
+        <button id="replay" title="hint">&#8635;</button>
+        <button id="done" title="submit">&#10003; done</button>
+      </div>
+      <div id="status" class="neutral">Waiting for an item from the host…</div>
+      <div class="hotkeys">Drag a piece onto the outline · tap a tray piece to turn it · tap a placed piece to remove it<br>Keyboard: Tab to a piece · Enter turns it · G picks it up · arrows move · Enter drops · Esc puts it back</div>
+    </div>
+    <div id="playgate">
+      <p>The board is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">—</b></div>
+      <div class="itemRow"><span>BOARD</span><b id="i_board">—</b></div>
+      <div class="itemRow"><span>FILL</span><b id="i_fill">—</b></div>
+      <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">—</b></div>
+    </div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="dragimg"></div>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="30" height="30" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const k3=c=>c[0]+','+c[1]+','+c[2];
+function normalize(cells){const ml=Math.min(...cells.map(c=>c[0])),mr=Math.min(...cells.map(c=>c[1])),mc=Math.min(...cells.map(c=>c[2]));return cells.map(c=>[c[0]-ml,c[1]-mr,c[2]-mc]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]||a[2]-b[2]);}
+function rotateOffsets(offs){return normalize(offs.map(([l,r,c])=>[l,c,-r]));}
+
+/* ---- postMessage embedding contract (EXAM_ADAPTIVE_BUILD_PLAN.md §2) ----
+   host->demo : {source:'gt-exam-host', type:'init', item:ServedItem} , {type:'start'}
+   demo->host : {source:'gt-exam-demo', type:'ready'} , {type:'result', result:ItemResult} , {type:'telemetry', event}
+   The demo renders ServedItem.content only. It NEVER receives or shows the answer key,
+   and it emits the child's raw placements + numeric metrics + telemetry — no correctness. */
+const HOST='gt-exam-host',SELF='gt-exam-demo';
+const embedded=window.parent&&window.parent!==window;
+function post(type,extra){const msg=Object.assign({source:SELF,type},extra||{});if(embedded){try{window.parent.postMessage(msg,'*')}catch(e){}}}
+
+/* ---------- state ---------- */
+let item=null,content=null,R=0,C=0,L=1,is3D=false,targetSet=new Set(),targetArea=0;
+let available=[],placements=new Map(),filled=new Set();
+/* carryId/cursor is the keyboard equivalent of a pointer drag: the piece is "in hand"
+   and cursor is where its top-left corner would land. drag is the live pointer gesture. */
+let carryId=null,cursor=null,drag=null,previewId=null,previewAnchor=null;
+let locked=true,started=false;
+let gateTutorial=false;    // does the pending play press owe a controls hint?
+const T={itemStart:0,first:0,revs:0,placed:0,rots:0,path:[],rt:0,rapid:false,blur:false,committed:false,lastActivity:performance.now(),events:[]};
+
+const PHASE={waiting:'Waiting for item',ready:'Ready',locked:'Answer locked'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+function nowRel(){return Math.max(0,performance.now()-(T.itemStart||performance.now()));}
+
+/* ---------- telemetry ---------- */
+const METERS=[
+ {id:'M-RTFIRST',name:'First-action latency',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-RT',name:'Commit time (engagement-gated)',get:()=>T.committed?`${T.rt} ms${T.rapid?' · gated':''}`:'—'},
+ {id:'M-REV',name:'Revisions (pick-ups/misfits)',get:()=>String(T.revs)},
+ {id:'M-EXPLORE',name:'Placements · rotations',get:()=>`${T.placed} · ${T.rots}`},
+ {id:'M-RAPIDGUESS',name:'Rapid/idle flag (tracked)',get:()=>T.committed?(T.rapid?'1':'0'):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get()});$('#i_fill').textContent=`${filled.size}/${targetArea}`;}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function emit(kindEv,data){const ev=Object.assign({t:Math.round(nowRel()),kind:kindEv},data||{});T.events.push(ev);post('telemetry',{event:ev});}
+function first(){if(!T.first&&started){T.first=performance.now()-T.itemStart;emit('first_action',{ms:Math.round(T.first)});log(`first action @ ${Math.round(T.first)}ms`);renderMeters();}}
+function activity(){T.lastActivity=performance.now();}
+addEventListener('pointerdown',activity);addEventListener('keydown',activity);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!locked){T.blur=true;emit('blur');}});
+
+/* ---------- render ---------- */
+function cellFillColor(l,r,c){for(const[,pl]of placements){if(pl.cells.some(cc=>cc[0]===l&&cc[1]===r&&cc[2]===c))return pl.color;}return null;}
+function renderBoards(){
+  const wrap=$('#boards');wrap.innerHTML='';
+  for(let l=0;l<L;l++){
+    const outer=document.createElement('div');
+    if(L>1){const lbl=document.createElement('div');lbl.className='boardlbl';lbl.textContent=l===0?'Front layer':'Back layer';outer.appendChild(lbl);}
+    const board=document.createElement('div');board.className='board'+(l===1?' layerB':'');board.style.gridTemplateColumns=`repeat(${C},1fr)`;
+    for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+      const d=document.createElement('div');const kk=l+','+r+','+c;d.dataset.l=l;d.dataset.r=r;d.dataset.c=c;
+      if(targetSet.has(kk)){const fc=cellFillColor(l,r,c);if(fc){d.className='cell filled';d.style.background=fc;}else d.className='cell out';}
+      else d.className='cell';
+      d.tabIndex=-1;
+      board.appendChild(d);
+    }
+    outer.appendChild(board);wrap.appendChild(outer);
+  }
+  applyPreview();
+}
+function cellEl(l,r,c){return $(`#boards .cell[data-l="${l}"][data-r="${r}"][data-c="${c}"]`);}
+/* The drop preview is the whole footprint the piece would take, so a child can see a
+   misfit before committing to it — the same information a pointer drag gives. */
+function applyPreview(){
+  $$('#boards .cell').forEach(d=>d.classList.remove('dropok','dropbad','cursor'));
+  const id=drag&&drag.moved?previewId:carryId;
+  const anchor=drag&&drag.moved?previewAnchor:cursor;
+  if(id===null||!anchor)return;
+  const piece=available.find(p=>p.id===id);if(!piece)return;
+  const ok=!!canPlace(piece,anchor);
+  piece.offsets.forEach(([l,r,c])=>{
+    const d=cellEl(anchor[0]+l,anchor[1]+r,anchor[2]+c);
+    if(d)d.classList.add(ok?'dropok':'dropbad');
+  });
+  if(carryId!==null&&!drag){const d=cellEl(anchor[0],anchor[1],anchor[2]);if(d)d.classList.add('cursor');}
+}
+function pieceBBox(offs){return{R:Math.max(...offs.map(o=>o[1]))+1,C:Math.max(...offs.map(o=>o[2]))+1};}
+function renderTray(){
+  const tray=$('#tray');tray.innerHTML='';
+  available.forEach(p=>{
+    const bb=pieceBBox(p.offsets);
+    const el=document.createElement('div');el.className='tp'+(p.id===carryId?' carry':'');el.dataset.id=p.id;
+    el.tabIndex=0;el.setAttribute('role','button');
+    el.setAttribute('aria-label',`Tray piece ${p.id+1}, ${p.offsets.length} squares. Enter turns it, G picks it up.`);
+    const layers=[...new Set(p.offsets.map(o=>o[0]))].sort();
+    layers.forEach(l=>{
+      const col=document.createElement('div');col.className='player';
+      if(layers.length>1){const t=document.createElement('div');t.className='plyr-lbl';t.textContent='L'+(l+1);col.appendChild(t);}
+      const g=document.createElement('div');g.className='pgrid';g.style.gridTemplateColumns=`repeat(${bb.C},14px)`;
+      for(let r=0;r<bb.R;r++)for(let c=0;c<bb.C;c++){const on=p.offsets.some(o=>o[0]===l&&o[1]===r&&o[2]===c);const sq=document.createElement('div');sq.className='pc';sq.dataset.l=l;sq.dataset.r=r;sq.dataset.c=c;if(on)sq.style.background=p.color;g.appendChild(sq);}
+      col.appendChild(g);el.appendChild(col);
+    });
+    tray.appendChild(el);
+  });
+}
+function renderAll(){renderBoards();renderTray();renderMeters();}
+function focusTrayPiece(id){const el=$(`#tray .tp[data-id="${id}"]`);if(el)el.focus();}
+
+/* ---------- gameplay ---------- */
+/* Rotation happens while the piece is still in the tray, so the child commits to an
+   orientation before placing it rather than trying orientations on the board. */
+function rotatePiece(id){
+  if(locked)return;first();
+  const p=available.find(x=>x.id===id);if(!p)return;
+  const refocus=document.activeElement&&document.activeElement.classList.contains('tp');
+  p.offsets=rotateOffsets(p.offsets);T.rots++;emit('rotate',{id:p.id});log(`turned piece #${p.id}`);
+  renderAll();if(refocus)focusTrayPiece(id);
+  setStatus('neutral','Turned. Drag it onto the outline when it looks right.');
+}
+function canPlace(piece,anchor){
+  const cells=piece.offsets.map(([l,r,c])=>[anchor[0]+l,anchor[1]+r,anchor[2]+c]);
+  for(const[l,r,c]of cells){if(l<0||l>=L||r<0||r>=R||c<0||c>=C)return null;const kk=l+','+r+','+c;if(!targetSet.has(kk))return null;if(filled.has(kk))return null;}
+  return cells;
+}
+function placeAt(id,anchor){
+  if(locked)return;first();
+  const idx=available.findIndex(p=>p.id===id);if(idx<0)return;
+  const piece=available[idx];
+  const cells=anchor?canPlace(piece,anchor):null;
+  if(!cells){T.revs++;emit('misfit',{id:piece.id});log(`piece #${piece.id} does not fit there`);setStatus('neutral','That piece does not fit there.');$('#stagecard').classList.add('shake');setTimeout(()=>$('#stagecard').classList.remove('shake'),400);renderAll();return;}
+  cells.forEach(cc=>filled.add(k3(cc)));placements.set(piece.id,{cells,color:piece.color});
+  available.splice(idx,1);carryId=null;cursor=null;T.placed++;T.path.push(`P${piece.id}`);
+  emit('place',{id:piece.id,filled:filled.size});log(`placed piece #${piece.id} → ${filled.size}/${targetArea}`);renderAll();
+  setStatus('neutral',`${filled.size} of ${targetArea} squares filled.`);
+  $('#done').classList.toggle('ready',started&&!locked);
+  if(filled.size===targetArea)submit(true);
+}
+function pickUpAt(l,r,c){
+  if(locked)return;
+  for(const[id,pl]of placements){
+    if(pl.cells.some(cc=>cc[0]===l&&cc[1]===r&&cc[2]===c)){
+      pl.cells.forEach(cc=>filled.delete(k3(cc)));placements.delete(id);
+      available.push({id,offsets:normalize(pl.cells.map(cc=>[cc[0],cc[1],cc[2]])),color:pl.color});
+      T.revs++;emit('pickup',{id});log(`picked up piece #${id} — revision`);renderAll();return;
+    }
+  }
+}
+
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;R=content.grid.R;C=content.grid.C;L=content.grid.L||1;is3D=!!content.question.is3D;
+  targetSet=new Set(content.target.cells.map(k3));targetArea=content.target.area;
+  available=content.tray.map(t=>({id:t.id,offsets:t.offsets.map(o=>[o[0],o[1],o[2]]),color:t.color}));
+  placements=new Map();filled=new Set();carryId=null;cursor=null;drag=null;previewId=null;previewAnchor=null;
+  hideDragImage();locked=true;started=false;
+  Object.assign(T,{itemStart:0,first:0,revs:0,placed:0,rots:0,path:[],rt:0,rapid:false,blur:false,committed:false,lastActivity:performance.now(),events:[]});
+  renderAll();
+  $('#prompt').textContent=content.question.prompt;
+  $('#done').classList.remove('ready');
+  $('#i_id').textContent=(served.itemId||'—').slice(0,8);
+  $('#i_board').textContent=`${R}\u00d7${C}${L>1?' \u00d7'+L+'L':''} · ${content.tray.length} pieces`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'—');
+  setCue('ready');setStatus('neutral','Drag a piece onto the outline. Tap a piece in the tray to turn it.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} · fill ${targetArea} · ${content.tray.length} pieces`);renderMeters();
+}
+/* ---------- play gate (R1) ----------
+   The outline and the tray are drawn behind the gate on `init` and `start` only arms it; the
+   child's press of play is what starts the item. M-RT and M-RTFIRST are scored, so the clock
+   has to start on a deliberate action rather than on the host's delivery. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  locked=true;$('#done').classList.remove('ready');
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+async function startItem(){if(!content||started)return;   // a second press of play is a no-op
+  closeGate();
+  started=true;T.itemStart=performance.now();emit('start');
+  locked=false;$('#done').classList.add('ready');   // RELEASE lock so placements register and a result can be emitted
+  renderTray();
+  setStatus('neutral','Drag a piece onto the outline. Tap a piece in the tray to turn it.');
+  if(content.scaffold&&content.scaffold.warmup){await ghostHint();}
+}
+function submit(auto){
+  if(locked||!started)return;locked=true;$('#done').classList.remove('ready');
+  T.rt=Math.round(performance.now()-T.itemStart);T.committed=true;
+  const idle=performance.now()-T.lastActivity;T.rapid=T.rt<350||idle>20000;
+  const exactFilled=filled.size===targetArea;
+  const placed=[...placements.entries()].map(([id,pl])=>({id,cells:pl.cells}));
+  const response={mode:content.question.mode,filledCount:filled.size,targetArea,exactFilled,placements:placed,usedPieceIds:placed.map(p=>p.id),placementsMade:T.placed,rotations:T.rots,revisions:T.revs,msToCommit:T.rt,auto:!!auto};
+  const metrics={'M-RT':T.rt,'M-RTFIRST':Math.round(T.first),'M-REV':T.revs,'M-EXPLORE':T.placed+T.rots,'M-RAPIDGUESS':T.rapid?1:0};
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('commit',{filled:filled.size,targetArea});
+  setCue('locked');setStatus('ok','Answer locked.');   // never reveal correct/incorrect (a filled board is inherent visual state, not a verdict)
+  log(`LOCK ${filled.size}/${targetArea} filled · ${T.placed} placed · ${T.rt}ms`);renderMeters();
+  post('result',{result});
+  if(!embedded){after();}
+}
+async function after(){await sleep(1300);nextSample();}
+
+/* ---------- ghost hint (points at the tray; no solving, no answer reveal) ---------- */
+const ghost=$('#ghost');
+async function ghostTo(el){if(!el)return;const r=el.getBoundingClientRect();ghost.style.transform=`translate(${r.left+r.width/2-9}px,${r.top+r.height/2-8}px)`;await sleep(480);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(360);}
+async function ghostHint(){ghost.classList.add('show');await ghostTo($('.tp'));await ghostTap();ghost.classList.remove('show');}
+
+/* ---------- pointer drag-and-drop ---------- *
+   A short press with no travel is a TAP and turns the piece; anything past the 6px
+   threshold is a drag. Both gestures start the same way, so the child never has to
+   choose a mode first. */
+const DRAG_SLOP=6,CELL_PITCH=44;
+/** The square of the piece the pointer actually grabbed, so the piece keeps its grip. */
+function grabOffset(piece,target){
+  const sq=target&&target.closest?target.closest('.pc'):null;
+  if(sq){
+    const g=[+sq.dataset.l,+sq.dataset.r,+sq.dataset.c];
+    if(piece.offsets.some(o=>o[0]===g[0]&&o[1]===g[1]&&o[2]===g[2]))return g;
+    let best=piece.offsets[0],bd=Infinity;
+    for(const o of piece.offsets){const dd=Math.abs(o[0]-g[0])*10+Math.abs(o[1]-g[1])+Math.abs(o[2]-g[2]);if(dd<bd){bd=dd;best=o;}}
+    return best.slice();
+  }
+  return piece.offsets[0].slice();
+}
+function showDragImage(d){
+  const p=available.find(x=>x.id===d.id);if(!p)return;
+  const bb=pieceBBox(p.offsets),g=$('#dragimg');
+  g.innerHTML='';g.style.display='grid';g.style.gridTemplateColumns=`repeat(${bb.C},40px)`;
+  for(let r=0;r<bb.R;r++)for(let c=0;c<bb.C;c++){
+    const sq=document.createElement('div');sq.className='dc';
+    const here=p.offsets.some(o=>o[0]===d.grab[0]&&o[1]===r&&o[2]===c);
+    const elsewhere=p.offsets.some(o=>o[1]===r&&o[2]===c);
+    if(here||elsewhere){sq.style.background=p.color;if(!here)sq.classList.add('other');}
+    g.appendChild(sq);
+  }
+}
+function moveDragImage(d,x,y){
+  $('#dragimg').style.transform=`translate(${x-d.grab[2]*CELL_PITCH-20}px,${y-d.grab[1]*CELL_PITCH-20}px)`;
+}
+function hideDragImage(){const g=$('#dragimg');g.style.display='none';g.innerHTML='';}
+/** Where the piece's origin would land if it were dropped at (x, y). */
+function anchorUnder(x,y,d){
+  const el=document.elementFromPoint(x,y),cell=el&&el.closest?el.closest('.cell'):null;
+  if(!cell||cell.dataset.l===undefined)return null;
+  return [+cell.dataset.l-d.grab[0],+cell.dataset.r-d.grab[1],+cell.dataset.c-d.grab[2]];
+}
+function endDrag(){if(drag&&drag.el)drag.el.classList.remove('dragging');drag=null;previewId=null;previewAnchor=null;hideDragImage();}
+$('#tray').addEventListener('pointerdown',e=>{
+  if(locked||e.button>0)return;
+  const el=e.target.closest('.tp');if(!el)return;
+  const id=+el.dataset.id,piece=available.find(p=>p.id===id);if(!piece)return;
+  if(carryId!==null){carryId=null;cursor=null;}
+  drag={id,el,grab:grabOffset(piece,e.target),x0:e.clientX,y0:e.clientY,moved:false,pointerId:e.pointerId};
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  e.preventDefault();
+});
+addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.pointerId)return;
+  if(!drag.moved){
+    if(Math.hypot(e.clientX-drag.x0,e.clientY-drag.y0)<DRAG_SLOP)return;
+    drag.moved=true;first();drag.el.classList.add('dragging');showDragImage(drag);
+  }
+  moveDragImage(drag,e.clientX,e.clientY);
+  previewId=drag.id;previewAnchor=anchorUnder(e.clientX,e.clientY,drag);applyPreview();
+});
+addEventListener('pointerup',e=>{
+  if(!drag||e.pointerId!==drag.pointerId)return;
+  const d=drag,anchor=d.moved?anchorUnder(e.clientX,e.clientY,d):null;
+  try{d.el.releasePointerCapture(e.pointerId)}catch(_){}
+  endDrag();
+  if(!d.moved){rotatePiece(d.id);return;}
+  suppressBoardClickUntil=performance.now()+300;
+  if(anchor)placeAt(d.id,anchor);
+  else{renderAll();setStatus('neutral','Drop the piece on the outline.');}
+});
+addEventListener('pointercancel',e=>{if(drag&&e.pointerId===drag.pointerId){endDrag();applyPreview();}});
+
+/* ---------- keyboard equivalent of the drag ---------- */
+function firstFreeCell(){
+  for(let l=0;l<L;l++)for(let r=0;r<R;r++)for(let c=0;c<C;c++){
+    const kk=l+','+r+','+c;if(targetSet.has(kk)&&!filled.has(kk))return[l,r,c];
+  }
+  return[0,0,0];
+}
+function focusCursor(){if(!cursor)return;const el=cellEl(cursor[0],cursor[1],cursor[2]);if(el)el.focus();}
+function grabPiece(id){
+  if(locked||!available.some(p=>p.id===id))return;
+  first();carryId=id;cursor=firstFreeCell();renderAll();focusCursor();
+  setStatus('neutral','Arrow keys move the piece, R turns it, Enter drops it, Esc puts it back.');
+}
+function releaseCarry(){
+  const id=carryId;carryId=null;cursor=null;renderAll();
+  if(id!==null)focusTrayPiece(id);
+  setStatus('neutral','Back in the tray.');
+}
+function moveCursor(delta){
+  if(!cursor)return;
+  cursor=[Math.max(0,Math.min(L-1,cursor[0]+delta[0])),Math.max(0,Math.min(R-1,cursor[1]+delta[1])),Math.max(0,Math.min(C-1,cursor[2]+delta[2]))];
+  applyPreview();focusCursor();
+}
+const CURSOR_KEYS={ArrowUp:[0,-1,0],ArrowDown:[0,1,0],ArrowLeft:[0,0,-1],ArrowRight:[0,0,1],PageUp:[-1,0,0],PageDown:[1,0,0]};
+
+/* ---------- input ---------- */
+let suppressBoardClickUntil=0;
+$('#boards').addEventListener('click',e=>{
+  const d=e.target.closest('.cell');
+  if(!d||locked||performance.now()<suppressBoardClickUntil)return;
+  if(d.classList.contains('filled'))pickUpAt(+d.dataset.l,+d.dataset.r,+d.dataset.c);
+});
+$('#tray').addEventListener('keydown',e=>{
+  const el=e.target.closest('.tp');if(!el||locked)return;
+  const id=+el.dataset.id;
+  if(e.key==='Enter'||e.key===' '){rotatePiece(id);e.preventDefault();}
+  else if(e.key.toLowerCase()==='g'){grabPiece(id);e.preventDefault();}
+});
+$('#done').addEventListener('click',()=>{if($('#done').classList.contains('ready'))submit(false);});
+$('#replay').addEventListener('click',()=>{if(started&&!locked)ghostHint();});
+$('#play').addEventListener('click',()=>{startItem();});
+addEventListener('keydown',e=>{
+  if(e.repeat||e.defaultPrevented||!started)return;
+  if(carryId!==null){
+    if(CURSOR_KEYS[e.key]){moveCursor(CURSOR_KEYS[e.key]);}
+    else if(e.key==='Enter'||e.key===' '){
+      const id=carryId;placeAt(id,cursor);
+      if(carryId===null&&!locked)focusTrayPiece(available.length?available[0].id:id);else focusCursor();
+    }
+    else if(e.key==='Escape'){releaseCarry();}
+    else if(e.key.toLowerCase()==='r'){rotatePiece(carryId);applyPreview();focusCursor();}
+    else return;
+    e.preventDefault();return;
+  }
+  if(e.key==='Enter'){submit(false);e.preventDefault();}
+});
+
+/* ---------- host message handling ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+ if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);openGate(false);post('ready');}
+ else if(d.type==='start'){if(content&&!started)openGate(!!d.tutorial);}
+});
+
+/* ---------- standalone fallback (opens by double-click; no host present) ----------
+   Embeds real ServedItems produced by generators/SPA-TANGRAM-01.mjs so the renderer
+   and the bank stay in sync. Answer keys are NOT present in a ServedItem. */
+const SAMPLES=[{"itemId":"ea947cbc-92d9-4fbe-8ea0-62caea243841","typeCode":"SPA-TANGRAM-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"content":{"typeCode":"SPA-TANGRAM-01","question":{"mode":"fill_form_board","is3D":false,"prompt":"Fill every square of the outline using the tray pieces. Some pieces are extra and will not fit."},"grid":{"R":3,"C":3,"L":1},"target":{"cells":[[0,0,1],[0,1,1],[0,1,2],[0,2,1]],"area":4},"tray":[{"id":0,"offsets":[[0,0,0],[0,1,0],[0,2,0]],"color":"#4f46e5"},{"id":1,"offsets":[[0,0,0]],"color":"#0891b2"},{"id":2,"offsets":[[0,0,0],[0,0,1],[0,1,1]],"color":"#d97706"}],"optionKind":"placement","scaffold":{"warmup":true}}},{"itemId":"42ba1b76-54d7-48ba-beb3-43cb5efc8974","typeCode":"SPA-TANGRAM-01","domain":"spatial","difficulty":5.19,"ageBands":["2-3","4-5"],"content":{"typeCode":"SPA-TANGRAM-01","question":{"mode":"fill_form_board","is3D":false,"prompt":"Fill every square of the outline using the tray pieces. Some pieces are extra and will not fit."},"grid":{"R":4,"C":5,"L":1},"target":{"cells":[[0,2,1],[0,2,2],[0,2,3],[0,3,0],[0,3,1],[0,3,2],[0,3,3],[0,3,4]],"area":8},"tray":[{"id":0,"offsets":[[0,0,0],[0,1,0],[0,1,1]],"color":"#4f46e5"},{"id":1,"offsets":[[0,0,0],[0,0,1],[0,0,2],[0,0,3]],"color":"#0891b2"},{"id":2,"offsets":[[0,0,0],[0,0,1],[0,0,2]],"color":"#d97706"},{"id":3,"offsets":[[0,0,0],[0,1,0],[0,2,0],[0,3,0]],"color":"#be185d"},{"id":4,"offsets":[[0,0,0],[0,0,1]],"color":"#16a34a"}],"optionKind":"placement","scaffold":{"warmup":false}}},{"itemId":"5601e805-cbb3-4a52-8ff3-024f3c56eb0b","typeCode":"SPA-TANGRAM-01","domain":"spatial","difficulty":11.84,"ageBands":["4-5","6-8"],"content":{"typeCode":"SPA-TANGRAM-01","question":{"mode":"fill_form_board","is3D":false,"prompt":"Fill every square of the outline using the tray pieces. Some pieces are extra and will not fit."},"grid":{"R":6,"C":6,"L":1},"target":{"cells":[[0,1,3],[0,1,5],[0,2,2],[0,2,3],[0,2,4],[0,2,5],[0,3,3],[0,3,4],[0,3,5],[0,4,3],[0,4,4],[0,4,5],[0,5,3],[0,5,4]],"area":14},"tray":[{"id":0,"offsets":[[0,0,0],[0,1,0],[0,1,1],[0,2,0],[0,2,1]],"color":"#4f46e5"},{"id":1,"offsets":[[0,0,2],[0,1,0],[0,1,1],[0,1,2]],"color":"#0891b2"},{"id":2,"offsets":[[0,0,0],[0,1,0]],"color":"#d97706"},{"id":3,"offsets":[[0,0,0],[0,0,1],[0,1,1],[0,2,1]],"color":"#be185d"},{"id":4,"offsets":[[0,0,0],[0,1,0],[0,1,1]],"color":"#16a34a"},{"id":5,"offsets":[[0,0,0]],"color":"#7c3aed"},{"id":6,"offsets":[[0,0,0],[0,1,0],[0,1,1],[0,2,1]],"color":"#dc2626"},{"id":7,"offsets":[[0,0,1],[0,1,0],[0,1,1]],"color":"#0d9488"}],"optionKind":"placement","scaffold":{"warmup":false}}},{"itemId":"000a4e9d-60f7-4da8-8513-1c65f8692d67","typeCode":"SPA-TANGRAM-01","domain":"spatial","difficulty":14.8,"ageBands":["6-8"],"content":{"typeCode":"SPA-TANGRAM-01","question":{"mode":"fill_form_board","is3D":true,"prompt":"Fill every square of both layers using the tray pieces. Some pieces are extra and will not fit."},"grid":{"R":3,"C":4,"L":2},"target":{"cells":[[0,0,1],[0,1,0],[0,1,1],[0,1,2],[0,1,3],[0,2,1],[0,2,2],[0,2,3],[1,1,3],[1,2,2]],"area":10},"tray":[{"id":0,"offsets":[[0,0,0]],"color":"#4f46e5"},{"id":1,"offsets":[[0,0,0],[0,1,0],[1,0,0]],"color":"#0891b2"},{"id":2,"offsets":[[0,0,0],[0,0,1],[0,0,2],[0,1,1]],"color":"#d97706"},{"id":3,"offsets":[[0,0,0],[0,0,1],[0,1,0],[0,1,1]],"color":"#be185d"},{"id":4,"offsets":[[0,0,0],[0,0,1],[1,0,1]],"color":"#16a34a"},{"id":5,"offsets":[[0,0,0],[0,0,1],[0,0,2]],"color":"#7c3aed"}],"optionKind":"placement","scaffold":{"warmup":false}}}];
+let sampleIdx=0;
+function nextSample(){loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;openGate(false);}
+
+/* ---------- boot ---------- */
+buildMeters();renderMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit&&!embedded){
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  nextSample();
+}},500);
+</script>
+</body>
+</html>

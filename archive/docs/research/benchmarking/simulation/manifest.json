@@ -1,0 +1,25 @@
+{
+  "environment": {
+    "matplotlib": "3.9.4",
+    "numpy": "2.0.2",
+    "python": "3.9.6"
+  },
+  "n_applicants": 4000,
+  "outputs": {
+    "fig-cluster-projection.pdf": "f53ce479e22752f4d793e2ba01bfcd9b1a7634691bd9b90e6705d9a480126abe",
+    "fig-cluster-projection.png": "58f7d1676e361bebf01765df3b18c144c5a2b46d7a0a73c278795928eab401dd",
+    "fig-criterion-contamination.pdf": "ebe60ea078962a436d119d3648e377ae21b4095970570aaec0385ae582bcbfff",
+    "fig-criterion-contamination.png": "e7ab9e7d3129db93678704d0e9c9f2d0436ea35d1300b8dfbaba68c17cc888a1",
+    "fig-decision-accuracy-roc.pdf": "8e67b23b2a17c429f155b4f76b190f1bd4d0538144bd2d423dae673999bf5108",
+    "fig-decision-accuracy-roc.png": "a2aa22734a3adc797acbc2e48b4b83b83ff80095122b2f1c99a4deae7a479020",
+    "fig-incremental-validity.pdf": "2d10fc786d0805a57c75ec854d87558872cbf7669c24f3655fa069af363b037d",
+    "fig-incremental-validity.png": "f6a0d90dc4dcb05b7f9e1895b6f845785dd07fab17b51c2ff013647543a62410",
+    "fig-officer-agreement.pdf": "9f4276d0cd0898451c225acd3068d31bcea28f0b430e535029355089b005ff2d",
+    "fig-officer-agreement.png": "0689cd9d83d372e0154ddf08b6e1c0694781998cb15c63b1fc239ccb5a3b0f30",
+    "fig-ppv-base-rate.pdf": "792d0437bc1007bbfd3696cdce4c2bce5f25bcba9364ddc50c7f7e7300dfcc3b",
+    "fig-ppv-base-rate.png": "7ac8818ecd97f1850eb8a48f75c49e6e2869f0809fcc104e965ac832ef482d60",
+    "fig-range-restriction.pdf": "7aeebc574b1033cc490b153926c69ef07a2e6913128ba1ed3fe20d09d2afa8eb",
+    "fig-range-restriction.png": "b56faf8f4aeeadac2783f63b5904a1bc1916ab575108c1ebc886f1cb7bdfb855"
+  },
+  "root_seed": 20260730
+}

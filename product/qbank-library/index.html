@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Question library &middot; 52 item types</title>
+<style>
+  :root {
+    --ink:#12161c; --soft:#5c6673; --line:#e2e6ec; --bg:#f6f8fa; --card:#fff;
+    --accent:#2c5f8a; --accent-soft:#eaf1f7; --radius:10px;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:1180px; margin:0 auto; padding:28px 22px 72px; }
+
+  header h1 { margin:0 0 6px; font-size:22px; letter-spacing:-0.01em; }
+  header .sub { margin:0; color:var(--soft); font-size:14px; max-width:74ch; }
+  .counts { margin:10px 0 0; color:var(--soft); font-size:13px; }
+
+  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    margin:22px 0 8px; position:sticky; top:0; background:var(--bg);
+    padding:12px 0; border-bottom:1px solid var(--line); z-index:5; }
+  #q { flex:1; min-width:220px; border:1px solid var(--line); border-radius:var(--radius);
+    padding:9px 12px; font:inherit; font-size:14px; background:var(--card); }
+  #q:focus { outline:2px solid var(--accent-soft); border-color:var(--accent); }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { border:1px solid var(--line); background:var(--card); color:var(--soft);
+    border-radius:999px; padding:6px 12px; font:inherit; font-size:13px; cursor:pointer; }
+  .chip:hover { color:var(--ink); }
+  .chip.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .chip .n, h2 .n { opacity:.65; font-variant-numeric:tabular-nums; }
+
+  .area { margin-top:30px; }
+  .area h2 { margin:0 0 3px; font-size:16px; }
+  .areadesc { margin:0 0 14px; color:var(--soft); font-size:13px; max-width:80ch; }
+  .grid { display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(228px,1fr)); }
+
+  .card { display:flex; flex-direction:column; gap:5px; align-items:flex-start; text-align:left;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 15px; cursor:pointer; font:inherit; transition:border-color .12s,transform .12s; }
+  .card:hover { border-color:var(--accent); transform:translateY(-1px); }
+  .card .name { font-weight:600; font-size:14.5px; }
+  .card .code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11.5px; color:var(--soft); }
+
+  #empty { display:none; color:var(--soft); padding:26px 0; }
+
+  #overlay { position:fixed; inset:0; background:rgba(10,14,20,.62);
+    display:none; align-items:center; justify-content:center; padding:20px; z-index:50; }
+  #overlay.on { display:flex; }
+  #panel { background:var(--card); border-radius:12px; width:min(1000px,100%);
+    height:min(760px,100%); display:flex; flex-direction:column; overflow:hidden; }
+  #bar { display:flex; align-items:center; gap:12px; padding:11px 14px;
+    border-bottom:1px solid var(--line); }
+  #bar .t { font-weight:600; font-size:14.5px; }
+  #bar .c { font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11.5px; color:var(--soft); }
+  #bar .sp { flex:1; }
+  #bar a, #bar button { border:1px solid var(--line); background:var(--card); color:var(--soft);
+    border-radius:7px; padding:5px 11px; font:inherit; font-size:13px;
+    cursor:pointer; text-decoration:none; }
+  #bar a:hover, #bar button:hover { color:var(--accent); border-color:var(--accent); }
+  #frame { flex:1; border:0; width:100%; background:#fff; }
+  #filenote { padding:10px 14px; font-size:12.5px; color:var(--soft);
+    border-top:1px solid var(--line); display:none; }
+
+  footer { margin-top:40px; padding-top:16px; border-top:1px solid var(--line);
+    color:var(--soft); font-size:12.5px; max-width:86ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Question library</h1>
+    <p class="sub">52 item types across 7 areas of reasoning. Every one is playable in
+    the browser. Click any card to try it exactly as a child would see it.</p>
+    <p class="counts">8 verbal reasoning &middot; 9 quantitative reasoning &middot; 14 spatial reasoning &middot; 11 fluid reasoning &middot; 6 interactive tasks &middot; 3 working memory &middot; 1 consistency check</p>
+  </header>
+
+  <div class="controls">
+    <input id="q" type="search" placeholder="Search by name or code, e.g. fold, matrix, SPA" autocomplete="off">
+    <div class="chips">
+      <button class="chip on" data-area="all">All <span class="n">52</span></button>
+      <button class="chip" data-area="VER">Verbal reasoning <span class="n">8</span></button>
+      <button class="chip" data-area="QUANT">Quantitative reasoning <span class="n">9</span></button>
+      <button class="chip" data-area="SPA">Spatial reasoning <span class="n">14</span></button>
+      <button class="chip" data-area="FLU">Fluid reasoning <span class="n">11</span></button>
+      <button class="chip" data-area="GB">Interactive tasks <span class="n">6</span></button>
+      <button class="chip" data-area="WM">Working memory <span class="n">3</span></button>
+      <button class="chip" data-area="CX">Consistency check <span class="n">1</span></button>
+    </div>
+  </div>
+
+    <section class="area" data-area="VER">
+      <h2>Verbal reasoning <span class="n">8</span></h2>
+      <p class="areadesc">Meaning, relations between words, and sense-making in language.</p>
+      <div class="grid">
+        <button class="card" data-file="VER-CLOZE-01.html" data-code="VER-CLOZE-01"
+                data-name="Fill the Gap" data-area="VER">
+          <span class="name">Fill the Gap</span>
+          <span class="code">VER-CLOZE-01</span>
+        </button>
+        <button class="card" data-file="VER-EVIDENCE-01.html" data-code="VER-EVIDENCE-01"
+                data-name="Proof Hunt" data-area="VER">
+          <span class="name">Proof Hunt</span>
+          <span class="code">VER-EVIDENCE-01</span>
+        </button>
+        <button class="card" data-file="VER-MORPHO-01.html" data-code="VER-MORPHO-01"
+                data-name="Word Machines" data-area="VER">
+          <span class="name">Word Machines</span>
+          <span class="code">VER-MORPHO-01</span>
+        </button>
+        <button class="card" data-file="VER-POLYSEME-01.html" data-code="VER-POLYSEME-01"
+                data-name="Two Meanings" data-area="VER">
+          <span class="name">Two Meanings</span>
+          <span class="code">VER-POLYSEME-01</span>
+        </button>
+        <button class="card" data-file="VER-RELPAIR-01.html" data-code="VER-RELPAIR-01"
+                data-name="Relation Match" data-area="VER">
+          <span class="name">Relation Match</span>
+          <span class="code">VER-RELPAIR-01</span>
+        </button>
+        <button class="card" data-file="VER-SENSE-01.html" data-code="VER-SENSE-01"
+                data-name="Sentence Sense" data-area="VER">
+          <span class="name">Sentence Sense</span>
+          <span class="code">VER-SENSE-01</span>
+        </button>
+        <button class="card" data-file="VER-SEQUENCE-01.html" data-code="VER-SEQUENCE-01"
+                data-name="Story Order" data-area="VER">
+          <span class="name">Story Order</span>
+          <span class="code">VER-SEQUENCE-01</span>
+        </button>
+        <button class="card" data-file="VER-SORTBOT-01.html" data-code="VER-SORTBOT-01"
+                data-name="Sorting Robot" data-area="VER">
+          <span class="name">Sorting Robot</span>
+          <span class="code">VER-SORTBOT-01</span>
+        </button>
+      </div>
+    </section>
+    <section class="area" data-area="QUANT">
+      <h2>Quantitative reasoning <span class="n">9</span></h2>
+      <p class="areadesc">Number sense, rules and relationships, several with no reading at all.</p>
+      <div class="grid">
+        <button class="card" data-file="QUANT-BALANCE-01.html" data-code="QUANT-BALANCE-01"
+                data-name="Balance Lab" data-area="QUANT">
+          <span class="name">Balance Lab</span>
+          <span class="code">QUANT-BALANCE-01</span>
+        </button>
+        <button class="card" data-file="QUANT-DOTS-01.html" data-code="QUANT-DOTS-01"
+                data-name="More or Fewer" data-area="QUANT">
+          <span class="name">More or Fewer</span>
+          <span class="code">QUANT-DOTS-01</span>
+        </button>
+        <button class="card" data-file="QUANT-FUNC-01.html" data-code="QUANT-FUNC-01"
+                data-name="Machine Rule" data-area="QUANT">
+          <span class="name">Machine Rule</span>
+          <span class="code">QUANT-FUNC-01</span>
+        </button>
+        <button class="card" data-file="QUANT-GLYPHNUM-01.html" data-code="QUANT-GLYPHNUM-01"
+                data-name="Alien Numbers" data-area="QUANT">
+          <span class="name">Alien Numbers</span>
+          <span class="code">QUANT-GLYPHNUM-01</span>
+        </button>
+        <button class="card" data-file="QUANT-GRAPH-01.html" data-code="QUANT-GRAPH-01"
+                data-name="Story Graph" data-area="QUANT">
+          <span class="name">Story Graph</span>
+          <span class="code">QUANT-GRAPH-01</span>
+        </button>
+        <button class="card" data-file="QUANT-MATRIX-01.html" data-code="QUANT-MATRIX-01"
+                data-name="Number Web" data-area="QUANT">
+          <span class="name">Number Web</span>
+          <span class="code">QUANT-MATRIX-01</span>
+        </button>
+        <button class="card" data-file="QUANT-MIX-01.html" data-code="QUANT-MIX-01"
+                data-name="Fair Share" data-area="QUANT">
+          <span class="name">Fair Share</span>
+          <span class="code">QUANT-MIX-01</span>
+        </button>
+        <button class="card" data-file="QUANT-SERIES-01.html" data-code="QUANT-SERIES-01"
+                data-name="Pattern Steps" data-area="QUANT">
+          <span class="name">Pattern Steps</span>
+          <span class="code">QUANT-SERIES-01</span>
+        </button>
+        <button class="card" data-file="QUANT-WORD-01.html" data-code="QUANT-WORD-01"
+                data-name="Story Model" data-area="QUANT">
+          <span class="name">Story Model</span>
+          <span class="code">QUANT-WORD-01</span>
+        </button>
+      </div>
+    </section>
+    <section class="area" data-area="SPA">
+      <h2>Spatial reasoning <span class="n">14</span></h2>
+      <p class="areadesc">Mental rotation, folding, perspective and cross-sections. No reading required.</p>
+      <div class="grid">
+        <button class="card" data-file="SPA-FOLDNET-01.html" data-code="SPA-FOLDNET-01"
+                data-name="Fold-the-Net" data-area="SPA">
+          <span class="name">Fold-the-Net</span>
+          <span class="code">SPA-FOLDNET-01</span>
+        </button>
+        <button class="card" data-file="SPA-HIDDENCUBE-01.html" data-code="SPA-HIDDENCUBE-01"
+                data-name="X-Ray Cubes" data-area="SPA">
+          <span class="name">X-Ray Cubes</span>
+          <span class="code">SPA-HIDDENCUBE-01</span>
+        </button>
+        <button class="card" data-file="SPA-MAZE-01.html" data-code="SPA-MAZE-01"
+                data-name="Plan-the-Path" data-area="SPA">
+          <span class="name">Plan-the-Path</span>
+          <span class="code">SPA-MAZE-01</span>
+        </button>
+        <button class="card" data-file="SPA-PICKFOLD-01.html" data-code="SPA-PICKFOLD-01"
+                data-name="Which Fold Made It?" data-area="SPA">
+          <span class="name">Which Fold Made It?</span>
+          <span class="code">SPA-PICKFOLD-01</span>
+        </button>
+        <button class="card" data-file="SPA-PIPES-01.html" data-code="SPA-PIPES-01"
+                data-name="Path Connect" data-area="SPA">
+          <span class="name">Path Connect</span>
+          <span class="code">SPA-PIPES-01</span>
+        </button>
+        <button class="card" data-file="SPA-PUNCH-01.html" data-code="SPA-PUNCH-01"
+                data-name="Fold &amp; Punch" data-area="SPA">
+          <span class="name">Fold &amp; Punch</span>
+          <span class="code">SPA-PUNCH-01</span>
+        </button>
+        <button class="card" data-file="SPA-ROLL-01.html" data-code="SPA-ROLL-01"
+                data-name="Rolling Cube" data-area="SPA">
+          <span class="name">Rolling Cube</span>
+          <span class="code">SPA-ROLL-01</span>
+        </button>
+        <button class="card" data-file="SPA-SCENE-01.html" data-code="SPA-SCENE-01"
+                data-name="What the Robot Sees" data-area="SPA">
+          <span class="name">What the Robot Sees</span>
+          <span class="code">SPA-SCENE-01</span>
+        </button>
+        <button class="card" data-file="SPA-SHADOW-01.html" data-code="SPA-SHADOW-01"
+                data-name="Shadow Play" data-area="SPA">
+          <span class="name">Shadow Play</span>
+          <span class="code">SPA-SHADOW-01</span>
+        </button>
+        <button class="card" data-file="SPA-TANGRAM-01.html" data-code="SPA-TANGRAM-01"
+                data-name="Shape-Fill Form Board" data-area="SPA">
+          <span class="name">Shape-Fill Form Board</span>
+          <span class="code">SPA-TANGRAM-01</span>
+        </button>
+        <button class="card" data-file="SPA-VIEW-01.html" data-code="SPA-VIEW-01"
+                data-name="What Do They See" data-area="SPA">
+          <span class="name">What Do They See</span>
+          <span class="code">SPA-VIEW-01</span>
+        </button>
+        <button class="card" data-file="SPA-XFORM-01.html" data-code="SPA-XFORM-01"
+                data-name="Transform Machine" data-area="SPA">
+          <span class="name">Transform Machine</span>
+          <span class="code">SPA-XFORM-01</span>
+        </button>
+        <button class="card" data-file="SPA-XPLANE-01.html" data-code="SPA-XPLANE-01"
+                data-name="Place the Slice" data-area="SPA">
+          <span class="name">Place the Slice</span>
+          <span class="code">SPA-XPLANE-01</span>
+        </button>
+        <button class="card" data-file="SPA-XSCAN-01.html" data-code="SPA-XSCAN-01"
+                data-name="Scan Stacker" data-area="SPA">
+          <span class="name">Scan Stacker</span>
+          <span class="code">SPA-XSCAN-01</span>
+        </button>
+      </div>
+    </section>
+    <section class="area" data-area="FLU">
+      <h2>Fluid reasoning <span class="n">11</span></h2>
+      <p class="areadesc">Working out a rule that was never taught, then applying it.</p>
+      <div class="grid">
+        <button class="card" data-file="FLU-ANALOGY-01.html" data-code="FLU-ANALOGY-01"
+                data-name="Shape Morph" data-area="FLU">
+          <span class="name">Shape Morph</span>
+          <span class="code">FLU-ANALOGY-01</span>
+        </button>
+        <button class="card" data-file="FLU-CARPET-01.html" data-code="FLU-CARPET-01"
+                data-name="Pattern Carpet" data-area="FLU">
+          <span class="name">Pattern Carpet</span>
+          <span class="code">FLU-CARPET-01</span>
+        </button>
+        <button class="card" data-file="FLU-CONCEPT-01.html" data-code="FLU-CONCEPT-01"
+                data-name="Mystery Gate" data-area="FLU">
+          <span class="name">Mystery Gate</span>
+          <span class="code">FLU-CONCEPT-01</span>
+        </button>
+        <button class="card" data-file="FLU-DEDUCE-01.html" data-code="FLU-DEDUCE-01"
+                data-name="Clue Detective" data-area="FLU">
+          <span class="name">Clue Detective</span>
+          <span class="code">FLU-DEDUCE-01</span>
+        </button>
+        <button class="card" data-file="FLU-GRIDCOPY-01.html" data-code="FLU-GRIDCOPY-01"
+                data-name="Copy the Change" data-area="FLU">
+          <span class="name">Copy the Change</span>
+          <span class="code">FLU-GRIDCOPY-01</span>
+        </button>
+        <button class="card" data-file="FLU-LADDER-01.html" data-code="FLU-LADDER-01"
+                data-name="Ranking Ladder" data-area="FLU">
+          <span class="name">Ranking Ladder</span>
+          <span class="code">FLU-LADDER-01</span>
+        </button>
+        <button class="card" data-file="FLU-MATRIX-01.html" data-code="FLU-MATRIX-01"
+                data-name="Machine Matrix" data-area="FLU">
+          <span class="name">Machine Matrix</span>
+          <span class="code">FLU-MATRIX-01</span>
+        </button>
+        <button class="card" data-file="FLU-ODDPAIR-01.html" data-code="FLU-ODDPAIR-01"
+                data-name="Odd Pair Out" data-area="FLU">
+          <span class="name">Odd Pair Out</span>
+          <span class="code">FLU-ODDPAIR-01</span>
+        </button>
+        <button class="card" data-file="FLU-OPCHAIN-01.html" data-code="FLU-OPCHAIN-01"
+                data-name="Machine Chain" data-area="FLU">
+          <span class="name">Machine Chain</span>
+          <span class="code">FLU-OPCHAIN-01</span>
+        </button>
+        <button class="card" data-file="FLU-STACK-01.html" data-code="FLU-STACK-01"
+                data-name="Stack the Panel" data-area="FLU">
+          <span class="name">Stack the Panel</span>
+          <span class="code">FLU-STACK-01</span>
+        </button>
+        <button class="card" data-file="FLU-VENN-01.html" data-code="FLU-VENN-01"
+                data-name="Double Match" data-area="FLU">
+          <span class="name">Double Match</span>
+          <span class="code">FLU-VENN-01</span>
+        </button>
+      </div>
+    </section>
+    <section class="area" data-area="GB">
+      <h2>Interactive tasks <span class="n">6</span></h2>
+      <p class="areadesc">Longer tasks where the process is observed, not just the answer.</p>
+      <div class="grid">
+        <button class="card" data-file="GB-EXPLORE-01.html" data-code="GB-EXPLORE-01"
+                data-name="Explorer&#x27;s Map" data-area="GB">
+          <span class="name">Explorer&#x27;s Map</span>
+          <span class="code">GB-EXPLORE-01</span>
+        </button>
+        <button class="card" data-file="GB-FLAWFINDER-01.html" data-code="GB-FLAWFINDER-01"
+                data-name="Fib Finder" data-area="GB">
+          <span class="name">Fib Finder</span>
+          <span class="code">GB-FLAWFINDER-01</span>
+        </button>
+        <button class="card" data-file="GB-ROBOPATH-01.html" data-code="GB-ROBOPATH-01"
+                data-name="Path Coder" data-area="GB">
+          <span class="name">Path Coder</span>
+          <span class="code">GB-ROBOPATH-01</span>
+        </button>
+        <button class="card" data-file="GB-TRACK-01.html" data-code="GB-TRACK-01"
+                data-name="Firefly Jars" data-area="GB">
+          <span class="name">Firefly Jars</span>
+          <span class="code">GB-TRACK-01</span>
+        </button>
+        <button class="card" data-file="GB-WORDFORGE-01.html" data-code="GB-WORDFORGE-01"
+                data-name="Word Forge" data-area="GB">
+          <span class="name">Word Forge</span>
+          <span class="code">GB-WORDFORGE-01</span>
+        </button>
+        <button class="card" data-file="GB-WORDLADDER-01.html" data-code="GB-WORDLADDER-01"
+                data-name="Letter Climb" data-area="GB">
+          <span class="name">Letter Climb</span>
+          <span class="code">GB-WORDLADDER-01</span>
+        </button>
+      </div>
+    </section>
+    <section class="area" data-area="WM">
+      <h2>Working memory <span class="n">3</span></h2>
+      <p class="areadesc">How much a child can hold and manipulate at once.</p>
+      <div class="grid">
+        <button class="card" data-file="WM-bind-01.html" data-code="WM-bind-01"
+                data-name="Home Again" data-area="WM">
+          <span class="name">Home Again</span>
+          <span class="code">WM-bind-01</span>
+        </button>
+        <button class="card" data-file="WM-bubble-01.html" data-code="WM-bubble-01"
+                data-name="Bubble Pop Memory" data-area="WM">
+          <span class="name">Bubble Pop Memory</span>
+          <span class="code">WM-bubble-01</span>
+        </button>
+        <button class="card" data-file="WM-corsi-01.html" data-code="WM-corsi-01"
+                data-name="Firefly Trail" data-area="WM">
+          <span class="name">Firefly Trail</span>
+          <span class="code">WM-corsi-01</span>
+        </button>
+      </div>
+    </section>
+    <section class="area" data-area="CX">
+      <h2>Consistency check <span class="n">1</span></h2>
+      <p class="areadesc">Serves the same problem twice to test whether an answer was stable.</p>
+      <div class="grid">
+        <button class="card" data-file="CX-check-01.html" data-code="CX-check-01"
+                data-name="Check It Twice" data-area="CX">
+          <span class="name">Check It Twice</span>
+          <span class="code">CX-check-01</span>
+        </button>
+      </div>
+    </section>
+
+  <p id="empty">Nothing matches that search.</p>
+
+  <footer>
+    Several of these families generate a fresh version of the question every time they run, so two
+    children do not see the same item. What each family measures, how hard it is, and how well it
+    behaves are properties of the item type rather than of any single question, and those are held
+    in the screening engine rather than here. This page is the catalogue.
+  </footer>
+</div>
+
+<div id="overlay">
+  <div id="panel">
+    <div id="bar">
+      <span class="t"></span><span class="c"></span><span class="sp"></span>
+      <a id="newtab" href="#" target="_blank" rel="noopener">Open in new tab</a>
+      <button id="close">Close</button>
+    </div>
+    <iframe id="frame" title="Question preview"></iframe>
+    <div id="filenote">If the preview is blank, the browser is blocking embedded local files.
+      Use <strong>Open in new tab</strong>, or serve the folder with
+      <code>python3 -m http.server 8000</code>.</div>
+  </div>
+</div>
+
+<script>
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.card'));
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+  var q = document.getElementById('q');
+  var empty = document.getElementById('empty');
+  var area = 'all';
+
+  function apply() {
+    var term = q.value.trim().toLowerCase();
+    var shown = 0;
+    cards.forEach(function (c) {
+      var okArea = area === 'all' || c.dataset.area === area;
+      var hay = (c.dataset.name + ' ' + c.dataset.code).toLowerCase();
+      var okTerm = !term || hay.indexOf(term) !== -1;
+      var on = okArea && okTerm;
+      c.style.display = on ? '' : 'none';
+      if (on) shown++;
+    });
+    document.querySelectorAll('.area').forEach(function (s) {
+      var any = Array.prototype.some.call(s.querySelectorAll('.card'), function (c) {
+        return c.style.display !== 'none';
+      });
+      s.style.display = any ? '' : 'none';
+    });
+    empty.style.display = shown ? 'none' : 'block';
+  }
+
+  q.addEventListener('input', apply);
+  chips.forEach(function (ch) {
+    ch.addEventListener('click', function () {
+      chips.forEach(function (o) { o.classList.remove('on'); });
+      ch.classList.add('on');
+      area = ch.dataset.area;
+      apply();
+    });
+  });
+
+  var overlay = document.getElementById('overlay');
+  var frame = document.getElementById('frame');
+  var newtab = document.getElementById('newtab');
+  var filenote = document.getElementById('filenote');
+
+  cards.forEach(function (c) {
+    c.addEventListener('click', function () {
+      var src = 'items/' + c.dataset.file;
+      document.querySelector('#bar .t').textContent = c.dataset.name;
+      document.querySelector('#bar .c').textContent = c.dataset.code;
+      newtab.href = src;
+      frame.src = src;
+      filenote.style.display = location.protocol === 'file:' ? 'block' : 'none';
+      overlay.classList.add('on');
+    });
+  });
+
+  function close() {
+    overlay.classList.remove('on');
+    frame.src = 'about:blank';
+  }
+  document.getElementById('close').addEventListener('click', close);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+</script>
+</body>
+</html>

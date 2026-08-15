@@ -1,96 +1,76 @@
-# GT Selection Capstone
+# GT Selection Platform
 
-Synthetic, critic-ready prototype for a GT School admissions pathway that preserves Track A,
-adds a structured Track B eligibility route, and keeps future allocation/evaluation separate.
+This repository contains the shared question library, adaptive measurement engine,
+serverless question platform, and the applications deployed around them.
 
-## Repository status
+Start with:
 
-The monorepo scaffold was introduced in two phases:
+1. [`product/docs/gt/README.md`](product/docs/gt/README.md) — the GT development-team handoff.
+2. [`product/docs/gt/testing-and-demos.md`](product/docs/gt/testing-and-demos.md) — open every live, local and debug surface.
+3. [`product/docs/gt/access-and-ownership-transfer.md`](product/docs/gt/access-and-ownership-transfer.md) — sandbox resources and secure access handoff.
+4. [`product/deployed-apps/README.md`](product/deployed-apps/README.md) — every live surface and where its source lives.
+5. [`product/docs/handoff/2026-08-14-repo-orientation.md`](product/docs/handoff/2026-08-14-repo-orientation.md) — measured repository and deployment state.
+6. [`product/docs/interviews/2026-08-03-crystal-martel-call.md`](product/docs/interviews/2026-08-03-crystal-martel-call.md) — GT's binding constraints.
+7. [`product/docs/overnight/README.md`](product/docs/overnight/README.md) — what the current instrument actually measures and its limitations.
 
-1. **Phase A:** reproducible root tooling and package shells.
-2. **Phase B:** architecture-aligned Next.js, shared contracts, local Supabase, tests, and CI
-   boundaries.
+## Repository map
 
-No live child data, hosted Supabase project, production credentials, allocation system, or
-causal-analysis service is authorized.
+- `product/screener/` — Bramblebrook, prototype and internal apps, `qbank`, the
+  measurement primitives, shared contracts, and UI contracts.
+- `product/platform/` — the deployed API, trace store, scoring adapter, selection,
+  Lambda handlers, operational scripts, and CDK.
+- `product/qbank-library/` — the 53 JSONL banks and their standalone HTML renderers.
+- `product/deployed-apps/` — the deployment inventory plus the dashboard and
+  question-type review applications.
+- `product/docs/` — active design, measurement, integration, operations, and handoff documentation.
+- `brainlifting/` — the project's preserved evidence and reasoning layer. These
+  documents are first-class repository material, not archived status notes.
+- `archive/` — the pre-reset application and its historical governance and research.
+- `shots/` — experiment screenshots retained as artifacts.
 
-## Prerequisites
+The live measurement path is `product/screener/packages/qbank/`. The package at
+`product/screener/packages/engine/` also supplies the posterior and item-response
+math used by qbank; its generator session and simulation are the older parallel path.
 
-- Node.js 24 LTS (`.nvmrc`)
-- pnpm 10 (pinned through `packageManager`)
-- Docker Desktop or Colima (required for local Supabase)
-- Git
-
-## Workspace
-
-```text
-apps/web                         @gt-selection/web
-packages/contracts               @gt-selection/contracts
-packages/db-types                @gt-selection/db-types
-packages/test-fixtures           @gt-selection/test-fixtures
-supabase/                        local Supabase boundary
-```
-
-The accepted architecture is documented in `docs/ARCHITECTURE_PLAN.md`. Framework-independent
-contracts and fixtures remain outside the Next.js package; app-only clients and wrappers stay
-inside `apps/web`.
-
-## Ownership and merge coordination
-
-- Scaffold branch owns root package/config files, `pnpm-lock.yaml`, and package-shell
-  `package.json` files.
-- Architecture branch owns `docs/architecture/**`, ADRs, diagrams, and data-flow documents.
-- One contributor owns root dependency changes and the lockfile per merge window.
-- Architecture merges to `dev` before Phase B fills package internals.
-- All work follows `feat/* -> dev -> staging -> main`; see `AGENTS.md`.
-
-## Local commands
+## Run the active system
 
 ```bash
-pnpm install
-pnpm db:start
-pnpm db:reset
-pnpm db:users
-pnpm format:check
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm db:lint
-pnpm db:test
-pnpm db:types:check
-pnpm build
-pnpm security:scan
-pnpm --filter @gt-selection/web test:e2e
-pnpm db:stop
+cd product/platform
+npm install
+npm run ddb:start
+npm run seed:bramblebrook
+npm run dev:local
+
+# In another terminal:
+cd product/screener
+npm install
+npm run sanctuary
 ```
 
-`pnpm db:users` reads local setup values directly from the running Supabase CLI. It creates only
-fictional login-capable users and refuses non-loopback Supabase URLs.
+Repository-root shortcuts continue to target the screener:
 
-Use `pnpm verify` for the complete local sequence. It starts and resets Supabase, executes all
-workspace/database/security/E2E checks, and stops the local project without preserving data.
+```bash
+npm run verify
+npm run dev
+npm run review
+```
 
-## CI/CD
+Platform verification runs separately:
 
-`.github/workflows/ci.yml` runs the architecture-neutral monorepo checks for pull requests into
-`dev`, `staging`, or `main`, and for pushes to those branches. It uses path filters so
-documentation-only work does not start the application pipeline.
+```bash
+cd product/platform
+npm test
+npm run synth
+```
 
-CI is split into merge-blocking jobs:
+## Deployment
 
-- **Workspace quality:** frozen install, format, lint, typecheck, coverage, dependency direction,
-  and build.
-- **Database:** local Supabase start/reset/lint, pgTAP, and generated API-type drift.
-- **Web smoke/security:** local synthetic Auth users, Next.js build, elevated-key scan, and
-  Playwright.
-- **Promotion artifact:** lockfile/checksum/build metadata on pushes to `staging` and `main`.
+The sandbox deployments are manual. A git push does not deploy anything. Read
+`product/deployed-apps/README.md` for the live inventory and
+`product/screener/apps/sanctuary/PLATFORM.md` for the platform-backed game workflow.
 
-The repository has no authorized production deployment target. Until that changes through a
-governance decision, CD means validated promotion through `feat/* -> dev -> staging -> main`;
-it does not deploy live infrastructure. Configure branch protection in GitHub so the CI check
-and review are required before each promotion.
+## Historical project
 
-## Canonical project guidance
-
-Read `AGENTS.md`, `PROJECT_CHARTER.md`, the project requirements, development rubric,
-traceability matrix, evidence register, and decision log before changing product behavior.
+The stopped pre-reset application remains intact under `archive/`. Start with
+`archive/README.md` when investigating that system; do not use it as the status
+source for the active platform.

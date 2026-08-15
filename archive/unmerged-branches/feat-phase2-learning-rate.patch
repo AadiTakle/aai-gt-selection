@@ -1,0 +1,675 @@
+From 6bba141d1f5abf0292a0dcb23a6d1d2b74874fb9 Mon Sep 17 00:00:00 2001
+From: Aadi Takle <aadiatakle@gmail.com>
+Date: Tue, 28 Jul 2026 12:35:33 -0500
+Subject: [PATCH] feat(cat-engine): novel-block design + learning-rate readout
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Implements the learning-rate fix the psychometric sweep specified: a
+30-trial single-domain block at adaptive difficulty (half the items of
+four shallower blocks, and better recovery), fitted with the joint MAP
+learning-curve estimator instead of the OLS score slope.
+
+The readout returns an ordinal band and never a bare number, because the
+MAP estimate is shrunk ~60% toward zero. It returns `indeterminate`
+whenever the posterior is too wide to separate bands — which, measured
+here, is the case at the recommended block length: one child's SE is
+~0.039 against a population spread of ~0.030. Ranking a cohort (r~0.62)
+and placing an individual are different claims and only the first holds,
+so `learningRateCohortRank` is provided as the supportable alternative.
+
+Named `learning-block` rather than `phase2` to keep the engine
+structure-agnostic. The rate is deliberately kept out of the scored
+decision payload; it remains a labelled hypothesis.
+
+Co-authored-by: Cursor <cursoragent@cursor.com>
+---
+ packages/cat-engine/src/index.ts              |  10 +-
+ .../src/learning-block/design.test.ts         | 109 ++++++++++
+ .../cat-engine/src/learning-block/design.ts   | 136 +++++++++++++
+ .../cat-engine/src/learning-block/index.ts    |  13 ++
+ .../src/learning-block/readout.test.ts        | 123 ++++++++++++
+ .../cat-engine/src/learning-block/readout.ts  | 190 ++++++++++++++++++
+ 6 files changed, 580 insertions(+), 1 deletion(-)
+ create mode 100644 packages/cat-engine/src/learning-block/design.test.ts
+ create mode 100644 packages/cat-engine/src/learning-block/design.ts
+ create mode 100644 packages/cat-engine/src/learning-block/index.ts
+ create mode 100644 packages/cat-engine/src/learning-block/readout.test.ts
+ create mode 100644 packages/cat-engine/src/learning-block/readout.ts
+
+diff --git a/packages/cat-engine/src/index.ts b/packages/cat-engine/src/index.ts
+index b8c8c89..0dd314d 100644
+--- a/packages/cat-engine/src/index.ts
++++ b/packages/cat-engine/src/index.ts
+@@ -4,10 +4,17 @@
+  *
+  * No web / DB / framework dependencies: it runs identically in local dev and in
+  * Lambda. It scores whatever the sequencer produced (fixed-form, two-stage, or
+- * adaptive) — it does NOT itself route or select items (that logic lived in the
++ * adaptive) — it does NOT own the administration loop (that logic lived in the
+  * deliberately-excluded `select.ts` / `session.ts`). All output is
+  * `synthetic_only=true`, `validated=false` (D-006, R9).
+  *
++ * `learning-block` narrows that boundary rather than keeping it absolute. It
++ * supplies targeting MATH — where the next item should sit given the climb so
++ * far, and which of a supplied pool carries the most information there — while
++ * the caller keeps the loop, the stopping rule, and every content constraint.
++ * The distinction worth preserving is that the engine answers "how hard should
++ * the next item be", never "here is the next item the child sees".
++ *
+  * `persona-sim` is the born-synthetic generator side of the same engine: it
+  * produces test-takers with KNOWN latent truth so the scoring path above can be
+  * checked against it. Recovery against a self-generated truth is circular and
+@@ -22,6 +29,7 @@ export * from './scoring';
+ export * from './measurements';
+ export * from './rte';
+ export * from './item-scoring';
++export * from './learning-block';
+ export * from './result';
+ export * from './replay';
+ export * from './persona-sim';
+diff --git a/packages/cat-engine/src/learning-block/design.test.ts b/packages/cat-engine/src/learning-block/design.test.ts
+new file mode 100644
+index 0000000..be2e1f2
+--- /dev/null
++++ b/packages/cat-engine/src/learning-block/design.test.ts
+@@ -0,0 +1,109 @@
++import { describe, expect, it } from 'vitest';
++
++import { probabilityCorrect } from '../irt';
++import { hashSeed, mulberry32 } from '../rng';
++import type { LearningTrial } from '../psychometric-lab/learning-curve';
++import type { IrtParameters } from '../types';
++
++import {
++  MIN_TRIALS_FOR_PROJECTION,
++  RECOMMENDED_NOVEL_BLOCK_LENGTH,
++  nextTargetTheta,
++  poolSupportsBlock,
++  selectNextNovelItem,
++  type NovelBlockItem,
++} from './design';
++
++const item = (b: number, a = 1.2, c = 0.25): IrtParameters => ({ a, b, c, model: '3PL' });
++
++function simulateBlock(
++  seed: string,
++  theta0: number,
++  lambda: number,
++  length: number,
++  difficulty: number,
++): LearningTrial[] {
++  const rand = mulberry32(hashSeed(seed));
++  return Array.from({ length }, (_, t) => {
++    const irt = item(difficulty);
++    return {
++      irt,
++      trialIndex: t,
++      correct: rand() < probabilityCorrect(theta0 + lambda * t, irt),
++    };
++  });
++}
++
++describe('block length constants', () => {
++  it('recommends the shortest single-domain block that reached usable recovery', () => {
++    // 30 is not a round number chosen for tidiness: it is the shortest block that
++    // reached r >= 0.50 against injected truth at the observed effect size.
++    expect(RECOMMENDED_NOVEL_BLOCK_LENGTH).toBe(30);
++  });
++});
++
++describe('nextTargetTheta', () => {
++  it('falls back to the incoming estimate before it has enough trials to project', () => {
++    const trials = simulateBlock('short', 0, 0.03, MIN_TRIALS_FOR_PROJECTION - 1, 0);
++    expect(nextTargetTheta(trials, { priorTheta: 0.7 })).toBeCloseTo(0.7, 10);
++  });
++
++  it('applies the difficulty offset even when it cannot yet project', () => {
++    expect(nextTargetTheta([], { priorTheta: 0.5, targetOffset: 0.3 })).toBeCloseTo(0.8, 10);
++  });
++
++  it('follows a climbing child upward rather than holding the entry level', () => {
++    // A strong climb so the direction is unambiguous; the point is that the
++    // target tracks the child, not that this lambda is realistic.
++    const trials = simulateBlock('climber', -1.0, 0.08, 40, -0.5);
++    const target = nextTargetTheta(trials, { priorTheta: -1.0 });
++    expect(target).toBeGreaterThan(-1.0);
++  });
++
++  it('adds the offset on top of the projected level', () => {
++    const trials = simulateBlock('offset', -0.5, 0.05, 30, 0);
++    const plain = nextTargetTheta(trials, { priorTheta: -0.5 });
++    const raised = nextTargetTheta(trials, { priorTheta: -0.5, targetOffset: 0.4 });
++    expect(raised - plain).toBeCloseTo(0.4, 10);
++  });
++});
++
++describe('selectNextNovelItem', () => {
++  const pool: NovelBlockItem[] = [
++    { id: 'easy', irt: item(-2) },
++    { id: 'mid', irt: item(0) },
++    { id: 'hard', irt: item(2) },
++  ];
++
++  it('picks the item carrying the most information at the target', () => {
++    expect(selectNextNovelItem(pool, [], 0)?.id).toBe('mid');
++    expect(selectNextNovelItem(pool, [], 2.2)?.id).toBe('hard');
++  });
++
++  it('never re-administers an item already seen', () => {
++    expect(selectNextNovelItem(pool, ['mid'], 0)?.id).not.toBe('mid');
++  });
++
++  it('returns null when the pool is exhausted so a short block is visible, not silent', () => {
++    expect(selectNextNovelItem(pool, ['easy', 'mid', 'hard'], 0)).toBeNull();
++  });
++});
++
++describe('poolSupportsBlock', () => {
++  const build = (n: number): NovelBlockItem[] =>
++    Array.from({ length: n }, (_, i) => ({ id: `i${i}`, irt: item(i / 10 - 1) }));
++
++  it('accepts a pool with enough distinct items', () => {
++    expect(poolSupportsBlock(build(30))).toBe(true);
++  });
++
++  it('rejects a pool that would run dry mid-block', () => {
++    expect(poolSupportsBlock(build(29))).toBe(false);
++  });
++
++  it('counts distinct ids, not entries, so duplicates cannot pad a pool', () => {
++    const duplicated = [...build(15), ...build(15)];
++    expect(duplicated).toHaveLength(30);
++    expect(poolSupportsBlock(duplicated)).toBe(false);
++  });
++});
+diff --git a/packages/cat-engine/src/learning-block/design.ts b/packages/cat-engine/src/learning-block/design.ts
+new file mode 100644
+index 0000000..a006649
+--- /dev/null
++++ b/packages/cat-engine/src/learning-block/design.ts
+@@ -0,0 +1,136 @@
++import { itemInformation } from '../irt';
++import { estimateLearningCurve, type LearningTrial } from '../psychometric-lab/learning-curve';
++import type { IrtParameters } from '../types';
++
++/**
++ * Designing a NOVEL BLOCK: a run of unfamiliar items administered at a difficulty
++ * that tracks the child as they climb, used to estimate a within-session learning
++ * rate.
++ *
++ * WHY THIS EXISTS: the first synthetic run estimated a learning rate from a
++ * 6-trial block using an OLS slope, and recovered nothing. The follow-up sweep
++ * showed that was a power null on two counts at once — the block was too short
++ * AND the estimator discarded what the response model knew. This module encodes
++ * the block-length half of that fix; `readout.ts` encodes the estimator half.
++ *
++ * Structure-agnostic on purpose. Nothing here assumes a two-stage test, a phase
++ * ordering, or four domains. A novel block is a block of unfamiliar items with a
++ * targeting rule; where it sits in a form is the caller's decision.
++ *
++ * Pure and dependency-free: no I/O, no framework, no node-only APIs.
++ */
++
++/**
++ * Recommended block length at the effect size observed in synthetic work.
++ *
++ * The sweep's single-domain result: 30 trials at adaptive difficulty reached
++ * r = 0.62 against injected truth, and no shorter block reached r = 0.50 at that
++ * effect scale. Spending the same items across four domains instead (15 each,
++ * 60 items) scored WORSE, r = 0.55 — averaging independent blocks costs four
++ * times the items to halve estimator noise, which is a bad trade at these
++ * lengths. So: one domain, deeper, not four domains shallower.
++ */
++export const RECOMMENDED_NOVEL_BLOCK_LENGTH = 30;
++
++/**
++ * Minimum trials before a rate is worth reporting at all. Deliberately equal to
++ * the recommended length: at the observed effect scale nothing shorter cleared
++ * the bar, so a shorter block should decline to answer rather than answer
++ * badly. Callers may lower it, but see `readout.ts` for what that costs.
++ */
++export const MIN_TRIALS_FOR_RATE = RECOMMENDED_NOVEL_BLOCK_LENGTH;
++
++export interface NovelBlockItem {
++  id: string;
++  irt: IrtParameters;
++}
++
++export interface TargetingOptions {
++  /**
++   * Offset applied to the predicted ability when choosing the next item, in
++   * theta units. Positive values aim ABOVE the child's projected level.
++   *
++   * Defaults to 0 (target the projected level). A positive offset is the
++   * "desirable difficulty" knob: it makes the block harder than the child's
++   * current standing so there is room to climb. It is exposed rather than fixed
++   * because the right value is a child-experience question, not a statistical
++   * one — the sweep found the difficulty regime moves recovery by only ~0.015
++   * in r, which is noise next to the difference between a child who engages and
++   * one who gives up.
++   */
++  targetOffset?: number;
++  /** Ability estimate carried in from prior measurement, used before the block has enough trials to project. */
++  priorTheta?: number;
++}
++
++/**
++ * Predicted ability at the next trial index, given the trials so far.
++ *
++ * Re-fits the climb on every call rather than projecting from a fixed start.
++ * That is what "adaptive" means here: the target follows the child up as they
++ * learn, instead of walking a preset ladder that is too easy by the end.
++ *
++ * With very few trials the fit is dominated by its prior and carries no real
++ * information, so below `MIN_TRIALS_FOR_PROJECTION` this returns the incoming
++ * ability estimate unchanged instead of pretending to project.
++ */
++export const MIN_TRIALS_FOR_PROJECTION = 4;
++
++export function nextTargetTheta(
++  trials: readonly LearningTrial[],
++  options: TargetingOptions = {},
++): number {
++  const { targetOffset = 0, priorTheta = 0 } = options;
++
++  if (trials.length < MIN_TRIALS_FOR_PROJECTION) {
++    return priorTheta + targetOffset;
++  }
++
++  const fit = estimateLearningCurve(trials, { priorTheta0Mean: priorTheta });
++  const nextIndex = trials.length;
++  return fit.theta0 + fit.lambda * nextIndex + targetOffset;
++}
++
++/**
++ * Pick the unadministered item carrying the most information at `targetTheta`.
++ *
++ * Maximum-information selection rather than a posterior-weighted criterion: the
++ * sweep found the two within 0.006 SE of each other at every item count tested,
++ * so the cheaper and more inspectable rule wins. Returns `null` when the pool is
++ * exhausted, which the caller must handle — a short block is a reportable
++ * condition, not an error to swallow.
++ */
++export function selectNextNovelItem(
++  pool: readonly NovelBlockItem[],
++  administeredIds: readonly string[],
++  targetTheta: number,
++): NovelBlockItem | null {
++  const seen = new Set(administeredIds);
++  let best: NovelBlockItem | null = null;
++  let bestInfo = -Infinity;
++
++  for (const candidate of pool) {
++    if (seen.has(candidate.id)) continue;
++    const info = itemInformation(targetTheta, candidate.irt);
++    if (info > bestInfo) {
++      bestInfo = info;
++      best = candidate;
++    }
++  }
++
++  return best;
++}
++
++/**
++ * Whether a pool can support a block of the requested length. Worth checking
++ * before administering rather than discovering it at trial 24, because a block
++ * that runs out of items early produces a rate that silently rests on fewer
++ * trials than the design assumed.
++ */
++export function poolSupportsBlock(
++  pool: readonly NovelBlockItem[],
++  length: number = RECOMMENDED_NOVEL_BLOCK_LENGTH,
++): boolean {
++  const distinct = new Set(pool.map((item) => item.id));
++  return distinct.size >= length;
++}
+diff --git a/packages/cat-engine/src/learning-block/index.ts b/packages/cat-engine/src/learning-block/index.ts
+new file mode 100644
+index 0000000..c4ba2f6
+--- /dev/null
++++ b/packages/cat-engine/src/learning-block/index.ts
+@@ -0,0 +1,13 @@
++/**
++ * Novel-block administration and within-session learning-rate readout.
++ *
++ * Two halves of one fix for the recovery null found in the first synthetic run:
++ * `design.ts` makes the block long enough and keeps its difficulty on the child
++ * as they climb; `readout.ts` fits the climb with an estimator that uses the
++ * response model, and refuses to report anything the data cannot support.
++ *
++ * The learning rate produced here is a labelled hypothesis and is deliberately
++ * NOT folded into the scored decision.
++ */
++export * from './design';
++export * from './readout';
+diff --git a/packages/cat-engine/src/learning-block/readout.test.ts b/packages/cat-engine/src/learning-block/readout.test.ts
+new file mode 100644
+index 0000000..dfcbd3b
+--- /dev/null
++++ b/packages/cat-engine/src/learning-block/readout.test.ts
+@@ -0,0 +1,123 @@
++import { describe, expect, it } from 'vitest';
++
++import { probabilityCorrect } from '../irt';
++import { hashSeed, mulberry32 } from '../rng';
++import type { LearningTrial } from '../psychometric-lab/learning-curve';
++import type { IrtParameters } from '../types';
++
++import { RECOMMENDED_NOVEL_BLOCK_LENGTH } from './design';
++import { learningRateCohortRank, learningRateReadout } from './readout';
++
++const item = (b: number, a = 1.2, c = 0.25): IrtParameters => ({ a, b, c, model: '3PL' });
++
++function simulateBlock(
++  seed: string,
++  theta0: number,
++  lambda: number,
++  length: number,
++  difficulty = 0,
++): LearningTrial[] {
++  const rand = mulberry32(hashSeed(seed));
++  return Array.from({ length }, (_, t) => {
++    const irt = item(difficulty);
++    return {
++      irt,
++      trialIndex: t,
++      correct: rand() < probabilityCorrect(theta0 + lambda * t, irt),
++    };
++  });
++}
++
++/** The spread the synthetic work assumed the population occupies. */
++const SYNTHETIC_REFERENCE = { mean: 0, sd: 0.03 };
++
++describe('learningRateReadout', () => {
++  it('declines to answer on a block below the trial floor', () => {
++    const readout = learningRateReadout(simulateBlock('tiny', -0.5, 0.03, 6), {
++      reference: SYNTHETIC_REFERENCE,
++    });
++    expect(readout.band).toBe('indeterminate');
++    expect(readout.reason).toContain('below the');
++    expect(readout.lambdaDiagnostic).toBeNull();
++  });
++
++  it('is indeterminate at the recommended block length against the population spread', () => {
++    // THE load-bearing test. A 30-trial block ranks a cohort at about r = 0.62,
++    // but one child's posterior SE is ~0.039 — wider than the 0.030 spread the
++    // whole population is thought to occupy. Ranking a group and placing an
++    // individual are different claims, and only the first is supported here.
++    // If this test ever goes green as a definite band, something has been tuned
++    // to produce confidence the data does not contain.
++    const readout = learningRateReadout(
++      simulateBlock('recommended', -0.5, 0.03, RECOMMENDED_NOVEL_BLOCK_LENGTH),
++      { reference: SYNTHETIC_REFERENCE },
++    );
++    expect(readout.band).toBe('indeterminate');
++    expect(readout.reason).toContain('not separable');
++    // The estimate still comes back for logging and later calibration.
++    expect(readout.lambdaDiagnostic).not.toBeNull();
++  });
++
++  it('can separate bands once the bands are made wide enough to exceed the noise', () => {
++    // Only reachable by declaring a very wide "typical" range, which is itself
++    // the honest reading: at this precision almost everyone is typical.
++    const readout = learningRateReadout(simulateBlock('wide', -0.5, 0.03, 40), {
++      reference: { mean: 0, sd: 0.3, bandHalfWidthSds: 0.5 },
++    });
++    expect(readout.band).not.toBe('indeterminate');
++  });
++
++  it('refuses a non-positive reference spread instead of dividing by it', () => {
++    const readout = learningRateReadout(simulateBlock('bad-ref', -0.5, 0.03, 40), {
++      reference: { mean: 0, sd: 0 },
++    });
++    expect(readout.band).toBe('indeterminate');
++    expect(readout.reason).toContain('positive');
++  });
++
++  it('always marks itself a hypothesis', () => {
++    const readout = learningRateReadout(simulateBlock('flag', -0.5, 0.03, 30), {
++      reference: SYNTHETIC_REFERENCE,
++    });
++    expect(readout.hypothesis).toBe(true);
++  });
++
++  it('reports the trial count it actually used', () => {
++    const readout = learningRateReadout(simulateBlock('count', -0.5, 0.03, 33), {
++      reference: SYNTHETIC_REFERENCE,
++    });
++    expect(readout.trialCount).toBe(33);
++  });
++});
++
++describe('learningRateCohortRank', () => {
++  const cohort = Array.from({ length: 40 }, (_, i) => i / 1000);
++
++  it('places a climb at the top of the cohort near 1', () => {
++    expect(learningRateCohortRank(1, cohort)?.percentile).toBeGreaterThan(0.97);
++  });
++
++  it('places a climb at the bottom near 0', () => {
++    expect(learningRateCohortRank(-1, cohort)?.percentile).toBeLessThan(0.03);
++  });
++
++  it('puts the middle of a uniform cohort near the middle', () => {
++    const rank = learningRateCohortRank(0.02, cohort);
++    expect(rank?.percentile).toBeGreaterThan(0.4);
++    expect(rank?.percentile).toBeLessThan(0.6);
++  });
++
++  it('refuses to rank against a cohort too small to mean anything', () => {
++    expect(learningRateCohortRank(0.03, [0.01, 0.02, 0.04])).toBeNull();
++  });
++
++  it('ignores non-finite cohort entries rather than propagating them', () => {
++    const dirty = [...cohort, Number.NaN, Number.POSITIVE_INFINITY];
++    expect(learningRateCohortRank(0.02, dirty)?.cohortSize).toBe(cohort.length);
++  });
++
++  it('splits ties so identical climbs do not both claim the higher rank', () => {
++    const tied = Array.from({ length: 20 }, () => 0.05);
++    expect(learningRateCohortRank(0.05, tied)?.percentile).toBeCloseTo(0.5, 10);
++  });
++});
+diff --git a/packages/cat-engine/src/learning-block/readout.ts b/packages/cat-engine/src/learning-block/readout.ts
+new file mode 100644
+index 0000000..e079660
+--- /dev/null
++++ b/packages/cat-engine/src/learning-block/readout.ts
+@@ -0,0 +1,190 @@
++import { estimateLearningCurve, type LearningTrial } from '../psychometric-lab/learning-curve';
++import { MIN_TRIALS_FOR_RATE } from './design';
++
++/**
++ * Turning a fitted climb into something reportable.
++ *
++ * WHY A BAND AND NOT A NUMBER: the joint MAP estimator shrinks the recovered
++ * climb toward zero by roughly 60% even at 40 trials, and at the observed effect
++ * size it correlates with injected truth at about r = 0.62. That supports
++ * putting children in rough order. It does not support "your child learns at
++ * 0.04 theta per trial", and it does not support comparing two children whose
++ * estimates are close. So the public readout is an ordinal band, and the
++ * underlying number is carried alongside it marked as diagnostic only.
++ *
++ * WHY THIS IS NOT PART OF THE DECISION PAYLOAD: a within-session learning rate
++ * is a labelled hypothesis, not a validated measure. Nothing here has been shown
++ * to predict real learning, real acceleration, or program benefit. It is
++ * deliberately kept out of the scored decision so that adopting it later is an
++ * explicit choice someone has to make, rather than something that already
++ * happened quietly.
++ *
++ * Pure and dependency-free: no I/O, no framework, no node-only APIs.
++ */
++
++export type LearningRateBand = 'below' | 'typical' | 'above' | 'indeterminate';
++
++export interface LearningRateReference {
++  /**
++   * Centre of the comparison distribution, in theta units per trial.
++   *
++   * REQUIRED, with no default, on purpose. There is no validated reference
++   * distribution for a within-session learning rate — none exists to copy, and
++   * defaulting to a synthetic value would let a made-up number reach a results
++   * screen without anyone choosing it. Supplying this is an assertion that the
++   * caller knows where the number came from.
++   */
++  mean: number;
++  /** Spread of the comparison distribution, same units. Required for the same reason as `mean`. */
++  sd: number;
++  /**
++   * Band half-width in reference SDs. Default 0.5, so "typical" spans one SD
++   * centred on the mean and the outer bands begin beyond it.
++   */
++  bandHalfWidthSds?: number;
++}
++
++export interface LearningRateReadoutOptions {
++  reference: LearningRateReference;
++  /** Override the trial-count floor. Lowering it below the default is not supported by the synthetic evidence. */
++  minTrials?: number;
++}
++
++export interface LearningRateReadout {
++  band: LearningRateBand;
++  /**
++   * Posterior-mode climb, theta units per trial. Diagnostic only — shrunk toward
++   * zero and too noisy to display. Present so the value can be logged, replayed,
++   * and calibrated against later; not so it can be shown to a family.
++   */
++  lambdaDiagnostic: number | null;
++  lambdaSe: number | null;
++  trialCount: number;
++  /** Always true. A structural reminder at the call site that this is a hypothesis, not a measure. */
++  hypothesis: true;
++  /** Why the band came out the way it did — especially why it is `indeterminate`. */
++  reason: string;
++}
++
++/**
++ * Fit the climb over a novel block and place it in an ordinal band.
++ *
++ * Returns `indeterminate` rather than guessing whenever the block is too short,
++ * the fit did not converge, or the posterior is too wide to separate the bands.
++ * That last case is the important one: an estimate whose uncertainty exceeds the
++ * band width cannot distinguish "above" from "typical", and reporting one anyway
++ * is how a noisy number turns into a confident-sounding claim about a child.
++ */
++export function learningRateReadout(
++  trials: readonly LearningTrial[],
++  options: LearningRateReadoutOptions,
++): LearningRateReadout {
++  const { reference, minTrials = MIN_TRIALS_FOR_RATE } = options;
++  const { mean, sd, bandHalfWidthSds = 0.5 } = reference;
++
++  const base = { trialCount: trials.length, hypothesis: true as const };
++
++  if (trials.length < minTrials) {
++    return {
++      ...base,
++      band: 'indeterminate',
++      lambdaDiagnostic: null,
++      lambdaSe: null,
++      reason: `block of ${trials.length} trials is below the ${minTrials}-trial floor; no shorter block reached usable recovery in synthetic work`,
++    };
++  }
++
++  if (sd <= 0) {
++    return {
++      ...base,
++      band: 'indeterminate',
++      lambdaDiagnostic: null,
++      lambdaSe: null,
++      reason: 'reference SD must be positive to define band edges',
++    };
++  }
++
++  const fit = estimateLearningCurve(trials);
++
++  if (!fit.converged || !Number.isFinite(fit.lambda)) {
++    return {
++      ...base,
++      band: 'indeterminate',
++      lambdaDiagnostic: null,
++      lambdaSe: null,
++      reason: 'learning-curve fit did not converge',
++    };
++  }
++
++  const halfWidth = bandHalfWidthSds * sd;
++
++  // An estimate cannot be placed in a band narrower than its own uncertainty.
++  if (fit.lambdaSe >= halfWidth) {
++    return {
++      ...base,
++      band: 'indeterminate',
++      lambdaDiagnostic: fit.lambda,
++      lambdaSe: fit.lambdaSe,
++      reason: `posterior SE ${fit.lambdaSe.toFixed(4)} is wider than the ${halfWidth.toFixed(4)} band half-width; bands are not separable at this precision`,
++    };
++  }
++
++  if (fit.lambda > mean + halfWidth) {
++    return { ...base, band: 'above', lambdaDiagnostic: fit.lambda, lambdaSe: fit.lambdaSe, reason: 'climb above the reference band' };
++  }
++
++  if (fit.lambda < mean - halfWidth) {
++    return { ...base, band: 'below', lambdaDiagnostic: fit.lambda, lambdaSe: fit.lambdaSe, reason: 'climb below the reference band' };
++  }
++
++  return { ...base, band: 'typical', lambdaDiagnostic: fit.lambda, lambdaSe: fit.lambdaSe, reason: 'climb within the reference band' };
++}
++
++/**
++ * Rank one child's climb against a cohort of climbs measured the same way.
++ *
++ * WHY THIS EXISTS ALONGSIDE `learningRateReadout`: the two answer different
++ * questions, and only this one is supported at a realistic block length.
++ *
++ * A 30-trial block recovers injected truth at about r = 0.62 ACROSS children —
++ * good enough to put a group in rough order. But the posterior SE on any single
++ * child's estimate at that length is roughly 0.039 in theta-per-trial, which is
++ * WIDER than the whole spread the population is thought to occupy. Both facts
++ * are true at once: the measure ranks a cohort while being unable to place an
++ * individual against an absolute scale. `learningRateReadout` will therefore
++ * return `indeterminate` at 30 trials for any sane reference, and that is the
++ * correct answer rather than a bug to tune away.
++ *
++ * So: rank within a cohort you actually measured, and never against a
++ * population you did not. The returned position is ordinal and comparative —
++ * "toward the faster end of this group" — and carries no claim that the child
++ * would land in the same place against a different group, on a different form,
++ * or on a different day.
++ */
++export interface CohortRank {
++  /** Fraction of the cohort this child's climb exceeded, in [0, 1]. */
++  percentile: number;
++  cohortSize: number;
++  /** Always true: still a hypothesis, merely a supportable one. */
++  hypothesis: true;
++}
++
++export function learningRateCohortRank(
++  lambda: number,
++  cohortLambdas: readonly number[],
++): CohortRank | null {
++  const cohort = cohortLambdas.filter((value) => Number.isFinite(value));
++
++  // Ranking against a handful of peers is noise dressed as a percentile.
++  const MIN_COHORT = 20;
++  if (cohort.length < MIN_COHORT || !Number.isFinite(lambda)) return null;
++
++  const below = cohort.filter((value) => value < lambda).length;
++  const tied = cohort.filter((value) => value === lambda).length;
++
++  return {
++    percentile: (below + tied / 2) / cohort.length,
++    cohortSize: cohort.length,
++    hypothesis: true,
++  };
++}
+-- 
+2.50.1 (Apple Git-155)
+

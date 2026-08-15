@@ -1,0 +1,166 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Cognitive-Test Validation Report (SYNTHETIC)</title><style>
+body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+ max-width:1000px;margin:2rem auto;padding:0 1rem;color:#1a1a1a;line-height:1.5}
+h1{font-size:1.6rem} h2{margin-top:2rem;border-bottom:1px solid #ddd;padding-bottom:.25rem}
+h3{margin-top:1rem;color:#333}
+.banner{background:#7a0012;color:#fff;padding:.9rem 1rem;border-radius:6px;
+ font-weight:700;margin:1rem 0}
+.note{background:#f4f6f8;border-left:4px solid #4a6da7;padding:.6rem .9rem;
+ margin:.6rem 0;white-space:pre-wrap;font-size:.92rem;color:#333}
+table{border-collapse:collapse;margin:.6rem 0;font-size:.88rem;width:100%}
+th,td{border:1px solid #ccc;padding:.32rem .5rem;text-align:left}
+th{background:#eef2f7} tr:nth-child(even) td{background:#fafbfc}
+code,pre{background:#f4f4f4;border-radius:4px} pre{padding:.8rem;overflow:auto;font-size:.8rem}
+</style></head><body><h1>Cognitive-Test Validation Report (SYNTHETIC)</h1><div class="banner">SYNTHETIC DATA ONLY - NOT VALIDATED - NOT A LIVE ADMISSIONS RESULT. synthetic_only=true, validated=false (D-006, R9). No real or live student data was used anywhere in this run.</div><p><strong>Generated:</strong> 2026-07-27T07:01:33Z  |  <strong>Seed:</strong> 20260727  |  <strong>Dataset SHA-256:</strong> <code>10e7d97aa99e85f2...</code>  |  <strong>N:</strong> 600</p><h2>0. What this report is - and is not</h2><p>This harness evaluates the *measurement* properties of a cognitive test on <strong>synthetic</strong> data. It is STRUCTURE-AGNOSTIC: it consumes a per-student score table and does not assume the test is adaptive, two-stage, or fixed-form.</p><div class="note">Claim boundaries (R10): 
+- Concurrent correlation and classification agreement measure *convergence with existing measures*, NOT truth and NOT program impact (E-066, E-070).
+- Reliability and ceiling/floor describe *measurement quality*, not validity of the selection decision.
+- Incremental validity here predicts a *synthetic criterion*; it is not evidence that the test predicts real outcomes or who benefits (E-070, R4).
+- DIF flags identify items for *review*; a flag is not proof of unfairness and does not by itself justify item removal.
+- Everything is synthetic and `validated=false`; no number here is a live, GT-specific, or causal claim.</div><h2>1. Run provenance and born-synthetic guard (R7, R9)</h2><p>- Guard: synthetic_only=true confirmed</p><p>- Guard: validated=false confirmed</p><p>- Guard: contains_real_data=false confirmed</p><p>- Guard: source=born-synthetic confirmed</p><p>- Guard: dataset_sha256 integrity verified (10e7d97aa99e...)</p><p>- Generator: <code>scripts/validation-harness/harness/synth.py</code>  |  schema v1</p><p>- Source: <code>born-synthetic</code>  |  data_class: <code>synthetic</code></p><h2>2. Synthetic dataset overview</h2><p>Columns (39): <code>student_id</code>, <code>grade</code>, <code>cogat_sas</code>, <code>map_rit</code>, <code>nt_01</code>, <code>nt_02</code>, ... , plus 31 item/other columns ... , <code>ell_status</code>, <code>ses_band</code></p><p>Measures under analysis: <code>cogat</code> -&gt; <code>cogat_sas</code>, <code>map</code> -&gt; <code>map_rit</code>, <code>newtest</code> -&gt; <code>newtest_total</code>; outcome <code>criterion_eoy</code>.</p><h2>3. Concurrent validity - correlations (R5, H1)</h2><table><thead><tr><th>pair</th><th>n</th><th>Pearson r</th><th>95% CI</th><th>p</th><th>Spearman rho</th></tr></thead><tbody><tr><td>newtest_total x cogat_sas</td><td>600</td><td>0.681</td><td>[0.635, 0.722]</td><td>&lt;.001</td><td>0.681</td></tr><tr><td>newtest_total x map_rit</td><td>600</td><td>0.493</td><td>[0.430, 0.551]</td><td>&lt;.001</td><td>0.481</td></tr><tr><td>cogat_sas x map_rit</td><td>600</td><td>0.630</td><td>[0.579, 0.676]</td><td>&lt;.001</td><td>0.617</td></tr></tbody></table><div class="note">Interpretation: moderate-to-strong positive correlations indicate the new test converges with existing ability/achievement measures. Convergence supports shared-construct evidence (R5) but does not establish that the new test is *better*, nor that it measures capability rather than prior opportunity (E-018).</div><h2>4. Classification agreement at the cut (R5, R7)</h2><table><thead><tr><th>index vs reference</th><th>n</th><th>sel(index)</th><th>sel(ref)</th><th>agreement</th><th>Cohen kappa</th><th>phi</th><th>sens vs ref</th><th>spec vs ref</th></tr></thead><tbody><tr><td>newtest_total vs cogat_sas</td><td>600</td><td>61</td><td>63</td><td>89.0%</td><td>0.406</td><td>0.406</td><td>0.460</td><td>0.940</td></tr></tbody></table><div class="note">Interpretation: agreement/kappa quantify how often the new-test cut and the existing-measure cut select the SAME students. Sensitivity/specificity treat the existing measure as a *reference of convenience*, NOT ground truth - a low agreement can mean the new test surfaces different (possibly under-served) students, which may be desirable (E-005, H4). This is not validity against a true capability criterion.</div><h2>5. Reliability and decision consistency (R5, R6)</h2><p>- Cronbach&#x27;s alpha = <strong>0.909</strong> over 30 items (n=600); SD_total=6.167, SEM=1.860.</p><p>- Split-half r=0.856, Spearman-Brown=<strong>0.922</strong>.</p><p>- Decision consistency at the cut (threshold=19.000): 82.0% of students are classified outside the +/-1.96xSEM band; 18.0% fall in the ambiguous band near the cut.</p><table><thead><tr><th>item</th><th>p correct</th><th>item-total r</th><th>flag</th></tr></thead><tbody><tr><td>nt_26</td><td>0.042</td><td>0.381</td><td>very hard (floor risk)</td></tr><tr><td>nt_27</td><td>0.032</td><td>0.284</td><td>very hard (floor risk)</td></tr><tr><td>nt_28</td><td>0.022</td><td>0.267</td><td>very hard (floor risk)</td></tr><tr><td>nt_29</td><td>0.023</td><td>0.255</td><td>very hard (floor risk)</td></tr><tr><td>nt_30</td><td>0.035</td><td>0.267</td><td>very hard (floor risk)</td></tr></tbody></table><div class="note">Interpretation: alpha/split-half index internal consistency; SEM and the ambiguous band show how many near-cut decisions are unstable given measurement error (R5 error handling). High reliability is necessary but not sufficient for a defensible cut; tail precision (Section 6) matters more for a gifted screen (E-066, E-067).</div><h2>6. Ceiling / floor and gifted-tail precision (R6)</h2><table><thead><tr><th>measure</th><th>n</th><th>mean</th><th>sd</th><th>min</th><th>max</th><th>skew</th><th>% at max</th><th>% perfect</th><th>% top-10% range</th></tr></thead><tbody><tr><td>cogat_sas</td><td>600</td><td>100.67</td><td>15.89</td><td>55.00</td><td>149.00</td><td>0.009</td><td>0.2%</td><td>-</td><td>0.5%</td></tr><tr><td>map_rit</td><td>600</td><td>203.66</td><td>16.92</td><td>144.00</td><td>248.00</td><td>-0.092</td><td>0.3%</td><td>-</td><td>1.8%</td></tr><tr><td>newtest_total</td><td>600</td><td>10.13</td><td>6.17</td><td>0.00</td><td>30.00</td><td>0.525</td><td>0.2%</td><td>0.2%</td><td>0.5%</td></tr></tbody></table><div class="note">Interpretation: for a gifted screen the upper tail must stay informative (R6). A high `% perfect` or heavy left skew signals ceiling compression that would blur separation among the highest scorers; above-level items keep the ceiling open (E-066, E-067). Ceiling/floor here is descriptive of the synthetic score distribution only.</div><h2>7. Incremental validity - does a secondary signal add value? (H1, R5)</h2><table><thead><tr><th>outcome</th><th>base</th><th>added</th><th>R2 base</th><th>R2 full</th><th>dR2</th><th>F</th><th>df</th><th>p</th><th>added predictor(s)</th></tr></thead><tbody><tr><td>criterion_eoy</td><td>cogat_sas</td><td>newtest_total</td><td>0.296</td><td>0.422</td><td>0.125</td><td>129.33</td><td>1,597</td><td>&lt;.001</td><td>newtest_total std-beta=0.483 (p=&lt;.001)</td></tr><tr><td>criterion_eoy</td><td>cogat_sas+map_rit</td><td>newtest_total</td><td>0.370</td><td>0.476</td><td>0.106</td><td>120.43</td><td>1,596</td><td>&lt;.001</td><td>newtest_total std-beta=0.447 (p=&lt;.001)</td></tr></tbody></table><div class="note">Interpretation: a significant Delta-R-squared means the added signal predicts the (synthetic) criterion *beyond* the base measure(s) - the core test for whether a second measure earns its place (H1: each added signal must contribute distinct, validated information). A NON-significant increment is a valid, reportable result (do not add a measure that adds nothing). This uses a synthetic criterion and is NOT evidence of real-world or benefit prediction (E-070, R4).</div><h2>8. DIF / measurement invariance at the item level (H7, H2)</h2><p>Group: <code>subgroup_demo</code> (focal=<code>focal</code> n=262, reference=<code>reference</code> n=338). Two-stage purification: on.</p><table><thead><tr><th>pass</th><th>MH A</th><th>MH B</th><th>MH C</th><th>logistic A</th><th>logistic B</th><th>logistic C</th><th>flagged items</th></tr></thead><tbody><tr><td>pass 1 (unpurified)</td><td>25</td><td>1</td><td>4</td><td>28</td><td>2</td><td>0</td><td>nt_08, nt_12, nt_15, nt_16, nt_23</td></tr><tr><td>final (purified)</td><td>27</td><td>0</td><td>3</td><td>28</td><td>2</td><td>0</td><td>nt_08, nt_16, nt_23</td></tr></tbody></table><table><thead><tr><th>item</th><th>p</th><th>MH alpha</th><th>MH Delta</th><th>MH p</th><th>ETS</th><th>logit uniform p</th><th>logit nonunif p</th><th>logit dR2</th><th>logit class</th></tr></thead><tbody><tr><td>nt_08</td><td>0.510</td><td>0.169</td><td>4.173</td><td>&lt;.001</td><td>C</td><td>&lt;.001</td><td>0.041</td><td>0.068</td><td>B</td></tr><tr><td>nt_16</td><td>0.270</td><td>0.272</td><td>3.061</td><td>&lt;.001</td><td>C</td><td>&lt;.001</td><td>0.041</td><td>0.055</td><td>B</td></tr><tr><td>nt_23</td><td>0.092</td><td>0.339</td><td>2.543</td><td>0.005</td><td>C</td><td>0.004</td><td>0.649</td><td>0.028</td><td>A</td></tr></tbody></table><div class="note">Interpretation: Mantel-Haenszel and logistic-regression DIF ask whether, *conditional on ability*, focal and reference groups have different odds of success on an item. MH conditions on the matched total (so a group ability difference alone is NOT DIF); logistic separates uniform (main-effect) from nonuniform (interaction) DIF. Two-stage purification removes flagged items from the matching criterion and re-tests. A flag targets an item for content review (H2, H7); it is not automatic proof of bias or grounds for removal. This directly provides the adverse-impact / DIF review that D-017 lists as an open follow-up - on synthetic data.</div><h2>9. Subgroup equity funnel at the cut (H7, EV-11)</h2><p>Selection measure <code>newtest_total</code> at threshold 19.000; 61/600 selected (10.2%). 4/5ths rule = 0.8.</p><h3>Subgroup: subgroup_demo</h3><table><thead><tr><th>level</th><th>n</th><th>selected</th><th>selection rate</th><th>adverse-impact ratio</th><th>4/5ths</th></tr></thead><tbody><tr><td>focal</td><td>262</td><td>26</td><td>9.9%</td><td>0.958</td><td>ok</td></tr><tr><td>reference</td><td>338</td><td>35</td><td>10.4%</td><td>1.000</td><td>ok</td></tr></tbody></table><h3>Subgroup: ell_status</h3><table><thead><tr><th>level</th><th>n</th><th>selected</th><th>selection rate</th><th>adverse-impact ratio</th><th>4/5ths</th></tr></thead><tbody><tr><td>ELL</td><td>134</td><td>15</td><td>11.2%</td><td>1.000</td><td>ok</td></tr><tr><td>non-ELL</td><td>466</td><td>46</td><td>9.9%</td><td>0.882</td><td>ok</td></tr></tbody></table><h3>Subgroup: ses_band</h3><table><thead><tr><th>level</th><th>n</th><th>selected</th><th>selection rate</th><th>adverse-impact ratio</th><th>4/5ths</th></tr></thead><tbody><tr><td>higher-income</td><td>351</td><td>35</td><td>10.0%</td><td>0.955</td><td>ok</td></tr><tr><td>lower-income</td><td>249</td><td>26</td><td>10.4%</td><td>1.000</td><td>ok</td></tr></tbody></table><div class="note">Interpretation: the funnel monitors *who passes the cut* by subgroup as an equity guardrail (H7). An adverse-impact ratio below 0.80 (4/5ths rule) flags a group for review. Subgroup identity is a GUARDRAIL, never a measure of capability (charter: capability, not privilege; H2). A disparity may reflect item bias (Section 8), true differences in the synthetic ability generator, or the cut - the funnel localizes where to look; it does not assign cause.</div><h2>10. Differential prediction across subgroups (R5, H7)</h2><p>Regressing <code>criterion_eoy</code> on <code>newtest_total</code> + <code>subgroup_demo</code> + interaction: Delta-R2=0.003, F(2,596)=1.44, p=0.237.</p><div class="note">Interpretation: this tests measurement invariance at the *prediction* level (Cleary model). A significant increment for the group / interaction terms indicates the score predicts the criterion differently across subgroups (predictive bias); a non-significant result supports predictive invariance. Structure-agnostic: it needs only a score, an outcome, and a group.</div><h2>11. Synthetic ground-truth recovery (audit only)</h2><p>- Injected DIF items (uniform + nonuniform): nt_08, nt_12, nt_16, nt_23</p><p>- Harness-flagged (pass 1): nt_08, nt_12, nt_15, nt_16, nt_23</p><p>- Incremental-signal weight u in criterion: 0.3 (0 would imply the new test should show NO incremental validity).</p><div class="note">This section exists only to sanity-check the harness against the known synthetic truth. On real data there is no ground truth; this section would be absent. It is NOT a validity claim.</div><h2>12. Requirement traceability, evidence, and limitations</h2><table><thead><tr><th>requirement</th><th>how this harness serves it</th></tr></thead><tbody><tr><td>R5 capability standard</td><td>concurrent + incremental validity, reliability, SEM, decision consistency</td></tr><tr><td>R6 growth without ceiling</td><td>ceiling/floor + gifted-tail precision checks</td></tr><tr><td>R7 auditable/falsifiable</td><td>seeded run, SHA-256 commitment, config logged, null results reportable</td></tr><tr><td>R9 protect students</td><td>fail-closed born-synthetic guard; no real data; synthetic_only=true</td></tr><tr><td>R10 claim boundaries</td><td>explicit per-section boundaries; agreement != truth != impact</td></tr><tr><td>H1 broader measures</td><td>incremental-validity test for each added signal</td></tr><tr><td>H2 capability != privilege</td><td>DIF + funnel treat subgroup as guardrail, never capability</td></tr><tr><td>H7 equity guardrails</td><td>MH + logistic DIF, subgroup funnel, differential prediction</td></tr></tbody></table><p>Evidence touchpoints: E-066 (evaluate at the operational tail/decision point), E-067 (nominal &#x27;adaptive&#x27; precision is not validation), E-070 (predicting achievement != predicting who benefits), E-005/E-006 (single-screen false negatives; prior ability predictive), E-016/E-018 (MAP incremental value and ELL/SES caveats). Governance: D-006 (born-synthetic), D-017 (adverse-impact/DIF review is an open follow-up this tooling supports).</p><div class="note">Limitations: (1) all data is synthetic; NO result is a validated or GT-specific claim (validated=false). (2) The criterion is generated, so incremental/differential-prediction results demonstrate the *method*, not real predictive validity. (3) DIF power depends on subgroup n and strata; small cells reduce sensitivity, and with many items expect occasional false-positive flags (multiple comparisons) - confirm with effect sizes, purification, and content review. (4) Pooling across grades mixes a vertically-scaled MAP; within-grade analysis is recommended on real data. (5) Real use requires consent, privacy/legal review (B-06), and psychometric validation before any live claim.</div><h2>Appendix A. Full run configuration</h2><pre>{
+  &quot;seed&quot;: 20260727,
+  &quot;generation&quot;: {
+    &quot;n_students&quot;: 600,
+    &quot;grades&quot;: [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    &quot;n_items&quot;: 30,
+    &quot;incremental_signal&quot;: 0.3,
+    &quot;impact_delta&quot;: 0.0,
+    &quot;loadings&quot;: {
+      &quot;cogat_g&quot;: 0.9,
+      &quot;cogat_noise&quot;: 0.44,
+      &quot;map_g&quot;: 0.82,
+      &quot;map_a&quot;: 0.38,
+      &quot;map_noise&quot;: 0.4,
+      &quot;newtest_g&quot;: 0.8,
+      &quot;newtest_u&quot;: 0.55,
+      &quot;newtest_noise&quot;: 0.24,
+      &quot;criterion_g&quot;: 0.55,
+      &quot;criterion_a&quot;: 0.35,
+      &quot;criterion_noise&quot;: 0.55
+    },
+    &quot;dif&quot;: {
+      &quot;uniform_items&quot;: [
+        7,
+        15,
+        22
+      ],
+      &quot;uniform_shift&quot;: 0.85,
+      &quot;nonuniform_items&quot;: [
+        11
+      ],
+      &quot;nonuniform_factor&quot;: 0.45
+    },
+    &quot;subgroup_props&quot;: {
+      &quot;focal&quot;: 0.45,
+      &quot;ELL&quot;: 0.22,
+      &quot;lower_income&quot;: 0.4
+    }
+  },
+  &quot;analysis&quot;: {
+    &quot;measures&quot;: {
+      &quot;cogat&quot;: &quot;cogat_sas&quot;,
+      &quot;map&quot;: &quot;map_rit&quot;,
+      &quot;newtest&quot;: &quot;newtest_total&quot;
+    },
+    &quot;newtest_item_prefix&quot;: &quot;nt_&quot;,
+    &quot;outcome&quot;: &quot;criterion_eoy&quot;,
+    &quot;cuts&quot;: {
+      &quot;newtest_total&quot;: {
+        &quot;type&quot;: &quot;percentile&quot;,
+        &quot;value&quot;: 90
+      },
+      &quot;cogat_sas&quot;: {
+        &quot;type&quot;: &quot;percentile&quot;,
+        &quot;value&quot;: 90
+      }
+    },
+    &quot;correlation_pairs&quot;: [
+      [
+        &quot;newtest_total&quot;,
+        &quot;cogat_sas&quot;
+      ],
+      [
+        &quot;newtest_total&quot;,
+        &quot;map_rit&quot;
+      ],
+      [
+        &quot;cogat_sas&quot;,
+        &quot;map_rit&quot;
+      ]
+    ],
+    &quot;agreement_pairs&quot;: [
+      [
+        &quot;newtest_total&quot;,
+        &quot;cogat_sas&quot;
+      ]
+    ],
+    &quot;incremental_validity&quot;: [
+      {
+        &quot;outcome&quot;: &quot;criterion_eoy&quot;,
+        &quot;base&quot;: [
+          &quot;cogat_sas&quot;
+        ],
+        &quot;added&quot;: [
+          &quot;newtest_total&quot;
+        ]
+      },
+      {
+        &quot;outcome&quot;: &quot;criterion_eoy&quot;,
+        &quot;base&quot;: [
+          &quot;cogat_sas&quot;,
+          &quot;map_rit&quot;
+        ],
+        &quot;added&quot;: [
+          &quot;newtest_total&quot;
+        ]
+      }
+    ],
+    &quot;reliability&quot;: {
+      &quot;item_prefix&quot;: &quot;nt_&quot;,
+      &quot;score&quot;: &quot;newtest_total&quot;,
+      &quot;decision_cut&quot;: {
+        &quot;type&quot;: &quot;percentile&quot;,
+        &quot;value&quot;: 90
+      }
+    },
+    &quot;ceiling_floor&quot;: [
+      &quot;cogat_sas&quot;,
+      &quot;map_rit&quot;,
+      &quot;newtest_total&quot;
+    ],
+    &quot;dif&quot;: {
+      &quot;group_var&quot;: &quot;subgroup_demo&quot;,
+      &quot;focal&quot;: &quot;focal&quot;,
+      &quot;reference&quot;: &quot;reference&quot;,
+      &quot;item_prefix&quot;: &quot;nt_&quot;,
+      &quot;purify&quot;: true,
+      &quot;min_stratum&quot;: 2
+    },
+    &quot;equity_funnel&quot;: {
+      &quot;selection_measure&quot;: &quot;newtest_total&quot;,
+      &quot;cut&quot;: {
+        &quot;type&quot;: &quot;percentile&quot;,
+        &quot;value&quot;: 90
+      },
+      &quot;subgroups&quot;: [
+        &quot;subgroup_demo&quot;,
+        &quot;ell_status&quot;,
+        &quot;ses_band&quot;
+      ],
+      &quot;four_fifths&quot;: 0.8
+    }
+  },
+  &quot;report&quot;: {
+    &quot;title&quot;: &quot;Cognitive-Test Validation Report (SYNTHETIC)&quot;,
+    &quot;formats&quot;: [
+      &quot;md&quot;,
+      &quot;html&quot;
+    ]
+  }
+}</pre></body></html>

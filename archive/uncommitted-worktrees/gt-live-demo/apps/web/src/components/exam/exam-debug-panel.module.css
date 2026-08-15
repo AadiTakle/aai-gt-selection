@@ -1,0 +1,351 @@
+/*
+ * Debug panel styling, sized for a PROJECTOR rather than a desk: large type, high contrast, and a
+ * fixed dock so the convergence stays on screen while the child clicks through the activity.
+ */
+
+/*
+ * A tray, not a dock: collapsed to a thin strip so the child can actually take the test, expanded
+ * deliberately when the convergence is being shown. Only the strip is on screen by default.
+ */
+.tray {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  background: #0b1020;
+  border-top: 3px solid #3d7dff;
+  color: #eef2ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  box-shadow: 0 -16px 40px rgb(0 0 0 / 45%);
+}
+
+/* The always-present strip. Useful collapsed: current estimate and range in one line. */
+.handle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 1rem;
+  min-height: 2.5rem;
+}
+
+.handleBtn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.35rem;
+}
+
+.handleBtn:hover {
+  background: #16224a;
+}
+
+.handleTag {
+  font-size: 1.3rem;
+  color: #8fb4ff;
+}
+
+.handleTheta {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.handleRange {
+  font-size: 1.25rem;
+  color: #ffd479;
+  font-variant-numeric: tabular-nums;
+}
+
+.handleMeta {
+  font-size: 1rem;
+  color: #9fb0d6;
+  font-variant-numeric: tabular-nums;
+}
+
+.handleCaret {
+  font-size: 1rem;
+  color: #8fb4ff;
+}
+
+.handleHint {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7f8fb8;
+}
+
+.handleActions {
+  display: flex;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+}
+
+/* The expanded panel. Free to be tall — the owner opens it on purpose. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 1.25rem 1.1rem;
+  border-top: 1px solid #26325a;
+  max-height: 62vh;
+  overflow-y: auto;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6rem 1.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8fb4ff;
+}
+
+.headline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.bigTheta {
+  font-size: 2.3rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.bigRange {
+  font-size: 1.25rem;
+  color: #ffd479;
+  font-variant-numeric: tabular-nums;
+}
+
+.headMeta {
+  font-size: 0.95rem;
+  color: #9fb0d6;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- per-area convergence rows ------------------------------------------- */
+
+.areas {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.area {
+  display: grid;
+  grid-template-columns: 8.5rem 5.5rem 1fr 6.5rem;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.areaName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #cfdcff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.areaTheta {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The 1..20 axis. The shaded span is the plausible range; the dot is the estimate. */
+.axis {
+  position: relative;
+  height: 1.6rem;
+  border-radius: 0.8rem;
+  background: #17203a;
+  border: 1px solid #26325a;
+  overflow: hidden;
+}
+
+.band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, rgb(255 212 121 / 30%), rgb(255 212 121 / 55%));
+  border-inline: 2px solid #ffd479;
+}
+
+.marker {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 4px;
+  background: #fff;
+  box-shadow: 0 0 8px rgb(255 255 255 / 90%);
+}
+
+/* Where selection is aiming next — the staircase position, distinct from the fitted estimate. */
+.aim {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #56e0a0;
+}
+
+.axisTicks {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-between;
+  padding-inline: 0.35rem;
+  align-items: center;
+  font-size: 0.6rem;
+  color: #4d5b82;
+  pointer-events: none;
+}
+
+.areaWidth {
+  font-size: 0.95rem;
+  color: #ffd479;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.settled {
+  color: #56e0a0;
+}
+
+/* --- the narrowing series ------------------------------------------------ */
+
+.narrowWrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 2.6rem;
+  padding: 0.2rem 0.35rem;
+  background: #10182e;
+  border: 1px solid #26325a;
+  border-radius: 0.35rem;
+}
+
+.narrowBar {
+  flex: 1 1 auto;
+  min-width: 3px;
+  background: linear-gradient(180deg, #ffd479, #ff9f43);
+  border-radius: 1px 1px 0 0;
+}
+
+.narrowLabel {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8fb4ff;
+}
+
+/* --- per-item log ------------------------------------------------------- */
+
+.log {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.log th {
+  text-align: right;
+  padding: 0.15rem 0.5rem;
+  color: #7f8fb8;
+  font-weight: 600;
+  border-bottom: 1px solid #26325a;
+  white-space: nowrap;
+}
+
+.log th:nth-child(2),
+.log td:nth-child(2) {
+  text-align: left;
+}
+
+.log td {
+  text-align: right;
+  padding: 0.15rem 0.5rem;
+  color: #dbe4ff;
+  white-space: nowrap;
+}
+
+.ok {
+  color: #56e0a0;
+  font-weight: 700;
+}
+
+.no {
+  color: #ff7a7a;
+  font-weight: 700;
+}
+
+.rev {
+  color: #ffd479;
+}
+
+.burstTag {
+  display: inline-block;
+  padding: 0 0.35rem;
+  border-radius: 0.25rem;
+  background: #2b3a6b;
+  color: #bcd0ff;
+  font-size: 0.75rem;
+}
+
+.foot {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #7f8fb8;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+}
+
+.toggle {
+  appearance: none;
+  border: 1px solid #3d7dff;
+  background: transparent;
+  color: #8fb4ff;
+  border-radius: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: #16224a;
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #9fb0d6;
+}
