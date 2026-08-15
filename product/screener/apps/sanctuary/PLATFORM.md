@@ -4,10 +4,10 @@ From a clean clone, in this order. Four terminals, or four commands and two back
 
 ```bash
 # 1. Storage. DynamoDB Local in Docker, on 8456.
-cd platform && npm install && npm run ddb:start
+cd product/platform && npm install && npm run ddb:start
 
 # 2. A catalogue and the Bramblebrook app. Prints an api key once and writes it to
-#    screener/data/sanctuary/platform-app.json, which is the only copy — the platform keeps a digest.
+#    product/screener/data/sanctuary/platform-app.json, which is the only copy — the platform keeps a digest.
 npm run seed:bramblebrook
 
 # 3. The platform, on 5210. Runs the real Lambda handlers; no AWS, no credentials.
@@ -18,14 +18,14 @@ cd ../screener && npm install && npm run sanctuary
 ```
 
 Then set the game's two environment variables. Vite reads them at build time, so put them in
-`screener/.env.local`:
+`product/screener/.env.local`:
 
 ```
 VITE_GT_PLATFORM_URL=/platform
-VITE_GT_APP_KEY=<the apiKey from screener/data/sanctuary/platform-app.json>
+VITE_GT_APP_KEY=<the apiKey from product/screener/data/sanctuary/platform-app.json>
 ```
 
-`screener/.env.local` and not `apps/sanctuary/.env.local`, which needs saying because Vite's `envDir` defaults
+`product/screener/.env.local` and not `apps/sanctuary/.env.local`, which needs saying because Vite's `envDir` defaults
 to `root` and this config's root is the app directory. `vite.sanctuary.config.ts` sets `envDir` back to the
 screener root to make the path above the true one. If you move the file, the game will load, walk and draw a
 station perfectly well, and then be refused for a missing `x-api-key` the moment it asks for a question —
@@ -36,6 +36,20 @@ Vite reads env files once at startup, so **restart the game after writing the fi
 `/platform` is proxied to `http://127.0.0.1:5210` by `vite.sanctuary.config.ts`, which strips the prefix. The
 client's paths are therefore exactly the wire contract's, and pointing at a deployed stack means changing
 `VITE_GT_PLATFORM_URL` to its base URL and nothing else.
+
+## Open it
+
+- Local platform-backed game: <http://127.0.0.1:5230>
+- Live sandbox game: <https://d14xlnxxtsczg9.cloudfront.net>
+- Offline adult demo: <https://d14xlnxxtsczg9.cloudfront.net/?demo=1>
+
+Adult-only local modes:
+
+- `?demo=1` runs a self-contained browser session and touches no platform data. It contains answer keys.
+- `?reset=1` clears Bramblebrook-owned local state once and removes the flag from the URL.
+- `?perf=1` enables the development performance probe.
+
+See `../../../docs/gt/testing-and-demos.md` for the complete app and test matrix.
 
 ## What changed, and what did not
 

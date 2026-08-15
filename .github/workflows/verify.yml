@@ -1,6 +1,6 @@
 # Nothing merges on a red test.
 #
-# `product/screener/` had 264 tests, a simulation and an end-to-end smoke suite, and nothing ran them
+# `product/screener/` had a substantial test suite, a simulation and an end-to-end smoke suite, and nothing ran them
 # automatically. This is task 3.6 from product/docs/handoff/engine-portability-tasks.md.
 #
 # Two jobs rather than one, because they fail for different reasons and the distinction is worth
@@ -56,7 +56,7 @@ jobs:
         working-directory: product/screener
         run: npm ci
 
-      # typecheck, 264 tests, the simulation harness, and the end-to-end smoke suite. The smoke script
+      # Typecheck, the current tests, the simulation harness, and the end-to-end smoke suite. The smoke script
       # starts its own API on port 5199 and tears it down, so nothing here needs a service container.
       # It shells out to `python3` and `curl`, both present on ubuntu-latest.
       - name: Verify

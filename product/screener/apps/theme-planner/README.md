@@ -3,7 +3,7 @@
 Describe a theme, get the development plan, edit it, save it.
 
 ```bash
-npm run planner        # from the repo root or from screener/
+npm run planner        # from the repo root or from product/screener/
 # http://127.0.0.1:5190
 ```
 

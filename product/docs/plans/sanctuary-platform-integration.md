@@ -1,18 +1,23 @@
 # Bramblebrook on the Question Platform — Implementation Plan
 
+> **Historical implementation plan, completed.** The integrated game is deployed in the sandbox.
+> Use [`../gt/testing-and-demos.md`](../gt/testing-and-demos.md) and
+> [`../../screener/apps/sanctuary/PLATFORM.md`](../../screener/apps/sanctuary/PLATFORM.md)
+> for current commands. Checkboxes and worktree paths below preserve execution history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or
 > superpowers:executing-plans. Steps use checkbox (`- [ ]`) syntax.
 
-**Status:** Awaiting review. Nothing in this plan has been implemented.
+**Status:** Implemented and deployed; retained as historical execution detail.
 
 **Goal:** Bramblebrook's question serving and ability scoring come from the question platform, with the
 game's world, art and interaction untouched.
 
-**Spec:** `docs/design/sanctuary-platform-integration.md`. Read §5 first — it contains a decision only the
+**Spec:** `product/docs/design/sanctuary-platform-integration.md`. Read §5 first — it contains a decision only the
 owner can make, and Task 6 changes depending on the answer.
 
 > **Superseded in part.** PR #68 landed ~2,900 lines of adaptive engine in `@gt/qbank` after this plan was
-> written. **Read `docs/design/platform-qbank-reconciliation.md` first.** Task 1 below is replaced by that
+> written. **Read `product/docs/design/platform-qbank-reconciliation.md` first.** Task 1 below is replaced by that
 > document's Tasks 0–6, and its own §2 numbers are stale — the current figures are 4,934 scorable across 36
 > types. The rest of this plan, from Task 2 onward, stands.
 

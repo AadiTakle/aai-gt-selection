@@ -1,9 +1,13 @@
 # Engine and item bank: task list
 
+> **Historical task ledger.** Paths described as relative to `screener/` are now relative to
+> `product/screener/`. Test and bundle counts record the point in time when a task closed; use current
+> command output and [`../gt/testing-and-demos.md`](../gt/testing-and-demos.md) for verification.
+
 Concrete tasks only. Reasoning, evidence and the decisions behind these live in
 `engine-portability-todo.md` — read that before arguing with one of them, not before doing one.
 
-Paths are relative to `screener/` unless stated. Dropped tasks (1a.1, 1a.2, 1a.3) are not listed.
+Paths are relative to `product/screener/` unless stated. Dropped tasks (1a.1, 1a.2, 1a.3) are not listed.
 
 ---
 
@@ -166,7 +170,7 @@ helpers out of the loader — the same seam `3.3` opens. Do them together.
 - **Done when:** no app declares its own request/response types.
 
 `packages/qbank/src/wire.ts` (contract), `client.ts` (the one typed client), `openapi.ts` → committed at
-`docs/api/bank-engine.openapi.json` via `npm run api:spec`. 264 tests; web bundle unchanged at 245.95 kB, so
+`product/docs/api/bank-engine.openapi.json` via `npm run api:spec`. The then-current suite passed; the web bundle was unchanged at 245.95 kB, so
 the browser boundary held. No app declares a wire type any more; the last two projections are
 `Pick<QbankState, ...>` so they cannot drift.
 
@@ -458,14 +462,7 @@ unknown because these types were never servable.
 
 ---
 
-## Running it
+## Running the current system
 
-```bash
-cd screener
-npm install
-npm run api          # Express on 5181
-npm run web          # Vite on 5180
-npm run verify       # typecheck, 195 tests, simulation, smoke
-npm run kit          # UI kit coverage report
-npx tsx apps/lab-system/verify-showcase.ts   # plays a real session per age band
-```
+Use [`../gt/testing-and-demos.md`](../gt/testing-and-demos.md). The original
+commands used superseded script names and point-in-time counts.

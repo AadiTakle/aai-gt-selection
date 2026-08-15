@@ -4,7 +4,7 @@ Work through the question types and settle three things about each: does its gra
 does its CogAT mapping hold, and is its difficulty usable.
 
 ```bash
-npm run review        # from the repo root or from screener/
+npm run review        # from the repo root or from product/screener/
 # http://127.0.0.1:5191
 ```
 
@@ -31,7 +31,7 @@ Not alphabetical, because that is not how this work goes.
 
 ## Where the review goes
 
-Autosaves to `docs/design/bank-review.json` about a second after you stop typing, so the result is data
+Autosaves to `product/docs/design/bank-review.json` about a second after you stop typing, so the result is data
 the rest of the project can read rather than a conversation. Verdicts are `keep`, `rework` or `cut`, plus
 an optional grade override, a CogAT judgement, a difficulty verdict and a note.
 

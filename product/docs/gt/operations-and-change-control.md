@@ -1,5 +1,8 @@
 # Operations and Change Control
 
+For the complete live/local/debug surface matrix, see
+[Testing, demos, debug views, and live sites](testing-and-demos.md).
+
 ## Local setup
 
 Install the two active Node projects independently:
@@ -74,9 +77,15 @@ context:
 
 ```bash
 cd product/platform
-AWS_PROFILE=sbsandbox npm run deploy -- -c web=../screener/dist-sanctuary
+ORIGINS="https://d14xlnxxtsczg9.cloudfront.net,http://localhost:5230,http://127.0.0.1:5230,http://localhost:8420,http://127.0.0.1:8420,http://localhost:3100,http://127.0.0.1:3100,https://d284xy6sbvs9mb.cloudfront.net,http://localhost:8455,http://127.0.0.1:8455,https://d14n29hsrte7u8.cloudfront.net"
+AWS_PROFILE=sbsandbox npm run deploy -- \
+  -c web=../screener/dist-sanctuary \
+  -c "origins=$ORIGINS"
 AWS_PROFILE=sbsandbox npm run provision:aws -- --region us-east-1 --prefix GtQuestionPlatform
 ```
+
+Do not omit `origins`. CDK otherwise uses its localhost-only default and the
+next API deployment removes the live Bramblebrook, dashboard and review origins.
 
 Before accepting a CloudFormation change:
 

@@ -1,5 +1,10 @@
 # AWS Question Platform Implementation Plan
 
+> **Historical implementation plan, completed and deployed.** This plan records the original local-only
+> build sequence, old paths, test totals and runtime assumptions. Do not execute it as a current runbook.
+> Use [`../gt/testing-and-demos.md`](../gt/testing-and-demos.md) and
+> [`../gt/operations-and-change-control.md`](../gt/operations-and-change-control.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development
 > (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use
 > checkbox (`- [ ]`) syntax for tracking.
@@ -14,7 +19,7 @@ Lambda handlers wire them to DynamoDB. A CDK app describes the infrastructure. T
 **Tech Stack:** TypeScript 5.7 strict, Node 20 (Lambda runtime target), vitest 2, AWS SDK v3,
 AWS CDK v2, DynamoDB Local in Docker, esbuild via `NodejsFunction`.
 
-**Spec:** `docs/design/aws-question-platform.md`. **Ledger:** `docs/plans/aws-question-platform-progress.md`.
+**Spec:** `product/docs/design/aws-question-platform.md`. **Ledger:** `product/docs/plans/aws-question-platform-progress.md`.
 
 ## Global Constraints
 

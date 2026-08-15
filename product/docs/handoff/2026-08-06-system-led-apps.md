@@ -1,5 +1,10 @@
 # Handoff: system-and-reward-led stealth screeners (loop B)
 
+> **Historical external-worktree runbook.** The app source is preserved at
+> `product/screener/apps/lab-system/`, but the ignored runtime data from `~/gt-loop-b`
+> is not in a clean clone. Paths and commands below describe the original worktree;
+> use `product/docs/gt/testing-and-demos.md` for currently reproducible surfaces.
+
 Branch `feat/apps-system-led`, worktree `~/gt-loop-b`, app at `screener/apps/lab-system/`.
 
 ```bash

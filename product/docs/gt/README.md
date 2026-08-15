@@ -7,10 +7,12 @@ preserved for history and may describe earlier states.
 Read in this order:
 
 1. [System and deployments](system-and-deployments.md)
-2. [HTTP integration](http-integration.md)
-3. [Question-library maintenance](question-library.md)
-4. [Engine, scoring, traces, and rescoring](engine-scoring-and-rescoring.md)
-5. [Operations and change control](operations-and-change-control.md)
+2. [Testing, demos, debug views, and live sites](testing-and-demos.md)
+3. [Access and ownership transfer](access-and-ownership-transfer.md)
+4. [HTTP integration](http-integration.md)
+5. [Question-library maintenance](question-library.md)
+6. [Engine, scoring, traces, and rescoring](engine-scoring-and-rescoring.md)
+7. [Operations and change control](operations-and-change-control.md)
 
 Binding product constraints remain in
 [`../interviews/2026-08-03-crystal-martel-call.md`](../interviews/2026-08-03-crystal-martel-call.md).

@@ -1,5 +1,10 @@
 # Handoff: character-led stealth screeners (Loop A)
 
+> **Historical external-worktree runbook.** The app source is preserved at
+> `product/screener/apps/lab-character/`, but the ignored curated-bank data from `~/gt-loop-a`
+> is not in a clean clone. Paths and commands below describe the original worktree. The current
+> repository preserves 43 files under `shots/`, not the complete screenshot set described here.
+
 **Worktree:** `~/gt-loop-a` · **Branch:** `feat/apps-character-led` (off `origin/dev` at `d7cbeff`)
 **Reserved:** API 5201, web 5210, `screener/apps/lab-character/`, `screener/data/lab-character/`
 **Status:** four worlds built, one per band, all four playable end to end. Section 5 final pass not run.
@@ -34,7 +39,7 @@ What is NOT done, stated plainly so nobody assumes otherwise:
 | `screener/apps/lab-character/renderers/` | 8 renderers, one per curated type, each with its own stylesheet |
 | `screener/apps/lab-character/experiences/` | `hatchling`, `pet-clinic`, `navigator`, `monster-tamer`, plus `registry.ts` |
 | `screener/apps/lab-character/DEMO.md` | the click path, leading on Hatchling then The Rival |
-| `shots/` | 210 screenshots, including 162 same-item-two-worlds comparisons |
+| `shots/` | The original run reported 210 screenshots; 43 files are preserved in this repository |
 
 ---
 

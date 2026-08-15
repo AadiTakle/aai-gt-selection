@@ -6,7 +6,7 @@ breadth in a live demo, so everything runs in a browser with no build step and n
 ## Open it
 
 ```bash
-cd qbank-library
+cd product/qbank-library
 python3 -m http.server 8000
 ```
 
@@ -49,8 +49,8 @@ have nothing equivalent.
 This is the **catalogue**. It shows what can be asked.
 
 It is not the screener. Deciding which question to ask next, how hard each item type actually is, when
-to stop, and what the result means all live in the screening engine under `../screener/`, which is a
-separate thing and under active development. Difficulty, discrimination and how well an item type
+to stop, and what the result means all live in `product/screener/packages/qbank/`, with durable serving,
+traces and scoring under `product/platform/`. Difficulty, discrimination and how well an item type
 behaves are properties of the item type rather than of any single question, and they belong there
 rather than here.
 

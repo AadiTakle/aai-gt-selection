@@ -12,6 +12,9 @@ The active system is the combination of:
 The pre-reset application remains under `archive/`. It is historical except where
 the deployed GT screener explicitly points to `archive/apps/web`.
 
+Open and verify every live, local and debug surface with
+[Testing, demos, debug views, and live sites](testing-and-demos.md).
+
 ## Live sandbox surfaces
 
 All resources below are in Superbuilders sandbox account `056956104102`, region
@@ -35,7 +38,7 @@ All resources below are in Superbuilders sandbox account `056956104102`, region
   - It remains on its own engine; platform mode is documented but not implemented.
 
 Platform API:
-<https://0yz8m5z48k.execute-api.us-east-1.amazonaws.com>
+`https://0yz8m5z48k.execute-api.us-east-1.amazonaws.com`
 
 The self-contained Bramblebrook `?demo=1` mode is a mode of Bramblebrook, not a
 separate application. It includes answer keys in the browser bundle and must not
@@ -51,6 +54,10 @@ created manually; their exact inventory is recorded under
 A git push does not deploy any surface. App Runner services use pinned ECR image
 tags with automatic deployment disabled. Platform and Bramblebrook deployments
 are manual CDK operations.
+
+The `product/` reorganization changed repository paths only. It did not invoke
+CDK, upload S3 assets, update App Runner, or mutate the API, so existing
+deployments remain live until an explicit manual deployment changes them.
 
 The live API currently contains CORS origins that were added directly in AWS for
 the dashboard and review UI. The next API-stack deployment must include those

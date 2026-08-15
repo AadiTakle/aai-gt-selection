@@ -8,6 +8,8 @@ measurement, review, and implementation record.
 Start with [`gt/README.md`](gt/README.md). It links the current:
 
 - system and deployment inventory
+- testing, demos, debug views and live sites
+- access and ownership transfer
 - HTTP-only integration guide
 - question-library maintenance workflow
 - engine, trace, scoring, and rescoring guide

@@ -26,7 +26,7 @@ The deeper design, implementation, measurement, and review record remains under
 ## Run
 
 ```bash
-cd screener
+cd product/screener
 npm install
 npm run verify
 
@@ -36,5 +36,9 @@ npm test
 npm run synth
 ```
 
-See [`docs/gt/operations-and-change-control.md`](docs/gt/operations-and-change-control.md)
-for the integrated local environment and deployment process.
+See [`docs/gt/testing-and-demos.md`](docs/gt/testing-and-demos.md) for every
+local, debug and deployed surface, and
+[`docs/gt/access-and-ownership-transfer.md`](docs/gt/access-and-ownership-transfer.md)
+for the secrets-safe resource handoff. See
+[`docs/gt/operations-and-change-control.md`](docs/gt/operations-and-change-control.md)
+for deployment and change control.

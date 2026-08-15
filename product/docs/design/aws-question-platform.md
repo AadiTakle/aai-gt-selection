@@ -1,9 +1,16 @@
 # AWS Question Platform — Design
 
-**Status:** Approved for implementation, 2026-08-10. Not deployed.
-**Branch:** `feat/aws-question-platform`
-**Supersedes nothing.** Additive to `docs/design/screener-library-design.md` and
-`docs/design/ui-agnostic-assessment-system.md`, which state the principles this design implements.
+> **Approved design, now implemented and deployed in the sandbox.** This file preserves the
+> architecture and decisions; use [`../gt/system-and-deployments.md`](../gt/system-and-deployments.md),
+> [`../gt/http-integration.md`](../gt/http-integration.md), and
+> [`../gt/operations-and-change-control.md`](../gt/operations-and-change-control.md) for current status.
+> Counts of 4,534 items below are design-time measurements; the current golden compiler result is
+> 4,934 scorable records and must be re-measured rather than copied.
+
+**Status:** Implemented; sandbox deployment verified 2026-08-14.
+**Original branch:** `feat/aws-question-platform`, since integrated.
+**Supersedes nothing.** Additive to `product/docs/design/screener-library-design.md` and
+`product/docs/design/ui-agnostic-assessment-system.md`, which state the principles this design implements.
 
 ---
 

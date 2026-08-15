@@ -1,5 +1,11 @@
 # Orientation, for the agent preparing this repository for GT
 
+> **Updated after repository consolidation (`e7b7f33`).** Active code and documentation now live
+> under `product/`; prepend `product/` to this document's older unqualified `screener/`,
+> `platform/`, `qbank-library/` and `docs/` paths. The deployed-app branch has been pushed and
+> merged into `handoff/repo-organization`. GT readers should start at
+> [`../gt/README.md`](../gt/README.md); this file remains the detailed point-in-time audit.
+
 Written 14 Aug 2026. Read this before touching anything, then verify the claims in it — the rest of this
 repository contains several documents that were true when written and are not true now, and this one will decay
 the same way. Every number below was measured on the date above, and the commands that produce them are given so
@@ -17,7 +23,7 @@ one-at-a-time testing cannot reach. The deliverable is **a shared measurement li
 an item bank of 53 question types, an adaptive engine that estimates ability from responses, and a serverless
 platform that serves questions and stores traces — with a 3D web game (**Bramblebrook**) as the first surface a
 child actually touches. The binding constraint from GT, recorded in
-`docs/interviews/2026-08-03-crystal-martel-call.md`, is that **we may not build an in-house cognitive test to
+`product/docs/interviews/2026-08-03-crystal-martel-call.md`, is that **we may not build an in-house cognitive test to
 replace CogAT**; the bar is 95th-percentile CogAT, strictly applied. Read that interview first. It is the only
 document here that constrains rather than proposes.
 
@@ -25,11 +31,9 @@ document here that constrains rather than proposes.
 
 ## 2. The one thing most likely to mislead you
 
-**The platform is deployed, and several documents say it is not.**
-
-`platform/README.md` line 7 still opens with "**Nothing here is deployed.**" That was true until 13 Aug. It is
-now false. The same staleness affects `docs/design/sanctuary-platform-integration.md` and
-`docs/plans/sanctuary-platform-integration.md`, both of which say "Nothing implemented" about work that shipped.
+**The platform is deployed.** The operational READMEs now say so. Earlier designs and plans retain
+their original proposal detail behind prominent historical/completed banners; do not read checklist
+state inside those files as current deployment status.
 
 **Five surfaces are live**, in the Superbuilders **sandbox** account `056956104102`, region `us-east-1`, all
 against one platform. Verified 200 on 14 Aug:
@@ -43,13 +47,12 @@ against one platform. Verified 200 on 14 Aug:
 | CogAT prep explainer | https://scunwsuf4i.us-east-1.awsapprunner.com/about-the-test | no — an explainer, not a screener |
 | GT screener example | https://kt49a2xvq5.us-east-1.awsapprunner.com/demo/exam?telemetry=1 | no — still its own engine |
 
-The platform behind them: `https://0yz8m5z48k.execute-api.us-east-1.amazonaws.com`. It should return **401**
-unkeyed, which is it refusing correctly rather than failing.
+The platform behind them: `https://0yz8m5z48k.execute-api.us-east-1.amazonaws.com`. A protected route
+such as `/v1/catalog/types` returns **401** unkeyed; the bare API root returns 404 because no root route exists.
 
-**Where that is documented, and the risk attached.** The four non-Bramblebrook surfaces come from
-`feat/library-apps-on-platform`, whose `demo/README.md` is the only inventory of them. **That branch is local and
-has never been pushed**, and it is 115 commits behind `dev`. If this working copy is lost, the record of four
-live deployments goes with it. Pushing it is the most urgent thing in this document.
+**Where that is documented now.** The four non-Bramblebrook surfaces came from
+`feat/library-apps-on-platform`. That branch is pushed and its deployment inventory is integrated at
+`product/deployed-apps/README.md` on `handoff/repo-organization`.
 
 **Correcting the stale status documents is your other first task**, because anyone reading them will conclude the
 opposite of the truth about the most important thing in the repository.
@@ -62,9 +65,10 @@ opposite of the truth about the most important thing in the repository.
 
 | Path | What it is | Trust |
 |---|---|---|
-| `screener/` | The item library, the adaptive engine, and every front door built on them. **The library is the product.** | High. 621 tests. |
-| `platform/` | The serverless side: registry, scoring, selection, DynamoDB store, Lambda handlers, CDK. | High. 326 tests. |
-| `qbank-library/` | 53 JSONL banks (7,319 records) and 52 standalone HTML item demos. The content. | High as data; see §6 on calibration. |
+| `product/screener/` | The item library, adaptive engines, Bramblebrook, prototype and internal tools. | High; run the current suite for its count. |
+| `product/platform/` | The serverless side: registry, scoring, selection, DynamoDB store, Lambda handlers, CDK. | High; run the current suite for its count. |
+| `product/qbank-library/` | 53 JSONL banks (7,319 records) and 52 standalone HTML item demos. The content. | High as data; see §6 on calibration. |
+| `product/deployed-apps/` | Live deployment inventory, dashboard, question-type review and source pointers. | High for current URLs and hosting. |
 
 ### Reference and history
 
@@ -72,7 +76,7 @@ opposite of the truth about the most important thing in the repository.
 |---|---|---|
 | `archive/` | The pre-reset project, frozen 2026-08-03. Supabase, exam engine, 47 decisions, 117 evidence entries. | Historical only. Nothing here runs in production and no child ever took it. |
 | `brainlifting/` | 14 argument documents, each building a defensible position from sources. | High as reasoning, but they are arguments, not status. |
-| `docs/` | Design, plans, measurement, handoff. See §5 — mixed currency. | Mixed. Read §5 before trusting any of it. |
+| `product/docs/` | GT guides, design, plans, measurement and handoff. | `product/docs/gt/` is current; older sections are mixed. |
 | `shots/` | 43 screenshots from the lab-app experiments. | Artifacts. One handoff doc claims 210; the repo has 43. |
 
 ### Inside `screener/`
@@ -121,15 +125,15 @@ Seven packages. The one that matters most:
 
 ```bash
 # The local stack: storage, then seed, then the platform, then the game.
-cd platform && npm run ddb:start && npm run seed:bramblebrook && npm run dev:local
-cd screener && npm run sanctuary          # http://127.0.0.1:5230
+cd product/platform && npm run ddb:start && npm run seed:bramblebrook && npm run dev:local
+cd product/screener && npm run sanctuary          # http://127.0.0.1:5230
 
 # What CI runs. Run this before you push anything.
-cd screener && npm run verify             # typecheck + 621 tests + simulation + smoke
-cd screener && npm run build              # the DEFAULT vite config, not sanctuary's
+cd product/screener && npm run verify     # typecheck + current tests + simulation + smoke
+cd product/screener && npm run build      # the DEFAULT vite config, not sanctuary's
 
-# The platform's own tests. Integration tests skip silently without storage running.
-cd platform && npm run ddb:start && npm test    # 326 tests
+# The platform's own tests. Integration tests need storage running.
+cd product/platform && npm run ddb:start && npm test
 ```
 
 The scripts worth knowing, all from `platform/`:
@@ -159,27 +163,23 @@ The `sb-aws` MCP server exposes `whoami`, `accounts`, and `guide`; read `guide` 
 
 Read in this order:
 
-1. `docs/interviews/2026-08-03-crystal-martel-call.md` — the constraints. Nothing else binds.
-2. `docs/plans/aws-question-platform-progress.md` — **the single most current status document.** A ledger of
-   what was built, what broke, and what was decided. When it disagrees with a design doc, believe the ledger.
-3. `docs/overnight/README.md` and the four numbered files beside it — the measurement artifacts. What the
+1. `product/docs/gt/README.md` — current GT-facing operations and maintenance.
+2. `product/docs/interviews/2026-08-03-crystal-martel-call.md` — the constraints. Nothing else binds.
+3. `product/deployed-apps/README.md` — current URLs, hosting and source pointers.
+4. `product/docs/overnight/README.md` and the four numbered files beside it — the measurement artifacts. What the
    instrument actually does, with the caveats attached.
-4. `docs/handoff/engine-portability-tasks.md` — task-level status for the `qbank` engine.
-5. `docs/design/aws-question-platform.md` — the platform design as approved.
+5. `product/docs/plans/aws-question-platform-progress.md` — decision and bug history.
+6. `product/docs/design/aws-question-platform.md` — the approved architectural design.
 
-**Distrust these, in this order of danger:**
+**Historical documents to interpret carefully:**
 
 | Document | Problem |
 |---|---|
-| `platform/README.md` | Says "Nothing here is deployed." It is deployed. |
-| `docs/design/sanctuary-platform-integration.md` | Says "Nothing implemented." It is implemented. |
-| `docs/plans/sanctuary-platform-integration.md` | Same. |
-| `docs/README.md` | Says "no concept chosen, no design approved." A design was approved on 10 Aug. |
-| `screener/README.md` | Claims 111 tests. There are 621. Also describes the generator stack as the product. |
-| `docs/handoff/2026-08-06-*-apps.md` | Both reference external worktrees that are not this repo. Their architectural findings are still useful; their instructions are not. |
+| `product/docs/design/sanctuary-platform-integration.md` | Historical design; now bannered as implemented. |
+| `product/docs/plans/sanctuary-platform-integration.md` | Historical execution plan; now bannered as completed. |
+| `product/docs/handoff/2026-08-06-*-apps.md` | Reference external worktrees; use the in-repo paths in the banners, while retaining the findings. |
 
-**Every test count in every document except this one is wrong.** Measured 14 Aug: `screener` **621**, `platform`
-**326**. Re-measure rather than copy.
+Operational READMEs and `product/docs/gt/` now avoid hardcoded test totals. Re-measure rather than copy.
 
 ---
 
@@ -212,9 +212,10 @@ with devtools can read every answer. It is for demonstrating to adults and must 
 matters. **And it only works for Bramblebrook**; the other screener apps get nothing from the parameter until it
 moves into a shared package.
 
-**2,145 of 7,319 bank records cannot be marked.** Excluded by scoring mode: `computed_solver`,
-`non-index-numeric-key`, and two retirement reasons. The largest recoverable pool is 1,634 `computed_solver`
-items that carry real keys behind comparison rules nobody has written.
+**2,385 of 7,319 bank records are excluded from the compiled servable pool.** The golden catalogue
+test accounts for them as 1,634 `computed_solver`, 391 `non-index-numeric-key`, 240
+`retired:reviewer-kill`, and 120 `retired:validity-defect`. Re-run the test rather than copying these
+counts forward.
 
 **Verbal Analogies has no direct CogAT coverage** — the largest alignment gap, task 2.1 in
 `docs/handoff/engine-portability-tasks.md`.
@@ -222,9 +223,9 @@ items that carry real keys behind comparison rules nobody has written.
 **Only the sandbox account.** Nothing is in production, and an intern cannot deploy there. Whoever takes this to
 production needs `sbproduction` access and a fresh `cdk bootstrap`.
 
-**CI does not test the platform.** `.github/workflows/verify.yml` runs `screener/` only — typecheck, tests,
-simulation, smoke, and the default web build. `platform/`'s 326 tests run on nobody's machine but yours, and the
-sanctuary build is not built in CI either. That is a gap worth closing before handoff.
+**CI does not test the platform.** `.github/workflows/verify.yml` runs `product/screener/` only —
+typecheck, tests, simulation, smoke, and the default web build. Platform and Sanctuary verification
+remain documented manual handoff gates.
 
 ---
 
@@ -250,31 +251,25 @@ When you verify something for GT, verify it against the thing that will run.
 
 ## 8. Suggested order of work
 
-1. Fix the four stale status documents in §5. They actively mislead.
-2. Reconcile every test count, or delete the counts — a wrong number is worse than no number.
-3. Decide `recommendProbability`, and record the decision with its reasoning.
-4. Put `platform/` in CI, and build the sanctuary bundle there too.
-5. Move demo mode into a shared package so `?demo=1` works for every screener.
-6. Write GT's own document — this one is for an agent, not for them. They need what it does, what it costs, what
-   it cannot do yet, and how to run it, without the archaeology.
+1. Decide `recommendProbability`, and record the decision with its reasoning.
+2. Put `product/platform/` and the Sanctuary build in CI.
+3. Move demo mode into a shared package if every screener needs an offline adult-demo mode.
+4. Bring the CogAT prep source onto an integrated branch if it must be maintained from this repository.
+5. Preserve the GT-facing guides under `product/docs/gt/` as the current operational layer.
 
 ---
 
-## 9. Branch and deployment state, 14 Aug 2026
+## 9. Branch and deployment state after handoff consolidation
 
 ```
-origin/dev                      9fc64a3   the integrated line: engine, game, platform, demo mode, docs
-origin/feat/sanctuary           f47505a   the game line, Tiffany and Felipe plus this work
-feat/library-apps-on-platform   79e1f86   LOCAL ONLY, NEVER PUSHED. Four of the five live demos.
+origin/dev                              8f16f9b   pre-reorganization integrated line
+origin/feat/library-apps-on-platform   79e1f86   deployed-app inventory and static apps
+handoff/repo-organization             e7b7f33   merge plus product/ consolidation
 ```
 
-**`dev` is not a superset.** It contains the engine, the game, the platform and demo mode, but *not*
-`feat/library-apps-on-platform`, which carries the backend dashboard, the question-type review UI, and the
-`demo/` folder that documents every deployment. That branch diverged before the merge into `dev` and is 115
-commits behind it, so reconciling them is real work rather than a fast-forward. Several other branches also hold
-unmerged commits — `origin/feat/cogat-prep-pivot` (16), `origin/feat/adaptive-exam-app` (6),
-`origin/feat/apps-system-led` (4), and local `feat/review-ui-and-play-gate` (7) among them. Run this before
-assuming anything is merged:
+`handoff/repo-organization` is a merge commit with the current `dev` line and
+`feat/library-apps-on-platform` as parents. Recovery tags and the exact move map are in the root
+`REORGANIZATION.md`. Other branches may still contain unintegrated experiments; inspect before deleting them:
 
 ```bash
 for B in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep -v HEAD); do
@@ -283,8 +278,7 @@ for B in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/
 done
 ```
 
-`dev` and `feat/sanctuary` are both current and were merged cleanly. **No deployment happens from a git push** —
-verified: the only workflow has `permissions: contents: read` and no deploy step, there is no
-apprunner/amplify/vercel/netlify/Dockerfile config in the repo, no Amplify app points at this repo, and the GT
-App Runner services in the sandbox run from pinned ECR image tags with `autoDeploy: false`. Both the platform and
-the game were deployed by hand with `cdk deploy`. Re-verify this before you trust it.
+**No deployment happens from a git push.** The active workflow has read-only repository permissions
+and no deploy step. App Runner services use pinned ECR images with `autoDeploy: false`; the platform
+and game deploy manually through CDK. Moving the source under `product/` does not alter any live AWS
+resource. Current and local verification commands are in `product/docs/gt/testing-and-demos.md`.

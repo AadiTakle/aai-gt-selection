@@ -1,7 +1,7 @@
 # GT screener (example assessment) — pointer
 
 **Source:** `archive/apps/web` in this repository. A Next.js workspace package; moving it here would
-break its build paths and workspace membership, so only this pointer lives in `demo/`.
+break its build paths and workspace membership, so only this pointer lives in `product/deployed-apps/`.
 
 **Deployed:** <https://kt49a2xvq5.us-east-1.awsapprunner.com/demo/exam?telemetry=1>
 
@@ -21,7 +21,10 @@ platform while leaving the working local path intact and comparable.
 ## Running it locally
 
 ```bash
-cd archive/apps/web && npx next dev --hostname 127.0.0.1 -p 3100
+cd archive
+pnpm install
+cd apps/web
+npx next dev --hostname 127.0.0.1 -p 3100
 ```
 
 Then <http://127.0.0.1:3100/dev/family-preview/exam?telemetry=1>. Use the `dev/family-preview` route:

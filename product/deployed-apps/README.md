@@ -1,7 +1,12 @@
-# Demos
+# Deployed surfaces
 
 Everything here is deployed and reachable. Each entry says where it runs, and whether it reads the
 question library live rather than from a file that can go stale.
+
+For live checks, local commands, debug URLs, test suites and rebuild notes, see
+[`../docs/gt/testing-and-demos.md`](../docs/gt/testing-and-demos.md).
+For account access, resource identifiers and key-transfer rules, see
+[`../docs/gt/access-and-ownership-transfer.md`](../docs/gt/access-and-ownership-transfer.md).
 
 | Demo | Link | Hosting | Reads the library live |
 | --- | --- | --- | --- |
@@ -34,10 +39,12 @@ directory layout. Each pointer records where the source actually is and how it w
 
 ```bash
 # dashboard
-cd platform-dashboard && python3 -m http.server 8455
+cd product/deployed-apps/platform-dashboard
+python3 -m http.server 8455
 
 # review UI
-cd question-type-review && python3 serve-review.py 8420
+cd product/deployed-apps/question-type-review
+python3 serve-review.py 8420
 ```
 
 Both need a `platform-config.json` (or `dashboard-config.json`) carrying the API base URL and an app
@@ -57,3 +64,18 @@ http://localhost:8420   http://127.0.0.1:8420
 http://localhost:8455   http://127.0.0.1:8455
 http://localhost:3100   http://127.0.0.1:3100
 ```
+
+## Deployment continuity
+
+The repository reorganization does not modify any live AWS resource. Git pushes do not deploy this
+project, App Runner services use pinned images, and the platform/game deploy through manual CDK
+commands from `product/platform/`.
+
+The two static applications remain in their existing private buckets behind their existing
+CloudFront distributions:
+
+- Question-type review: bucket `gt-question-review-1786603835`, distribution `E3VCI457TMLIXD`
+- Platform dashboard: bucket `gt-platform-dashboard-1786607553`, distribution `E1GHL02R5R6FQ0`
+
+Their source paths changed; their AWS origins, distribution IDs and URLs did not. Do not run a blind
+S3 sync without supplying the gitignored runtime config containing the correct app key.

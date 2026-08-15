@@ -3,11 +3,11 @@
 Roughly ten minutes. The order matters, because each step sets up the next.
 
 ```bash
-cd screener && npm install && npm run dev     # http://localhost:5180
+cd product/screener && npm install && npm run dev     # http://localhost:5180
 ```
 
-If you want to prove it works before you present, `npm run verify` runs a typecheck, 93 unit
-tests, a synthetic cohort, and 20 end-to-end checks over HTTP.
+If you want to prove it works before you present, `npm run verify` runs the
+typecheck, current test suite, generator simulation, and end-to-end HTTP smoke.
 
 ---
 
@@ -29,8 +29,10 @@ outcome of the confidence you ask for, not a number you set beside it, so one co
 Leave it on **Standard**, which brackets the 13 to 16 items classification research associates with
 about 95% correct decisions.
 
-Press Start. The question that appears is one of 4,534 markable items from the hand-built banks, and
-the thing rendering it is the catalogue's own page. Answer a few.
+Press Start. The question comes from the current markable pool compiled from the
+hand-built banks, and the thing rendering it is the catalogue's own page. The
+golden catalogue test reports the exact current pool rather than this script
+copying a count that can go stale. Answer a few.
 
 Now open the **Debug** tray at the bottom of the page. It pushes the page up rather than covering the
 question, which is deliberate. The **Items** panel shows every question asked, its bank difficulty,

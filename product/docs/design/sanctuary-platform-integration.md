@@ -1,9 +1,16 @@
 # Bramblebrook on the Question Platform — Design
 
-**Status:** Proposal for review. Nothing implemented.
-**Branch:** `feat/sanctuary-platform`, in an isolated worktree at `/Users/atakle/gt-sanctuary-platform`
+> **Historical design, implemented and deployed.** Bramblebrook now uses the question platform in the
+> sandbox. Current setup and operations live in
+> [`../../screener/apps/sanctuary/PLATFORM.md`](../../screener/apps/sanctuary/PLATFORM.md) and
+> [`../gt/testing-and-demos.md`](../gt/testing-and-demos.md). Preserve the remainder as the design record.
+> Catalogue totals below are point-in-time reconciliation numbers; the current golden compiler result
+> is 4,934 scorable records.
+
+**Status:** Implemented; sandbox deployment verified 2026-08-14.
+**Original branch:** `feat/sanctuary-platform`, since integrated into the handoff line.
 **Merges:** `feat/sanctuary` (Bramblebrook) + `feat/aws-question-platform` (the platform). Merged clean, zero conflicts.
-**Depends on:** `docs/design/aws-question-platform.md`
+**Depends on:** `product/docs/design/aws-question-platform.md`
 
 ---
 

@@ -1,13 +1,17 @@
 # Question Platform — Progress Ledger
 
-**Branch:** `feat/sanctuary-platform`, worktree `/Users/atakle/gt-sanctuary-platform`, no remote configured.
-**Nothing is deployed.** No AWS account exists, no credentials are on this machine, `cdk synth` only.
+> **Historical decision and implementation ledger.** The platform and Bramblebrook are now deployed
+> in the Superbuilders sandbox. Use [`../gt/system-and-deployments.md`](../gt/system-and-deployments.md)
+> for current status and [`../gt/testing-and-demos.md`](../gt/testing-and-demos.md) for verification.
 
-| Suite | Count |
+**Original branch:** `feat/sanctuary-platform`, since integrated into the handoff line.
+**Deployment:** sandbox account `056956104102`, `us-east-1`; manual CDK deployment.
+
+| Surface | Current verification |
 |---|---|
-| `platform` | 311 passing |
-| `screener` including Bramblebrook | 504 passing |
-| `cdk synth` | two templates, no credentials |
+| `platform` | `cd product/platform && npm test && npm run typecheck && npm run synth` |
+| `screener` including Bramblebrook | `cd product/screener && npm run verify && npx vite build --config vite.sanctuary.config.ts` |
+| deployed URLs | See `product/deployed-apps/README.md` |
 
 ## Done
 

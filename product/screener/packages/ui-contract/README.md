@@ -8,7 +8,7 @@ capable of before a type may be served on it.
 
 ## Use it
 
-Works from the repo root or from `screener/`. The root `package.json` only delegates here, so there is
+Works from the repo root or from `product/screener/`. The root `package.json` only delegates here, so there is
 nothing to install at the root.
 
 ```bash
@@ -111,7 +111,7 @@ band sets the reading requirement.
   nothing in the library needs multi-select or reordering, which is wrong for eleven types.
 
 Both are migration scaffolding. Once items carry the `variables` and `method` fields from
-`docs/design/ui-agnostic-assessment-system.md`, this package reads them and the overrides go away.
+`product/docs/design/ui-agnostic-assessment-system.md`, this package reads them and the overrides go away.
 
 ## Tests
 
@@ -119,6 +119,6 @@ Both are migration scaffolding. Once items carry the `variables` and `method` fi
 npx vitest run packages/ui-contract
 ```
 
-22 tests. The ones worth knowing about: the computed union really does satisfy every type it claims to,
+The tests cover that the computed union really does satisfy every type it claims to,
 merging takes the maximum channel count rather than the sum, a thinner app serves strictly fewer types,
 every refusal carries a reason, and Verbal Analogies is reported as uncovered because it is.

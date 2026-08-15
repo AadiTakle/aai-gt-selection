@@ -6,10 +6,12 @@ serverless question platform, and the applications deployed around them.
 Start with:
 
 1. [`product/docs/gt/README.md`](product/docs/gt/README.md) — the GT development-team handoff.
-2. [`product/deployed-apps/README.md`](product/deployed-apps/README.md) — every live surface and where its source lives.
-3. [`product/docs/handoff/2026-08-14-repo-orientation.md`](product/docs/handoff/2026-08-14-repo-orientation.md) — measured repository and deployment state.
-4. [`product/docs/interviews/2026-08-03-crystal-martel-call.md`](product/docs/interviews/2026-08-03-crystal-martel-call.md) — GT's binding constraints.
-5. [`product/docs/overnight/README.md`](product/docs/overnight/README.md) — what the current instrument actually measures and its limitations.
+2. [`product/docs/gt/testing-and-demos.md`](product/docs/gt/testing-and-demos.md) — open every live, local and debug surface.
+3. [`product/docs/gt/access-and-ownership-transfer.md`](product/docs/gt/access-and-ownership-transfer.md) — sandbox resources and secure access handoff.
+4. [`product/deployed-apps/README.md`](product/deployed-apps/README.md) — every live surface and where its source lives.
+5. [`product/docs/handoff/2026-08-14-repo-orientation.md`](product/docs/handoff/2026-08-14-repo-orientation.md) — measured repository and deployment state.
+6. [`product/docs/interviews/2026-08-03-crystal-martel-call.md`](product/docs/interviews/2026-08-03-crystal-martel-call.md) — GT's binding constraints.
+7. [`product/docs/overnight/README.md`](product/docs/overnight/README.md) — what the current instrument actually measures and its limitations.
 
 ## Repository map
 

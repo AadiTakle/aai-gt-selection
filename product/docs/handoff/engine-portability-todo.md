@@ -1,5 +1,9 @@
 # Engine and item bank: make them adoptable anywhere
 
+> **Historical analysis and decision record.** Unqualified `screener/` and `docs/` paths now live
+> under `product/`. Test totals are point-in-time evidence, not current status. Use
+> [`../gt/README.md`](../gt/README.md) for the maintained handoff.
+
 **Owner: Felipe.** Written 6 Aug 2026 after auditing the code against the requirements, not from memory.
 Every claim below has a file reference so you can check it rather than trust it.
 
@@ -888,7 +892,7 @@ lives in Express handlers and is re-declared by hand in each React client (for e
 Write it before the handlers.
 
 **DONE 8 Aug 2026.** `packages/qbank/src/wire.ts` is the contract, `client.ts` is the one typed client,
-`openapi.ts` emits the document committed at `docs/api/bank-engine.openapi.json`. 264 tests pass; the web
+`openapi.ts` emits the document committed at `product/docs/api/bank-engine.openapi.json`. The then-current suite passed; the web
 bundle is unchanged at 245.95 kB, so the browser-safety boundary held.
 
 **The hand-written copies had already drifted, which is the finding.** Four client files declared these
@@ -944,7 +948,7 @@ run on every push.
 `.github/workflows/verify.yml` at the repository root. Two jobs, because they fail for different reasons
 and the distinction is worth seeing at a glance:
 
-- **verify** — `npm ci` then `npm run verify` (typecheck, 264 tests, the simulation, the end-to-end smoke
+- **verify** — `npm ci` then `npm run verify` (typecheck, the then-current tests, the simulation, the end-to-end smoke
   suite) on a Node **20 and 24** matrix with `fail-fast: false`. 20 is the floor `package.json` declares
   under `engines`; 24 is what the work was actually done on. Testing one of them leaves either the
   declaration or the reality unchecked, and knowing a failure is version-specific is most of the diagnosis.
@@ -1015,17 +1019,10 @@ they are unvalidated, the same way `abilityThreshold` and `recommendProbability`
 
 *(MEPV was item 6 here. Dropped — see 1a.)*
 
-## Running it
+## Running the current system
 
-```bash
-cd screener
-npm install
-npm run api          # Express on 5181
-npm run web          # Vite on 5180
-npm run verify       # typecheck, 195 tests, simulation, smoke
-npm run kit          # UI kit coverage report
-npx tsx apps/lab-system/verify-showcase.ts   # plays a real session per age band
-```
+Use [`../gt/testing-and-demos.md`](../gt/testing-and-demos.md). The commands that
+originally appeared here used superseded script names and point-in-time counts.
 
 `screener/README.md` describes the loop. `docs/design/ui-agnostic-assessment-system.md` covers the
 abstraction between items and presentation, and
