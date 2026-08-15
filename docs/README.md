@@ -3,6 +3,13 @@
 Work on the GT deliverable that follows the 2026-08-03 reset. The previous project is stopped and
 lives in `archive/`; nothing here supersedes it, because it is no longer running.
 
+> **Start with `handoff/2026-08-14-repo-orientation.md`.**
+>
+> It maps the whole repository, says what is deployed, and lists which documents in here have gone stale —
+> including parts of this one. Several status claims below were true when written and are not now: a design *was*
+> approved on 10 Aug, and the platform *is* deployed. The orientation document is the current map; this file is
+> the reading order for the thinking behind it.
+
 **If you are picking this up cold, read in this order.**
 
 1. **`interviews/2026-08-03-crystal-martel-call.md`** — the current facts. Joe's "MIT by 8" mandate,
