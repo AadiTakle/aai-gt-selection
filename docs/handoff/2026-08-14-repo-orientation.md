@@ -31,18 +31,27 @@ document here that constrains rather than proposes.
 now false. The same staleness affects `docs/design/sanctuary-platform-integration.md` and
 `docs/plans/sanctuary-platform-integration.md`, both of which say "Nothing implemented" about work that shipped.
 
-Live right now, in the Superbuilders **sandbox** account `056956104102`, region `us-east-1`:
+**Five surfaces are live**, in the Superbuilders **sandbox** account `056956104102`, region `us-east-1`, all
+against one platform. Verified 200 on 14 Aug:
 
-| | |
-|---|---|
-| game | https://d14xlnxxtsczg9.cloudfront.net |
-| demo (self-contained) | https://d14xlnxxtsczg9.cloudfront.net/?demo=1 |
-| API | https://0yz8m5z48k.execute-api.us-east-1.amazonaws.com |
+| Surface | URL | Reads the library live |
+|---|---|---|
+| Bramblebrook game | https://d14xlnxxtsczg9.cloudfront.net | yes — serving and scoring |
+| Bramblebrook demo, self-contained | https://d14xlnxxtsczg9.cloudfront.net/?demo=1 | no, by design — see §6 |
+| Backend dashboard | https://d14n29hsrte7u8.cloudfront.net | yes — catalogue and app registrations |
+| Question-type review, 36 types | https://d284xy6sbvs9mb.cloudfront.net | yes — types, spectra, served items |
+| CogAT prep explainer | https://scunwsuf4i.us-east-1.awsapprunner.com/about-the-test | no — an explainer, not a screener |
+| GT screener example | https://kt49a2xvq5.us-east-1.awsapprunner.com/demo/exam?telemetry=1 | no — still its own engine |
 
-Verify with `curl -s -o /dev/null -w '%{http_code}' <url>` — the API should return **401** unkeyed, which is it
-refusing correctly, not failing.
+The platform behind them: `https://0yz8m5z48k.execute-api.us-east-1.amazonaws.com`. It should return **401**
+unkeyed, which is it refusing correctly rather than failing.
 
-**Correcting those three documents is probably your first task**, because anyone reading them will conclude the
+**Where that is documented, and the risk attached.** The four non-Bramblebrook surfaces come from
+`feat/library-apps-on-platform`, whose `demo/README.md` is the only inventory of them. **That branch is local and
+has never been pushed**, and it is 115 commits behind `dev`. If this working copy is lost, the record of four
+live deployments goes with it. Pushing it is the most urgent thing in this document.
+
+**Correcting the stale status documents is your other first task**, because anyone reading them will conclude the
 opposite of the truth about the most important thing in the repository.
 
 ---
@@ -254,8 +263,24 @@ When you verify something for GT, verify it against the thing that will run.
 ## 9. Branch and deployment state, 14 Aug 2026
 
 ```
-origin/dev              9fc64a3   contains everything below
-origin/feat/sanctuary   f47505a   the game line, Tiffany and Felipe plus this work
+origin/dev                      9fc64a3   the integrated line: engine, game, platform, demo mode, docs
+origin/feat/sanctuary           f47505a   the game line, Tiffany and Felipe plus this work
+feat/library-apps-on-platform   79e1f86   LOCAL ONLY, NEVER PUSHED. Four of the five live demos.
+```
+
+**`dev` is not a superset.** It contains the engine, the game, the platform and demo mode, but *not*
+`feat/library-apps-on-platform`, which carries the backend dashboard, the question-type review UI, and the
+`demo/` folder that documents every deployment. That branch diverged before the merge into `dev` and is 115
+commits behind it, so reconciling them is real work rather than a fast-forward. Several other branches also hold
+unmerged commits — `origin/feat/cogat-prep-pivot` (16), `origin/feat/adaptive-exam-app` (6),
+`origin/feat/apps-system-led` (4), and local `feat/review-ui-and-play-gate` (7) among them. Run this before
+assuming anything is merged:
+
+```bash
+for B in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep -v HEAD); do
+  N=$(git log --oneline --no-merges origin/dev..$B 2>/dev/null | wc -l | tr -d ' ')
+  [ "$N" != "0" ] && printf '%-46s %s commits not in dev\n' "$B" "$N"
+done
 ```
 
 `dev` and `feat/sanctuary` are both current and were merged cleanly. **No deployment happens from a git push** —
