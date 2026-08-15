@@ -1,0 +1,753 @@
+/* =============================================================================
+   THE RIVAL — band 6-8.
+
+   ART DIRECTION. Near-black, one hot accent, and the accent is rationed: notches, the crest's eye
+   slits, a chip's count, focus. Type does the rest of the work — a light editorial serif for
+   anything Vesk or the world says, and tracked micro-caps in sans for anything the interface says.
+   Nothing is rounded past 3px, nothing has a drop shadow, and structure is carried by hairlines and
+   negative space rather than by cards.
+
+   MOTION. One curve, transform and opacity only, and never on a property that reflows. Scenes hand
+   off rather than cut: the outgoing one leaves on 240ms, the incoming one arrives on 520ms with its
+   children staggered behind it. The only looping motion in the world is the crest drifting two and a
+   half pixels and its eye slits going from 0.72 to 1. Everything collapses at the bottom of the file.
+
+   Every class is prefixed `mt-`. The three exceptions are the deliberate re-skins of the shared
+   `stage-missing` notice and `btn-quiet`, scoped under `.mt-root` so they cannot reach another world:
+   those are styled for the light shell and would be dark-on-dark in here.
+   ============================================================================= */
+
+.mt-root {
+  --mt-void: #08090b;
+  --mt-panel: #0d0f13;
+  --mt-raise: #15181d;
+  --mt-line: rgb(238 240 245 / 0.09);
+  --mt-line-strong: rgb(238 240 245 / 0.2);
+  --mt-text: #e9eaee;
+  --mt-read: #bcc2cd;
+  --mt-dim: #8b919e;
+  --mt-faint: #5b616d;
+  --mt-hot: #ff3d5a;
+
+  --mt-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --mt-serif: ui-serif, 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Hoefler Text', Georgia,
+    serif;
+  --mt-sans: ui-sans-serif, system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --mt-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 3.5rem minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--mt-void);
+  color: var(--mt-text);
+  font-family: var(--mt-sans);
+  animation: mt-arrive 700ms var(--mt-ease) both;
+}
+
+/* One light source, high and central, and a soft close-down at the edges. This is the only
+   non-structural decoration in the world. */
+.mt-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(120% 78% at 50% -12%, rgb(238 240 245 / 0.05), transparent 58%),
+    radial-gradient(100% 100% at 50% 120%, rgb(8 9 11 / 0.9), transparent 62%);
+}
+
+.mt-root > *:not(.mt-grain) {
+  position: relative;
+  z-index: 1;
+}
+
+.mt-root :focus-visible {
+  outline: 2px solid var(--mt-hot);
+  outline-offset: 3px;
+}
+
+/* ---- the rail ------------------------------------------------------------- */
+
+.mt-rail {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 clamp(1rem, 2.4vw, 2.25rem);
+  border-bottom: 1px solid var(--mt-line);
+}
+
+.mt-rail-mark {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  justify-self: start;
+  font-size: 0.6875rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.mt-rail-circuit {
+  font-weight: 700;
+  color: var(--mt-read);
+}
+
+.mt-rail-table {
+  color: var(--mt-faint);
+}
+
+.mt-tally {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.mt-tally-label {
+  font-family: var(--mt-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--mt-dim);
+  white-space: nowrap;
+}
+
+/* The notches advance for taking a call and for nothing else. There is no second row, no colour
+   change on a particular call, and no total to compare against — the only thing they measure is
+   that the child turned up and kept going. */
+.mt-notches {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 1rem;
+}
+
+.mt-notch {
+  width: 3px;
+  height: 100%;
+  background: var(--mt-line-strong);
+  transform: scaleY(0.4);
+  transform-origin: bottom;
+  transition:
+    transform 380ms var(--mt-ease),
+    background-color 380ms var(--mt-ease);
+}
+
+.mt-notch-on {
+  background: var(--mt-hot);
+  transform: none;
+}
+
+.mt-leave {
+  all: unset;
+  justify-self: end;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mt-dim);
+  border-bottom: 1px solid transparent;
+  transition: color 220ms var(--mt-ease);
+}
+
+.mt-leave:hover {
+  color: var(--mt-text);
+}
+
+/* ---- the body ------------------------------------------------------------- */
+
+.mt-body {
+  display: grid;
+  grid-template-columns: clamp(19rem, 24vw, 23rem) minmax(0, 1fr);
+  min-height: 0;
+}
+
+/* ---- Vesk ----------------------------------------------------------------- */
+
+.mt-rival {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 4vh, 2.5rem);
+  min-height: 0;
+  padding: clamp(1.5rem, 4vh, 2.5rem) clamp(1.25rem, 2vw, 2rem);
+  border-right: 1px solid var(--mt-line);
+}
+
+.mt-rival-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mt-crest-hold {
+  flex: none;
+  width: 5.25rem;
+}
+
+.mt-crest {
+  display: block;
+  width: 100%;
+  height: auto;
+  animation: mt-breathe 9s ease-in-out infinite;
+}
+
+.mt-crest-plate {
+  fill: var(--mt-raise);
+  stroke: rgb(238 240 245 / 0.17);
+  stroke-width: 1.2;
+}
+
+.mt-crest-horn {
+  fill: #1b1f26;
+  stroke: rgb(238 240 245 / 0.12);
+  stroke-width: 1.2;
+}
+
+.mt-crest-jaw {
+  fill: #0b0d10;
+  stroke: rgb(238 240 245 / 0.1);
+  stroke-width: 1;
+}
+
+.mt-crest-rule,
+.mt-crest-tick {
+  fill: none;
+  stroke: rgb(238 240 245 / 0.22);
+  stroke-width: 1.2;
+}
+
+.mt-crest-eye {
+  fill: var(--mt-hot);
+  animation: mt-ember 5.5s ease-in-out infinite;
+}
+
+.mt-rival-name {
+  margin: 0.15rem 0 0.3rem;
+  font-family: var(--mt-serif);
+  font-size: 1.85rem;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1;
+}
+
+.mt-rival-meta {
+  margin: 0;
+  max-width: 20ch;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--mt-faint);
+}
+
+/* His voice. Serif, set loose, with the hairline standing in for a quotation mark. */
+.mt-say {
+  margin: 0;
+  padding-left: 1.1rem;
+  border-left: 1px solid rgb(255 61 90 / 0.45);
+  animation: mt-say-in 560ms var(--mt-ease) both;
+}
+
+.mt-say p {
+  margin: 0;
+  font-family: var(--mt-serif);
+  font-size: 1.0625rem;
+  font-style: italic;
+  line-height: 1.68;
+  color: var(--mt-read);
+}
+
+/* ---- the main column and the scene handoff -------------------------------- */
+
+.mt-main {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.mt-scene {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  padding: clamp(1.75rem, 5vh, 4rem) clamp(1.5rem, 5vw, 4.5rem);
+  animation: mt-scene-in 520ms var(--mt-ease) both;
+}
+
+.mt-scene[data-leaving='true'] {
+  animation: mt-scene-out 240ms var(--mt-ease) both;
+}
+
+.mt-stagger {
+  animation: mt-scene-in 620ms var(--mt-ease) both;
+  animation-delay: calc(var(--mt-i, 0) * 70ms + 80ms);
+}
+
+/* ---- shared type ---------------------------------------------------------- */
+
+.mt-eyebrow {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--mt-dim);
+}
+
+.mt-eyebrow-quiet {
+  margin: clamp(1.5rem, 3.5vh, 2.25rem) 0 0.4rem;
+  font-weight: 600;
+  color: var(--mt-faint);
+}
+
+.mt-sep {
+  width: 1.25rem;
+  height: 1px;
+  background: var(--mt-line-strong);
+}
+
+.mt-call-trait {
+  color: var(--mt-hot);
+}
+
+.mt-display {
+  margin: 0.85rem 0 0;
+  max-width: 26ch;
+  font-family: var(--mt-serif);
+  font-size: clamp(2.1rem, 3.9vw, 3.35rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.04;
+}
+
+.mt-display-sm {
+  font-size: clamp(1.75rem, 2.8vw, 2.4rem);
+  max-width: 30ch;
+}
+
+.mt-rule {
+  width: 3.5rem;
+  height: 1px;
+  margin: 1.5rem 0;
+  background: var(--mt-hot);
+}
+
+.mt-lede {
+  margin: 0;
+  max-width: 48ch;
+  font-family: var(--mt-serif);
+  font-size: 1.0625rem;
+  line-height: 1.72;
+  color: var(--mt-read);
+}
+
+.mt-lede + .mt-lede {
+  margin-top: 1rem;
+}
+
+.mt-lede-quiet {
+  color: var(--mt-dim);
+}
+
+.mt-diag {
+  margin: 1.75rem 0 0;
+  max-width: 52ch;
+  font-family: var(--mt-mono);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+  color: var(--mt-faint);
+}
+
+/* ---- trait sigils --------------------------------------------------------- */
+
+.mt-legend {
+  list-style: none;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.75rem 0.4rem 0.55rem;
+  border: 1px solid var(--mt-line);
+  border-radius: 2px;
+  background: rgb(238 240 245 / 0.022);
+}
+
+.mt-chip-mark {
+  display: block;
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.mt-chip-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mt-chip-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #ccd1da;
+}
+
+.mt-chip-count {
+  font-family: var(--mt-mono);
+  font-size: 0.7rem;
+  color: var(--mt-hot);
+}
+
+/* ---- buttons -------------------------------------------------------------- */
+
+.mt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: clamp(1.75rem, 4vh, 2.5rem);
+}
+
+.mt-btn {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 1.6rem;
+  border: 1px solid var(--mt-line-strong);
+  border-radius: 2px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mt-text);
+  transition:
+    transform 260ms var(--mt-ease),
+    background-color 260ms var(--mt-ease),
+    border-color 260ms var(--mt-ease);
+}
+
+.mt-btn:hover {
+  transform: translate3d(0, -1px, 0);
+  background: rgb(238 240 245 / 0.06);
+}
+
+.mt-btn-hot {
+  border-color: rgb(255 61 90 / 0.5);
+  background: rgb(255 61 90 / 0.1);
+  color: #ffc9d2;
+}
+
+.mt-btn-hot:hover {
+  border-color: rgb(255 61 90 / 0.8);
+  background: rgb(255 61 90 / 0.18);
+}
+
+.mt-btn[disabled] {
+  cursor: default;
+  opacity: 0.5;
+  transform: none;
+}
+
+/* ---- the call ------------------------------------------------------------- */
+
+.mt-call {
+  width: 100%;
+  display: grid;
+  gap: clamp(1.25rem, 3.5vh, 2.5rem);
+  justify-items: center;
+}
+
+.mt-call-head {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.mt-call-turns {
+  margin: 0;
+  font-family: var(--mt-serif);
+  font-size: 1.0625rem;
+  color: var(--mt-read);
+}
+
+.mt-spec {
+  margin: 0;
+  font-family: var(--mt-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mt-faint);
+}
+
+/* THE FELT, and the one place this world is not near-black.
+
+   Every renderer under `renderers/` draws for the light shell: white tap targets, `#16181d` ink, its
+   own prompt in its own colour. Dropping that onto a near-black surface left each item's question
+   dark-on-dark, and the fix cannot be to reach into `fm-`/`sx-`/`qs-` class names and repaint another
+   worker's renderer from here — it would break the next time they touch it.
+
+   So the table is LIT instead. One warm plate, sharp-cornered, with the hot accent as the lamp bar
+   along its top edge: the matchup is the only thing in the light and the rest of the room is dark
+   around it. It reads as intended, it stays legible whatever any renderer decides next, and the
+   marks in `MT_SKIN` were drawn mid-luminance precisely so they hold on this and on the near-black. */
+.mt-felt {
+  width: 100%;
+  max-width: 52rem;
+  padding: clamp(1.25rem, 3.5vh, 2.25rem) clamp(1rem, 2.5vw, 2rem);
+  border-radius: 2px;
+  border-top: 2px solid var(--mt-hot);
+  background: linear-gradient(180deg, #f2efe9, #e2ded6);
+  color: #16181d;
+}
+
+.mt-hold {
+  min-height: 18rem;
+}
+
+/* ---- the guard, and the shared notice re-skinned for a dark table --------- */
+
+/* Both of these render INSIDE the lit plate, so they are set on paper rather than on the near-black.
+   `stage-missing` is the shared notice for a type with no renderer; it already reads on a light
+   surface, so only its edges and its type are brought into line here. */
+
+.mt-fault {
+  max-width: 34rem;
+  margin: 0 auto;
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+  padding: 1.5rem;
+  border: 1px solid rgb(22 24 29 / 0.16);
+  border-radius: 2px;
+}
+
+.mt-fault .mt-eyebrow {
+  color: rgb(22 24 29 / 0.45);
+}
+
+.mt-fault-line {
+  margin: 0;
+  font-family: var(--mt-serif);
+  font-size: 1rem;
+  line-height: 1.65;
+  color: #2b3038;
+}
+
+.mt-fault .mt-btn {
+  margin-top: 0.5rem;
+  border-color: rgb(22 24 29 / 0.24);
+  color: #16181d;
+}
+
+.mt-fault .mt-btn:hover {
+  background: rgb(22 24 29 / 0.06);
+}
+
+.mt-root .stage-missing {
+  max-width: 34rem;
+  margin: 0 auto;
+  border: 1px solid rgb(22 24 29 / 0.16);
+  border-radius: 2px;
+  text-align: left;
+}
+
+.mt-root .stage-missing p {
+  font-family: var(--mt-serif);
+}
+
+.mt-root .stage-missing-detail {
+  font-family: var(--mt-sans);
+  font-size: 0.7rem;
+}
+
+.mt-root .stage-missing code {
+  font-family: var(--mt-mono);
+}
+
+.mt-root .btn-quiet {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.25rem;
+  border-radius: 2px;
+  border-color: rgb(22 24 29 / 0.24);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mt-root .stage-missing :focus-visible,
+.mt-root .mt-felt :focus-visible {
+  outline-color: #d21f3c;
+}
+
+/* ---- tablet --------------------------------------------------------------- */
+
+@media (max-width: 1080px) {
+  .mt-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .mt-rival {
+    flex-direction: row;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem clamp(1rem, 3vw, 1.75rem);
+    border-right: none;
+    border-bottom: 1px solid var(--mt-line);
+  }
+
+  .mt-rival-head {
+    flex: none;
+  }
+
+  .mt-say {
+    flex: 1;
+  }
+
+  .mt-say p {
+    font-size: 1rem;
+  }
+
+  .mt-crest-hold {
+    width: 3.75rem;
+  }
+
+  .mt-rival-meta {
+    display: none;
+  }
+
+  .mt-rival-name {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 940px) {
+  .mt-rail-table {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .mt-tally-label {
+    display: none;
+  }
+
+  .mt-rival {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+/* ---- keyframes ------------------------------------------------------------ */
+
+@keyframes mt-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mt-scene-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mt-scene-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0);
+  }
+}
+
+@keyframes mt-say-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes mt-breathe {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -2.5px, 0);
+  }
+}
+
+@keyframes mt-ember {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Collapsed rather than merely shortened: the drift and the ember stop entirely, and every arrival
+   lands on its final frame. */
+@media (prefers-reduced-motion: reduce) {
+  .mt-root,
+  .mt-root *,
+  .mt-root *::before,
+  .mt-root *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+
+  .mt-crest,
+  .mt-crest-eye {
+    animation: none !important;
+  }
+
+  .mt-crest-eye {
+    opacity: 1;
+  }
+
+  .mt-btn:hover {
+    transform: none;
+  }
+}

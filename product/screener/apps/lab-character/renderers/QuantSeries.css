@@ -1,0 +1,230 @@
+/* QUANT-SERIES-01. Prefixed `qs-` so a world's stylesheet and the other renderers cannot collide
+   with it. Motion is transform/opacity only, one easing curve, and it all collapses at the bottom. */
+
+.qs {
+  --qs-ease: var(--ease, cubic-bezier(0.22, 1, 0.36, 1));
+  --qs-line: var(--line, rgb(22 24 29 / 0.1));
+  --qs-ink: var(--ink, #16181d);
+  --qs-soft: var(--ink-soft, #4b515c);
+  /* Hit target floor. Never below 64px; the youngest band gets a good deal more. */
+  --qs-target: 76px;
+  --qs-cell: clamp(54px, 11vw, 92px);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.5rem, 5vh, 3rem);
+  padding: clamp(1rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem);
+}
+
+.qs[data-band='K-1'] {
+  --qs-target: 104px;
+  --qs-cell: clamp(62px, 14vw, 112px);
+}
+
+.qs-prompt {
+  margin: 0;
+  max-width: 28ch;
+  text-align: center;
+  font-size: clamp(1.05rem, 2.6vw, 1.45rem);
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+  color: var(--qs-ink);
+}
+
+/* ---- the run ------------------------------------------------------------- */
+
+/* One line, always. A run that wraps stops being a run, and the blank landing on a line of its own
+   is the worst version of that, so the steps shrink together instead of breaking. */
+.qs-track {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.35rem, 1.4vw, 0.9rem);
+  width: 100%;
+  max-width: 46rem;
+}
+
+.qs-cell {
+  flex: 0 1 var(--qs-cell);
+  min-width: 0;
+  max-width: var(--qs-cell);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  /* Not a percentage: percentage padding on a box with `aspect-ratio` makes its content box cyclic,
+     and a cluster inside one collapses to nothing. */
+  padding: clamp(5px, 1.1vw, 11px);
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid var(--qs-line);
+  animation: qs-rise 460ms var(--qs-ease) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+.qs-slot {
+  background: transparent;
+  border: 2px dashed rgb(22 24 29 / 0.24);
+}
+
+/* Something belongs here, said without a numeral and without a question mark. The mark breathes
+   rather than the frame: one animation per element, and a dashed border that holds still. */
+.qs-slot::after {
+  content: '';
+  width: 30%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgb(22 24 29 / 0.12);
+  animation: qs-breathe 2600ms var(--qs-ease) 900ms infinite;
+}
+
+.qs-figure {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.qs-numeral {
+  font-size: clamp(1.4rem, 4.4vw, 2.3rem);
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--qs-ink);
+}
+
+.qs-mark {
+  display: block;
+  width: clamp(14px, 3vw, 22px);
+}
+
+.qs-mark svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---- choices ------------------------------------------------------------- */
+
+.qs-choices {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.6rem, 2vw, 1.15rem);
+  width: 100%;
+  max-width: 40rem;
+}
+
+.qs-choice {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  min-height: var(--qs-target);
+  padding: clamp(0.7rem, 2vw, 1.1rem);
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--qs-line);
+  transition:
+    transform 240ms var(--qs-ease),
+    opacity 260ms var(--qs-ease),
+    box-shadow 240ms var(--qs-ease);
+  animation: qs-rise 460ms var(--qs-ease) both;
+  animation-delay: calc(260ms + var(--i, 0) * 60ms);
+}
+
+.qs-choice-art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: calc(var(--qs-target) - 1.4rem);
+  aspect-ratio: 1;
+}
+
+.qs-choice:hover {
+  transform: translate3d(0, -3px, 0);
+  box-shadow: 0 18px 34px -26px rgb(22 24 29 / 0.55);
+}
+
+/* The tap answers instantly; nothing waits on the network to acknowledge it. */
+.qs-choice:active {
+  transform: scale(0.97);
+  transition-duration: 90ms;
+}
+
+.qs-choice:focus-visible {
+  outline: 3px solid #3d7068;
+  outline-offset: 4px;
+}
+
+/* Answered: the choice the child made settles. This says CHOSEN and never says CORRECT — no colour
+   coding, no mark, no second reading of the same tap. */
+.qs-choice[data-chosen='true'] {
+  transform: scale(1.03);
+  box-shadow: inset 0 0 0 3px rgb(22 24 29 / 0.82);
+}
+
+.qs-choice[data-chosen='false'] {
+  opacity: 0.34;
+}
+
+.qs[data-settled='true'] .qs-choice {
+  cursor: default;
+}
+
+.qs[data-settled='true'] .qs-choice:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.qs[data-settled='true'] .qs-choice[data-chosen='true']:hover {
+  transform: scale(1.03);
+  box-shadow: inset 0 0 0 3px rgb(22 24 29 / 0.82);
+}
+
+@media (max-width: 34rem) {
+  .qs-choices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---- keyframes ----------------------------------------------------------- */
+
+@keyframes qs-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes qs-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qs-cell,
+  .qs-slot::after,
+  .qs-choice {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1;
+    transform: none;
+  }
+
+  .qs-choice[data-chosen='false'] {
+    opacity: 0.34;
+  }
+}

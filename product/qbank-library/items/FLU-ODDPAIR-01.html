@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FLU-ODDPAIR-01 · Odd Pair Out</title>
+<style>
+:root{
+  --ink:#004f71;--paper:#ffffff;--purple:#e48b53;--aqua:#e48b53;
+  --rose:#9fb6bd;--sun:#e48b53;--line:#f8e8de;--tel:#002a3a;
+  --tel2:#003b5c;--key:#ebba9b;--dim:#e48b53;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  min-height:100vh;display:flex;color:var(--ink);
+  font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:linear-gradient(135deg,#fcf4ef,#fcf4ef 52%,#f8e8de);
+}
+#wrap{
+  flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;
+  align-items:center;gap:9px;
+}
+#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6f4526}
+#howto{max-width:650px;width:100%;background:#ffffff;border:1px solid #f8e8de;border-left:5px solid var(--purple);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #4a6470}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--purple)}
+#howto p{margin:0;font-size:14px;color:#4a6470;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#fcf4ef;color:var(--purple);border:2px solid #f8e8de;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+#phasecue[data-phase="scored"]{background:var(--purple);color:#ffffff;border-color:var(--purple)}
+#phasecue[data-phase="done"]{background:#fcf4ef;color:#4a6470;border-color:#f8e8de}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--aqua)} #status.no{color:var(--rose)} #status.neutral{color:#6f4526}
+#stagecard{
+  width:min(650px,100%);background:var(--paper);border-radius:26px;padding:16px;
+  box-shadow:0 22px 55px -33px #4a6470;display:flex;flex-direction:column;
+  align-items:center;gap:10px;border:1px solid #ffffff;
+}
+#pairs{width:100%;display:grid;gap:8px}
+.pair{
+  width:100%;display:grid;grid-template-columns:30px 1fr 36px 1fr;
+  align-items:center;gap:7px;padding:7px 10px;border-radius:17px;
+  border:3px solid #fcf4ef;background:#ffffff;cursor:pointer;
+  transition:transform .14s,border-color .14s,background .14s;
+}
+.pair:hover{transform:translateX(3px);border-color:#ecd9cb}
+.pair.sel{border-color:var(--purple);background:#fcf4ef;box-shadow:0 0 0 3px #f8e8de}
+.hotkey{
+  width:25px;height:25px;border-radius:8px;background:#f8e8de;color:#6f4526;
+  display:grid;place-items:center;font:800 12px ui-monospace,monospace;
+}
+.cell{
+  height:72px;border-radius:13px;background:#ffffff;border:1px solid #f8e8de;
+  display:grid;place-items:center;overflow:hidden;box-shadow:0 5px 12px -12px #33505c;
+}
+.arrow{font-size:25px;color:#4a6470;text-align:center}
+#tools{display:flex;gap:12px;align-items:center}
+#tools button{
+  border:0;cursor:pointer;border-radius:16px;font:800 21px system-ui;
+  height:50px;background:#fcf4ef;color:var(--purple);
+}
+#replay{width:51px}
+#go{width:84px;background:var(--purple)!important;color:#ffffff!important;opacity:.35;pointer-events:none}
+#go.ready{opacity:1;pointer-events:auto;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+button:focus-visible,.pair:focus-visible{outline:4px solid #e48b53;outline-offset:2px}
+#ghost{
+  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;font-size:38px;
+  transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .2s;filter:drop-shadow(0 4px 4px #0004);
+}
+#ghost.show{opacity:1}
+#ghost .ring{position:absolute;left:-6px;top:-6px;width:26px;height:26px;border-radius:50%;border:3px solid var(--purple);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#telemetry{
+  width:330px;flex:0 0 330px;min-height:100vh;background:var(--tel);
+  color:#f5ddcd;display:flex;flex-direction:column;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+#telemetry h3{
+  margin:0;padding:13px 14px;background:var(--tel2);color:#ffffff;
+  font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase;
+}
+#difficulty{padding:10px 13px;border-bottom:1px solid #004f71}
+.diffTop{display:flex;justify-content:space-between;color:#6f4526}
+.diffTrack{height:8px;background:#004f71;border-radius:8px;overflow:hidden;margin-top:6px}
+#diffFill{height:100%;width:0;background:linear-gradient(90deg,#9fb6bd,#9fb6bd);transition:.3s}
+.diffSub{display:flex;justify-content:space-between;color:var(--dim);font-size:10px;margin-top:5px}
+#mode{margin:8px 13px 0;font-size:11px;color:var(--dim)}#mode b{color:#6f4526}
+#mlist{padding:11px 12px;display:flex;flex-direction:column;gap:8px}
+.mrow{display:grid;grid-template-columns:104px 1fr;gap:7px}
+.mid{color:var(--key);font-weight:800}.mval{color:#ffffff}
+.mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
+#logwrap{border-top:1px solid #004f71;margin-top:auto}
+#logwrap b{display:block;padding:8px 12px 3px;color:#6f4526;font-size:10px}
+#log{height:190px;overflow:auto;padding:0 12px 12px}
+#log div{border-bottom:1px dotted #004f71;padding:3px 0}
+#log .t{color:#6f4526}
+@media(max-width:860px){
+  body{flex-direction:column}#telemetry{width:100%;min-height:0;height:300px;flex:none}
+}
+@media(max-width:470px){.cell{height:59px}.pair{grid-template-columns:24px 1fr 28px 1fr;padding:5px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">FLU-ODDPAIR-01 · Odd Pair Out</div>
+  <header id="howto">
+    <h1>How to use &mdash; Odd Pair Out</h1>
+    <p>Each row shows two shapes that change from left to right. Every row changes the same way except one &mdash; tap the odd pair out, then press the check (<b>&#10003;</b>) to send your answer. You can also press number keys. The machine notes your answer and brings the next puzzle.</p>
+  </header>
+  <div id="phasecue" data-phase="warmup">Get ready</div>
+  <section id="stagecard">
+    <div id="pairs"></div>
+    <div id="tools">
+      <button id="replay" aria-label="show how again">&#8635;</button>
+      <button id="go" aria-label="send answer">&#10003;</button>
+    </div>
+    <div id="status" class="neutral">Waiting for the next puzzle.</div>
+  </section>
+  <div id="playgate">
+    <p>The puzzle is ready. Press play when you are, and it starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty" data-tracks="M-DIFFREACH M-RULEID"></div>
+  <div id="mode">Renderer computes process metrics locally; the <b>score is server-side</b>.</div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG · KEYS 1&ndash;6 + ENTER</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#6657dc" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * FLU-ODDPAIR-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW response
+ * + process telemetry. It NEVER self-generates items and NEVER shows
+ * correct/incorrect: the answer key + score live server-side (BUILD_PLAN §2).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://). Correctness is still
+ * never shown; emitted ItemResults are logged.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+
+/* ---------- figure rendering (renderer-agnostic: shape/color/size/rot/dots/fill) ---------- */
+const PAL={rose:'#e45361',azure:'#3574d4',jade:'#2caf7c',amber:'#e0a61d',purple:'#855bd7'};
+const SIZE_SCALE=[0.72,0.92,1.16]; // size index 0..2 -> visual scale
+function pathFor(shape){
+  if(shape==='arrow')return '<polygon points="-22,-9 3,-9 3,-19 25,0 3,19 3,9 -22,9"/>';
+  if(shape==='bolt')return '<polygon points="-8,-24 14,-24 3,-5 18,-5 -12,25 -3,5 -18,5"/>';
+  if(shape==='flag')return '<path d="M-18 24V-24H20L8-8 20 7H-13V24Z"/>';
+  if(shape==='kite')return '<path d="M0-25L20-3 0 20-20-3ZM0 20L13 30" stroke="currentColor" stroke-width="4"/>';
+  return '<path d="M-22-16L2 0-22 16M2-16L26 0 2 16" fill="none" stroke="currentColor" stroke-width="10"/>';
+}
+function figure(f){
+  const scale=SIZE_SCALE[f.size==null?1:f.size]||0.92;
+  const color=PAL[f.color]||f.color;
+  const paint=(f.fill!=='outline')?'fill="currentColor" stroke="currentColor"':'fill="#fff" stroke="currentColor" stroke-width="4"';
+  let dots='';for(let i=0;i<(f.dots||0);i++)dots+=`<circle cx="${18-i*11}" cy="25" r="3.3" fill="#26314b"/>`;
+  return `<svg width="74" height="68" viewBox="0 0 74 68" aria-hidden="true">
+    <g style="color:${color}" transform="translate(37 32) rotate(${f.rot||0}) scale(${scale})" ${paint}>${pathFor(f.shape)}</g>${dots}
+  </svg>`;
+}
+
+/* ---------- per-item state ---------- */
+let current=null;
+let interactive=false;
+let submitted=false;
+let staged=null;           // currently staged row key
+let firstKey=null;
+let selectionOrder=[];
+let itemStart=0;
+let gateTutorial=false;    // does the pending play press owe a gesture hint?
+let itemTelemetry=[];
+const M={rt:null,rts:[],firstLat:null,rev:0,blur:0};
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free metrics) ---------- */
+const METERS=[
+ {id:'M-RT',name:'Response time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
+ {id:'M-RTFIRST',name:'First-action latency (reflective encode)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-REV',name:'Revisions / answer changes',get:()=>String(M.rev)},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<350?'1 · rapid':'0')},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){const d=current?current.difficulty:null,dims=current?current.content.dims:null;
+  $('#difficulty').innerHTML=`<div class="diffTop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="diffTrack"><div id="diffFill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="diffSub"><span>shared relational dims ${dims==null?'\u2014':dims}</span><span>score: server-side</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+
+/* ---------- ghost hand: wordless GESTURE hint (never reveals the odd pair) ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(430);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(470);}
+async function gestureHint(){
+  // Teaches the GESTURE only: sweep each pair's change, then tap a pair and press check.
+  // It does NOT select any pair and does NOT indicate which pair is the odd one.
+  const pairs=$$('#pairs .pair');
+  ghostShow(true);await sleep(220);
+  for(const p of pairs){const cells=p.querySelectorAll('.cell');await ghostTo(cells[0]);await ghostTo(cells[1]);}
+  await sleep(120);await ghostTap();
+  await ghostTo($('#go'));await ghostTap();await sleep(200);
+  ghostShow(false);await sleep(250);
+}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;staged=null;firstKey=null;selectionOrder=[];
+  M.rev=0;M.firstLat=null;M.blur=0;itemTelemetry=[];
+  const c=item.content;
+  $('#pairs').innerHTML=c.rows.map((r,i)=>`
+    <button class="pair" data-key="${r.key}" data-i="${i}" aria-label="pair ${i+1}">
+      <span class="hotkey">${i+1}</span><span class="cell">${figure(r.left)}</span>
+      <span class="arrow">&#10140;</span><span class="cell">${figure(r.right)}</span>
+    </button>`).join('');
+  $('#go').classList.remove('ready');
+  itemStart=Date.now();
+  renderMeters();
+  emitEvent('render',{dims:c.dims,rowCount:c.rowCount,difficulty:item.difficulty});
+}
+
+/* ---------- interaction ---------- */
+function stageOption(el){
+  if(!interactive||submitted)return;
+  const key=el.dataset.key;
+  if(firstKey===null){firstKey=key;M.firstLat=Date.now()-itemStart;emitEvent('first_action',{key,latencyMs:M.firstLat});}
+  if(staged!==null&&staged!==key){M.rev++;emitEvent('change',{from:staged,to:key});}
+  staged=key;selectionOrder.push(key);
+  $$('#pairs .pair').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  $('#go').classList.add('ready');renderMeters();
+}
+function submit(){
+  if(!interactive||submitted||staged===null)return;
+  const rt=Date.now()-itemStart;
+  M.rt=rt;M.rts.push(rt);
+  submitted=true;interactive=false;$('#go').classList.remove('ready');
+  setCue('done','Answer sent');
+  setStatus('neutral',standalone?'Answer received. Loading the next puzzle.':'Answer received. Next puzzle coming up.');
+  emitEvent('submit',{selectedKey:staged,rtMs:rt});
+  const response={selectedKey:staged,firstSelectedKey:firstKey,selectionOrder:selectionOrder.slice(),changeCount:M.rev};
+  const metrics={'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-REV':M.rev,'M-ENGAGE':M.blur,'M-RAPIDGUESS':rt<350?1:0};
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1150);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 — the puzzle waits behind the play gate. `init` renders the rows, but they stay covered
+   and inert until the child presses play. That press is also when the response clock starts,
+   so M-RT and M-RTFIRST measure comparing the pairs rather than however long the child took
+   to look up at the screen. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function onInit(item){
+  if(!item||!item.content||!Array.isArray(item.content.rows)){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  openGate(false);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  closeGate();
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();
+  setCue('scored','Your turn');
+  setStatus('neutral','Tap the pair that changes differently, then press the check.');
+  renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/FLU-ODDPAIR-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"6dd4acb4-e229-4228-9656-892087084d88","typeCode":"FLU-ODDPAIR-01","domain":"fluid_reasoning","difficulty":1.04,"ageBands":["2-3"],"demoPath":"demos/FLU-ODDPAIR-01.html","content":{"typeCode":"FLU-ODDPAIR-01","sharedOps":["color"],"dims":1,"rowCount":4,"rows":[{"key":"A","left":{"shape":"arrow","color":"purple","size":2,"rot":90,"dots":2,"fill":"solid"},"right":{"shape":"arrow","color":"azure","size":2,"rot":90,"dots":2,"fill":"solid"}},{"key":"B","left":{"shape":"bolt","color":"rose","size":2,"rot":0,"dots":2,"fill":"outline"},"right":{"shape":"bolt","color":"azure","size":2,"rot":0,"dots":2,"fill":"outline"}},{"key":"C","left":{"shape":"flag","color":"amber","size":0,"rot":180,"dots":0,"fill":"solid"},"right":{"shape":"flag","color":"purple","size":0,"rot":180,"dots":0,"fill":"solid"}},{"key":"D","left":{"shape":"kite","color":"amber","size":0,"rot":180,"dots":3,"fill":"solid"},"right":{"shape":"kite","color":"purple","size":0,"rot":180,"dots":3,"fill":"solid"}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"bbeaa4cf-4bef-4e49-87a0-03c0ffe96e01","typeCode":"FLU-ODDPAIR-01","domain":"fluid_reasoning","difficulty":10.61,"ageBands":["4-5"],"demoPath":"demos/FLU-ODDPAIR-01.html","content":{"typeCode":"FLU-ODDPAIR-01","sharedOps":["color","size"],"dims":2,"rowCount":4,"rows":[{"key":"A","left":{"shape":"arrow","color":"jade","size":1,"rot":180,"dots":1,"fill":"outline"},"right":{"shape":"arrow","color":"amber","size":0,"rot":180,"dots":1,"fill":"outline"}},{"key":"B","left":{"shape":"bolt","color":"purple","size":1,"rot":0,"dots":2,"fill":"outline"},"right":{"shape":"bolt","color":"rose","size":2,"rot":0,"dots":2,"fill":"outline"}},{"key":"C","left":{"shape":"arrow","color":"jade","size":1,"rot":180,"dots":2,"fill":"outline"},"right":{"shape":"arrow","color":"amber","size":2,"rot":180,"dots":2,"fill":"outline"}},{"key":"D","left":{"shape":"kite","color":"jade","size":1,"rot":270,"dots":3,"fill":"outline"},"right":{"shape":"kite","color":"amber","size":2,"rot":270,"dots":3,"fill":"outline"}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"5496bc50-99ff-47a5-bf47-5490a84fe3ab","typeCode":"FLU-ODDPAIR-01","domain":"fluid_reasoning","difficulty":19.96,"ageBands":["6-8"],"demoPath":"demos/FLU-ODDPAIR-01.html","content":{"typeCode":"FLU-ODDPAIR-01","sharedOps":["size","count","rot"],"dims":3,"rowCount":6,"rows":[{"key":"A","left":{"shape":"arrow","color":"jade","size":1,"rot":90,"dots":1,"fill":"solid"},"right":{"shape":"arrow","color":"jade","size":2,"rot":0,"dots":2,"fill":"solid"}},{"key":"B","left":{"shape":"bolt","color":"azure","size":1,"rot":90,"dots":1,"fill":"outline"},"right":{"shape":"bolt","color":"azure","size":2,"rot":180,"dots":2,"fill":"outline"}},{"key":"C","left":{"shape":"flag","color":"rose","size":1,"rot":270,"dots":1,"fill":"outline"},"right":{"shape":"flag","color":"rose","size":2,"rot":0,"dots":2,"fill":"outline"}},{"key":"D","left":{"shape":"arrow","color":"jade","size":1,"rot":90,"dots":1,"fill":"solid"},"right":{"shape":"arrow","color":"jade","size":2,"rot":180,"dots":2,"fill":"solid"}},{"key":"E","left":{"shape":"chevron","color":"jade","size":1,"rot":90,"dots":1,"fill":"solid"},"right":{"shape":"chevron","color":"jade","size":2,"rot":180,"dots":2,"fill":"solid"}},{"key":"F","left":{"shape":"arrow","color":"jade","size":1,"rot":90,"dots":1,"fill":"solid"},"right":{"shape":"arrow","color":"jade","size":2,"rot":180,"dots":2,"fill":"solid"}}]},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
+$('#pairs').addEventListener('click',e=>{const p=e.target.closest('.pair');if(p)stageOption(p);});
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  if(/^[1-9]$/.test(e.key)){const o=$$('#pairs .pair')[+e.key-1];if(o)stageOption(o);}
+  else{const o=$$('#pairs .pair').find(b=>b.dataset.key.toUpperCase()===e.key.toUpperCase());if(o)stageOption(o);}
+  if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);}
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

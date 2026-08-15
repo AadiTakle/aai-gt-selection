@@ -1,0 +1,38 @@
+/* M0 harness only. The hollow's own art direction arrives at M5. Kept deliberately plain so a
+   layout problem in a reused renderer is obvious rather than absorbed by a themed shell. */
+:root { --ink:#16181d; --soft:#4b515c; --line:rgb(22 24 29 / .12); --paper:#f7f4ef;
+        font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); }
+.harness { max-width:60rem; margin:0 auto; padding:2rem 1.5rem 4rem; }
+.kicker { margin:0; font-size:.7rem; letter-spacing:.16em; text-transform:uppercase; color:var(--soft); }
+h1 { margin:.4rem 0 1.5rem; font-size:1.9rem; font-weight:300; letter-spacing:-.02em; }
+.controls { display:flex; gap:1.5rem; align-items:flex-end; flex-wrap:wrap; padding-bottom:1.25rem;
+            border-bottom:1px solid var(--line); }
+.controls label { display:flex; flex-direction:column; gap:.35rem; font-size:.78rem; color:var(--soft); }
+.controls button { padding:.6rem 1.1rem; border:1px solid var(--line); border-radius:8px;
+                   background:#fff; font:inherit; cursor:pointer; }
+.readout { display:flex; gap:1.5rem; flex-wrap:wrap; margin:1.25rem 0; padding:.9rem 1rem;
+           background:#fff; border:1px solid var(--line); border-radius:10px; }
+.readout div { display:flex; flex-direction:column; gap:.2rem; }
+.readout dt { font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); }
+.readout dd { margin:0; font-variant-numeric:tabular-nums; font-weight:600; }
+.good dd { color:#146c43; } .bad dd, .bad { color:#a4442f; font-weight:700; }
+.error { color:#a4442f; }
+.item { margin-top:1.5rem; }
+.meta { font-size:.75rem; color:var(--soft); font-variant-numeric:tabular-nums; }
+.closed { margin-top:1.5rem; font-size:.85rem; color:var(--soft); }
+.stage { opacity:0; transform:translate3d(0,8px,0);
+         transition:opacity .32s cubic-bezier(.22,1,.36,1), transform .32s cubic-bezier(.22,1,.36,1); }
+.stage-in { opacity:1; transform:none; }
+.stage-settled { filter:saturate(.85); }
+.stage-wait { min-height:12rem; }
+.stage-missing { max-width:32rem; margin:2rem auto; padding:1.5rem; border:1px dashed var(--line);
+                 border-radius:12px; text-align:center; line-height:1.6; }
+.stage-missing-detail { margin-top:1rem; font-size:.75rem; color:var(--soft); }
+.cluster { display:grid; gap:6%; place-content:center; width:100%; height:100%; }
+.cluster svg { width:100%; height:auto; }
+@media (prefers-reduced-motion: reduce) {
+  *,*::before,*::after { animation-duration:1ms !important; animation-iteration-count:1 !important;
+                         transition-duration:1ms !important; }
+}

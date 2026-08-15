@@ -1,0 +1,110 @@
+<!doctype html>
+<!--
+  TEMPORARY preview harness for the vacpack track. Not part of the app, not linked from it, safe to delete
+  once the integrator has wired `Vacpack` into `Game.tsx`.
+
+  Served by the existing sanctuary vite config (root is apps/sanctuary), so it needs no config change and
+  touches no file this track does not own:
+
+      http://127.0.0.1:5230/game/vacpack/preview.html
+
+  Query flags
+      ?vac=0        mount the scene WITHOUT the pack, to measure what the pack costs
+      ?stow=1       start with `enabled` false, which is how it looks while a station is engaged
+      ?slow=1       pretend prefers-reduced-motion, to check motion is shortened and not removed
+      ?fill=n       start with n slimes already in the tank (0..4)
+
+  Controls are the shipped ones: hold LEFT MOUSE to draw a slime in, RIGHT MOUSE or Q to plop. WASD walks,
+  SPACE hops, and moving the mouse looks around — no pointer lock here, because a harness that needs a click
+  to capture the cursor cannot be driven from a script.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>vacpack · preview</title>
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #eec89a;
+        font: 13px/1.45 ui-rounded, system-ui, sans-serif;
+        color: #4b3626;
+      }
+      #hud {
+        position: fixed;
+        left: 12px;
+        top: 12px;
+        z-index: 5;
+        background: #fdf8eed9;
+        border-radius: 14px;
+        padding: 10px 14px;
+        min-width: 240px;
+        box-shadow: 0 6px 18px #8a5a3b30;
+      }
+      #hud b {
+        font-weight: 700;
+      }
+      #fps {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+      #tank {
+        display: flex;
+        gap: 6px;
+        margin: 8px 0 4px;
+      }
+      .slot {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 3px solid #ef9a4a;
+        background: #e6d3ae;
+        display: grid;
+        place-items: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff8e8;
+        text-shadow: 0 1px 2px #6b402955;
+      }
+      #legal {
+        margin-top: 6px;
+        font-weight: 700;
+      }
+      .bad {
+        color: #a8321f;
+      }
+      .ok {
+        color: #3f7a35;
+      }
+      #keys {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 5;
+        background: #fdf8eec4;
+        border-radius: 12px;
+        padding: 8px 12px;
+        text-align: right;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hud">
+      <div><b>vacpack</b> · <span id="mode">—</span></div>
+      <div id="fps">—</div>
+      <div id="tank"></div>
+      <div>in the ranch: <b id="count">—</b> · in the air: <b id="air">—</b></div>
+      <div id="legal">—</div>
+    </div>
+    <div id="keys">
+      hold <b>LEFT MOUSE</b> to draw in<br />
+      <b>RIGHT MOUSE</b> or <b>Q</b> to plop<br />
+      WASD walk · SPACE hop · mouse look
+    </div>
+    <div id="root"></div>
+    <script type="module" src="./preview.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,252 @@
+"""Dataset IO + the fail-closed born-synthetic guard.
+
+Responsibilities
+----------------
+- Write a dataset to CSV plus a JSON manifest that records the synthetic tags,
+  schema, seed, generation config, a SHA-256 integrity commitment, and (for
+  synthetic data) the latent ground truth.
+- Load a dataset and REFUSE to proceed unless the manifest proves the data is
+  born-synthetic (``synthetic_only == true`` and ``validated == false``). This
+  is the harness analogue of the project's fail-closed synthetic boundary
+  (D-006, R9, SEC-05): the pipeline cannot be pointed at real student data by
+  accident.
+- Provide a tiny column-oriented ``Dataset`` used by the analyses.
+"""
+
+from __future__ import annotations
+
+import csv
+import datetime as _dt
+import hashlib
+import json
+import os
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+
+class BornSyntheticGuardError(RuntimeError):
+    """Raised when a dataset is not provably born-synthetic."""
+
+
+def _utc_now() -> str:
+    return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _infer_types(columns: Sequence[str], data: Dict[str, list]) -> Dict[str, str]:
+    types: Dict[str, str] = {}
+    for c in columns:
+        col = data[c]
+        t = "int"
+        for v in col:
+            if isinstance(v, bool):
+                t = "int"
+            elif isinstance(v, int):
+                continue
+            elif isinstance(v, float):
+                if not float(v).is_integer():
+                    t = "float"
+                elif t != "float":
+                    t = "float" if any(isinstance(x, float) for x in col) else "int"
+            else:
+                t = "str"
+                break
+        types[c] = t
+    return types
+
+
+def sha256_file(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+class Dataset:
+    """Column-oriented dataset with the small accessors the analyses need."""
+
+    def __init__(self, columns: List[str], data: Dict[str, list],
+                 types: Optional[Dict[str, str]] = None,
+                 manifest: Optional[Dict[str, Any]] = None):
+        self.columns = list(columns)
+        self.data = data
+        self.types = types or _infer_types(columns, data)
+        self.manifest = manifest or {}
+        self.n = len(data[columns[0]]) if columns else 0
+
+    # -- accessors -------------------------------------------------------
+    def has(self, name: str) -> bool:
+        return name in self.data
+
+    def numeric(self, name: str) -> List[float]:
+        return [float(v) for v in self.data[name]]
+
+    def categorical(self, name: str) -> List[str]:
+        return [str(v) for v in self.data[name]]
+
+    def item_columns(self, prefix: str) -> List[str]:
+        return sorted(c for c in self.columns if c.startswith(prefix))
+
+    def item_matrix(self, prefix: str) -> Tuple[List[List[float]], List[str]]:
+        cols = self.item_columns(prefix)
+        rows = [[float(self.data[c][i]) for c in cols] for i in range(self.n)]
+        return rows, cols
+
+    def unique(self, name: str) -> List[str]:
+        seen: List[str] = []
+        for v in self.categorical(name):
+            if v not in seen:
+                seen.append(v)
+        return seen
+
+    def indices_where(self, name: str, value: str) -> List[int]:
+        vals = self.categorical(name)
+        return [i for i, v in enumerate(vals) if v == value]
+
+    def take(self, name: str, indices: Sequence[int]) -> List[float]:
+        col = self.numeric(name)
+        return [col[i] for i in indices]
+
+
+# ---------------------------------------------------------------------------
+# Writing
+# ---------------------------------------------------------------------------
+
+def write_dataset(out_dir: str, name: str, columns: List[str], data: Dict[str, list],
+                  config: Dict[str, Any], ground_truth: Optional[Dict[str, Any]] = None,
+                  extra_manifest: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
+    os.makedirs(out_dir, exist_ok=True)
+    csv_path = os.path.join(out_dir, f"{name}.csv")
+    manifest_path = os.path.join(out_dir, f"{name}.manifest.json")
+
+    types = _infer_types(columns, data)
+    n = len(data[columns[0]]) if columns else 0
+
+    with open(csv_path, "w", newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(columns)
+        for i in range(n):
+            writer.writerow([data[c][i] for c in columns])
+
+    digest = sha256_file(csv_path)
+
+    manifest: Dict[str, Any] = {
+        # --- born-synthetic tags (D-006, R9) -----------------------------
+        "synthetic_only": True,
+        "validated": False,
+        "source": "born-synthetic",
+        "contains_real_data": False,
+        "data_class": "synthetic",
+        "privacy_note": ("No real or live student data. Generated by the "
+                          "validation harness generator. D-006, R9."),
+        # --- provenance / audit (R7) -------------------------------------
+        "schema_version": "1",
+        "generator": "scripts/validation-harness/harness/synth.py",
+        "created_utc": _utc_now(),
+        "seed": config.get("seed"),
+        "n_rows": n,
+        "columns": columns,
+        "column_types": types,
+        "dataset_file": os.path.basename(csv_path),
+        "dataset_sha256": digest,
+        "generation_config": config.get("generation", {}),
+        "full_config": config,
+        "synthetic_ground_truth": ground_truth or {},
+    }
+    if extra_manifest:
+        manifest.update(extra_manifest)
+
+    with open(manifest_path, "w") as fh:
+        json.dump(manifest, fh, indent=2, sort_keys=False)
+
+    return {"csv": csv_path, "manifest": manifest_path, "sha256": digest}
+
+
+# ---------------------------------------------------------------------------
+# Loading (with the fail-closed guard)
+# ---------------------------------------------------------------------------
+
+def _cast(value: str, t: str):
+    if t == "int":
+        try:
+            return int(value)
+        except ValueError:
+            return int(float(value))
+    if t == "float":
+        return float(value)
+    return value
+
+
+def load_manifest(csv_path: str) -> Dict[str, Any]:
+    base, _ = os.path.splitext(csv_path)
+    manifest_path = base + ".manifest.json"
+    if not os.path.exists(manifest_path):
+        raise BornSyntheticGuardError(
+            f"Refusing to load '{csv_path}': no manifest found at "
+            f"'{manifest_path}'. Every dataset MUST carry a manifest proving it "
+            f"is born-synthetic (synthetic_only=true, validated=false)."
+        )
+    with open(manifest_path, "r") as fh:
+        return json.load(fh)
+
+
+def assert_born_synthetic(manifest: Dict[str, Any], csv_path: str,
+                          verify_hash: bool = True) -> List[str]:
+    """Enforce the born-synthetic contract. Returns audit lines; raises on fail."""
+    audit: List[str] = []
+
+    if manifest.get("synthetic_only") is not True:
+        raise BornSyntheticGuardError(
+            "GUARD FAILED: manifest.synthetic_only is not true. The harness only "
+            "runs on born-synthetic data (D-006, R9). Refusing to proceed."
+        )
+    audit.append("synthetic_only=true confirmed")
+
+    if manifest.get("validated") is not False:
+        raise BornSyntheticGuardError(
+            "GUARD FAILED: manifest.validated must be false for the prototype "
+            "(no result here is a validated/live claim). Refusing to proceed."
+        )
+    audit.append("validated=false confirmed")
+
+    if manifest.get("contains_real_data", False):
+        raise BornSyntheticGuardError(
+            "GUARD FAILED: manifest.contains_real_data is true. Refusing to run."
+        )
+    audit.append("contains_real_data=false confirmed")
+
+    if str(manifest.get("source", "")).lower() not in ("born-synthetic", "synthetic"):
+        raise BornSyntheticGuardError(
+            f"GUARD FAILED: manifest.source='{manifest.get('source')}' is not a "
+            f"recognized synthetic source. Refusing to run."
+        )
+    audit.append(f"source={manifest.get('source')} confirmed")
+
+    if verify_hash and manifest.get("dataset_sha256"):
+        actual = sha256_file(csv_path)
+        if actual != manifest["dataset_sha256"]:
+            raise BornSyntheticGuardError(
+                "GUARD FAILED: dataset SHA-256 does not match the manifest "
+                "commitment (integrity check). Refusing to run.\n"
+                f"  manifest: {manifest['dataset_sha256']}\n  actual:   {actual}"
+            )
+        audit.append(f"dataset_sha256 integrity verified ({actual[:12]}...)")
+
+    return audit
+
+
+def load_dataset(csv_path: str, verify_hash: bool = True) -> Tuple[Dataset, List[str]]:
+    """Load a dataset, enforcing the born-synthetic guard first (fail-closed)."""
+    manifest = load_manifest(csv_path)
+    audit = assert_born_synthetic(manifest, csv_path, verify_hash=verify_hash)
+
+    types: Dict[str, str] = manifest.get("column_types", {})
+    with open(csv_path, "r", newline="") as fh:
+        reader = csv.reader(fh)
+        header = next(reader)
+        data: Dict[str, list] = {c: [] for c in header}
+        for row in reader:
+            for c, v in zip(header, row):
+                data[c].append(_cast(v, types.get(c, "str")))
+
+    ds = Dataset(header, data, types=types, manifest=manifest)
+    return ds, audit

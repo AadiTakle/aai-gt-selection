@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CX-check-01 · Check It Twice</title>
+<style>
+:root{
+  --ink:#004f71;--paper:#ffffff;--blue:#e48b53;
+  --good:#4a6470;--bad:#9fb6bd;--gold:#e48b53;--line:#f5ddcd;
+  --tel:#002a3a;--tel2:#003b5c;--key:#ebba9b;--dim:#e48b53;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  min-height:100vh;display:flex;color:var(--ink);
+  font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 13% 7%,#f8e8de,transparent 27%),
+    linear-gradient(145deg,#fcf4ef,#fcf4ef 58%,#f8e8de);
+}
+#wrap{flex:1;min-width:0;padding:17px;display:flex;flex-direction:column;align-items:center;gap:9px}
+#badge{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6f4526}
+#howto{max-width:700px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--blue);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+#howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--blue)}
+#howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+#phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:var(--blue);border:2px solid #ecd9cb;min-height:30px}
+#phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+#phasecue[data-phase="scored"]{background:var(--blue);color:#ffffff;border-color:var(--blue)}
+#phasecue[data-phase="done"]{background:#f5ddcd;color:#002a3a;border-color:#ecd9cb}
+#status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+#status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#6f4526}
+#stagecard{
+  width:min(780px,100%);background:var(--paper);border-radius:28px;padding:17px;
+  box-shadow:0 24px 58px -35px #33505c;display:flex;flex-direction:column;
+  align-items:center;gap:12px;border:1px solid #ffffff;
+}
+#prompt{font:700 15px/1.4 system-ui;color:#33505c;text-align:center;max-width:620px}
+#bins{width:100%;display:grid;gap:9px}
+.bin{min-height:190px;border:2px solid var(--line);border-radius:18px;background:#ffffff;padding:7px;cursor:default;transition:.14s}
+.bin:hover{border-color:#ebba9b;background:#fcf4ef}
+/* A bin the picked-up tile can actually be dropped into. Dashed, so "somewhere to
+   drop this" reads without relying on the colour change. */
+.bin.target{border-style:dashed;border-width:3px;border-color:var(--blue);background:#fcf4ef;cursor:pointer}
+.binHeader{
+  height:43px;border-radius:11px;background:#fcf4ef;display:grid;place-items:center;
+  color:#4a6470;font:900 22px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  margin-bottom:7px;letter-spacing:.12em;cursor:default;
+}
+.tokens{display:flex;flex-wrap:wrap;align-content:flex-start;gap:6px;justify-content:center}
+/* Every tile is movable, and the grip plus the grab cursor are what say so — the
+   reviewer could not tell what was draggable, and colour alone would not tell a
+   colour-blind child either. */
+.token{
+  min-width:96px;height:54px;border:3px solid #f8e8de;border-radius:13px;background:#ffffff;
+  display:grid;grid-template-columns:13px 1fr 30px;align-items:center;gap:4px;padding-left:7px;
+  font:900 17px/1 ui-monospace,SFMono-Regular,Menlo,monospace;cursor:grab;
+  transition:.14s;position:relative;color:var(--ink);
+}
+.token:hover{transform:translateY(-2px);border-color:#ebba9b}
+.token.sel{border-color:var(--blue);border-style:dashed;box-shadow:0 0 0 3px #f8e8de;cursor:grabbing}
+.grip{color:#4a6470;font:900 11px/1 system-ui;letter-spacing:1px;user-select:none;cursor:grab}
+/* A real box that fills in and empties again, so the child can see the mark is
+   theirs to take back. */
+.check{
+  width:26px;height:26px;border:2px solid #4a6470;border-radius:7px;background:#ffffff;
+  color:#ffffff;font:900 14px/1 system-ui;cursor:pointer;padding:0;display:grid;place-items:center;
+}
+.token.checked{border-style:double;border-width:5px}
+.token.checked .check{background:#4a6470}
+#tools{display:flex;gap:11px;align-items:center;flex-wrap:wrap;justify-content:center}
+#tools button{height:50px;border:0;border-radius:16px;cursor:pointer;font:800 16px system-ui;background:#fcf4ef;color:var(--blue);padding:0 18px}
+#submit{background:var(--good)!important;color:#002a3a!important}
+#submit[disabled]{opacity:.35;cursor:default}
+#replay{padding:0 15px;font-size:19px}
+#coverage{font:700 12px ui-monospace,monospace;color:#6f4526}
+button:focus-visible,.token:focus-visible,.bin:focus-visible{outline:4px solid #e48b53;outline-offset:2px}
+#ghost{
+  position:fixed;left:0;top:0;opacity:0;z-index:50;pointer-events:none;
+  transition:transform .5s cubic-bezier(.4,.1,.2,1),opacity .25s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25));
+}
+#ghost.show{opacity:.94}
+#ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--blue);opacity:0}
+#ghost.tap .ring{animation:tapring .5s ease-out}
+@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+#telemetry{
+  width:345px;flex:0 0 345px;min-height:100vh;background:var(--tel);
+  color:#f5ddcd;display:flex;flex-direction:column;
+  font:12px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+#telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#ffffff;font:800 12px system-ui;letter-spacing:.1em;text-transform:uppercase}
+#difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #004f71;border-radius:10px;background:#002a3a}
+.dtop{display:flex;justify-content:space-between;color:#ffffff}
+.dsub{display:flex;justify-content:space-between;color:var(--dim);font-size:11px;margin-top:5px}
+.dtrack{height:7px;background:#004f71;border-radius:8px;margin-top:8px;overflow:hidden}
+.dfill{height:100%;background:linear-gradient(90deg,#ebba9b,#e48b53);transition:.25s}
+#mode{margin:6px 12px 0;font-size:11px;color:var(--dim)}
+#mode b{color:#6f4526}
+#mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.mrow{display:grid;grid-template-columns:105px 1fr;gap:7px;align-items:baseline}
+.mid{color:var(--key);font-weight:800}
+.mid.srv{color:#6f4526}
+.mval{color:#ffffff;word-break:break-word}
+.mname{grid-column:1/3;color:var(--dim);font-size:10px;margin-top:-3px}
+#logwrap{border-top:1px solid #004f71;margin-top:auto}
+#logwrap b{display:block;padding:8px 12px 3px;color:#6f4526;font-size:10px;letter-spacing:.08em}
+#log{height:180px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+#log div{border-bottom:1px dotted #004f71;padding:3px 0}
+#log .t{color:#6f4526}
+@media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:320px;flex:none}}
+@media(max-width:590px){#bins{grid-template-columns:1fr!important}.bin{min-height:120px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">CX-check-01 · Check It Twice</div>
+  <header id="howto">
+    <h1>How to use — Check It Twice</h1>
+    <p>The sorter already filled these groups, and some tiles are in the wrong one. Each group header
+    shows its pattern. Every tile has a grip (<b>&#8942;&#8942;</b>) and can be moved: tap a tile to pick it up,
+    then tap one of the dashed groups to drop it there. Tap the small box on a tile to mark that you
+    looked at it, and tap it again to clear the mark. You may press
+    <b>Turn it in</b> at any time — right away, or after you have checked everything.</p>
+  </header>
+  <div id="phasecue" data-phase="warmup">Get ready</div>
+  <section id="stagecard">
+    <div id="prompt">Waiting for the board.</div>
+    <div id="bins"></div>
+    <div id="tools">
+      <button id="replay" title="show how again">&#8635;</button>
+      <button id="submit">&#10003; Turn it in</button>
+      <span id="coverage"></span>
+    </div>
+    <div id="status" class="neutral">Waiting for the board.</div>
+  </section>
+  <div id="playgate">
+    <p>The board is ready. Press play when you are, and it starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty" data-tracks="M-DIFFREACH"></div>
+  <div id="mode">Renderer computes process metrics locally; the <b>score is server-side</b>. Submit speed is never rewarded.</div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#477bd3" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * CX-check-01 — PURE RENDERER
+ * Renders a SERVED item (item.content: a board the sorter already filled, with
+ * planted slips the renderer does not know about) and reports the child's RAW
+ * final placement + review behaviour + numeric process metrics. It NEVER
+ * self-generates boards, NEVER shows correct/incorrect, and computes NO
+ * correctness: the sort key and the planted-slip list are server-side
+ * (BUILD_PLAN §2).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * The measured construct is VOLUNTARY REVIEW, so "Turn it in" is live from the
+ * first interactive moment and nothing here rewards submitting fast.
+ *
+ * Reading is a required baseline-literacy gate (D-017): on-screen TEXT only.
+ * There is no audio and no text-to-speech anywhere in this file.
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://) so the file still runs
+ * for QA. Correctness is still never shown.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+
+/* ---------- per-item state ---------- */
+let current=null;          // current ServedItem
+let interactive=false;     // interaction enabled? (released in beginItem)
+let submitted=false;       // already sent this item?
+let placement={};          // tokenId -> binKey (starts at the served placement)
+let boardOrder=[];         // tokenIds in display order (for review-order analysis)
+let reviewed=new Set();    // tokenIds the child has looked at at all (coverage; monotone)
+let checked=new Set();     // tokenIds currently carrying the child's own tick (reversible)
+let inspectSeq=[];         // ordered tokenIds inspected (with repeats)
+let moves=[];              // [{t, tokenId, from, to}]
+let actions=[];            // raw action sequence
+let itemTelemetry=[];
+let selected=null;
+let itemStart=0, firstLat=null, lastRt=0;
+let gateTutorial=false;    // does the pending play press owe a gesture hint?
+let blurs=0, blurStart=0, blurMs=0;
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- deterministic process metrics (numeric, key-free) ---------- */
+function coveragePct(){return current?Math.round(100*reviewed.size/current.content.tokens.length):0;}
+// M-PLANFUL: systematic review order. Share of consecutive inspections that step
+// to a board-adjacent tile rather than jumping around at random.
+function orderedRate(){
+  if(inspectSeq.length<2)return 0;
+  let ordered=0;
+  for(let i=1;i<inspectSeq.length;i++){
+    const a=boardOrder.indexOf(inspectSeq[i-1]),b=boardOrder.indexOf(inspectSeq[i]);
+    if(Math.abs(a-b)===1)ordered++;
+  }
+  return Math.round(100*ordered/(inspectSeq.length-1));
+}
+// M-EFF: non-redundant review — distinct tiles inspected per inspection action.
+function reviewEfficiency(){return inspectSeq.length?Math.round(100*reviewed.size/inspectSeq.length):0;}
+function activeMs(){
+  const el=itemStart?Date.now()-itemStart:0;
+  return Math.max(0,el-blurMs-(blurStart?Date.now()-blurStart:0));
+}
+
+const METERS=[
+ {id:'M-PERSIST',srv:false,name:'Active review time before turning it in',get:()=>itemStart?activeMs()+' ms':'\u2014'},
+ {id:'M-EXPLORE',srv:false,name:'Distinct tiles reviewed (coverage)',get:()=>current?`${reviewed.size}/${current.content.tokens.length} \u00b7 ${coveragePct()}%`:'\u2014'},
+ {id:'M-REV',srv:false,name:'Corrections (tiles moved)',get:()=>String(moves.length)},
+ {id:'M-PATH',srv:false,name:'Logged actions (full sequence emitted)',get:()=>String(actions.length)},
+ {id:'M-PLANFUL',srv:false,name:'Systematic (board-adjacent) review order',get:()=>inspectSeq.length<2?'\u2014':orderedRate()+'%'},
+ {id:'M-EFF',srv:false,name:'Non-redundant review / inspections',get:()=>inspectSeq.length?reviewEfficiency()+'%':'\u2014'},
+ {id:'M-RT',srv:false,name:'Time to turn in (ms)',get:()=>submitted?String(lastRt):'\u2014'},
+ {id:'M-RTFIRST',srv:false,name:'First-action latency (encode / plan)',get:()=>firstLat==null?'\u2014':firstLat+' ms'},
+ {id:'M-ENGAGE',srv:false,name:'Focus losses (tracked, not enforced)',get:()=>String(blurs)},
+ {id:'M-ACC',srv:true,name:'Final tile accuracy — scored server-side',get:()=>'server-side'},
+ {id:'M-ERRTYPE',srv:true,name:'Planted slips caught / missed — server-side',get:()=>'server-side'},
+ {id:'M-DRIFT',srv:true,name:'Checking persistence across rounds — server-side',get:()=>'server-side'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){
+  const d=current?current.difficulty:null,c=current?current.content:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>${c?c.tokens.length+' tiles \u00b7 '+c.bins.length+' groups':'\u2014'}</span><span>score: server-side</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();
+  if(current)$('#coverage').textContent=`checked ${checked.size} of ${current.content.tokens.length}`;}
+function log(msg){const t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">+${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' \u00b7 '+JSON.stringify(extra):''));
+}
+function recordAction(kind,extra){
+  const a=Object.assign({t:itemStart?Date.now()-itemStart:0,kind},extra||{});
+  actions.push(a);
+  if(firstLat===null){firstLat=a.t;emitEvent('first_action',{kind,latencyMs:firstLat});}
+  return a;
+}
+
+/* ---------- ghost hand: wordless GESTURE hint (never reveals a slip) ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(520);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+async function gestureHint(){
+  // Teaches the GESTURE only: tap a tile's check, tap a tile, tap a group, then
+  // Turn it in. It changes NO state and never points at a misplaced tile.
+  const tiles=$$('.token'),firstBin=$('.bin');
+  ghostShow(true);await sleep(250);
+  if(tiles[0]){await ghostTo(tiles[0].querySelector('.check'));await ghostTap();}
+  if(tiles[1]||tiles[0]){await ghostTo(tiles[1]||tiles[0]);await ghostTap();}
+  await ghostTo(firstBin);await ghostTap();
+  await ghostTo($('#submit'));await sleep(200);
+  ghostShow(false);await sleep(250);
+}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+
+function renderBoard(){
+  const c=current.content;
+  $('#bins').style.gridTemplateColumns=`repeat(${Math.min(4,c.bins.length)},1fr)`;
+  // While a tile is picked up, every group that would actually take it is dashed;
+  // the group it already sits in is not, because dropping it back there does nothing.
+  const canDrop=k=>selected!==null&&placement[selected]!==k;
+  $('#bins').innerHTML=c.bins.map(b=>`
+    <section class="bin ${canDrop(b.key)?'target':''}" data-bin="${b.key}" tabindex="0"
+      aria-label="group ${b.pattern}${canDrop(b.key)?', drop here':''}">
+      <div class="binHeader">${b.pattern}</div>
+      <div class="tokens">${c.tokens.filter(t=>placement[t.id]===b.key).map(t=>`
+        <div class="token ${selected===t.id?'sel':''} ${checked.has(t.id)?'checked':''}" data-id="${t.id}" tabindex="0">
+          <span class="grip" aria-hidden="true">&#8942;&#8942;</span><span>${t.text}</span>
+          <button class="check" data-check="${t.id}" aria-pressed="${checked.has(t.id)}"
+            aria-label="${checked.has(t.id)?`clear the mark on ${t.text}`:`mark ${t.text} as looked at`}">&#10003;</button>
+        </div>`).join('')}</div>
+    </section>`).join('');
+}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;
+  placement={};reviewed=new Set();checked=new Set();inspectSeq=[];moves=[];actions=[];itemTelemetry=[];
+  selected=null;firstLat=null;blurs=0;blurStart=0;blurMs=0;
+  const c=item.content;
+  boardOrder=c.tokens.map(t=>t.id);
+  c.tokens.forEach(t=>{placement[t.id]=t.bin;});
+  $('#prompt').textContent=c.promptText;
+  $('#submit').disabled=true;
+  renderBoard();
+  itemStart=Date.now();
+  renderMeters();
+  emitEvent('render',{tiles:c.tokens.length,bins:c.bins.length,patternLength:c.patternLength,difficulty:item.difficulty});
+}
+
+/* ---------- interaction ---------- */
+function noteInspect(id){
+  inspectSeq.push(id);
+  reviewed.add(id);
+}
+function selectToken(id){
+  if(!interactive||submitted)return;
+  selected=selected===id?null:id;
+  noteInspect(id);
+  recordAction('inspect',{tokenId:id,selected:selected===id});
+  renderBoard();renderMeters();
+  emitEvent('inspect',{tokenId:id});
+}
+/* The tick is the child's own note-to-self, so it has to come off again: an
+   accidental tap used to be permanent, and this type is scored on whether a child
+   chooses to review, not on how steady their finger is. Un-ticking clears the mark
+   but never rewinds `reviewed`/`inspectSeq` — they saw the tile either way. */
+function toggleChecked(id){
+  if(!interactive||submitted)return;
+  const now=!checked.has(id);
+  if(now)checked.add(id);else checked.delete(id);
+  noteInspect(id);
+  recordAction(now?'mark_checked':'unmark_checked',{tokenId:id});
+  renderBoard();renderMeters();
+  emitEvent(now?'mark_checked':'unmark_checked',{tokenId:id});
+}
+function moveSelected(binKey){
+  if(!interactive||submitted||selected===null)return;
+  const id=selected,from=placement[id];
+  if(from===binKey){selected=null;renderBoard();return;}
+  placement[id]=binKey;
+  moves.push({t:Date.now()-itemStart,tokenId:id,from,to:binKey});
+  noteInspect(id);
+  recordAction('move',{tokenId:id,from,to:binKey});
+  selected=null;
+  renderBoard();renderMeters();
+  emitEvent('move',{tokenId:id,from,to:binKey});
+}
+function submit(){
+  if(!interactive||submitted)return;
+  const rt=Date.now()-itemStart;
+  const active=activeMs();
+  lastRt=rt;submitted=true;interactive=false;selected=null;
+  $('#submit').disabled=true;
+  renderBoard();
+  // NEUTRAL acknowledgment only — never correct/incorrect, and never a comment
+  // on how long the child took (submit speed must not be rewarded or shamed).
+  setCue('done','Turned in');
+  setStatus('neutral',standalone?'Turned in. Loading the next board.':'Turned in. Next board coming up.');
+  recordAction('submit',{reviewed:reviewed.size,moves:moves.length});
+  emitEvent('submit',{rtMs:rt,activeMs:active,reviewed:reviewed.size,moves:moves.length});
+
+  const response={
+    finalPlacement:Object.assign({},placement),
+    servedPlacement:Object.fromEntries(current.content.tokens.map(t=>[t.id,t.bin])),
+    reviewedTokens:[...reviewed],
+    checkedTokens:[...checked],
+    reviewCoveragePct:coveragePct(),
+    inspectSequence:inspectSeq.slice(),
+    moves:moves.slice(),
+    actions:actions.slice(),
+    submittedAtMs:rt
+  };
+  const metrics={
+    'M-RT':rt,
+    'M-RTFIRST':firstLat==null?rt:firstLat,
+    'M-PERSIST':active,
+    'M-REV':moves.length,
+    'M-EXPLORE':reviewed.size,
+    'M-PATH':actions.length,
+    'M-PLANFUL':orderedRate(),
+    'M-EFF':reviewEfficiency(),
+    'M-ENGAGE':blurs,
+    'M-RAPIDGUESS':(reviewed.size===0&&rt<3000)?1:0
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1400);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 — the board waits behind the play gate. `init` renders it, but it stays covered and
+   inert, and "Turn it in" stays disabled, until the child presses play. That press is also
+   when the response clock starts, so M-RT and M-PERSIST measure checking rather than
+   however long the child took to look up at the screen. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function onInit(item){
+  if(!item||!item.content||!item.content.bins||!item.content.tokens){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  openGate(false);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  closeGate();
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();
+  // Turn it in is live from the first interactive moment: checking is voluntary.
+  $('#submit').disabled=false;
+  setCue('scored','Your turn');
+  setStatus('neutral','Fix any tiles in the wrong group, or turn it in whenever you like.');
+  renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/CX-check-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(8,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"23d8b714-58cf-463b-ab2a-91ed815fc26e","typeCode":"CX-check-01","domain":"fluid_reasoning","difficulty":1.08,"ageBands":["K-1"],"demoPath":"demos/CX-check-01.html","content":{"typeCode":"CX-check-01","promptText":"The sorter put these tiles into groups. Some tiles are in the wrong group. You can fix them, or you can turn it in right away.","binRuleKind":"repetition_pattern","bins":[{"key":"b0","pattern":"ABB"},{"key":"b1","pattern":"AAA"}],"tokens":[{"id":"t2","text":"NGG","bin":"b1"},{"id":"t1","text":"WWW","bin":"b1"},{"id":"t5","text":"TTT","bin":"b1"},{"id":"t3","text":"XXX","bin":"b1"},{"id":"t4","text":"MHH","bin":"b0"},{"id":"t0","text":"ZRR","bin":"b0"}],"tokenCount":6,"binCount":2,"patternLength":3,"controls":{"canMove":true,"canMarkChecked":true,"submitAvailableFrom":"start","timeLimitSec":null},"instructions":{"howto":"Tap a tile to pick it up, then tap the group it belongs in. Tap the small check on a tile to mark that you looked at it. Press Turn it in whenever you want."}},"syntheticOnly":true,"validated":false},
+{"itemId":"1f6782a5-2611-490f-845a-ff43d338c525","typeCode":"CX-check-01","domain":"fluid_reasoning","difficulty":10.84,"ageBands":["4-5"],"demoPath":"demos/CX-check-01.html","content":{"typeCode":"CX-check-01","promptText":"The sorter put these tiles into groups. Some tiles are in the wrong group. You can fix them, or you can turn it in right away.","binRuleKind":"repetition_pattern","bins":[{"key":"b0","pattern":"AABBC"},{"key":"b1","pattern":"AABAB"}],"tokens":[{"id":"t2","text":"DDWWM","bin":"b0"},{"id":"t4","text":"TTMMG","bin":"b0"},{"id":"t1","text":"NNXNX","bin":"b0"},{"id":"t3","text":"ZZHZH","bin":"b1"},{"id":"t0","text":"VVQQZ","bin":"b0"},{"id":"t5","text":"VVQVQ","bin":"b0"}],"tokenCount":6,"binCount":2,"patternLength":5,"controls":{"canMove":true,"canMarkChecked":true,"submitAvailableFrom":"start","timeLimitSec":null},"instructions":{"howto":"Tap a tile to pick it up, then tap the group it belongs in. Tap the small check on a tile to mark that you looked at it. Press Turn it in whenever you want."}},"syntheticOnly":true,"validated":false},
+{"itemId":"a8760165-20b2-4b4f-8d91-2e3569e82a7d","typeCode":"CX-check-01","domain":"fluid_reasoning","difficulty":19.93,"ageBands":["6-8"],"demoPath":"demos/CX-check-01.html","content":{"typeCode":"CX-check-01","promptText":"The sorter put these tiles into groups. Some tiles are in the wrong group. You can fix them, or you can turn it in right away.","binRuleKind":"repetition_pattern","bins":[{"key":"b0","pattern":"ABCBA"},{"key":"b1","pattern":"ABACA"},{"key":"b2","pattern":"ABCDE"},{"key":"b3","pattern":"ABBBA"}],"tokens":[{"id":"t9","text":"KMKNK","bin":"b1"},{"id":"t10","text":"NXSTM","bin":"b2"},{"id":"t0","text":"SRXRS","bin":"b3"},{"id":"t5","text":"KSKRK","bin":"b1"},{"id":"t14","text":"QRNWF","bin":"b0"},{"id":"t13","text":"WDWKW","bin":"b1"},{"id":"t4","text":"GPSPG","bin":"b3"},{"id":"t12","text":"NWKWN","bin":"b0"},{"id":"t6","text":"GWMPD","bin":"b2"},{"id":"t1","text":"DNDRD","bin":"b0"},{"id":"t2","text":"HFWVS","bin":"b2"},{"id":"t8","text":"RKSKR","bin":"b0"},{"id":"t3","text":"HMMMH","bin":"b3"},{"id":"t11","text":"RWWWR","bin":"b3"},{"id":"t7","text":"KXXXK","bin":"b3"},{"id":"t15","text":"WGGGW","bin":"b3"}],"tokenCount":16,"binCount":4,"patternLength":5,"controls":{"canMove":true,"canMarkChecked":true,"submitAvailableFrom":"start","timeLimitSec":null},"instructions":{"howto":"Tap a tile to pick it up, then tap the group it belongs in. Tap the small check on a tile to mark that you looked at it. Press Turn it in whenever you want."}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
+$('#bins').addEventListener('click',e=>{
+  const chk=e.target.closest('[data-check]');if(chk){e.stopPropagation();toggleChecked(chk.dataset.check);return;}
+  const tok=e.target.closest('.token');if(tok){e.stopPropagation();selectToken(tok.dataset.id);return;}
+  const bin=e.target.closest('.bin');if(bin)moveSelected(bin.dataset.bin);
+});
+$('#bins').addEventListener('keydown',e=>{
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  const tok=e.target.closest('.token'),bin=e.target.closest('.bin');
+  if(tok){e.preventDefault();selectToken(tok.dataset.id);}
+  else if(bin){e.preventDefault();moveSelected(bin.dataset.bin);}
+});
+$('#submit').addEventListener('click',submit);
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+window.addEventListener('blur',()=>{
+  if(interactive&&!submitted&&!blurStart){blurStart=Date.now();blurs++;emitEvent('engagement',{reason:'blur'});renderMeters();}
+});
+window.addEventListener('focus',()=>{
+  if(blurStart){blurMs+=Date.now()-blurStart;blurStart=0;renderMeters();}
+});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

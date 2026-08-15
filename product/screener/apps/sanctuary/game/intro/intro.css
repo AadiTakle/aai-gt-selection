@@ -1,0 +1,357 @@
+/* Nan Bramble's corner of the screen.
+   Same family as game.css: bubbly, warm, soft, no grey, nothing sharp. */
+
+/* THE WHOLE LAYER IS TRANSPARENT TO THE MOUSE.
+   Set here, once, on the root, so no descendant can quietly opt in by accident. Exactly one element
+   turns it back on and that element is the adult's skip button. This matters more than it looks: the
+   vacpack fires on a plain click anywhere on the canvas, so a dialogue that ate clicks would stop a
+   child hoovering at the moment they are being told how to hoover. */
+.nb-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  font-family: ui-rounded, 'Nunito', 'Quicksand', ui-sans-serif, system-ui, sans-serif;
+  z-index: 6;
+}
+
+/* Bottom left, clear of everything else the game puts on screen: the purse (fixed, top left), the mute
+   button (fixed, top right), .bh-beat-slim (top centre) and .bh-hud (the bottom strip, about 7rem tall).
+   The middle of the screen is where the crosshair is and is never covered. */
+.nb-nan {
+  position: absolute;
+  left: 1.25rem;
+  bottom: 7.5rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  max-width: min(34rem, 48vw);
+  animation: nb-arrive 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Dimmed rather than removed while a station, the stall or the board has the child. She is still there;
+   she is just not talking over it. */
+.nb-nan-quiet {
+  opacity: 0.5;
+}
+
+.nb-face {
+  flex: 0 0 auto;
+  width: 116px;
+  height: 116px;
+  filter: drop-shadow(0 8px 0 rgb(120 90 55 / 0.22));
+  animation: nb-bob 5.5s ease-in-out infinite;
+}
+
+.nb-portrait {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.nb-card {
+  position: relative;
+  margin-bottom: 0.5rem;
+  padding: 0.7rem 1.05rem 0.6rem;
+  border-radius: 22px;
+  background: #fffaf0;
+  box-shadow: 0 8px 0 rgb(120 90 55 / 0.2);
+}
+
+/* The tail, pointing back at the face, so the words plainly belong to her. */
+.nb-card::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  bottom: 22px;
+  width: 18px;
+  height: 18px;
+  background: #fffaf0;
+  border-radius: 4px;
+  transform: rotate(45deg);
+}
+
+.nb-name {
+  position: relative;
+  margin: 0 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b3966c;
+}
+
+.nb-line {
+  position: relative;
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #45301c;
+}
+
+.nb-glyph {
+  display: block;
+  width: 132px;
+  height: 84px;
+  margin: 0.35rem 0 -0.15rem;
+}
+
+/* How far through the board's eight questions the child is. Bottom centre, above .bh-hud's strip, so it
+   is nowhere near the crosshair, the option shelf, or Nan's card in the bottom left. */
+.nb-tally {
+  position: absolute;
+  left: 50%;
+  bottom: 8.25rem;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  background: rgb(255 250 240 / 0.62);
+  box-shadow: 0 4px 0 rgb(120 90 55 / 0.14);
+}
+
+.nb-pip {
+  display: block;
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  background: rgb(120 90 55 / 0.2);
+}
+
+/* Answered. Honey, like everything else in this world that means "done". */
+.nb-pip-done {
+  background: #f0b64a;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.7);
+}
+
+/* The one being asked now, breathing at the same rate as the lanterns. */
+.nb-pip-now {
+  background: #fff0cc;
+  box-shadow: 0 0 0 3px #f0b64a;
+  animation: nb-pulse 1.6s ease-in-out infinite;
+}
+
+/* The adult's way out. The only pressable thing in the layer, and only ever reachable when there is a
+   cursor to press it with. */
+.nb-skip {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  pointer-events: auto;
+  padding: 0.5rem 0.95rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.86);
+  color: #8a7355;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgb(120 90 55 / 0.18);
+}
+
+.nb-skip:hover {
+  background: #ffffff;
+  color: #5a4326;
+}
+
+.nb-skip:focus-visible {
+  outline: 4px solid #ffd76b;
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------ *\
+   Motion
+\* ------------------------------------------------------------------ */
+
+@keyframes nb-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes nb-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Her mouth while she is talking. Deliberately not synchronised to the words — a mouth that tries to
+   match syllables and fails is worse than one that is plainly just talking. */
+@keyframes nb-talk {
+  0%,
+  100% {
+    transform: scaleY(0.18);
+  }
+  22% {
+    transform: scaleY(1);
+  }
+  40% {
+    transform: scaleY(0.4);
+  }
+  60% {
+    transform: scaleY(0.9);
+  }
+  78% {
+    transform: scaleY(0.3);
+  }
+}
+
+.nb-talk {
+  animation: nb-talk 620ms ease-in-out infinite;
+}
+
+/* The control pictures. Each one resolves to a legible still under reduced motion — see the block at the
+   bottom of this file — rather than to nothing. */
+@keyframes nb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.nb-pulse {
+  animation: nb-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes nb-rise {
+  0% {
+    transform: translateY(4px);
+    opacity: 0.35;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+}
+
+.nb-rise {
+  animation: nb-rise 1.4s ease-out infinite;
+}
+
+@keyframes nb-sweep {
+  0%,
+  100% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+.nb-sweep {
+  animation: nb-sweep 1.9s ease-in-out infinite;
+}
+
+@keyframes nb-inward {
+  0% {
+    transform: scale(1.12);
+    opacity: 0.3;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+}
+
+.nb-inward {
+  animation: nb-inward 1.3s ease-in infinite;
+}
+
+@keyframes nb-outward {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.2;
+  }
+  45% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.14);
+    opacity: 0;
+  }
+}
+
+.nb-outward {
+  animation: nb-outward 1.3s ease-out infinite;
+}
+
+/* Rings collapsing onto the keycap, half a cycle apart, exactly as the world's own press badge does it. */
+@keyframes nb-ring {
+  0% {
+    transform: scale(1.5);
+    opacity: 0.1;
+  }
+  55% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(0.62);
+    opacity: 0;
+  }
+}
+
+.nb-ring {
+  transform-origin: 60px 37px;
+  animation: nb-ring 1.5s linear infinite;
+}
+
+.nb-ring-b {
+  animation-delay: 0.75s;
+}
+
+/* A child who asked for less movement gets the whole invitation, still. Every animation above resolves
+   to its own resting state rather than being switched off into nothing: the pulse stays lit, the arrows
+   stay drawn, the rings sit mid-collapse, and Nan's mouth stays the closed smile `Nan.tsx` draws when it
+   is not told she is talking. */
+@media (prefers-reduced-motion: reduce) {
+  .nb-nan,
+  .nb-face,
+  .nb-talk,
+  .nb-pulse,
+  .nb-rise,
+  .nb-sweep,
+  .nb-inward,
+  .nb-outward,
+  .nb-ring,
+  /* The pip for the question being asked keeps its honey ring; only the breathing stops. */
+  .nb-pip-now {
+    animation: none;
+  }
+
+  .nb-ring {
+    transform: scale(1.05);
+    opacity: 0.55;
+  }
+
+  .nb-ring-b {
+    transform: scale(0.7);
+    opacity: 0.35;
+  }
+
+  .nb-rise,
+  .nb-inward,
+  .nb-outward {
+    opacity: 0.9;
+  }
+}

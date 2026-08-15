@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLU-ANALOGY-01 · Shape Morph</title>
+<style>
+  :root{--bg1:#fcf4ef;--bg2:#f8e8de;--ink:#001117;--card:#ffffff;--accent:#004f71;--good:#146c43;--bad:#a4442f;--socket:#ebba9b;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:14px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#004f71;border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="warmup"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="scored"]{background:#004f71;color:#ffffff;border-color:#004f71}
+  #phasecue[data-phase="done"]{background:#f5ddcd;color:#002a3a;border-color:#ecd9cb}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:#4a6470}
+  #stagecard{background:var(--card);border-radius:26px;padding:22px;box-shadow:0 18px 50px -22px #002a3a;display:flex;flex-direction:column;align-items:center;gap:16px;max-width:600px;width:100%}
+  #analogy{display:flex;flex-direction:column;gap:12px;background:linear-gradient(160deg,#fcf4ef,#f8e8de);border:3px solid #f8e8de;border-radius:18px;padding:16px}
+  .arow{display:flex;gap:14px;align-items:center;justify-content:center}
+  .arrow{font-size:26px;color:#4a6470}
+  .cell{background:#ffffff;border-radius:10px;display:flex;align-items:center;justify-content:center;width:84px;height:84px}
+  .cell.empty{background:repeating-linear-gradient(45deg,#f8e8de,#f8e8de 8px,#fcf4ef 8px,#fcf4ef 16px);border:3px dashed var(--socket)}
+  .cell.morphing{animation:morph .8s ease}
+  @keyframes morph{0%{transform:scale(.5) rotate(-20deg);opacity:.2}100%{transform:scale(1) rotate(0);opacity:1}}
+  .cell.filled-anim{animation:pop .3s ease}@keyframes pop{0%{transform:scale(.6);opacity:.2}100%{transform:scale(1);opacity:1}}
+  #tray{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}
+  .opt{position:relative;background:#ffffff;border:3px solid #ecd9cb;border-radius:14px;width:84px;height:84px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+  .opt::after{content:attr(data-key);position:absolute;right:5px;bottom:3px;font:700 11px/1 ui-monospace,monospace;color:#4a6470}
+  .opt:hover{transform:translateY(-3px);border-color:#ecd9cb}
+  .opt.sel{border-color:var(--accent);box-shadow:0 0 0 4px #ecd9cb;transform:translateY(-3px)}
+  #controls{display:flex;gap:16px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer;border-radius:50%}
+  #go{width:72px;height:72px;background:var(--accent);color:#ffffff;font-size:30px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  #replay{width:50px;height:50px;background:#f8e8de;color:#004f71;font-size:22px}
+  #ghost{position:fixed;left:0;top:0;font-size:40px;pointer-events:none;z-index:60;opacity:0;transition:transform .7s cubic-bezier(.4,.1,.2,1),opacity .3s;filter:drop-shadow(0 3px 4px rgba(0,0,0,.25))}
+  #ghost.show{opacity:.92}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}@keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{width:320px;flex:0 0 320px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #33505c;border-radius:10px;background:#003b5c}
+  .dtop{display:flex;justify-content:space-between;color:#ffffff}.dsub{display:flex;justify-content:space-between;color:var(--tel-dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#33505c;border-radius:8px;margin-top:8px;overflow:hidden}.dfill{height:100%;width:0;background:linear-gradient(90deg,#ebba9b,#ebba9b);transition:.25s}
+  #mode{margin:6px 12px 0;font-size:11px;color:var(--tel-dim)}#mode b{color:#6f4526}
+  #mlist{padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:96px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mid.prop{color:#6f4526}
+  .mval{color:#ffffff}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  button:focus-visible,.opt:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:340px}}
+  @media(max-width:500px){#wrap{padding:10px}#stagecard{padding:13px}#analogy{padding:10px}.cell{width:64px;height:64px}
+    .cell svg{width:58px;height:58px}.opt{width:66px;height:66px}.opt svg{width:58px;height:58px}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+<style data-gt-demo-presentation="1">
+/* Catalogue-only presentation pass. Not present in the live screener. */
+
+/* The play button and its broken copy. Hidden, not removed: the page's start path still
+   needs the button in the DOM for the autostart patch to click. */
+#playgate { display: none !important; }
+
+/* Authoring instrumentation: item id, difficulty meters, event log. */
+#telemetry { display: none !important; }
+
+/* body stays flex and #wrap keeps flex:1, so hiding the sidebar is enough to hand the
+   question the full width. #wrap already centres its own children. */
+
+/* #howto is now the viewer's only orientation, so lift it slightly off the page. */
+#howto {
+  max-width: 720px !important;
+  box-shadow: 0 10px 30px -20px #002a3a !important;
+}
+
+/* Press t to bring the telemetry panel back mid-demo. */
+html[data-gt-demo-presentation-tel] #telemetry { display: flex !important; }
+</style>
+<script data-gt-demo-presentation="1">
+/* Catalogue-only: `t` reveals the telemetry panel, for showing what the item measures. */
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 't' && e.key !== 'T') return;
+  var tag = (e.target && e.target.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
+  var root = document.documentElement;
+  var attr = 'data-gt-demo-presentation-tel';
+  if (root.hasAttribute(attr)) root.removeAttribute(attr);
+  else root.setAttribute(attr, '1');
+});
+</script>
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">FLU-ANALOGY-01 · Shape Morph</div>
+    <header id="howto">
+      <h1>How to use &mdash; Shape Morph</h1>
+      <p>The top-left shape changes into the top-right shape. Make the bottom shape change in the <b>same way</b>: tap the tile from the tray that belongs in the empty box, then press the check (<b>&#10003;</b>) to send your answer. You can also press number keys 1&ndash;4. The machine notes your answer and brings the next puzzle.</p>
+    </header>
+    <div id="phasecue" data-phase="warmup">Get ready</div>
+    <div id="stagecard">
+      <div id="analogy">
+        <div class="arow"><div class="cell" id="Acell"></div><div class="arrow">&#10140;</div><div class="cell" id="Bcell"></div></div>
+        <div class="arow"><div class="cell" id="Ccell"></div><div class="arrow">&#10140;</div><div class="cell empty" id="qslot"></div></div>
+      </div>
+      <div id="tray"></div>
+      <div id="controls">
+        <button id="replay" title="show how again">&#8635;</button>
+        <button id="go" title="send answer">&#10003;</button>
+      </div>
+      <div id="status" class="neutral">Waiting for the next puzzle.</div>
+    </div>
+    <div id="playgate">
+      <p>The puzzle is ready. Press play when you are, and it starts then.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child (display only)</h3>
+    <div id="difficulty" data-tracks="M-DIFFREACH M-RULEID"></div>
+    <div id="mode">Renderer computes process metrics locally; the <b>score is server-side</b>.</div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+  <div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#004f71" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * FLU-ANALOGY-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW response
+ * + process telemetry. It NEVER self-generates items and NEVER shows
+ * correct/incorrect: the answer key + score live server-side (BUILD_PLAN §2).
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * Standalone (double-click / no host): loads sample items from the bank JSONL
+ * (or an inline fallback if fetch is blocked on file://) so the file still runs
+ * for QA. Correctness is still never shown; emitted ItemResults are logged.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+
+/* ---------- shape rendering (renderer-agnostic tiles: shape/color/count/size/rot/fill) ---------- */
+const PAL={coral:'#ef5b5b',teal:'#159f94',blue:'#4267d5',gold:'#e6a817',violet:'#8357c5',ink:'#33405f'};
+const SIZE_SCALE=[0.60,0.92,1.24]; // size index 0..2 -> visual scale
+function polyPts(cx,cy,r,n,rot){let p=[];for(let i=0;i<n;i++){let a=rot+i*2*Math.PI/n;p.push((cx+r*Math.cos(a)).toFixed(1)+','+(cy+r*Math.sin(a)).toFixed(1));}return p.join(' ');}
+function starPts(cx,cy,r,n){let p=[];for(let i=0;i<2*n;i++){let rr=i%2?r*0.45:r;let a=-Math.PI/2+i*Math.PI/n;p.push((cx+rr*Math.cos(a)).toFixed(1)+','+(cy+rr*Math.sin(a)).toFixed(1));}return p.join(' ');}
+function oneShape(shape,color,cx,cy,r,fill){const solid=fill!=='outline';const f=solid?`fill="${color}" stroke="#fff" stroke-width="1"`:`fill="none" stroke="${color}" stroke-width="4"`;
+  switch(shape){
+    case 'triangle':return `<polygon points="${polyPts(cx,cy,r,3,-Math.PI/2)}" ${f}/>`;
+    case 'pentagon':return `<polygon points="${polyPts(cx,cy,r,5,-Math.PI/2)}" ${f}/>`;
+    case 'hexagon':return `<polygon points="${polyPts(cx,cy,r,6,-Math.PI/2)}" ${f}/>`;
+    case 'star':return `<polygon points="${starPts(cx,cy,r,5)}" ${f}/>`;
+    case 'kite':return `<polygon points="${cx},${cy-r} ${cx+r*.72},${cy-r*.05} ${cx},${cy+r} ${cx-r*.72},${cy-r*.05}" ${f}/>`;
+    case 'drop':return `<path d="M ${cx} ${cy-r} C ${cx+r*.85} ${cy-r*.15},${cx+r*.72} ${cy+r},${cx} ${cy+r} C ${cx-r*.72} ${cy+r},${cx-r*.85} ${cy-r*.15},${cx} ${cy-r}Z" ${f}/>`;
+  }return '';}
+function tileSVG(a,box=80){const color=PAL[a.color]||a.color,n=a.count||1,sc=SIZE_SCALE[a.size==null?1:a.size]||0.92,rot=a.rot||0,fill=a.fill||'solid';let inner='';
+  if(n===1)inner=oneShape(a.shape,color,box/2,box/2,box*0.30*sc,fill);
+  else{const pos=n===2?[[.3,.5],[.7,.5]]:n===3?[[.24,.5],[.5,.5],[.76,.5]]:[[.3,.3],[.7,.3],[.3,.7],[.7,.7]];
+    const r=box*(n>=4?.13:.15)*sc;pos.slice(0,n).forEach(p=>inner+=oneShape(a.shape,color,p[0]*box,p[1]*box,r,fill));}
+  if(rot)inner=`<g transform="rotate(${rot} ${box/2} ${box/2})">${inner}</g>`;
+  return `<svg width="${box}" height="${box}" viewBox="0 0 ${box} ${box}">${inner}</svg>`;}
+
+/* ---------- per-item state ---------- */
+let current=null;          // current ServedItem
+let interactive=false;     // interaction enabled?
+let submitted=false;       // already answered this item?
+let staged=null;           // currently staged option key
+let firstKey=null;         // first option key touched
+let selectionOrder=[];     // raw sequence of taps (keys)
+let itemStart=0;           // ms timestamp when the item became interactive
+let gateTutorial=false;    // does the pending play press owe a gesture hint?
+let itemTelemetry=[];      // TelemetryEvent[] for the current item
+
+const M={rt:null,rts:[],firstLat:null,rev:0,blur:0}; // locally-computed process metrics
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- telemetry panel (DISPLAY ONLY; key-free metrics) ---------- */
+const METERS=[
+ {id:'M-RT',name:'Response time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
+ {id:'M-RTFIRST',name:'First-action latency (map before act)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-REV',name:'Revisions / answer changes',get:()=>String(M.rev)},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<350?'1 · rapid':'0')},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){const d=current?current.difficulty:null,r=current?current.content.transformCount:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>co-acting transforms ${r==null?'\u2014':r}</span><span>score: server-side</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+/* ---------- telemetry emit (stream to host + local log + per-item buffer) ---------- */
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+
+/* ---------- ghost hand: wordless GESTURE hint (never reveals the answer) ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(700);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(500);}
+async function gestureHint(){
+  // Teaches the GESTURE only: read the top morph, look at the gap, tap a tray tile, press check.
+  // It does NOT select any tile and does NOT indicate which option is correct.
+  const A=$('#Acell'),B=$('#Bcell'),C=$('#Ccell'),slot=$('#qslot'),tray=$('#tray'),go=$('#go');
+  ghostShow(true);await sleep(250);
+  await ghostTo(A);await ghostTo(B);await sleep(120);
+  await ghostTo(C);await ghostTo(slot);await sleep(120);
+  await ghostTo(tray);await ghostTap();await sleep(150);
+  await ghostTo(go);await ghostTap();await sleep(200);
+  ghostShow(false);await sleep(300);
+}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+function fillSlot(tile){const cell=$('#qslot');if(!cell)return;cell.className='cell filled-anim';
+  cell.innerHTML=tileSVG(tile);setTimeout(()=>cell.classList.remove('filled-anim'),300);}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;staged=null;firstKey=null;selectionOrder=[];
+  M.rev=0;M.firstLat=null;M.blur=0;itemTelemetry=[];
+  const c=item.content;
+  $('#Acell').innerHTML=tileSVG(c.example.source);
+  $('#Bcell').innerHTML=tileSVG(c.example.result);$('#Bcell').classList.add('morphing');setTimeout(()=>$('#Bcell').classList.remove('morphing'),800);
+  $('#Ccell').innerHTML=tileSVG(c.question.source);
+  const q=$('#qslot');q.className='cell empty';q.innerHTML='';
+  const tray=$('#tray');tray.innerHTML='';
+  c.options.forEach((o,i)=>{const b=document.createElement('button');b.className='opt';
+    b.dataset.key=o.key;b.dataset.i=i;b.setAttribute('aria-label','option '+(i+1));b.innerHTML=tileSVG(o.tile);tray.appendChild(b);});
+  $('#go').classList.remove('ready');
+  itemStart=Date.now();
+  renderMeters();
+  emitEvent('render',{transformCount:c.transformCount,difficulty:item.difficulty,options:c.options.length});
+}
+
+/* ---------- interaction ---------- */
+function stageOption(el){
+  if(!interactive||submitted)return;
+  const key=el.dataset.key,idx=+el.dataset.i;
+  if(firstKey===null){firstKey=key;M.firstLat=Date.now()-itemStart;emitEvent('first_action',{key,latencyMs:M.firstLat});}
+  if(staged!==null&&staged!==key){M.rev++;emitEvent('change',{from:staged,to:key});}
+  staged=key;selectionOrder.push(key);
+  $$('#tray .opt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  fillSlot(current.content.options[idx].tile);
+  $('#go').classList.add('ready');renderMeters();
+}
+function submit(){
+  if(!interactive||submitted||staged===null)return;
+  const rt=Date.now()-itemStart;
+  M.rt=rt;M.rts.push(rt);
+  submitted=true;interactive=false;$('#go').classList.remove('ready');
+  // NEUTRAL acknowledgment only — never correct/incorrect.
+  setCue('done','Answer sent');
+  setStatus('neutral',standalone?'Answer received. Loading the next puzzle.':'Answer received. Next puzzle coming up.');
+  emitEvent('submit',{selectedKey:staged,rtMs:rt});
+  const response={selectedKey:staged,firstSelectedKey:firstKey,selectionOrder:selectionOrder.slice(),changeCount:M.rev};
+  const metrics={'M-RT':rt,'M-RTFIRST':M.firstLat==null?rt:M.firstLat,'M-REV':M.rev,'M-ENGAGE':M.blur,'M-RAPIDGUESS':rt<350?1:0};
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1150);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 — the puzzle waits behind the play gate. The item is rendered on `init` but stays
+   covered and inert until the child presses play, which is also when the response clock
+   starts, so M-RT measures thinking rather than however long they took to look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function onInit(item){
+  if(!item||!item.content||!item.content.example||!item.content.question){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  openGate(false);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  closeGate();
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  interactive=true;itemStart=Date.now();
+  setCue('scored','Your turn');
+  setStatus('neutral','Tap the tile that finishes the bottom pair, then press the check.');
+  renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/FLU-ANALOGY-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real items exported from the bank; answer stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"b6a81a5c-bab9-44a6-887f-b8dad72fa389","typeCode":"FLU-ANALOGY-01","domain":"fluid_reasoning","difficulty":1.04,"ageBands":["2-3"],"demoPath":"demos/FLU-ANALOGY-01.html","content":{"typeCode":"FLU-ANALOGY-01","transforms":["shade"],"transformCount":1,"example":{"source":{"shape":"triangle","color":"gold","count":1,"size":1,"rot":0,"fill":"solid"},"result":{"shape":"triangle","color":"gold","count":1,"size":1,"rot":0,"fill":"outline"}},"question":{"source":{"shape":"kite","color":"gold","count":1,"size":1,"rot":0,"fill":"solid"}},"options":[{"key":"A","tile":{"shape":"drop","color":"gold","count":1,"size":1,"rot":0,"fill":"outline"}},{"key":"B","tile":{"shape":"kite","color":"violet","count":1,"size":1,"rot":0,"fill":"solid"}},{"key":"C","tile":{"shape":"kite","color":"gold","count":1,"size":1,"rot":0,"fill":"solid"}},{"key":"D","tile":{"shape":"kite","color":"gold","count":1,"size":1,"rot":0,"fill":"outline"}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"1bc39770-13f0-42c5-b133-dc60d40f1477","typeCode":"FLU-ANALOGY-01","domain":"fluid_reasoning","difficulty":10.77,"ageBands":["4-5"],"demoPath":"demos/FLU-ANALOGY-01.html","content":{"typeCode":"FLU-ANALOGY-01","transforms":["recolor","rotate"],"transformCount":2,"example":{"source":{"shape":"hexagon","color":"coral","count":1,"size":1,"rot":0,"fill":"solid"},"result":{"shape":"hexagon","color":"teal","count":1,"size":1,"rot":72,"fill":"solid"}},"question":{"source":{"shape":"kite","color":"coral","count":1,"size":1,"rot":0,"fill":"solid"}},"options":[{"key":"A","tile":{"shape":"kite","color":"teal","count":1,"size":1,"rot":0,"fill":"solid"}},{"key":"B","tile":{"shape":"kite","color":"coral","count":1,"size":1,"rot":0,"fill":"solid"}},{"key":"C","tile":{"shape":"kite","color":"teal","count":1,"size":1,"rot":72,"fill":"solid"}},{"key":"D","tile":{"shape":"kite","color":"teal","count":1,"size":1,"rot":144,"fill":"solid"}}]},"syntheticOnly":true,"validated":false},
+{"itemId":"8f9622cd-2c16-45b9-a5ad-181b94533180","typeCode":"FLU-ANALOGY-01","domain":"fluid_reasoning","difficulty":19.96,"ageBands":["6-8"],"demoPath":"demos/FLU-ANALOGY-01.html","content":{"typeCode":"FLU-ANALOGY-01","transforms":["recolor","resize","addcount","rotate"],"transformCount":4,"example":{"source":{"shape":"star","color":"teal","count":2,"size":2,"rot":0,"fill":"solid"},"result":{"shape":"star","color":"blue","count":3,"size":1,"rot":72,"fill":"solid"}},"question":{"source":{"shape":"hexagon","color":"teal","count":2,"size":2,"rot":0,"fill":"solid"}},"options":[{"key":"A","tile":{"shape":"hexagon","color":"blue","count":3,"size":1,"rot":72,"fill":"solid"}},{"key":"B","tile":{"shape":"hexagon","color":"teal","count":2,"size":2,"rot":0,"fill":"solid"}},{"key":"C","tile":{"shape":"hexagon","color":"blue","count":3,"size":1,"rot":144,"fill":"solid"}},{"key":"D","tile":{"shape":"hexagon","color":"blue","count":3,"size":1,"rot":0,"fill":"solid"}}]},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
+$('#tray').addEventListener('click',e=>{const o=e.target.closest('.opt');if(o)stageOption(o);});
+$('#go').addEventListener('click',()=>{if($('#go').classList.contains('ready'))submit();});
+$('#replay').addEventListener('click',()=>{if(current&&!submitted)gestureHint();});
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  if(/^[1-9]$/.test(e.key)){const o=$$('#tray .opt')[+e.key-1];if(o)stageOption(o);}
+  else{const o=$$('#tray .opt').find(b=>b.dataset.key.toUpperCase()===e.key.toUpperCase());if(o)stageOption(o);}
+  if(e.key==='Enter'&&$('#go').classList.contains('ready'))submit();
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
+</script>
+
+<script data-gt-demo-autostart="1">
+/* Catalogue-only: dismiss the press-play gate so browsing is uninterrupted.
+   Clicks the demo's own #play button rather than reimplementing its start logic.
+   Not present in the live screener. */
+(function () {
+  var root = document.documentElement;
+  var tries = 0;
+  function go() {
+    var btn = document.getElementById('play');
+    if (!btn) return;
+    if (!root.hasAttribute('data-gt-gate')) return;
+    btn.click();
+  }
+  // The gate reopens between rounds in several demos, so watch rather than fire once.
+  if (window.MutationObserver) {
+    new MutationObserver(function () { go(); })
+      .observe(root, { attributes: true, attributeFilter: ['data-gt-gate'] });
+  }
+  // And catch the case where the gate is already up by the time this runs.
+  var poll = setInterval(function () {
+    go();
+    if (++tries > 40) clearInterval(poll);
+  }, 50);
+  window.addEventListener('load', go);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1816 @@
+/* ==========================================================================================
+   Poketrainer Bootcamp.
+
+   Everything in this file dresses the space AROUND the question: the League desk, the route, the
+   battle stage, the dialogue box, the trainer card. Nothing in here reaches inside `.pkb-slot`.
+   That is deliberate and it is load bearing — the question presentation is going to be replaced
+   wholesale, so there is not one descendant selector below `.pkb-slot` anywhere in this file.
+   ========================================================================================== */
+
+.pkb,
+.pkb-desk,
+.pkb-verdict {
+  --red: #e3350d;
+  --red-dark: #a3210b;
+  --navy: #1c2338;
+  --navy-soft: #3d4c78;
+  --cream: #fbf9f2;
+  --ink: #20242b;
+  --gold: #c9a227;
+  --sky-a: #7fd4f5;
+  --sky-b: #d6f2ff;
+  --grass: #4fa348;
+  --box: 0 5px 0 #131828, 0 12px 22px rgba(12, 18, 30, 0.28);
+  /* Redeclared rather than inherited, so this experience renders the same wherever it is mounted. */
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------ shared chrome */
+
+.pkb-kicker {
+  font: 700 10px/1 var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin: 0 0 6px;
+}
+
+.pkb-primary,
+.pkb-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 0;
+  font: 800 16px/1 system-ui, sans-serif;
+  letter-spacing: 0.01em;
+  padding: 14px 22px;
+  border-radius: 999px;
+  min-height: 52px;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.pkb-primary {
+  background: linear-gradient(#f2593a, var(--red));
+  color: #fff;
+  box-shadow: 0 4px 0 var(--red-dark), 0 10px 18px rgba(163, 33, 11, 0.32);
+}
+
+.pkb-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--red-dark), 0 14px 22px rgba(163, 33, 11, 0.36);
+}
+
+.pkb-primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--red-dark);
+}
+
+.pkb-primary:disabled {
+  background: #c9ccd3;
+  color: #6d7381;
+  box-shadow: 0 4px 0 #9ea3ae;
+  cursor: not-allowed;
+}
+
+.pkb-ghost {
+  background: #fff;
+  color: var(--navy);
+  box-shadow: inset 0 0 0 3px var(--navy-soft), 0 4px 0 rgba(28, 35, 56, 0.35);
+}
+
+.pkb-ghost:hover {
+  transform: translateY(-2px);
+  background: #eef2ff;
+}
+
+.pkb-primary:focus-visible,
+.pkb-ghost:focus-visible,
+.pkb-divcard:focus-visible {
+  outline: 4px solid #ffd400;
+  outline-offset: 3px;
+}
+
+.pkb-fine {
+  font-size: 12.5px;
+  color: #5a6377;
+  margin: 8px 0 0;
+}
+
+.pkb-type {
+  display: inline-block;
+  font: 800 11px/1 system-ui, sans-serif;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 4px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22), inset 0 2px 0 rgba(255, 255, 255, 0.3);
+}
+
+.pkb-type.sm {
+  font-size: 9.5px;
+  padding: 3px 7px;
+}
+
+/* ================================================================== the League desk */
+
+/*
+   Height comes from being a flex child of the launcher's shell rather than from `100vh` minus a guess
+   at the toolbar. Growing into the shell's free space fills the window exactly whatever the bar's
+   height turns out to be, and falls back to the content height when the window is too short.
+*/
+.pkb-desk {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 620px;
+  padding: 20px 24px 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(1200px 400px at 50% -8%, #ffe9e2 0%, rgba(255, 233, 226, 0) 70%),
+    linear-gradient(#fdf6ee, #eef1f7 62%, #e3e8f1);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* The battle-intro wipe, slowed right down and turned into wallpaper. */
+.pkb-desk-stripes {
+  position: absolute;
+  inset: -40% -20%;
+  background: repeating-linear-gradient(
+    -58deg,
+    rgba(227, 53, 13, 0.07) 0 26px,
+    rgba(227, 53, 13, 0) 26px 62px
+  );
+  animation: pkb-drift 26s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes pkb-drift {
+  to {
+    transform: translateX(88px);
+  }
+}
+
+/* A Poké Ball the size of the room, at seven per cent. */
+/* Ball and button share one centre, at (right 85px, bottom 85px). */
+.pkb-desk::before {
+  content: '';
+  position: absolute;
+  right: -150px;
+  bottom: -150px;
+  width: 470px;
+  height: 470px;
+  border-radius: 50%;
+  background: linear-gradient(#e3350d 0 45%, #20242b 45% 55%, #ffffff 55% 100%);
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.pkb-desk::after {
+  content: '';
+  position: absolute;
+  right: 26px;
+  bottom: 26px;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  border: 17px solid #20242b;
+  background: #fff;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+.pkb-desk-head {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  max-width: 1060px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.pkb-desk-head h1 {
+  font-size: clamp(1.7rem, 3.6vw, 2.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  margin: 0 0 6px;
+  color: var(--navy);
+  text-shadow: 2px 2px 0 rgba(227, 53, 13, 0.18);
+}
+
+.pkb-lede {
+  margin: 0;
+  max-width: 56ch;
+  color: #48526a;
+  font-size: 15.5px;
+  line-height: 1.5;
+}
+
+.pkb-desk-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 22px;
+  align-items: start;
+  max-width: 1060px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.pkb-tray-h {
+  font: 800 12px/1 var(--mono);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #5a6377;
+  margin: 0 0 9px;
+}
+
+.pkb-tray-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* One ball on the tray. The ladder Poké → Great → Ultra → Master is the whole interface. */
+.pkb-divcard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 16px 12px 13px;
+  min-height: 168px;
+  border: 0;
+  border-radius: 18px;
+  background: linear-gradient(#ffffff, #f2f4f9);
+  box-shadow: inset 0 0 0 3px #d3d9e6, 0 4px 0 #c3cadb, 0 10px 20px rgba(20, 28, 46, 0.1);
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.pkb-divcard:hover {
+  transform: translateY(-4px);
+  box-shadow: inset 0 0 0 3px #b9c3d8, 0 8px 0 #c3cadb, 0 16px 26px rgba(20, 28, 46, 0.16);
+}
+
+.pkb-divcard.on {
+  background: linear-gradient(#fff6f2, #ffe6dd);
+  box-shadow: inset 0 0 0 4px var(--red), 0 5px 0 var(--red-dark), 0 16px 26px rgba(163, 33, 11, 0.22);
+  transform: translateY(-3px);
+}
+
+.pkb-divcard.on::after {
+  content: '✓ issued';
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  font: 800 9.5px/1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--red);
+  padding: 4px 7px;
+  border-radius: 4px;
+}
+
+.pkb-divball {
+  display: block;
+  filter: drop-shadow(0 5px 4px rgba(20, 28, 46, 0.28));
+  transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pkb-divcard:hover .pkb-divball {
+  transform: translateY(-4px) rotate(-14deg);
+}
+
+.pkb-divcard.on .pkb-divball {
+  animation: pkb-ballpop 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pkb-ballpop {
+  0% {
+    transform: scale(0.7) rotate(-40deg);
+  }
+  60% {
+    transform: scale(1.14) rotate(12deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+.pkb-divname {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--navy);
+  margin-top: 6px;
+}
+
+.pkb-divgrades {
+  font-size: 12.5px;
+  text-wrap: balance;
+  color: #4b5570;
+  text-align: center;
+}
+
+.pkb-divball-name {
+  margin-top: 5px;
+  font: 700 10px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #7d879c;
+}
+
+/* ---- the trainer card ---- */
+
+.pkb-tcard {
+  border-radius: 16px;
+  padding: 14px;
+  background: linear-gradient(150deg, #4f7ddc, #2f4fa8 55%, #26418c);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.35), 0 6px 0 #1b2f6b,
+    0 14px 24px rgba(20, 28, 46, 0.24);
+  color: #fff;
+  transition: filter 200ms ease;
+}
+
+.pkb-tcard:not(.filled) {
+  filter: saturate(0.28) brightness(0.94);
+}
+
+.pkb-tcard-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.pkb-tcard-title {
+  font: 800 13px/1 system-ui, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.pkb-tcard-id {
+  font: 700 11px/1 var(--mono);
+  opacity: 0.82;
+}
+
+.pkb-tcard-mid {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.pkb-tcard-ball {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.25);
+}
+
+.pkb-tcard-rows {
+  margin: 0;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 3px;
+}
+
+.pkb-tcard-rows div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.28);
+  padding-bottom: 2px;
+}
+
+.pkb-tcard-rows dt {
+  opacity: 0.78;
+}
+
+.pkb-tcard-rows dd {
+  margin: 0;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.pkb-tcard-badges {
+  display: flex;
+  gap: 5px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+/* ---- a look at the route before you commit to it ---- */
+
+.pkb-preview {
+  position: relative;
+  max-width: 1060px;
+  width: 100%;
+  margin: 0 auto;
+  height: 116px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 4px var(--navy), 0 6px 0 rgba(19, 24, 40, 0.28),
+    0 14px 26px rgba(12, 18, 30, 0.18);
+}
+
+.pkb-preview-sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(var(--sky-a), var(--sky-b) 70%, #eafbff);
+}
+
+.pkb-peek {
+  position: absolute;
+  bottom: 14px;
+  transform: translateX(-50%);
+  opacity: 0.72;
+  animation: pkb-peek 4.6s ease-in-out infinite;
+}
+
+.pkb-peek:nth-of-type(2) {
+  animation-delay: 1.4s;
+}
+
+.pkb-peek:nth-of-type(3) {
+  animation-delay: 2.7s;
+}
+
+@keyframes pkb-peek {
+  0%,
+  100% {
+    transform: translate(-50%, 6px);
+  }
+  50% {
+    transform: translate(-50%, -4px);
+  }
+}
+
+.pkb-preview-grass {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 46px;
+}
+
+.pkb-preview-grass span {
+  position: absolute;
+  bottom: -6px;
+  transform: translateX(-50%);
+}
+
+.pkb-preview-tag {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  font: 800 10px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(28, 35, 56, 0.82);
+  padding: 6px 10px;
+  border-radius: 5px;
+}
+
+/* ---- how a route works ---- */
+
+.pkb-how {
+  position: relative;
+  max-width: 1060px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 13px 18px 11px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: inset 0 0 0 3px rgba(227, 53, 13, 0.18);
+}
+
+.pkb-how h2 {
+  font: 800 11px/1 var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin: 0 0 10px;
+}
+
+.pkb-how ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.pkb-how li {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.pkb-how-n {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(#f2593a, var(--red));
+  color: #fff;
+  font: 800 15px/1 var(--mono);
+  box-shadow: 0 3px 0 var(--red-dark);
+}
+
+.pkb-how-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #48526a;
+}
+
+.pkb-how-text strong {
+  color: var(--navy);
+}
+
+.pkb-how-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 11px 0 0;
+  padding-top: 10px;
+  border-top: 2px dashed #e0d9c8;
+  font-size: 13.5px;
+  color: #5a6377;
+}
+
+/*
+   The counter itself. Pushed to the floor of the room and given a surface that bleeds past the page
+   padding, so the bottom of the screen reads as a desk you are standing at rather than as leftover
+   space under the cards.
+*/
+.pkb-desk-foot {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  max-width: 1060px;
+  width: 100%;
+  margin: auto auto 0;
+  padding-top: 15px;
+}
+
+.pkb-desk-foot::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  top: 0;
+  bottom: -22px;
+  background: linear-gradient(#f7e6d2, #ecd3b3 62%, #dcbe97);
+  border-top: 5px solid #c8996b;
+  box-shadow: 0 -6px 18px rgba(120, 80, 40, 0.12);
+}
+
+.pkb-desk-foot > * {
+  position: relative;
+  z-index: 1;
+}
+
+.pkb-desk-go {
+  text-align: right;
+}
+
+.pkb-desk-go .pkb-fine {
+  max-width: 30ch;
+  margin-left: auto;
+}
+
+/* ================================================================ the dialogue box */
+
+.pkb-dialogue {
+  position: relative;
+  border-radius: 12px;
+  background: var(--cream);
+  box-shadow: inset 0 0 0 4px var(--navy-soft), 0 0 0 4px var(--navy), var(--box);
+  padding: 4px;
+}
+
+.pkb-dialogue.tone-good {
+  box-shadow: inset 0 0 0 4px #58a55a, 0 0 0 4px #1d4a24, 0 5px 0 #143318,
+    0 12px 22px rgba(12, 18, 30, 0.28);
+}
+
+.pkb-dialogue.tone-soft {
+  box-shadow: inset 0 0 0 4px #b98b4a, 0 0 0 4px #6b4a1d, 0 5px 0 #4a3213,
+    0 12px 22px rgba(12, 18, 30, 0.28);
+}
+
+.pkb-dialogue.tone-desk {
+  box-shadow: inset 0 0 0 4px #d0574a, 0 0 0 4px var(--red-dark), 0 5px 0 #6e1607,
+    0 12px 22px rgba(12, 18, 30, 0.22);
+}
+
+.pkb-dialogue-inner {
+  position: relative;
+  padding: 14px 34px 14px 16px;
+  min-height: 74px;
+}
+
+.pkb-dtext {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.42;
+  font-weight: 600;
+  color: #2a2f3a;
+  letter-spacing: 0.005em;
+}
+
+.pkb-dline {
+  display: block;
+  min-height: 1.42em;
+}
+
+/* The advance arrow. Decoration only: nothing here waits for it to be clicked. */
+.pkb-arrow {
+  position: absolute;
+  right: 13px;
+  bottom: 12px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 10px solid var(--navy-soft);
+  opacity: 0;
+}
+
+.pkb-arrow.on {
+  animation: pkb-blink 900ms steps(1, end) infinite;
+}
+
+@keyframes pkb-blink {
+  0%,
+  55% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  56%,
+  100% {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
+/* ======================================================================== the route */
+
+/*
+   The scene row is clamped rather than flexible. If it were `1fr` it would grow every time the field
+   note happened to be short, and the whole route would jump between encounters.
+*/
+.pkb {
+  display: grid;
+  grid-template-rows: auto minmax(230px, 36vh) minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-height: 600px;
+  background: #10162a;
+}
+
+/* ---- HUD ---- */
+
+.pkb-hud {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 14px;
+  background: linear-gradient(#2b3450, #1c2338);
+  border-bottom: 3px solid #0d1220;
+  color: #eaf0ff;
+}
+
+.pkb-hud-div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 0 0 auto;
+}
+
+.pkb-hud-div span {
+  display: grid;
+  line-height: 1.15;
+}
+
+.pkb-hud-div strong {
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.pkb-hud-div em {
+  font: 700 9.5px/1.4 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-style: normal;
+  color: #93a2c8;
+}
+
+.pkb-hud-caught {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 0 0 auto;
+  padding: 6px 13px 6px 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+.pkb-hud-caught strong {
+  font: 800 17px/1 var(--mono);
+  color: #ffd76a;
+  font-variant-numeric: tabular-nums;
+}
+
+.pkb-hud-caught em {
+  font: 700 9.5px/1 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-style: normal;
+  color: #93a2c8;
+}
+
+.pkb-hud-walk {
+  flex: 1 1 auto;
+  max-width: 320px;
+  margin: 0 auto;
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+}
+
+.pkb-hud-walk-label {
+  font: 800 10px/1 var(--mono);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: #93a2c8;
+}
+
+.pkb-hud-walk-track {
+  display: block;
+  width: 100%;
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.pkb-hud-walk-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #7ce07c, #37b24d);
+  transition: width 500ms ease;
+}
+
+/* ---- the encounter stage ---- */
+
+.pkb-scene {
+  position: relative;
+  overflow: hidden;
+  min-height: 250px;
+  background: linear-gradient(var(--sky-a) 0%, var(--sky-b) 62%, #eafbff 100%);
+}
+
+.pkb-sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120px 60px at 18% 16%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 70%),
+    radial-gradient(160px 70px at 74% 9%, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 72%),
+    radial-gradient(90px 44px at 46% 24%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 70%);
+  animation: pkb-clouds 60s linear infinite alternate;
+}
+
+@keyframes pkb-clouds {
+  to {
+    transform: translateX(26px);
+  }
+}
+
+.pkb-horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 70%;
+}
+
+/*
+   A spot is a zero-sized anchor in the scene. The platform is centred on it and everything that stands
+   on the platform hangs off the same point, so nothing can drift when the scene changes height.
+*/
+.pkb-spot {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.pkb-spot.far {
+  left: 63%;
+  top: 52%;
+}
+
+.pkb-spot.near {
+  left: 17%;
+  top: 90%;
+}
+
+.pkb-plat {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #b9e88e, #7fc75f 62%, #57a544 100%);
+  box-shadow: 0 7px 0 rgba(38, 82, 33, 0.45), inset 0 -7px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 0 4px rgba(94, 66, 34, 0.28);
+}
+
+.pkb-spot.far .pkb-plat {
+  width: 262px;
+  height: 60px;
+}
+
+.pkb-spot.near .pkb-plat {
+  width: 330px;
+  height: 78px;
+}
+
+.pkb-wild {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translate(-50%, 0);
+  transform-origin: 50% 92%;
+  filter: drop-shadow(0 10px 6px rgba(20, 40, 18, 0.32));
+}
+
+.pkb-wild.in {
+  animation: pkb-appear 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    pkb-bob 2.8s 420ms ease-in-out infinite;
+}
+
+@keyframes pkb-appear {
+  from {
+    transform: translate(-50%, 14px) scale(0.24);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pkb-bob {
+  0%,
+  100% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -7px) scale(1);
+  }
+}
+
+.pkb-wild.suck {
+  animation: pkb-suck 340ms 560ms cubic-bezier(0.55, 0, 1, 0.45) forwards;
+}
+
+@keyframes pkb-suck {
+  0% {
+    transform: translate(-50%, 0) scale(1);
+    filter: none;
+    opacity: 1;
+  }
+  22% {
+    transform: translate(-50%, 0) scale(1.03);
+    filter: brightness(0) invert(1) drop-shadow(0 0 8px #fff);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, 8%) scale(0.06);
+    filter: brightness(0) invert(1);
+    opacity: 0.25;
+  }
+}
+
+.pkb-wild.flee {
+  animation: pkb-flee 1000ms ease-out forwards;
+}
+
+@keyframes pkb-flee {
+  0% {
+    transform: translate(-50%, 8%) scale(0.06);
+    filter: brightness(0) invert(1);
+    opacity: 0.3;
+  }
+  22% {
+    transform: translate(-50%, 0) scale(1);
+    filter: none;
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-34%, -16px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(40%, 22px) scale(0.7);
+    opacity: 0;
+  }
+}
+
+/* The name box. Everything a battle HUD carries except the bar that empties. */
+.pkb-namecard {
+  position: absolute;
+  left: 3.5%;
+  top: 7%;
+  min-width: 214px;
+  display: grid;
+  gap: 6px;
+  padding: 9px 13px;
+  border-radius: 4px 16px 4px 16px;
+  background: var(--cream);
+  box-shadow: inset 0 0 0 3px #8fa0c9, 0 0 0 3px var(--navy), 0 6px 0 rgba(19, 24, 40, 0.55);
+  animation: pkb-slidein 340ms ease-out both;
+}
+
+.pkb-namecard.gone {
+  animation: pkb-slideout 300ms ease-in both;
+}
+
+@keyframes pkb-slidein {
+  from {
+    transform: translateX(-130%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pkb-slideout {
+  to {
+    transform: translateX(-130%);
+    opacity: 0;
+  }
+}
+
+.pkb-namecard-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pkb-namecard-name {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #2a2f3a;
+}
+
+.pkb-namecard-lv {
+  font: 800 13px/1 var(--mono);
+  color: #4b5570;
+}
+
+.pkb-namecard-no {
+  font: 700 10px/1 var(--mono);
+  letter-spacing: 0.08em;
+  color: #7d879c;
+}
+
+.pkb-trainer {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 8px 6px rgba(20, 40, 18, 0.3));
+}
+
+.pkb-trainer.lunge {
+  animation: pkb-lunge 520ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes pkb-lunge {
+  0% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  22% {
+    transform: translateX(-54%) rotate(-7deg);
+  }
+  50% {
+    transform: translateX(-44%) rotate(6deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+}
+
+/* ---- the throw ---- */
+
+.pkb-throw {
+  position: absolute;
+  left: 19%;
+  top: 74%;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.3));
+  animation: pkb-arc 640ms cubic-bezier(0.3, 0, 0.55, 1) forwards;
+}
+
+@keyframes pkb-arc {
+  0% {
+    left: 19%;
+    top: 74%;
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.8);
+  }
+  55% {
+    left: 42%;
+    top: 14%;
+    transform: translate(-50%, -50%) rotate(520deg) scale(1.12);
+  }
+  100% {
+    left: 63%;
+    top: 42%;
+    transform: translate(-50%, -50%) rotate(900deg) scale(0.95);
+    opacity: 0;
+  }
+}
+
+.pkb-rest {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translate(-50%, 0);
+  transform-origin: 50% 96%;
+  filter: drop-shadow(0 5px 4px rgba(0, 0, 0, 0.32));
+}
+
+.pkb-rest.throwing {
+  animation: pkb-drop 220ms 600ms ease-in both, pkb-wobble 1400ms 820ms ease-in-out;
+}
+
+.pkb-rest.caught {
+  animation: pkb-click 420ms ease-out both;
+}
+
+.pkb-rest.fled {
+  animation: pkb-burst 380ms ease-out both;
+}
+
+@keyframes pkb-drop {
+  from {
+    transform: translate(-50%, -34px);
+  }
+  to {
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes pkb-wobble {
+  0%,
+  100% {
+    transform: translate(-50%, 0) rotate(0deg);
+  }
+  12% {
+    transform: translate(-50%, 0) rotate(-24deg);
+  }
+  24% {
+    transform: translate(-50%, 0) rotate(0deg);
+  }
+  36% {
+    transform: translate(-50%, 0) rotate(22deg);
+  }
+  48% {
+    transform: translate(-50%, 0) rotate(0deg);
+  }
+  62% {
+    transform: translate(-50%, 0) rotate(-16deg);
+  }
+  76% {
+    transform: translate(-50%, 0) rotate(0deg);
+  }
+}
+
+@keyframes pkb-click {
+  0% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  40% {
+    transform: translate(-50%, -10px) scale(1.18);
+    filter: drop-shadow(0 0 18px #ffe27a);
+  }
+  100% {
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes pkb-burst {
+  0% {
+    transform: translate(-50%, 0) scale(1);
+  }
+  45% {
+    transform: translate(-50%, -12px) scale(1.2);
+  }
+  100% {
+    transform: translate(-50%, 0) scale(0.9);
+    opacity: 0.85;
+  }
+}
+
+/* The click of a ball that stayed shut, as one expanding ring of light. */
+.pkb-flash {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  width: 24px;
+  height: 24px;
+  margin-left: -12px;
+  border-radius: 50%;
+  border: 5px solid #fff3b0;
+  opacity: 0;
+  pointer-events: none;
+  animation: pkb-flash 620ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+@keyframes pkb-flash {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.95;
+    box-shadow: 0 0 26px 10px rgba(255, 232, 130, 0.85);
+  }
+  100% {
+    transform: scale(5.2);
+    opacity: 0;
+    box-shadow: 0 0 10px 2px rgba(255, 232, 130, 0);
+  }
+}
+
+.pkb-sparks {
+  position: absolute;
+  left: 50%;
+  bottom: 46px;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.pkb-sparks svg {
+  position: absolute;
+  animation: pkb-spark 900ms ease-out forwards;
+}
+
+.pkb-sparks .s1 {
+  left: -62px;
+  top: -44px;
+}
+
+.pkb-sparks .s2 {
+  left: 46px;
+  top: -56px;
+  animation-delay: 90ms;
+}
+
+.pkb-sparks .s3 {
+  left: 54px;
+  top: 26px;
+  animation-delay: 170ms;
+}
+
+.pkb-sparks .s4 {
+  left: -52px;
+  top: 32px;
+  animation-delay: 250ms;
+}
+
+@keyframes pkb-spark {
+  0% {
+    transform: scale(0.2) rotate(0deg);
+    opacity: 0;
+  }
+  35% {
+    transform: scale(1.15) rotate(60deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.5) rotate(150deg);
+    opacity: 0;
+  }
+}
+
+/* ---- the grass band ---- */
+
+.pkb-grassband {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 74px;
+  pointer-events: none;
+}
+
+.pkb-tuft {
+  position: absolute;
+  bottom: -8px;
+  transform-origin: 50% 100%;
+  animation: pkb-sway 3.4s ease-in-out infinite;
+}
+
+@keyframes pkb-sway {
+  0%,
+  100% {
+    transform: skewX(0deg);
+  }
+  50% {
+    transform: skewX(-7deg);
+  }
+}
+
+.pkb-scene.beat-walking .pkb-tuft {
+  animation-duration: 1.1s;
+}
+
+/* ---- the lower half: dialogue and the swappable slot ---- */
+
+.pkb-lower {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(340px, 1.1fr);
+  gap: 12px;
+  align-items: stretch;
+  padding: 12px 14px 16px;
+  background: linear-gradient(#1c2338, #131a2c);
+  min-height: 0;
+}
+
+.pkb-lower-left {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+/* ---- the party panel ---- */
+
+.pkb-party {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border-radius: 12px;
+  background: var(--cream);
+  box-shadow: inset 0 0 0 4px #8fa0c9, 0 0 0 4px var(--navy), var(--box);
+  padding: 10px 12px 12px;
+  min-height: 0;
+}
+
+.pkb-party-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 9px;
+  border-bottom: 2px dashed #d9d2c0;
+}
+
+.pkb-party-title {
+  font: 800 12px/1 var(--mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+
+.pkb-party-count {
+  font: 700 11px/1 var(--mono);
+  color: #7d879c;
+}
+
+.pkb-party-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 0;
+}
+
+.pkb-pslot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 6px 7px;
+  min-height: 62px;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px #e2ddcd;
+}
+
+.pkb-pslot.on {
+  background: linear-gradient(#ffffff, #eef6ff);
+  box-shadow: inset 0 0 0 2px #a9c3e8;
+}
+
+.pkb-pslot.fresh {
+  animation: pkb-partypop 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pkb-partypop {
+  0% {
+    transform: scale(0.82);
+    box-shadow: inset 0 0 0 3px #ffd400;
+  }
+  60% {
+    transform: scale(1.05);
+    box-shadow: inset 0 0 0 3px #ffd400;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pkb-pempty {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  opacity: 0.24;
+  filter: grayscale(1);
+}
+
+.pkb-pname {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--navy);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pkb-pname.dim {
+  font-weight: 500;
+  color: #a8b0c0;
+}
+
+/*
+   THE FRAME AROUND THE SWAP POINT.
+
+   The frame is the app's and it is themed. `.pkb-slot` below is the boundary: it sets a plain white
+   page and nothing else, and this file contains no selector that reaches inside it.
+*/
+.pkb-slotframe {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  background: var(--cream);
+  box-shadow: inset 0 0 0 4px #8fa0c9, 0 0 0 4px var(--navy), var(--box);
+  padding: 20px 8px 8px;
+  min-height: 0;
+}
+
+/* A hint that the page inside carries on past the fold. Painted on the frame, so the slot itself is
+   untouched by it. */
+.pkb-slotframe::after {
+  content: '';
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  bottom: 9px;
+  height: 22px;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(rgba(255, 255, 255, 0), #ffffff 78%);
+  pointer-events: none;
+}
+
+.pkb-slotlabel {
+  position: absolute;
+  top: -11px;
+  left: 14px;
+  font: 800 10px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--navy);
+  padding: 5px 9px;
+  border-radius: 4px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+/*
+   The boundary. Below this line the app owns nothing: no selector in this file reaches inside it.
+
+   The cap matters. The launcher shell has no definite height, so a tall field note would otherwise
+   stretch the whole route down the page and push the party panel off the bottom of the window. Capped,
+   the slot scrolls inside its own frame and the route stays one screen whatever gets rendered in here.
+*/
+.pkb-slot {
+  flex: 1 1 auto;
+  background: #fff;
+  border-radius: 6px;
+  padding: 12px;
+  min-height: 150px;
+  max-height: 40vh;
+  overflow: auto;
+}
+
+.pkb-slot-wait {
+  margin: 0;
+  padding: 34px 0;
+  text-align: center;
+  color: #8a93a6;
+  font-size: 14px;
+}
+
+.pkb-slot-msg {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ===================================================================== the verdict */
+
+.pkb-verdict {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 600px;
+  padding: 28px 20px 44px;
+  overflow: hidden;
+  background: radial-gradient(1000px 500px at 50% 0%, #fff2d6, #ffe3c9 40%, #f4e7f7 100%);
+}
+
+.pkb-verdict-rays {
+  position: absolute;
+  inset: -60% -20% auto -20%;
+  height: 180%;
+  background: repeating-conic-gradient(
+    from 0deg at 50% 30%,
+    rgba(255, 210, 120, 0.34) 0deg 8deg,
+    rgba(255, 210, 120, 0) 8deg 20deg
+  );
+  animation: pkb-spin 70s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes pkb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pkb-cert {
+  position: relative;
+  max-width: 760px;
+  margin: 0 auto;
+  border-radius: 20px;
+  background: var(--cream);
+  box-shadow: inset 0 0 0 5px var(--ribbon, var(--gold)), 0 0 0 4px var(--navy), 0 10px 0 #131828,
+    0 24px 44px rgba(12, 18, 30, 0.3);
+  padding: 22px 24px 26px;
+}
+
+.pkb-cert-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 3px dashed #d9d2c0;
+}
+
+.pkb-cert-head h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+}
+
+.pkb-cert-stamp {
+  margin-left: auto;
+  transform: rotate(-14deg);
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.22));
+}
+
+.pkb-tally {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 0 12px;
+}
+
+.pkb-tally-n {
+  font: 900 clamp(3.2rem, 11vw, 5.2rem) / 0.86 var(--mono);
+  color: var(--red);
+  text-shadow: 4px 4px 0 rgba(227, 53, 13, 0.18);
+  font-variant-numeric: tabular-nums;
+}
+
+.pkb-tally-cap {
+  display: grid;
+  gap: 3px;
+  font-size: 1.28rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.pkb-tally-cap em {
+  font: 500 14px/1.3 system-ui, sans-serif;
+  font-style: normal;
+  color: #5a6377;
+}
+
+.pkb-tally-sparks {
+  position: absolute;
+  left: -6px;
+  top: 8px;
+  animation: pkb-spark 1.6s ease-out infinite;
+}
+
+.pkb-rank {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px #e6e0cf;
+}
+
+.pkb-rank-ribbon {
+  font: 800 14px/1 system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--ribbon, var(--gold));
+  padding: 10px 16px;
+  border-radius: 999px;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.24);
+}
+
+.pkb-rank p {
+  margin: 0;
+  font-size: 15px;
+  color: #3d4557;
+}
+
+.pkb-dexrow h3 {
+  font: 800 11px/1 var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7d879c;
+  margin: 20px 0 10px;
+}
+
+.pkb-dexrow ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(224px, 1fr));
+  gap: 10px;
+}
+
+.pkb-dexrow li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px #e6e0cf, 0 3px 0 #e6e0cf;
+}
+
+.pkb-dexart {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  background: linear-gradient(#eef6ff, #dbe9f7);
+}
+
+.pkb-dexmeta {
+  display: grid;
+  gap: 3px;
+  justify-items: start;
+  min-width: 0;
+}
+
+.pkb-dexmeta strong {
+  font-size: 14.5px;
+  color: var(--navy);
+}
+
+.pkb-dexmeta em {
+  font: 400 11.5px/1.35 system-ui, sans-serif;
+  font-style: normal;
+  color: #6b7488;
+}
+
+.pkb-empty,
+.pkb-away {
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px #e6e0cf;
+  font-size: 14.5px;
+  color: #4b5570;
+}
+
+.pkb-earn {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  align-items: center;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 3px dashed #d9d2c0;
+  font: 700 12.5px/1.4 var(--mono);
+  color: #5a6377;
+}
+
+.pkb-earn span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pkb-verdict-go {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+/* ================================================================== smaller screens */
+
+@media (max-width: 900px) {
+  .pkb-desk-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pkb-desk-foot {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pkb-desk-go {
+    text-align: left;
+  }
+
+  .pkb-desk-go .pkb-fine {
+    margin-left: 0;
+  }
+
+  .pkb-tray-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pkb {
+    grid-template-rows: auto minmax(230px, 34vh) auto;
+  }
+
+  .pkb-lower {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* One row of six, so the party costs a strip rather than a screenful when stacked. */
+  .pkb-party-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .pkb-pslot {
+    min-height: 54px;
+  }
+
+  .pkb-pname {
+    font-size: 10px;
+  }
+
+  .pkb-spot.far .pkb-plat {
+    width: 196px;
+  }
+
+  .pkb-spot.near .pkb-plat {
+    width: 230px;
+  }
+
+  .pkb-spot.near {
+    left: 15%;
+  }
+}
+
+/* ============================================================ larger taps for the young */
+
+@media (pointer: coarse) {
+  .pkb-divcard {
+    min-height: 200px;
+  }
+
+  .pkb-primary,
+  .pkb-ghost {
+    min-height: 60px;
+    font-size: 17px;
+  }
+}
+
+/* ==================================================================== reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .pkb-desk-stripes,
+  .pkb-sky,
+  .pkb-tuft,
+  .pkb-verdict-rays,
+  .pkb-tally-sparks,
+  .pkb-arrow.on,
+  .pkb-divcard.on .pkb-divball,
+  .pkb-trainer.lunge,
+  .pkb-peek,
+  .pkb-pslot.fresh {
+    animation: none !important;
+  }
+
+  .pkb-wild.in {
+    animation: pkb-appear 1ms linear both;
+  }
+
+  .pkb-wild.suck {
+    animation: pkb-suck 120ms 60ms linear forwards;
+  }
+
+  .pkb-wild.flee {
+    animation: pkb-flee 260ms linear forwards;
+  }
+
+  .pkb-throw {
+    animation: pkb-arc 140ms linear forwards;
+  }
+
+  .pkb-rest.throwing {
+    animation: pkb-drop 1ms linear both;
+  }
+
+  .pkb-rest.caught,
+  .pkb-rest.fled {
+    animation: none;
+    transform: translate(-50%, 0);
+  }
+
+  .pkb-sparks svg {
+    animation: none;
+    opacity: 1;
+  }
+
+  .pkb-flash {
+    animation: none;
+    opacity: 0;
+  }
+
+  .pkb-namecard,
+  .pkb-namecard.gone {
+    animation: none;
+  }
+
+  .pkb-namecard.gone {
+    opacity: 0;
+  }
+
+  .pkb-primary:hover:not(:disabled),
+  .pkb-ghost:hover,
+  .pkb-divcard:hover {
+    transform: none;
+  }
+
+  .pkb-divcard:hover .pkb-divball {
+    transform: none;
+  }
+}

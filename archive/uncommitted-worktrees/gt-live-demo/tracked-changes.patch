@@ -1,0 +1,553 @@
+diff --git a/apps/web/src/components/exam/exam-runner.tsx b/apps/web/src/components/exam/exam-runner.tsx
+index d46e0aa..8b27670 100644
+--- a/apps/web/src/components/exam/exam-runner.tsx
++++ b/apps/web/src/components/exam/exam-runner.tsx
+@@ -6,11 +6,12 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
+ import {
+   isDone,
+   nextItem,
+-  nextType,
++  planNextSelection,
+   startState,
+   update,
+   type Area,
+   type Banks,
++  type BurstPlan,
+   type ScoredItem as EngineScoredItem,
+   type ServedItem,
+   type SessionState,
+@@ -41,6 +42,7 @@ import {
+   subscribeToDebugMode,
+ } from '@/lib/exam/adaptive';
+ import { GRADE_BANDS, GRADE_BAND_LABEL, syntheticId, type GradeBand } from '@/lib/exam/contract';
++import { buildDebugView, type DebugTraceItem } from '@/lib/exam/debug-view';
+ import { ExamHost, type InboundResult } from '@/lib/exam/messaging';
+ import {
+   LEARNING_BLOCK_AREA,
+@@ -60,6 +62,7 @@ import {
+   type LearningBlockReadout,
+ } from '@/lib/exam/phase2';
+ 
++import { ExamDebugPanel } from './exam-debug-panel';
+ import styles from './exam-runner.module.css';
+ 
+ /**
+@@ -161,8 +164,21 @@ export function ExamRunner({
+ 
+   /** Ability estimate for the item on screen, mirrored into state so render never reads a ref. */
+   const [debugAbility, setDebugAbility] = useState<number | null>(null);
+-
+-  /** `?telemetry=1` on the exam URL: shows each demo's researcher panel and the emulate control. */
++  /**
++   * Answered items, in state rather than a ref, because the debug dock renders from them: appending
++   * one is what re-renders the panel and advances the convergence on screen. Kept separate from
++   * `scoredRef` (which is the POSTed trace) so the panel can carry the burst position without
++   * changing the results payload.
++   */
++  const [debugTrace, setDebugTrace] = useState<DebugTraceItem[]>([]);
++
++  /**
++   * The burst the on-screen item belongs to. One item is on screen at a time, so this is always the
++   * plan for `current`; `planNextSelection` reads it back to decide whether to stay on the type.
++   */
++  const burstRef = useRef<BurstPlan | null>(null);
++
++  /** `?debug=1` on the exam URL: shows the convergence dock, the demo's researcher panel, Emulate. */
+   const debugMode = useSyncExternalStore(
+     subscribeToDebugMode,
+     debugModeSnapshot,
+@@ -271,12 +287,16 @@ export function ExamRunner({
+       }
+       let selected: ServedItem;
+       try {
+-        const typeCode = nextType(state, banks);
+-        if (!typeCode) {
++        // Either the next item of the burst already running, or a fresh type. Staying on the type is
++        // all a burst is: `update` has already moved this area's estimate, so `nextItem` re-targets
++        // at the new one and the burst adapts to how the previous items went.
++        const plan = planNextSelection(state, banks, burstRef.current);
++        if (!plan) {
+           void finalize();
+           return;
+         }
+-        selected = nextItem(state, typeCode, banks);
++        burstRef.current = plan;
++        selected = nextItem(state, plan.typeCode, banks);
+       } catch {
+         // Pool exhausted for the selected type — conclude with what we have.
+         void finalize();
+@@ -460,6 +480,17 @@ export function ExamRunner({
+       scoredRef.current = [...scoredRef.current, scored];
+       setScoredCount(scoredRef.current.length);
+ 
++      // Same row plus the burst position, for the debug dock. Appending re-renders the panel, which
++      // is what makes the estimate and its range visibly move as each question is answered.
++      const plan = burstRef.current;
++      setDebugTrace((rows) => [
++        ...rows,
++        {
++          ...scored,
++          ...(plan ? { burstIndex: plan.index, burstLength: plan.length } : {}),
++        },
++      ]);
++
+       const nextState = update(state, scored as unknown as EngineScoredItem);
+       stateRef.current = nextState;
+ 
+@@ -551,8 +582,10 @@ export function ExamRunner({
+     scoredRef.current = [];
+     telemetryRef.current = [];
+     processedRef.current = new Set();
++    burstRef.current = null;
+     setServed([]);
+     setScoredCount(0);
++    setDebugTrace([]);
+     setPhase('running');
+     try {
+       const pool = await fetchServedPool();
+@@ -975,6 +1008,21 @@ export function ExamRunner({
+           : ''}
+         Synthetic screening activity; results are not shown between questions.
+       </p>
++
++      {/*
++        The convergence dock. Rendered from the answered-item trace alone, so it is a view of the
++        session rather than a second copy of it, and every number in it comes from the engine's own
++        update or the scorer's own ability fit.
++      */}
++      {debugMode ? (
++        <ExamDebugPanel
++          view={buildDebugView({
++            trace: debugTrace,
++            gradeBand,
++            config: stateRef.current?.config ?? startState(gradeBand, EXAM_ENGINE_OVERRIDES).config,
++          })}
++        />
++      ) : null}
+     </div>
+   );
+ }
+diff --git a/apps/web/src/lib/csp.ts b/apps/web/src/lib/csp.ts
+index 53a0654..e249b4b 100644
+--- a/apps/web/src/lib/csp.ts
++++ b/apps/web/src/lib/csp.ts
+@@ -17,14 +17,19 @@ export function buildContentSecurityPolicy(
+   const isDev = env.NODE_ENV !== 'production';
+   const scriptSrc = isDev ? "'self' 'unsafe-inline' 'unsafe-eval'" : "'self' 'unsafe-inline'";
+ 
+-  // hosted mode: let the browser reach the cloud Supabase origin (auth + RPC +
+-  // realtime websocket). Local mode stays 'self' only.
++  // Let the browser reach the Supabase origin (auth + RPC + realtime websocket).
++  // Needed in hosted mode for the cloud origin, and in local dev too: local
++  // Supabase listens on its own port (:65421), which is a DIFFERENT origin from
++  // the app, so 'self' alone blocks every browser-side sign-in.
+   let connectExtra = '';
+-  if (env.GT_DEPLOY_MODE === 'hosted' && env.NEXT_PUBLIC_SUPABASE_URL) {
++  if (env.NEXT_PUBLIC_SUPABASE_URL) {
+     try {
+       const u = new URL(env.NEXT_PUBLIC_SUPABASE_URL);
+-      const wss = `${u.protocol === 'https:' ? 'wss' : 'ws'}://${u.host}`;
+-      connectExtra = ` ${u.origin} ${wss}`;
++      const isLoopback = ['127.0.0.1', 'localhost', '::1'].includes(u.hostname);
++      if (env.GT_DEPLOY_MODE === 'hosted' || isLoopback) {
++        const wss = `${u.protocol === 'https:' ? 'wss' : 'ws'}://${u.host}`;
++        connectExtra = ` ${u.origin} ${wss}`;
++      }
+     } catch {
+       connectExtra = '';
+     }
+diff --git a/apps/web/src/lib/exam/adaptive.ts b/apps/web/src/lib/exam/adaptive.ts
+index 6741980..d4d683f 100644
+--- a/apps/web/src/lib/exam/adaptive.ts
++++ b/apps/web/src/lib/exam/adaptive.ts
+@@ -122,6 +122,13 @@ export const EXAM_ENGINE_OVERRIDES: Partial<EngineConfig> = {
+   accWindowSize: 8,
+   estWindowSize: 8,
+   hardItemCap: 40,
++  /*
++   * Back-to-back items within one type, so a child reads an instruction once and then answers
++   * several questions off it. Six is the ceiling, stepped down one item per option above four by
++   * `burstLengthFor`, and floored at two — so the wired banks run 6 (four-option), 5 (five-option)
++   * and 4 (six-option). Only types the engine classifies as a single unpaced choice burst at all.
++   */
++  burst: { maxLength: 6, minLength: 2, maxOptions: 6 },
+ };
+ 
+ /** Derive the demo URL for a served item (renderers live under public/exam-demos). */
+@@ -132,7 +139,19 @@ export function demoPathFor(typeCode: string, telemetry = false): string {
+ }
+ 
+ /**
+- * Debug mode: the exam URL carries `?telemetry=1`.
++ * Debug mode: the exam URL carries `?debug=1`.
++ *
++ * `?telemetry=1` is kept as an alias because it costs one alternation in this regex and because it
++ * is the spelling in the existing runbooks and screenshots. Note that the two names mean different
++ * things and only one of them moved: this flag gates the RUNNER's debug dock, while the
++ * `?telemetry=1` that {@link demoPathFor} puts on the demo iframe's own URL is D-028's ratified
++ * contract for un-hiding a renderer's researcher sidebar, is asserted over every published demo by
++ * `telemetry-panel-gate.test.ts`, and is unchanged.
++ *
++ * Gating is by URL only, exactly as before — there is no environment check here, and none was
++ * removed. The environment gates in this area are elsewhere and also unchanged: the `/dev/*` preview
++ * routes `notFound()` in production, and `/api/exam-emulate` (what the Emulate button calls) needs
++ * both a non-production build and `GT_EXAM_EMULATE_ENABLED=true`.
+  *
+  * Exposed as a store so a component can read it with `useSyncExternalStore` — the server render and
+  * the first client render then agree, and nothing sets state from an effect.
+@@ -143,7 +162,7 @@ export function subscribeToDebugMode(): () => void {
+ 
+ export function debugModeSnapshot(): boolean {
+   if (typeof window === 'undefined') return false;
+-  return /(^|[?&])telemetry=1(&|$)/.test(window.location.search);
++  return /(^|[?&])(debug|telemetry)=1(&|$)/.test(window.location.search);
+ }
+ 
+ export function debugModeServerSnapshot(): boolean {
+diff --git a/apps/web/src/lib/exam/bank-loader.ts b/apps/web/src/lib/exam/bank-loader.ts
+index ed6af96..afec4cb 100644
+--- a/apps/web/src/lib/exam/bank-loader.ts
++++ b/apps/web/src/lib/exam/bank-loader.ts
+@@ -206,16 +206,33 @@ export function toServedItem(item: RawBankItem): ServedItem {
+  * an empty object so an index entry is structurally a `ServedItem` for the
+  * engine's selection code.
+  */
+-export type ServedItemIndex = Omit<ServedItem, 'content'> & { content: Record<string, never> };
++export type ServedItemIndex = Omit<ServedItem, 'content'> & {
++  content: { optionCount?: number };
++};
++
++/**
++ * How many options an item offers, when it offers a bounded choice at all.
++ *
++ * This is the ONE piece of stimulus shape the index carries, because the engine's burst policy has
++ * to know whether a type is a single-tap choice BEFORE it selects an item, and by then the item's
++ * content has not been fetched. A count is not an answer key and does not say which option is
++ * correct, so it leaks nothing: the browser already receives the full option list for the one item
++ * it is rendering.
++ */
++function indexOptionCount(item: RawBankItem): number | undefined {
++  const options = (item.content as { options?: unknown } | undefined)?.options;
++  return Array.isArray(options) && options.length > 0 ? options.length : undefined;
++}
+ 
+ export function toIndexEntry(item: RawBankItem): ServedItemIndex {
++  const optionCount = indexOptionCount(item);
+   return {
+     itemId: item.itemId,
+     typeCode: item.typeCode,
+     domain: item.domain,
+     difficulty: item.difficulty,
+     ageBands: item.ageBands,
+-    content: {},
++    content: optionCount === undefined ? {} : { optionCount },
+     syntheticOnly: true,
+     validated: false,
+   };
+diff --git a/packages/exam-engine/src/config.ts b/packages/exam-engine/src/config.ts
+index d12ae8a..0849aee 100644
+--- a/packages/exam-engine/src/config.ts
++++ b/packages/exam-engine/src/config.ts
+@@ -1,4 +1,4 @@
+-import type { AgeBand, CoreMetricSpec, EngineConfig } from './types';
++import type { AgeBand, BurstPolicy, CoreMetricSpec, EngineConfig } from './types';
+ 
+ /**
+  * Start difficulty seeded from the requested grade band (BUILD_PLAN §0). Midpoints of the
+@@ -162,6 +162,21 @@ export const CORE_METRICS: CoreMetricSpec[] = [
+   { id: 'M-IDEAFLU', scope: 'open_ended', minSamples: 3, enforced: false, kind: 'observed' },
+ ];
+ 
++/**
++ * Default burst policy: OFF.
++ *
++ * Bursting changes how many instruction-readings a battery costs, which is a session-design
++ * decision rather than an engine default, so the engine ships with it disabled and a caller opts in.
++ * `maxOptions: 6` is the widest choice any wired bank offers (`FLU-MATRIX-01` runs 4, 5 and 6), so
++ * at this setting the option count never by itself disqualifies a wired type — the bound exists so
++ * that a future type offering a long candidate list is excluded without anyone editing a list.
++ */
++export const DEFAULT_BURST_POLICY: BurstPolicy = {
++  maxLength: 1,
++  minLength: 2,
++  maxOptions: 6,
++};
++
+ /**
+  * Default, tunable engine configuration.
+  *
+@@ -197,6 +212,7 @@ export const DEFAULT_CONFIG: EngineConfig = {
+   stabilitySd: 1.2,
+   stabilityDrift: 0.8,
+   hardItemCap: 60,
++  burst: DEFAULT_BURST_POLICY,
+   consistencyPairTolerance: 1.0,
+   rotationMinDistinctDisparities: 3,
+   coreMetrics: CORE_METRICS,
+diff --git a/packages/exam-engine/src/index.ts b/packages/exam-engine/src/index.ts
+index 51328fe..64470d8 100644
+--- a/packages/exam-engine/src/index.ts
++++ b/packages/exam-engine/src/index.ts
+@@ -12,6 +12,17 @@ export { update, difficultyDelta, directionReversals, stepSize, toObservation }
+ export { isDone, areaMetricsCovered, areaEstimateStable, coverageIsEven } from './done';
+ export { replaySession } from './replay';
+ 
++// Back-to-back same-type serving. `planNextSelection` is the loop-level contract every caller
++// advances through, so a burst behaves identically in a browser and in the simulation harness.
++export {
++  burstLengthFor,
++  classifyBankSpeed,
++  classifyTypeSpeed,
++  fastTypeCodes,
++  planNextSelection,
++} from './burst';
++export type { BurstPlan, TypeSpeedVerdict } from './burst';
++
+ // Novel-block administration (the learning-rate regime). Administration only: the projection that
+ // picks the target difficulty, the fit and the readout all live in `@gt-selection/exam-scoring`.
+ export {
+@@ -27,6 +38,7 @@ export type { BlockReadiness, BlockUnavailableReason } from './learning-block';
+ // Configuration and registries
+ export {
+   DEFAULT_CONFIG,
++  DEFAULT_BURST_POLICY,
+   CORE_METRICS,
+   GRADE_BAND_SEED,
+   AGE_BAND_BONUS,
+@@ -115,6 +127,7 @@ export type {
+   MetricScope,
+   MetricKind,
+   MetricAdequacyScope,
++  BurstPolicy,
+   CoreMetricSpec,
+   EngineConfig,
+   AreaState,
+diff --git a/packages/exam-engine/src/testing/real-bank.ts b/packages/exam-engine/src/testing/real-bank.ts
+index b4636c8..46d5cb6 100644
+--- a/packages/exam-engine/src/testing/real-bank.ts
++++ b/packages/exam-engine/src/testing/real-bank.ts
+@@ -14,9 +14,10 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
+ import { dirname, join } from 'node:path';
+ import { fileURLToPath } from 'node:url';
+ 
++import { planNextSelection, type BurstPlan } from '../burst';
+ import { isDone } from '../done';
+ import { hashUnit } from '../rng';
+-import { nextItem, nextType } from '../selection';
++import { nextItem } from '../selection';
+ import { startState } from '../state';
+ import { clamp } from '../stats';
+ import { update } from '../update';
+@@ -243,9 +244,22 @@ export function respondFromRealBank(
+   served: ServedItem,
+   real: RealBanks,
+   trueTheta: TrueTheta,
++): ScoredItem {
++  return scoredFrom(served, real, trueTheta, served.difficulty <= trueTheta[served.domain]);
++}
++
++/**
++ * Build the `ScoredItem` for an item whose correctness has already been decided, so the threshold
++ * and probabilistic responders differ ONLY in how they draw correctness and share every metric,
++ * response-time and stimulus detail.
++ */
++function scoredFrom(
++  served: ServedItem,
++  real: RealBanks,
++  trueTheta: TrueTheta,
++  correct: boolean,
+ ): ScoredItem {
+   const theta = trueTheta[served.domain];
+-  const correct = served.difficulty <= theta;
+   const score = correct ? 1 : 0;
+   const errType = correct ? 1 : clamp(1 - (served.difficulty - theta) / 5, 0, 1);
+ 
+@@ -283,6 +297,81 @@ export function respondFromRealBank(
+   };
+ }
+ 
++/**
++ * Chance-success floor for one item, read off how many options it offers: a five-option item floors
++ * at 0.2. Returns `null` when the item declares no option list, so a caller can decide what an
++ * unbounded response is worth rather than have a floor invented for it.
++ */
++export function itemGuessingFloor(item: ServedItem): number | null {
++  const options = (item.content as { options?: unknown }).options;
++  if (!Array.isArray(options) || options.length === 0) return null;
++  return 1 / options.length;
++}
++
++/** Knobs for the probabilistic responder. */
++export interface ProbabilisticResponderOptions {
++  /** Logistic discrimination per scale point. 1.0 matches the engine and scorer defaults. */
++  readonly slope: number;
++  /**
++   * Chance-success floor the SIMULATED CHILD actually has.
++   *
++   * `'per-item'` derives it from each item's own option count ({@link itemGuessingFloor}), which is
++   * the faithful choice for a bank of mixed option counts. A number pins one floor for every item;
++   * `0` is a constructed-response child who never guesses right, which no wired bank contains.
++   */
++  readonly guessing: number | 'per-item';
++  /** Floor used when an item declares no options and `guessing` is `'per-item'`. */
++  readonly fallbackGuessing: number;
++  /** Per-child draw seed, so one cohort member's luck is reproducible and independent of another's. */
++  readonly seed: number;
++}
++
++export const DEFAULT_PROBABILISTIC_RESPONDER: ProbabilisticResponderOptions = {
++  slope: 1.0,
++  guessing: 'per-item',
++  fallbackGuessing: 0,
++  seed: 0x5eed,
++};
++
++/**
++ * Simulated child who answers PROBABILISTICALLY, with a chance-success floor.
++ *
++ * `respondFromRealBank` is a threshold responder: correct on everything at or below their ability,
++ * wrong on everything above, never lucky. That is a noise-free Guttman pattern, and a staircase
++ * converges on it far faster and far more tidily than on a child. It is the right responder for
++ * asserting routing SHAPE (does the estimate bracket from both sides at all) and the wrong one for
++ * measuring how many items convergence costs.
++ *
++ * This responder draws from
++ *
++ *     P(correct | b) = c + (1 - c) * logistic(slope * (theta - b))
++ *
++ * with `c` the item's own chance floor. Every wired bank is multiple choice, so `c > 0` always: a
++ * child well below an item still passes it sometimes, and the estimate is pushed up by luck as well
++ * as by ability. That is the single most consequential difference from the threshold responder, and
++ * it is why every length figure measured with it is larger.
++ *
++ * Born-synthetic and deterministic given `seed`; `validated=false`. Nothing here is a calibrated
++ * response model, and no bank item has a calibrated difficulty for it to be calibrated against.
++ */
++export function respondProbabilistically(
++  served: ServedItem,
++  real: RealBanks,
++  trueTheta: TrueTheta,
++  options: ProbabilisticResponderOptions = DEFAULT_PROBABILISTIC_RESPONDER,
++): ScoredItem {
++  const theta = trueTheta[served.domain];
++  const floor =
++    options.guessing === 'per-item'
++      ? (itemGuessingFloor(served) ?? options.fallbackGuessing)
++      : options.guessing;
++  const skill = 1 / (1 + Math.exp(-options.slope * (theta - served.difficulty)));
++  const pCorrect = clamp(floor + (1 - floor) * skill, 0, 1);
++  const correct = hashUnit(options.seed, `resp:${served.itemId}`) < pCorrect;
++
++  return scoredFrom(served, real, trueTheta, correct);
++}
++
+ export interface RealSessionResult {
+   state: SessionState;
+   real: RealBanks;
+@@ -290,30 +379,54 @@ export interface RealSessionResult {
+   done: boolean;
+   /** True when the session ended because it ran out of servable items rather than by rule/cap. */
+   exhausted: boolean;
++  /**
++   * The burst each item belonged to, index-aligned with `trace`. With bursting disabled every entry
++   * is a length-1 burst, which is the same thing as no burst.
++   */
++  bursts: BurstPlan[];
+ }
+ 
+-/** Run a full adaptive session against the real registry and banks. */
++/** How a simulated child answers one item. */
++export type Responder = (
++  served: ServedItem,
++  real: RealBanks,
++  trueTheta: TrueTheta,
++) => ScoredItem;
++
++/**
++ * Run a full adaptive session against the real registry and banks.
++ *
++ * The loop advances through `planNextSelection`, which is the same contract a browser runner uses,
++ * so a burst here behaves exactly as it does in a live session. `responder` defaults to the
++ * threshold child for backwards compatibility; pass {@link respondProbabilistically} to measure
++ * anything about length or precision.
++ */
+ export function runRealBankSession(
+   gradeBand: AgeBand,
+   trueTheta: TrueTheta,
+   overrides?: Partial<EngineConfig>,
+   real: RealBanks = loadRealBanks(),
++  responder: Responder = respondFromRealBank,
+ ): RealSessionResult {
+   let state = startState(gradeBand, overrides);
+   const trace: ScoredItem[] = [];
++  const bursts: BurstPlan[] = [];
+   let exhausted = false;
++  let active: BurstPlan | null = null;
+ 
+   while (!isDone(state)) {
+-    const typeCode = nextType(state, real.banks);
+-    if (typeCode === null) {
++    const plan = planNextSelection(state, real.banks, active);
++    if (plan === null) {
+       exhausted = true;
+       break;
+     }
+-    const served = nextItem(state, typeCode, real.banks);
+-    const scored = respondFromRealBank(served, real, trueTheta);
++    active = plan;
++    const served = nextItem(state, plan.typeCode, real.banks);
++    const scored = responder(served, real, trueTheta);
+     state = update(state, scored);
+     trace.push(scored);
++    bursts.push(plan);
+   }
+ 
+-  return { state, real, trace, done: isDone(state), exhausted };
++  return { state, real, trace, done: isDone(state), exhausted, bursts };
+ }
+diff --git a/packages/exam-engine/src/types.ts b/packages/exam-engine/src/types.ts
+index e9aa326..b1052eb 100644
+--- a/packages/exam-engine/src/types.ts
++++ b/packages/exam-engine/src/types.ts
+@@ -162,6 +162,32 @@ export type MetricKind = 'observed' | 'derived';
+  */
+ export type MetricAdequacyScope = 'per_area' | 'session';
+ 
++/**
++ * Policy for serving several items of one type back-to-back (`burst.ts`).
++ *
++ * Every value here is a knob rather than a constant: how long a burst may run, and how wide a
++ * choice still counts as answerable in one tap. `maxLength: 1` disables bursting entirely and
++ * restores exactly the one-item-then-rotate behaviour.
++ */
++export interface BurstPolicy {
++  /**
++   * Longest run of consecutive items from a single type. `1` disables bursting. The effective
++   * length is also bounded by the type's unseen items and by the room left before `hardItemCap`.
++   */
++  readonly maxLength: number;
++  /**
++   * Shortest burst a qualifying type may be given, once the per-type step-down for a wider option
++   * list has been applied. Also the floor that keeps bursting worthwhile at all: a "burst" of one is
++   * just the ordinary rotation.
++   */
++  readonly minLength: number;
++  /**
++   * Most options an item may offer and still count as a one-tap choice. A wider choice is a search
++   * through candidates, which is work in its own right rather than instruction-reading overhead.
++   */
++  readonly maxOptions: number;
++}
++
+ /** A core-metric registry entry (§4). */
+ export interface CoreMetricSpec {
+   id: MetricId;
+@@ -270,6 +296,8 @@ export interface EngineConfig {
+   stabilityDrift: number;
+   /** Hard safety cap on total items served. */
+   hardItemCap: number;
++  /** Back-to-back same-type serving policy (see {@link BurstPolicy}). */
++  burst: BurstPolicy;
+   /**
+    * Max difficulty gap (in scale points) for two items in an area to count as a matched parallel
+    * pair for `M-CONSIST`. Bank difficulty is the design-estimated b, so "same b" is approximated

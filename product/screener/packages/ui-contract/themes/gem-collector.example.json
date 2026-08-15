@@ -1,0 +1,61 @@
+{
+  "theme": "gem-collector",
+  "describes": "A creature-and-gem collecting world. Copy this file, change the words, run `npm run ui -- --theme <your file>`. You do not need to touch any code.",
+
+  "legend": {
+    "x": {
+      "label": "how many gems the chest holds",
+      "order": "ordered",
+      "values": ["1 gem", "2 gems", "3 gems", "4 gems", "5 gems"]
+    },
+    "y": {
+      "label": "which faction owns it",
+      "order": "nominal",
+      "values": ["Fire", "Water", "Leaf", "Storm", "Stone", "Shade", "Frost", "Sun", "Moon"]
+    },
+    "z": {
+      "label": "which way the crest points",
+      "order": "cyclic",
+      "values": ["up", "right", "down", "left"]
+    }
+  },
+
+  "voice": {
+    "FLU-MATRIX-01": { "prompt": "Which chest finishes the row?" },
+    "FLU-CONCEPT-01": { "prompt": "Build a chest the gate will let through." },
+    "FLU-DEDUCE-01": { "prompt": "Use the scout reports to find the right chest." },
+    "FLU-LADDER-01": { "prompt": "Put the collectors in order of who has the most." },
+    "QUANT-MIX-01": { "prompt": "Change two amounts so the potion still tastes the same." },
+    "QUANT-GRAPH-01": { "prompt": "Pick the chart that matches the hoard growing." },
+    "SPA-MAZE-01": { "prompt": "Find the way through the cavern." },
+    "SPA-PIPES-01": { "prompt": "Turn the channels so the water reaches the garden." },
+    "SPA-SCENE-01": { "prompt": "Put them in the order the dragon sees them." },
+    "SPA-VIEW-01": { "prompt": "What does the scout on the ridge see?" },
+    "GB-EXPLORE-01": { "prompt": "Explore the fog and mark the hidden caches." },
+    "GB-ROBOPATH-01": { "prompt": "Program the golem to reach the door." },
+    "GB-TRACK-01": { "prompt": "Keep your eye on the jars with sparks in them." },
+    "VER-MORPHO-01": { "prompt": "Work out what the old runes mean." }
+  },
+
+  "material": {
+    "VER-CLOZE-01": [
+      {
+        "sentence": "The dragon guards its hoard because it is very ___.",
+        "correct": "greedy",
+        "distractors": ["sleepy", "gentle", "small"]
+      },
+      {
+        "sentence": "A gem that has never been cut is called ___.",
+        "correct": "rough",
+        "distractors": ["loud", "early", "kind"]
+      }
+    ],
+    "VER-SORTBOT-01": [
+      {
+        "rule": "gems that grow inside caves",
+        "members": ["crystal", "geode", "quartz"],
+        "nonMembers": ["pearl", "amber", "coral"]
+      }
+    ]
+  }
+}

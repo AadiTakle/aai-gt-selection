@@ -1,0 +1,55 @@
+{
+  "name": "gt-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Serverless question registry, ability scoring and question serving for the GT screener library.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:unit": "vitest run packages/domain packages/scoring packages/selection packages/catalog",
+    "test:integration": "vitest run packages/store functions",
+    "typecheck": "tsc --noEmit",
+    "ddb:start": "bash scripts/dynamodb-local.sh start",
+    "ddb:stop": "bash scripts/dynamodb-local.sh stop",
+    "synth": "cdk synth --app \"tsx infra/bin/platform.ts\"",
+    "simulate": "tsx scripts/simulate-variety.ts",
+    "reset:keeper": "tsx scripts/reset-keeper.ts",
+    "what-if": "tsx scripts/what-would-it-take.ts",
+    "audit:marking": "tsx scripts/audit-marking.ts",
+    "replay:session": "tsx scripts/replay-session.ts",
+    "show:sheet": "tsx scripts/show-sheet.ts",
+    "show:sessions": "tsx scripts/show-sessions.ts",
+    "verify:cloud": "tsx scripts/verify-cloud-path.ts",
+    "measure:live": "tsx scripts/measure-live-path.ts",
+    "measure:live": "tsx scripts/measure-live-path.ts",
+    "measure:live": "tsx scripts/measure-live-path.ts",
+    "measure:bramblebrook": "tsx scripts/measure-bramblebrook.ts",
+    "provision:aws": "tsx scripts/provision-aws.ts",
+    "deploy": "cdk deploy --app \"tsx infra/bin/platform.ts\" --all",
+    "bootstrap": "cdk bootstrap --app \"tsx infra/bin/platform.ts\"",
+    "build:demo-bank": "tsx scripts/build-demo-bank.ts",
+    "seed:bramblebrook": "tsx scripts/seed-bramblebrook.ts",
+    "dev:local": "tsx local/src/dev-server.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.716.0",
+    "@aws-sdk/client-s3": "^3.716.0",
+    "@aws-sdk/client-sqs": "^3.716.0",
+    "@aws-sdk/lib-dynamodb": "^3.716.0",
+    "ulid": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.147",
+    "@types/node": "^20.17.10",
+    "aws-cdk": "^2.173.2",
+    "aws-cdk-lib": "^2.173.0",
+    "constructs": "^10.4.2",
+    "esbuild": "^0.24.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

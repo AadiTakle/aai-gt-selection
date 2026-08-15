@@ -1,0 +1,29 @@
+{
+  "_comment": "Example override for run_harness.py --config. Deep-merged onto harness/config.py defaults. This scenario demonstrates a REPORTABLE NULL: the new test measures mostly a distinct construct (u) that does not predict the criterion (incremental_signal=0), so it should add little/no incremental validity over CogAT -- a valid, reportable result (H1: an added signal must contribute distinct, VALIDATED information). It also uses a stricter 95th-percentile cut. Delete keys you do not want to override.",
+  "seed": 424242,
+  "generation": {
+    "n_students": 600,
+    "incremental_signal": 0.0,
+    "impact_delta": 0.0,
+    "loadings": {
+      "newtest_g": 0.25,
+      "newtest_u": 0.9,
+      "newtest_noise": 0.3
+    }
+  },
+  "analysis": {
+    "cuts": {
+      "newtest_total": { "type": "percentile", "value": 95 },
+      "cogat_sas": { "type": "percentile", "value": 90 }
+    },
+    "equity_funnel": {
+      "selection_measure": "newtest_total",
+      "cut": { "type": "percentile", "value": 95 },
+      "subgroups": ["subgroup_demo", "ell_status", "ses_band"],
+      "four_fifths": 0.8
+    }
+  },
+  "report": {
+    "title": "Cognitive-Test Validation Report (SYNTHETIC, reportable-null example)"
+  }
+}

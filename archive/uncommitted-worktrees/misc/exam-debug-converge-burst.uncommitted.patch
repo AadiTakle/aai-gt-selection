@@ -1,0 +1,238 @@
+diff --git a/apps/web/src/components/exam/exam-debug-panel.module.css b/apps/web/src/components/exam/exam-debug-panel.module.css
+index 4f8e84b..ce3c562 100644
+--- a/apps/web/src/components/exam/exam-debug-panel.module.css
++++ b/apps/web/src/components/exam/exam-debug-panel.module.css
+@@ -3,20 +3,101 @@
+  * fixed dock so the convergence stays on screen while the child clicks through the activity.
+  */
+ 
+-.dock {
++/*
++ * A tray, not a dock: collapsed to a thin strip so the child can actually take the test, expanded
++ * deliberately when the convergence is being shown. Only the strip is on screen by default.
++ */
++.tray {
+   position: fixed;
+   inset-inline: 0;
+   bottom: 0;
+   z-index: 90;
+   display: flex;
+   flex-direction: column;
+-  gap: 0.75rem;
+-  padding: 1rem 1.25rem 1.1rem;
+   background: #0b1020;
+   border-top: 3px solid #3d7dff;
+   color: #eef2ff;
+   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+   box-shadow: 0 -16px 40px rgb(0 0 0 / 45%);
++}
++
++/* The always-present strip. Useful collapsed: current estimate and range in one line. */
++.handle {
++  display: flex;
++  align-items: center;
++  gap: 0.75rem;
++  padding: 0.3rem 1rem;
++  min-height: 2.5rem;
++}
++
++.handleBtn {
++  appearance: none;
++  border: 0;
++  background: transparent;
++  color: inherit;
++  font: inherit;
++  cursor: pointer;
++  display: flex;
++  align-items: baseline;
++  gap: 0.6rem;
++  padding: 0.15rem 0.35rem;
++  border-radius: 0.35rem;
++}
++
++.handleBtn:hover {
++  background: #16224a;
++}
++
++.handleTag {
++  font-size: 1.3rem;
++  color: #8fb4ff;
++}
++
++.handleTheta {
++  font-size: 1.6rem;
++  font-weight: 700;
++  color: #fff;
++  font-variant-numeric: tabular-nums;
++  line-height: 1;
++}
++
++.handleRange {
++  font-size: 1.25rem;
++  color: #ffd479;
++  font-variant-numeric: tabular-nums;
++}
++
++.handleMeta {
++  font-size: 1rem;
++  color: #9fb0d6;
++  font-variant-numeric: tabular-nums;
++}
++
++.handleCaret {
++  font-size: 1rem;
++  color: #8fb4ff;
++}
++
++.handleHint {
++  font-size: 0.8rem;
++  letter-spacing: 0.08em;
++  text-transform: uppercase;
++  color: #7f8fb8;
++}
++
++.handleActions {
++  display: flex;
++  gap: 0.5rem;
++  margin-inline-start: auto;
++}
++
++/* The expanded panel. Free to be tall — the owner opens it on purpose. */
++.body {
++  display: flex;
++  flex-direction: column;
++  gap: 0.75rem;
++  padding: 0.5rem 1.25rem 1.1rem;
++  border-top: 1px solid #26325a;
+   max-height: 62vh;
+   overflow-y: auto;
+ }
+diff --git a/apps/web/src/components/exam/exam-debug-panel.tsx b/apps/web/src/components/exam/exam-debug-panel.tsx
+index 6d4f77e..991cdf1 100644
+--- a/apps/web/src/components/exam/exam-debug-panel.tsx
++++ b/apps/web/src/components/exam/exam-debug-panel.tsx
+@@ -146,10 +146,38 @@ export function ExamDebugPanel({
+   children?: React.ReactNode;
+ }) {
+   const [showLog, setShowLog] = useState(true);
++  const [open, setOpen] = useState(false);
+   const recent = view.log.slice(-HOW_MANY_LOG_ROWS);
+ 
+   return (
+-    <aside className={styles.dock} aria-label="Debug: ability convergence">
++    <aside className={styles.tray} aria-label="Debug: ability convergence">
++      <div className={styles.handle}>
++        <button
++          type="button"
++          className={styles.handleBtn}
++          onClick={() => setOpen((v) => !v)}
++          aria-expanded={open}
++        >
++          <span className={styles.handleTag}>θ</span>
++          <span className={styles.handleTheta}>
++            {view.overall ? fmt(view.overall.estimate) : '—'}
++          </span>
++          <span className={styles.handleRange}>
++            {view.overall
++              ? `± ${fmt((view.overall.upper - view.overall.lower) / 2)}`
++              : 'no answers yet'}
++          </span>
++          <span className={styles.handleMeta}>{view.itemsServed}q</span>
++          <span className={styles.handleCaret} aria-hidden="true">
++            {open ? '▼' : '▲'}
++          </span>
++          <span className={styles.handleHint}>{open ? 'hide' : 'show convergence'}</span>
++        </button>
++        <div className={styles.handleActions}>{children}</div>
++      </div>
++
++      {!open ? null : (
++        <div className={styles.body}>
+       <div className={styles.head}>
+         <h2 className={styles.title}>Ability estimate</h2>
+         <div className={styles.headline}>
+@@ -167,7 +195,6 @@ export function ExamDebugPanel({
+           {view.scale.min}–{view.scale.max}
+         </span>
+         <div className={styles.actions}>
+-          {children}
+           <button type="button" className={styles.toggle} onClick={() => setShowLog((v) => !v)}>
+             {showLog ? 'Hide per-item detail' : 'Show per-item detail'}
+           </button>
+@@ -223,6 +250,8 @@ export function ExamDebugPanel({
+         floor, while every wired item is multiple choice — so watch it narrow, but do not read it as
+         a 95% claim about the child. Born-synthetic, <code>validated=false</code>.
+       </p>
++        </div>
++      )}
+     </aside>
+   );
+ }
+diff --git a/apps/web/src/lib/exam/bank-loader.ts b/apps/web/src/lib/exam/bank-loader.ts
+index ed6af96..afec4cb 100644
+--- a/apps/web/src/lib/exam/bank-loader.ts
++++ b/apps/web/src/lib/exam/bank-loader.ts
+@@ -206,16 +206,33 @@ export function toServedItem(item: RawBankItem): ServedItem {
+  * an empty object so an index entry is structurally a `ServedItem` for the
+  * engine's selection code.
+  */
+-export type ServedItemIndex = Omit<ServedItem, 'content'> & { content: Record<string, never> };
++export type ServedItemIndex = Omit<ServedItem, 'content'> & {
++  content: { optionCount?: number };
++};
++
++/**
++ * How many options an item offers, when it offers a bounded choice at all.
++ *
++ * This is the ONE piece of stimulus shape the index carries, because the engine's burst policy has
++ * to know whether a type is a single-tap choice BEFORE it selects an item, and by then the item's
++ * content has not been fetched. A count is not an answer key and does not say which option is
++ * correct, so it leaks nothing: the browser already receives the full option list for the one item
++ * it is rendering.
++ */
++function indexOptionCount(item: RawBankItem): number | undefined {
++  const options = (item.content as { options?: unknown } | undefined)?.options;
++  return Array.isArray(options) && options.length > 0 ? options.length : undefined;
++}
+ 
+ export function toIndexEntry(item: RawBankItem): ServedItemIndex {
++  const optionCount = indexOptionCount(item);
+   return {
+     itemId: item.itemId,
+     typeCode: item.typeCode,
+     domain: item.domain,
+     difficulty: item.difficulty,
+     ageBands: item.ageBands,
+-    content: {},
++    content: optionCount === undefined ? {} : { optionCount },
+     syntheticOnly: true,
+     validated: false,
+   };
+diff --git a/packages/exam-engine/src/burst.ts b/packages/exam-engine/src/burst.ts
+index fba54ba..dd92e65 100644
+--- a/packages/exam-engine/src/burst.ts
++++ b/packages/exam-engine/src/burst.ts
+@@ -63,9 +63,21 @@ export interface TypeSpeedVerdict {
+   readonly processMetrics: readonly string[];
+ }
+ 
++/**
++ * How many options an item offers, or `null` when it is not a bounded choice.
++ *
++ * Two spellings are accepted because the engine runs over two different views of the same bank. A
++ * full bank item carries the option list itself. A selection index carries only `optionCount`: the
++ * pool a browser selects over is fetched without stimulus content (megabytes of it), so the count
++ * is sent instead, and burst policy has to decide before an item's content exists.
++ */
+ function optionCount(item: BankItem): number | null {
+-  const options = (item.content as { options?: unknown }).options;
+-  return Array.isArray(options) ? options.length : null;
++  const content = item.content as { options?: unknown; optionCount?: unknown };
++  if (Array.isArray(content.options)) return content.options.length;
++  if (typeof content.optionCount === 'number' && Number.isFinite(content.optionCount)) {
++    return content.optionCount;
++  }
++  return null;
+ }
+ 
+ /**

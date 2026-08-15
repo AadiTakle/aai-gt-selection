@@ -1,0 +1,340 @@
+/* Bramblebrook shell. The 3D canvas carries the look; this is only the flat layer over it.
+   Bubbly, warm, soft. Nothing sharp, nothing dark, no grey. */
+
+.bh-root {
+  position: fixed;
+  inset: 0;
+  background: #bfe4f2;
+  font-family: ui-rounded, 'Nunito', 'Quicksand', ui-sans-serif, system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.bh-root canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+/* Enter prompt. Big, obvious, unmissable for a small child. */
+.bh-enter {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  padding: 1.1rem 1.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: #ffd76b;
+  color: #4a3218;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 10px 0 #e0ac3a;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bh-enter:hover {
+  transform: translateX(-50%) translateY(-3px);
+}
+
+.bh-enter:active {
+  transform: translateX(-50%) translateY(2px);
+  box-shadow: 0 6px 0 #e0ac3a;
+}
+
+.bh-enter:focus-visible {
+  outline: 4px solid #ffffff;
+  outline-offset: 3px;
+}
+
+/* HUD. Only ever counts things that went up. No score, no timer, no streak. */
+.bh-hud {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  pointer-events: none;
+}
+
+.bh-cares {
+  margin: 0;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.82);
+  color: #5a4326;
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.bh-calls {
+  display: flex;
+  gap: 0.6rem;
+  pointer-events: auto;
+}
+
+.bh-call {
+  padding: 0.85rem 1.2rem;
+  min-height: 3.2rem;
+  border: 0;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #45301c;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.98rem;
+  cursor: pointer;
+  box-shadow: 0 6px 0 rgb(120 90 55 / 0.28);
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bh-call:hover {
+  transform: translateY(-2px);
+}
+
+.bh-call:focus-visible {
+  outline: 4px solid #ffd76b;
+  outline-offset: 2px;
+}
+
+/* A beat: the screener, dressed as something the hollow needs. */
+.bh-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  /* No dimming when the item lives in the world: the world IS the question. */
+  background: transparent;
+  pointer-events: none;
+}
+
+.bh-overlay > * {
+  pointer-events: auto;
+}
+
+.bh-beat {
+  width: min(46rem, 92vw);
+  padding: 1.6rem 1.8rem 1.4rem;
+  border-radius: 28px;
+  background: #fffaf0;
+  box-shadow: 0 18px 0 rgb(120 90 55 / 0.22);
+  text-align: center;
+}
+
+.bh-beat-title {
+  margin: 0 0 1.1rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #45301c;
+}
+
+.bh-beat-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  justify-content: center;
+}
+
+/* 88px minimum: a five-year-old aiming a mouse is imprecise. */
+.bh-opt {
+  width: 88px;
+  height: 88px;
+  border: 0;
+  border-radius: 22px;
+  background: #a9dcf0;
+  color: #22414f;
+  font: inherit;
+  font-size: 1.6rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 7px 0 #7cbcd4;
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bh-opt:hover:not(:disabled) {
+  transform: translateY(-3px);
+}
+
+.bh-opt:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.bh-opt:focus-visible {
+  outline: 4px solid #ffd76b;
+  outline-offset: 3px;
+}
+
+/* When the item is drawn in the world, the flat layer must never sit over it. */
+.bh-beat-slim {
+  position: absolute;
+  top: 1.2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  min-width: 20rem;
+  padding: 0.85rem 1.6rem 0.7rem;
+  box-shadow: 0 10px 0 rgb(120 90 55 / 0.18);
+}
+
+/**
+ * The question itself. Bigger than a caption and smaller than the title, because it is the thing a child
+ * actually has to act on — and read aloud where the item narrates, so an emerging reader hears it while
+ * seeing it.
+ */
+.bh-beat-ask {
+  margin: 0.15rem 0 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #5a4326;
+  text-wrap: balance;
+}
+
+/*
+ * The verdict, while a pick settles.
+ *
+ * Sits under the instruction without moving it: the panel is at the top of the screen and a line that pushed the
+ * layout down would shift the one thing a child is looking at, on every single answer.
+ *
+ * Not colour alone. Each state carries a mark as well as a hue, because roughly one boy in twelve cannot separate
+ * these two hues and this is the one moment where the meaning IS the difference between them. Weight differs too,
+ * so the two still read apart in greyscale.
+ */
+.bh-verdict {
+  margin: 0.25rem 0 0;
+  font-size: 1.02rem;
+  letter-spacing: 0.01em;
+}
+
+.bh-verdict-yes {
+  color: #2f6b3d;
+  font-weight: 800;
+}
+
+.bh-verdict-yes::before {
+  content: '\2713  ';
+}
+
+/*
+ * Quieter than the affirmative on purpose: lighter weight, softer colour, a neutral mark rather than a cross. A
+ * child meeting deliberately above-grade items sees this more often than the other one, and the brief for that
+ * moment is "your turn was counted", not "you failed".
+ */
+.bh-verdict-no {
+  color: #7c6248;
+  font-weight: 600;
+}
+
+.bh-verdict-no::before {
+  content: '\00b7  ';
+}
+
+.bh-beat-note {
+  margin: 1.1rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #8a7355;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/*
+ * The verdict flash, at the crosshair.
+ *
+ * Centred on the reticle rather than on the screen: the reticle is where the child's eye is, and a mark in the
+ * corner is a mark nobody sees — which is exactly what the panel line above turned out to be.
+ *
+ * `pointer-events: none` is load-bearing rather than tidy. This sits over the precise spot the next question's
+ * cards are clicked, and an overlay that swallowed one click in five would look like the game ignoring a child.
+ *
+ * Colour is never the only carrier: the mark differs, the weight differs, and the amount differs.
+ */
+.bh-flash {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  pointer-events: none;
+  z-index: 6;
+  animation: bh-flash-in 1.05s ease-out forwards;
+}
+
+.bh-flash-mark {
+  font-size: 3.4rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.bh-flash-paid {
+  font-size: 1.9rem;
+  font-weight: 800;
+}
+
+.bh-flash-yes {
+  color: #2f6b3d;
+  text-shadow: 0 2px 0 rgb(255 255 255 / 0.85);
+}
+
+/* Softer than the affirmative, and a neutral mark rather than a cross: a child meeting deliberately
+   above-grade items sees this more often than the other one. */
+.bh-flash-no {
+  color: #7c6248;
+  text-shadow: 0 2px 0 rgb(255 255 255 / 0.8);
+}
+
+.bh-flash-no .bh-flash-mark {
+  font-weight: 600;
+}
+
+@keyframes bh-flash-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -38%) scale(0.85);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -54%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -62%) scale(1);
+  }
+}
+
+/* Reduced motion: it still appears and still fades, it simply does not travel or scale. */
+@media (prefers-reduced-motion: reduce) {
+  .bh-flash {
+    animation: bh-flash-still 1.4s ease-out forwards;
+  }
+
+  @keyframes bh-flash-still {
+    0%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}

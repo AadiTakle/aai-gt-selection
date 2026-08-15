@@ -1,0 +1,1201 @@
+/* Coin Market only. A dark trading terminal for grades 6-8.
+
+   Every colour pair below was checked rather than eyeballed, because dark themes fail contrast quietly:
+   the dimmest body text (--cm-faint on --cm-panel) is 5.66:1, the accent is 8.63:1, and dark ink on the
+   accent fill is 9.25:1. Nothing here relies on colour alone — every delta carries a glyph and a
+   screen-reader word as well as a hue. */
+
+.cm {
+  --cm-void: #070a0f;
+  --cm-panel: #0e141d;
+  --cm-panel-2: #131b26;
+  --cm-line: #1f2a38;
+  --cm-line-soft: #182130;
+  --cm-ink: #e8eef7;
+  --cm-dim: #9fb0c4;
+  --cm-faint: #7f90a5;
+  --cm-accent: #38bdf8;
+  --cm-up: #3ddc97;
+  --cm-down: #ff7a7a;
+  --cm-gold: #e0b64a;
+  --cm-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  color: var(--cm-ink);
+  background:
+    radial-gradient(1200px 520px at 22% -12%, rgba(56, 189, 248, 0.075), transparent 62%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.016) 0 1px, transparent 1px 68px),
+    var(--cm-void);
+  font-feature-settings: 'tnum' 1, 'cv05' 1;
+}
+
+.cm ::selection {
+  background: rgba(56, 189, 248, 0.3);
+}
+
+/* The shell's own focus ring is a dark blue that all but vanishes on this background. */
+.cm :focus-visible {
+  outline: 2px solid var(--cm-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.cm b,
+.cm strong {
+  font-weight: 650;
+}
+
+/* ---------------------------------------------------------------- top bar */
+
+.cm-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 20px;
+  height: 54px;
+  flex: 0 0 auto;
+  background: linear-gradient(180deg, #101825, #0b1119);
+  border-bottom: 1px solid var(--cm-line);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+}
+
+.cm-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font: 700 13px/1 system-ui, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cm-brand svg {
+  width: 21px;
+  height: 21px;
+  color: var(--cm-accent);
+  flex: 0 0 auto;
+}
+
+.cm-brand i {
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--cm-faint);
+}
+
+.cm-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 600 10px/1 var(--cm-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cm-dim);
+  padding: 5px 10px;
+  border: 1px solid var(--cm-line);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.cm-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cm-up);
+  box-shadow: 0 0 0 3px rgba(61, 220, 151, 0.16);
+  flex: 0 0 auto;
+}
+
+.cm-state.live .cm-pip {
+  background: var(--cm-accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  animation: cm-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes cm-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(56, 189, 248, 0.05);
+  }
+}
+
+.cm-clock {
+  font: 500 13px/1 var(--cm-mono);
+  color: var(--cm-faint);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.cm-clock i {
+  font-style: normal;
+  opacity: 0.5;
+}
+
+.cm-figs {
+  display: flex;
+  gap: 26px;
+  margin: 0 0 0 auto;
+  align-items: baseline;
+}
+
+.cm-figs div {
+  text-align: right;
+}
+
+.cm-figs dt {
+  font: 600 9px/1 var(--cm-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cm-faint);
+  margin-bottom: 4px;
+}
+
+.cm-figs dd {
+  margin: 0;
+  font: 600 17px/1 var(--cm-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.cm-figs dd i {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--cm-faint);
+  margin-left: 1px;
+}
+
+.cm-figs-credit dd {
+  color: var(--cm-accent);
+}
+
+/* ---------------------------------------------------------------- layout */
+
+.cm-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 336px;
+  gap: 18px;
+  padding: 18px;
+  align-content: start;
+  overflow: auto;
+}
+
+.cm-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cm-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.cm-card,
+.cm-index,
+.cm-board,
+.cm-tape,
+.cm-desk {
+  background: linear-gradient(180deg, #111926, var(--cm-panel));
+  border: 1px solid var(--cm-line);
+  border-radius: 10px;
+}
+
+.cm-card {
+  padding: 15px 16px 16px;
+}
+
+.cm-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 600 9.5px/1 var(--cm-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cm-faint);
+}
+
+.cm-eyebrow b {
+  margin-left: auto;
+  color: var(--cm-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.cm-note {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--cm-faint);
+}
+
+.cm-tick {
+  font: 600 10.5px/1 var(--cm-mono);
+  letter-spacing: 0.06em;
+  color: var(--cm-accent);
+}
+
+.cm-pos {
+  color: var(--cm-up);
+}
+
+.cm-neg {
+  color: var(--cm-down);
+}
+
+.cm-flat {
+  color: var(--cm-faint);
+}
+
+/* ---------------------------------------------------------------- index */
+
+.cm-index {
+  padding: 16px 18px 12px;
+  overflow: hidden;
+}
+
+.cm-index-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.cm-index-val {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 8px 0 0;
+  font: 600 40px/1 var(--cm-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.035em;
+}
+
+.cm-index-stats {
+  display: flex;
+  gap: 24px;
+  margin: 0;
+}
+
+.cm-index-stats div {
+  text-align: right;
+}
+
+.cm-index-stats dt {
+  font: 600 9px/1 var(--cm-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cm-faint);
+  margin-bottom: 5px;
+}
+
+.cm-index-stats dd {
+  margin: 0;
+  font: 600 14px/1 var(--cm-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.cm-chart {
+  display: block;
+  width: 100%;
+  height: 96px;
+  margin: 12px 0 2px;
+}
+
+.cm-chart-grid {
+  stroke: var(--cm-line-soft);
+  stroke-width: 1;
+}
+
+.cm-chart-mark {
+  stroke: var(--cm-faint);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: 0.75;
+}
+
+.cm-chart-line {
+  animation: cm-draw 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  stroke-dasharray: 1400;
+}
+
+@keyframes cm-draw {
+  from {
+    stroke-dashoffset: 1400;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.cm-index-foot {
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--cm-line-soft);
+  font: 400 10.5px/1.4 var(--cm-mono);
+  color: var(--cm-faint);
+  letter-spacing: 0.01em;
+}
+
+/* ---------------------------------------------------------------- deltas */
+
+.cm-delta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font: 600 12px/1 var(--cm-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cm-delta.up {
+  color: var(--cm-up);
+}
+
+.cm-delta.down {
+  color: var(--cm-down);
+}
+
+.cm-delta.flat {
+  color: var(--cm-faint);
+}
+
+.cm-delta.big {
+  font-size: 15px;
+  padding: 4px 9px;
+  border-radius: 5px;
+  align-self: center;
+}
+
+.cm-delta.big.up {
+  background: rgba(61, 220, 151, 0.11);
+}
+
+.cm-delta.big.down {
+  background: rgba(255, 122, 122, 0.11);
+}
+
+.cm-delta.big.flat {
+  background: rgba(159, 176, 196, 0.1);
+}
+
+.cm-arrow {
+  font-size: 8px;
+  line-height: 1;
+}
+
+.cm-delta.flat .cm-arrow {
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------- board */
+
+.cm-board {
+  overflow: hidden;
+}
+
+.cm-board table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.cm-board thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #0c121b;
+  text-align: left;
+  font: 600 9px/1 var(--cm-mono);
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--cm-faint);
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--cm-line);
+  white-space: nowrap;
+}
+
+.cm-board tbody th,
+.cm-board tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--cm-line-soft);
+  vertical-align: middle;
+  font-weight: 400;
+  text-align: left;
+}
+
+.cm-board tbody tr:last-child th,
+.cm-board tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.cm-board tbody tr {
+  transition: background 140ms ease;
+}
+
+.cm-board tbody tr:hover {
+  background: var(--cm-panel-2);
+}
+
+.cm-board tbody tr.cm-wanted th {
+  box-shadow: inset 2px 0 0 var(--cm-accent);
+}
+
+.cm-r {
+  text-align: right !important;
+}
+
+.cm-c {
+  text-align: center !important;
+}
+
+.cm-board tbody th {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 9px;
+  align-items: baseline;
+}
+
+.cm-board tbody th .cm-tick {
+  grid-row: 1;
+}
+
+.cm-name {
+  grid-row: 1;
+  font-size: 13.5px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+}
+
+.cm-slot {
+  grid-row: 2;
+  grid-column: 2;
+  font: 400 10.5px/1.3 var(--cm-mono);
+  color: var(--cm-faint);
+  letter-spacing: 0.05em;
+}
+
+.cm-tier {
+  display: inline-block;
+  font: 600 9px/1 var(--cm-mono);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  padding: 4px 7px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.t-uncommon {
+  color: #9fb8c9;
+}
+.t-rare {
+  color: #7aa6f0;
+}
+.t-import {
+  color: #ef8fae;
+}
+.t-exotic {
+  color: var(--cm-gold);
+}
+.t-black-market {
+  color: #f0788a;
+  background: rgba(240, 120, 138, 0.08);
+}
+
+.cm-last {
+  font: 600 15px/1 var(--cm-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.cm-spark {
+  display: block;
+  margin: 0 auto;
+}
+
+.cm-spark-line {
+  animation: cm-draw-s 780ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  stroke-dasharray: 300;
+}
+
+@keyframes cm-draw-s {
+  from {
+    stroke-dashoffset: 300;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.cm-hold {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cm-hold b {
+  font: 600 14px/1 var(--cm-mono);
+}
+
+.cm-hold span {
+  display: block;
+  font: 500 10.5px/1.4 var(--cm-mono);
+}
+
+.cm-none {
+  color: #4c5a6b;
+}
+
+.cm-trade {
+  white-space: nowrap;
+}
+
+.cm-buy,
+.cm-sell {
+  font: 600 10px/1 var(--cm-mono);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  padding: 7px 11px;
+  border-radius: 5px;
+  border: 1px solid var(--cm-line);
+  background: var(--cm-panel-2);
+  color: var(--cm-ink);
+  transition: background 130ms ease, border-color 130ms ease, color 130ms ease;
+}
+
+.cm-buy {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: var(--cm-accent);
+  min-width: 62px;
+}
+
+.cm-buy:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: var(--cm-accent);
+}
+
+.cm-sell {
+  margin-left: 6px;
+}
+
+.cm-sell:hover:not(:disabled) {
+  background: rgba(255, 122, 122, 0.12);
+  border-color: rgba(255, 122, 122, 0.5);
+  color: var(--cm-down);
+}
+
+.cm-buy:disabled,
+.cm-sell:disabled {
+  color: #6b7a8c;
+  border-color: var(--cm-line-soft);
+  background: transparent;
+  cursor: default;
+}
+
+/* A repricing is worth one beat of attention and no more. */
+.cm-board.repriced tbody tr {
+  animation: cm-reprice 1300ms ease-out both;
+}
+
+@keyframes cm-reprice {
+  0% {
+    background: rgba(56, 189, 248, 0.1);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* ---------------------------------------------------------------- the tape */
+
+.cm-tape {
+  padding: 15px 18px 16px;
+  border-color: rgba(56, 189, 248, 0.34);
+  background:
+    linear-gradient(180deg, rgba(56, 189, 248, 0.07), transparent 58%),
+    linear-gradient(180deg, #111926, var(--cm-panel));
+  animation: cm-tape-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes cm-tape-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.cm-tape-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cm-ghost {
+  background: none;
+  border: 1px solid var(--cm-line);
+  border-radius: 5px;
+  color: var(--cm-dim);
+  font: 600 9.5px/1 var(--cm-mono);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  transition: color 130ms ease, border-color 130ms ease;
+}
+
+.cm-ghost:hover {
+  color: var(--cm-ink);
+  border-color: var(--cm-faint);
+}
+
+.cm-tape-figs {
+  display: flex;
+  gap: 34px;
+  flex-wrap: wrap;
+  margin: 12px 0 14px;
+}
+
+.cm-tape-figs p {
+  margin: 0;
+}
+
+.cm-tape-figs b {
+  display: block;
+  font: 600 30px/1 var(--cm-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.035em;
+}
+
+.cm-tape-figs b i {
+  font-style: normal;
+  font-size: 15px;
+  color: var(--cm-faint);
+  margin-left: 2px;
+}
+
+.cm-tape-figs span {
+  display: block;
+  margin-top: 5px;
+  font: 600 9px/1 var(--cm-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cm-faint);
+}
+
+.cm-tape-movers ul {
+  list-style: none;
+  margin: 9px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cm-tape-movers li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.022);
+  border-radius: 4px;
+}
+
+.cm-mover-name {
+  font-size: 12.5px;
+  color: var(--cm-dim);
+  margin-right: auto;
+}
+
+.cm-tape-rare {
+  margin: 13px 0 0;
+  padding: 9px 12px;
+  border-left: 2px solid var(--cm-gold);
+  background: rgba(224, 182, 74, 0.08);
+  color: var(--cm-gold);
+  font-size: 12.5px;
+}
+
+/* ---------------------------------------------------------------- call to action */
+
+.cm-cta.cold {
+  border-color: rgba(56, 189, 248, 0.36);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.08), 0 14px 40px -22px rgba(56, 189, 248, 0.6);
+}
+
+.cm-cta-line {
+  margin: 11px 0 14px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--cm-dim);
+}
+
+.cm-open {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #4fc6fa, #1ba2e6);
+  color: #04121c;
+  font: 700 12px/1 var(--cm-mono);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: transform 130ms ease, filter 130ms ease;
+}
+
+.cm-open:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.cm-open:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.cm-open:disabled {
+  background: var(--cm-panel-2);
+  color: var(--cm-faint);
+  cursor: default;
+}
+
+.cm-open-arrow {
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cm-open:hover:not(:disabled) .cm-open-arrow {
+  transform: translateX(3px);
+}
+
+.cm-error {
+  margin: 12px 0 0;
+  padding: 9px 11px;
+  border-left: 2px solid var(--cm-down);
+  background: rgba(255, 122, 122, 0.09);
+  color: #ffc4c4;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.cm-error b {
+  color: var(--cm-down);
+}
+
+/* ---------------------------------------------------------------- contract */
+
+.cm-contract-award {
+  margin: 11px 0 12px;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+
+.cm-contract-award i {
+  display: block;
+  margin-top: 4px;
+  font: 600 9.5px/1 var(--cm-mono);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--cm-gold);
+  font-style: normal;
+}
+
+.cm-needs {
+  list-style: none;
+  margin: 0 0 13px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cm-needs li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.022);
+  border-left: 2px solid var(--cm-line);
+}
+
+.cm-needs li.has {
+  border-left-color: var(--cm-up);
+  background: rgba(61, 220, 151, 0.06);
+}
+
+.cm-check {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  border: 1px solid var(--cm-line);
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  color: var(--cm-void);
+}
+
+.cm-needs li.has .cm-check {
+  background: var(--cm-up);
+  border-color: var(--cm-up);
+}
+
+.cm-need-name {
+  font-size: 12px;
+  color: var(--cm-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-settle {
+  width: 100%;
+  padding: 11px;
+  border-radius: 6px;
+  border: 1px solid var(--cm-gold);
+  background: rgba(224, 182, 74, 0.1);
+  color: var(--cm-gold);
+  font: 600 10px/1 var(--cm-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: background 130ms ease;
+}
+
+.cm-settle:hover:not(:disabled) {
+  background: rgba(224, 182, 74, 0.2);
+}
+
+.cm-settle:disabled {
+  border-color: var(--cm-line);
+  background: transparent;
+  color: var(--cm-faint);
+  cursor: default;
+}
+
+/* ---------------------------------------------------------------- vault */
+
+.cm-vault-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cm-vault-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 10px;
+  align-items: center;
+  padding: 9px 11px;
+  border-radius: 5px;
+  border: 1px solid rgba(224, 182, 74, 0.28);
+  background: linear-gradient(135deg, rgba(224, 182, 74, 0.1), rgba(224, 182, 74, 0.02));
+}
+
+.cm-vault-list.empty li {
+  border: 1px dashed var(--cm-line);
+  background: none;
+  height: 38px;
+}
+
+.cm-gem {
+  grid-row: span 2;
+  width: 13px;
+  height: 13px;
+  transform: rotate(45deg);
+  border-radius: 2px;
+  background: linear-gradient(135deg, var(--cm-gold), #a97f1e);
+}
+
+.cm-vault-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.cm-vault-kind {
+  font: 500 9px/1 var(--cm-mono);
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--cm-faint);
+}
+
+/* ---------------------------------------------------------------- floor session */
+
+.cm-floor .cm-body {
+  align-content: stretch;
+}
+
+.cm-desk {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  min-height: 540px;
+  box-shadow: 0 24px 60px -34px #000;
+}
+
+.cm-desk-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 15px;
+  background: #0c121b;
+  border-bottom: 1px solid var(--cm-line);
+  flex: 0 0 auto;
+}
+
+.cm-desk-tag {
+  font: 600 9px/1 var(--cm-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cm-void);
+  background: var(--cm-accent);
+  padding: 5px 8px;
+  border-radius: 3px;
+}
+
+.cm-desk-head strong {
+  font-size: 13px;
+  letter-spacing: -0.005em;
+}
+
+.cm-desk-ref {
+  font: 500 10.5px/1 var(--cm-mono);
+  color: var(--cm-faint);
+  letter-spacing: 0.08em;
+}
+
+.cm-desk-no {
+  margin-left: auto;
+  font: 600 9px/1 var(--cm-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cm-faint);
+}
+
+.cm-desk-no b {
+  font-size: 13px;
+  color: var(--cm-ink);
+  letter-spacing: 0;
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A housing around the screen, and the reason is mechanical rather than decorative.
+
+   The palette can only reach an item's colours where that item reads a variable, and a handful of
+   renderers paint their page background from a literal instead, so a warm margin survives into a cool
+   UI. Feathering it away is not available: an inset box-shadow does not paint over a frame's document,
+   and an overlay would dim the item's own header text, which is a real control rather than chrome.
+
+   So the frame is bezelled instead. Dark padding and an inner hairline turn the edge into the join
+   between a screen and its housing, which is a boundary the eye already expects to be abrupt. */
+.cm-screen {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  padding: 9px;
+  background: #0a0f16;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.cm-frame {
+  flex: 1;
+  width: 100%;
+  min-height: 480px;
+  border: 0;
+  display: block;
+  border-radius: 4px;
+  background: #f2f6fa;
+  outline: 1px solid rgba(255, 255, 255, 0.07);
+  outline-offset: 0;
+}
+
+.cm-live .cm-eyebrow .cm-pip {
+  animation: cm-pulse 2.4s ease-in-out infinite;
+  background: var(--cm-accent);
+}
+
+.cm-logged {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 12px 0 13px;
+}
+
+.cm-logged b {
+  font: 600 38px/1 var(--cm-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+
+.cm-logged span {
+  font: 600 9px/1.3 var(--cm-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cm-faint);
+  max-width: 62px;
+}
+
+.cm-bar {
+  position: relative;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--cm-line-soft);
+  overflow: hidden;
+}
+
+.cm-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #1ba2e6, var(--cm-accent));
+  transition: width 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cm-bar-mark {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--cm-faint);
+}
+
+.cm-sealed .cm-lock {
+  width: 12px;
+  height: 12px;
+}
+
+.cm-sealed-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.cm-sealed-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cm-redact {
+  flex: 1;
+  height: 9px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--cm-line) 0 4px,
+    var(--cm-line-soft) 4px 8px
+  );
+  opacity: 0.85;
+}
+
+.cm-sealed .cm-tick {
+  color: var(--cm-faint);
+}
+
+/* ---------------------------------------------------------------- narrow */
+
+@media (max-width: 1080px) {
+  .cm-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* The first action stays above the board rather than below it, which matters most on a first visit. */
+  .cm-rail {
+    order: -1;
+  }
+
+  .cm-floor .cm-rail {
+    order: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .cm-top {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    gap: 12px;
+  }
+
+  .cm-clock {
+    display: none;
+  }
+
+  .cm-figs {
+    gap: 18px;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .cm-body {
+    padding: 12px;
+  }
+
+  .cm-index-val {
+    font-size: 32px;
+  }
+
+  /* The sparkline and the tier chip are the two columns a phone can lose without losing meaning. */
+  .cm-board thead th:nth-child(2),
+  .cm-board tbody td:nth-child(2),
+  .cm-board thead th:nth-child(5),
+  .cm-board tbody td:nth-child(5) {
+    display: none;
+  }
+
+  .cm-board tbody th,
+  .cm-board tbody td,
+  .cm-board thead th {
+    padding: 10px 9px;
+  }
+}
+
+/* ---------------------------------------------------------------- reduced motion */
+
+@media (prefers-reduced-motion: reduce) {
+  .cm *,
+  .cm *::before,
+  .cm *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Dash offsets are the drawing, so they are cleared outright rather than sped up. */
+  .cm-chart-line,
+  .cm-spark-line {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+
+  .cm-state.live .cm-pip,
+  .cm-live .cm-eyebrow .cm-pip {
+    animation: none;
+  }
+}

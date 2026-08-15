@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QUANT-WORD-01 · Story Model</title>
+<style>
+  :root{
+    --paper:#ffffff;--ink:#004f71;--accent:#e48b53;--accent2:#4a6470;
+    --good:#4a6470;--bad:#e48b53;--tel:#002a3a;--tel2:#003b5c;--key:#9fb6bd;--dim:#e48b53;
+  }
+  *{box-sizing:border-box}html,body{margin:0;min-height:100%}
+  body{
+    display:flex;color:var(--ink);font:16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;
+    background:linear-gradient(145deg,#f8e8de,#f8e8de);
+  }
+  button{font:inherit;border:0;cursor:pointer}
+  #wrap{flex:1;min-width:0;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  #badge{font-size:12px;font-weight:800;letter-spacing:.1em;color:#6f4526;text-transform:uppercase}
+  #howto{width:min(820px,100%);background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #33505c}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:#4a6470}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#4a6470;border:2px solid #ebba9b;min-height:30px}
+  #phasecue[data-phase="scored"]{background:var(--accent);color:#ffffff;border-color:var(--accent)}
+  #phasecue[data-phase="done"]{background:#f5ddcd;color:#33505c;border-color:#ebba9b}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.no{color:var(--bad)} #status.neutral{color:var(--dim)}
+  #stagecard{
+    width:min(820px,100%);background:var(--paper);border-radius:28px;padding:22px;
+    display:grid;gap:16px;box-shadow:0 25px 62px -35px #33505c;border:1px solid #ffffff;
+  }
+  #story{
+    border-radius:20px;background:linear-gradient(#f8e8de,#fcf4ef);border:2px solid #ecd9cb;
+    padding:18px 20px;font-size:19px;line-height:1.75;
+  }
+  #story p{margin:0 0 6px}
+  #story p:last-child{margin-bottom:0}
+  #question{
+    border-radius:16px;background:#ffffff;border:2px dashed #ecd9cb;
+    padding:12px 16px;font-weight:800;font-size:19px;
+  }
+  /* One step on screen at a time. The story with its tappable numbers and the answer row
+     are never both present, so choosing the relevant quantities is a separate act from
+     computing with them rather than something to shuttle back and forth between. */
+  #stagecard[data-step="read"] #modelwrap,
+  #stagecard[data-step="read"] #answers,
+  #stagecard[data-step="mark"] #answers,
+  #stagecard[data-step="answer"] #story{display:none}
+  #stagecard[data-step="read"] #reread{visibility:hidden}
+  #stagecard[data-step="answer"] #modelwrap{background:#f8e8de;border-color:#ecd9cb}
+  #steps{display:flex;gap:8px;align-items:center;justify-content:center;font-size:11px;
+    font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#4a6470}
+  #steps span{padding:4px 10px;border-radius:999px;background:#fcf4ef;border:2px solid #ecd9cb}
+  #steps span[data-on="1"]{background:var(--accent);border-color:var(--accent);color:#ffffff}
+  .num{
+    display:inline-block;min-width:30px;padding:1px 8px;margin:0 1px;border-radius:8px;font:inherit;font-weight:800;
+    background:#ffffff;border:2px solid #ecd9cb;color:#33505c;line-height:1.3;
+  }
+  .num:hover:not(:disabled){border-color:var(--accent2)}
+  .num.marked{background:#f8e8de;border-color:var(--accent2);color:#004f71}
+  .num:disabled{cursor:default;opacity:.85}
+  #modelwrap{border-radius:16px;background:#fcf4ef;border:2px solid #f5ddcd;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:56px}
+  #modellabel{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#4a6470}
+  .chip{background:#ffffff;border:2px solid var(--accent2);color:#004f71;border-radius:9px;padding:3px 10px;font-weight:800}
+  #modelempty{color:var(--dim);font-size:14px}
+  #answers{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+  .answer{
+    position:relative;min-width:96px;padding:14px 10px;border-radius:16px;background:#ffffff;border:3px solid #f5ddcd;
+    font-size:26px;font-weight:800;color:#004f71;transition:.15s;-webkit-tap-highlight-color:transparent;
+  }
+  .answer::after{content:attr(data-key);position:absolute;right:7px;bottom:4px;font:700 11px/1 ui-monospace,monospace;color:#4a6470}
+  .answer:hover:not(:disabled){transform:translateY(-2px);border-color:#ecd9cb}
+  .answer.sel{border-color:var(--accent);box-shadow:0 0 0 4px #efb43f44;transform:translateY(-2px)}
+  .answer:disabled{opacity:.6}
+  #controls{display:flex;justify-content:center;align-items:center;gap:16px}
+  #reread{width:52px;height:52px;border-radius:50%;background:#f8e8de;color:#4a6470;font-size:22px}
+  #go{
+    width:72px;height:72px;border-radius:50%;background:var(--accent);color:#ffffff;font-size:30px;
+    box-shadow:0 12px 25px -12px #4a6470;opacity:.35;pointer-events:none;transition:.2s;
+  }
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.05s infinite}
+  /* The pulse belongs to the commit. On the reading and number steps the same control
+     is a plain "go on" arrow, so it stays still. */
+  #stagecard:not([data-step="answer"]) #go{animation:none}
+  @keyframes pulse{50%{transform:scale(1.06)}}
+  #ghost{position:fixed;left:0;top:0;z-index:60;opacity:0;pointer-events:none;
+    transition:transform .6s cubic-bezier(.3,.6,.2,1),opacity .25s;filter:drop-shadow(0 3px 4px #0004)}
+  #ghost.show{opacity:.95}
+  #ghost .ring{position:absolute;left:-6px;top:-6px;width:28px;height:28px;border-radius:50%;border:3px solid var(--accent);opacity:0}
+  #ghost.tap .ring{animation:tapring .5s ease-out}
+  @keyframes tapring{0%{opacity:.9;transform:scale(.4)}100%{opacity:0;transform:scale(2.2)}}
+  #telemetry{
+    width:340px;flex:0 0 340px;min-height:100vh;background:var(--tel);color:#4a6470;
+    display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  #telemetry h3{margin:0;padding:13px 14px;background:var(--tel2);color:#ffffff;font-size:12px;letter-spacing:.09em;text-transform:uppercase}
+  #difficulty{margin:10px 12px 2px;padding:10px;border:1px solid #004f71;border-radius:10px;background:#003b5c}
+  .dtop{display:flex;justify-content:space-between;color:#ffffff}
+  .dsub{display:flex;justify-content:space-between;color:var(--dim);font-size:11px;margin-top:5px}
+  .dtrack{height:7px;background:#33505c;border-radius:8px;margin-top:8px;overflow:hidden}
+  .dfill{height:100%;background:linear-gradient(90deg,#9fb6bd,#ebba9b);transition:.25s}
+  #mode{margin:8px 12px 0;font-size:11px;color:var(--dim)}#mode b{color:#6f4526}
+  #mlist{padding:11px 13px;display:flex;flex-direction:column;gap:8px}
+  .mrow{display:grid;grid-template-columns:112px 1fr;gap:7px;align-items:baseline}
+  .mid{color:var(--key);font-weight:800}.mid.srv{color:#6f4526}.mval{color:#ffffff}
+  .mname{grid-column:1/3;color:var(--dim);font-size:11px;margin-top:-4px}
+  #logwrap{margin-top:auto;border-top:1px solid #004f71}
+  #logwrap b{display:block;padding:8px 12px 3px;color:#6f4526;font-size:11px;letter-spacing:.08em}
+  #log{height:210px;overflow:auto;padding:2px 12px 12px;white-space:pre-wrap}
+  #log div{padding:3px 0;border-bottom:1px dotted #004f71}#log .t{color:#4a6470}
+  button:focus-visible{outline:4px solid #e48b53;outline-offset:3px}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;min-height:0;height:340px;flex:none}}
+  @media(max-width:580px){#stagecard{padding:14px}#story{font-size:17px}.answer{min-width:74px;font-size:22px}}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+<main id="wrap">
+  <div id="badge">QUANT-WORD-01 · Story Model</div>
+  <header id="howto">
+    <h1>How to use — Story Model</h1>
+    <p>This story comes in three steps. First read it. Then tap the numbers in the story that you will use — that is your model. Then choose your answer. Press <b>&#8594;</b> to go on and <b>&#10003;</b> to send your answer. Press <b>&#8635;</b> to step back to the story. Not every number in a story is needed.</p>
+  </header>
+  <div id="phasecue" data-phase="warmup">Get ready</div>
+  <section id="stagecard" data-step="read">
+    <div id="steps" aria-hidden="true">
+      <span id="step_read">1 read</span><span id="step_mark">2 numbers</span><span id="step_answer">3 answer</span>
+    </div>
+    <div id="story"><div id="storybody"></div></div>
+    <div id="question"></div>
+    <div id="modelwrap">
+      <span id="modellabel">Numbers I will use</span>
+      <span id="modelempty">none marked yet</span>
+      <span id="modelchips"></span>
+    </div>
+    <div id="answers"></div>
+    <div id="controls">
+      <button id="reread" title="step back to the story" aria-label="step back to the story">&#8635;</button>
+      <button id="go" title="go on" aria-label="go on">&#8594;</button>
+    </div>
+    <div id="status" class="neutral">Waiting for the next story.</div>
+  </section>
+  <div id="playgate">
+    <p>The story is ready. Press play when you are, and it starts then.</p>
+    <button type="button" id="play">Play</button>
+  </div>
+</main>
+<aside id="telemetry">
+  <h3>Live telemetry · per-child (display only)</h3>
+  <div id="difficulty" data-tracks="M-DIFFREACH"></div>
+  <div id="mode">Renderer emits the raw response and process metrics; <b>correctness and the score are server-side</b>.</div>
+  <div id="mlist"></div>
+  <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+</aside>
+<div id="ghost"><svg viewBox="0 0 24 24" width="32" height="32" fill="#ffffff" stroke="#3f83a9" stroke-width="1.6" stroke-linejoin="round"><path d="M5 2.5 L5 18 L9 14 L12 21 L14.7 19.9 L11.7 13.2 L17.5 13 Z"/></svg><span class="ring"></span></div>
+<script>
+'use strict';
+/* =====================================================================
+ * QUANT-WORD-01 — PURE RENDERER
+ * Renders a SERVED item (item.content) and reports the child's RAW response plus
+ * process telemetry. It NEVER self-generates items, NEVER evaluates the story's
+ * mathematics, and NEVER shows correct/incorrect: the answer key and the score
+ * live server-side (BUILD_PLAN §2).
+ *
+ * It reads ONLY content.storySentences / content.question / content.options /
+ * content.readingLoad. The solvable math skeleton (operand table, operation tree,
+ * answer step) is NOT in content at all — it lives in the server-only `answer.math`
+ * — so nothing the browser receives can be evaluated to recover the key.
+ *
+ * THREE STEPS, one on screen at a time: read the story, mark the numbers that
+ * matter, then answer. Identifying the relevant quantities and computing with them
+ * used to sit on one screen, so a child could shuttle between the answer row and
+ * the story and neither act was observable on its own. The child may step back
+ * towards the story from either later screen; doing so takes the answer row off
+ * screen, so the number-selection screen and the answer screen are never both up.
+ *
+ * WHAT THE SERVER GRADES: `/api/exam-submit` resolves this type to the generic
+ * keyed verifier, which reads `response.selectedKey` only. The relevance selection
+ * (`response.markedNumbers` and the `model` / `step` telemetry events) is PROCESS
+ * data: it is recorded and distinguishable from the answer, but nothing scores it.
+ * Crediting relevance selection would need a per-type verifier, which is a
+ * server-side change this file cannot make.
+ *
+ * Embedding protocol (postMessage), source-tagged:
+ *   host -> demo : {source:'gt-exam-host', type:'init',  item:ServedItem}
+ *                  {source:'gt-exam-host', type:'start', tutorial?:bool}
+ *   demo -> host : {source:'gt-exam-demo', type:'ready'}
+ *                  {source:'gt-exam-demo', type:'result',    result:ItemResult}
+ *                  {source:'gt-exam-demo', type:'telemetry', event:TelemetryEvent}
+ *
+ * D-017: the stimulus is on-screen TEXT only. There is no audio narration and no
+ * picture substitute — reading the story at the target band is the gate.
+ *
+ * Standalone (double-click / no host): loads samples from the bank JSONL, or an
+ * inline fallback when file:// blocks fetch, so the file still runs for QA.
+ * ===================================================================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const mean=a=>a.length?Math.round(a.reduce((x,y)=>x+y,0)/a.length):0;
+const esc=s=>String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+
+const HOST_SRC='gt-exam-host', DEMO_SRC='gt-exam-demo';
+
+/* ---------- per-item state ---------- */
+let current=null;          // current ServedItem
+let interactive=false;     // interaction enabled? (released by beginItem)
+let submitted=false;       // already answered this item?
+let staged=null;           // currently staged option key
+let firstKey=null;         // first option key touched
+let selectionOrder=[];     // raw sequence of option taps
+let marked=[];             // model: story-number tokens the child marked, in order
+let markActions=0;         // total mark/unmark actions (model-building effort)
+let numberTokens=[];       // every numeral printed in the story
+let itemStart=0;           // ms timestamp when the item became interactive
+let itemTelemetry=[];      // TelemetryEvent[] for the current item
+let gateTutorial=false;    // does the pending play press owe a gesture hint?
+
+/* The three screens, in order. Exactly one is on show at a time (see the
+   `#stagecard[data-step=...]` rules): the story, then the story with its numbers
+   live, then the answer row with the marked numbers carried over read-only. */
+const STEPS=['read','mark','answer'];
+let step='read';           // current screen
+let stepAt=0;              // ms timestamp the current screen opened
+let stepMs={read:0,mark:0,answer:0};
+let backs=0;               // times the child stepped back towards the story
+
+const M={rt:null,rts:[],firstLat:null,rev:0,blur:0,rereads:0};
+
+/* ---------- embedding detection + emit ---------- */
+const embedded=(()=>{try{return window.parent&&window.parent!==window;}catch(_){return true;}})();
+let standalone=false, standaloneQueue=[], standaloneIdx=0, tutorialShown=false;
+function post(msg){if(!embedded)return;try{window.parent.postMessage(Object.assign({source:DEMO_SRC},msg),'*');}catch(_){}}
+
+/* ---------- derived process metrics (key-free; no correctness anywhere) ---------- */
+function modelProgress(){return numberTokens.length?marked.length/numberTokens.length:0;}
+/* M-PLANFUL: share of the item spent reading and choosing the relevant numbers before
+   the answer row opened. Under the staged flow "did they model before answering" is no
+   longer a choice the child can make, so the metric measures HOW MUCH of the item went
+   into the modelling steps instead of whether any did. */
+function planful(){
+  const totals=stepTotals();
+  const all=totals.read+totals.mark+totals.answer;
+  return all>0?Math.round((1-totals.answer/all)*1000)/1000:0;
+}
+const METERS=[
+ {id:'M-PATH',name:'Model actions (numbers marked / unmarked)',get:()=>String(markActions)},
+ {id:'M-PROG',name:'Share of story numbers taken into the model',get:()=>numberTokens.length?Math.round(modelProgress()*100)+'%':'\u2014'},
+ {id:'M-PLANFUL',name:'Share of the item spent before the answer step',get:()=>planful().toFixed(2)},
+ {id:'M-RT',name:'Response time — this item / mean',get:()=>M.rt==null?'\u2014':`${M.rt} ms${M.rts.length>1?` (mean ${mean(M.rts)})`:''}`},
+ {id:'M-RTFIRST',name:'First-action latency (read / encode)',get:()=>M.firstLat==null?'\u2014':M.firstLat+' ms'},
+ {id:'M-REV',name:'Answer changes',get:()=>String(M.rev)},
+ {id:'M-ENGAGE',name:'Focus losses (tracked, not enforced)',get:()=>String(M.blur)},
+ {id:'M-RAPIDGUESS',name:'Rapid-guess flag (tracked, not enforced)',get:()=>M.rt==null?'\u2014':(M.rt<900?'1 · rapid':'0')},
+ {id:'M-ACC',name:'Accuracy — scored server-side from the key',get:()=>'server-side',srv:true},
+ {id:'M-POLY',name:'Partial model credit — scored server-side',get:()=>'server-side',srv:true},
+ {id:'M-DIFFREACH',name:'Deepest structure solved — server-side',get:()=>'server-side',srv:true},
+ {id:'M-LEARNRATE',name:'Within-session growth — server-side',get:()=>'server-side',srv:true},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>
+  `<div class="mrow"><span class="mid${m.srv?' srv':''}">${m.id}</span><span class="mval" id="v_${m.id}"></span>`
+  +`<span class="mname">${m.name}</span></div>`).join('');}
+function renderDifficulty(){
+  const d=current?current.difficulty:null;
+  const rl=current&&current.content.readingLoad?current.content.readingLoad:null;
+  $('#difficulty').innerHTML=`<div class="dtop"><b>SERVED DIFFICULTY</b><span>${d==null?'\u2014':d.toFixed(1)}/20</span></div>`
+   +`<div class="dtrack"><div class="dfill" style="width:${d==null?0:Math.max(0,Math.min(100,d/20*100))}%"></div></div>`
+   +`<div class="dsub"><span>band ${rl?rl.band:'\u2014'} · ${rl?rl.words:'\u2014'} words</span><span>key: server-side</span></div>`;}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});renderDifficulty();}
+function log(msg){const now=new Date(),t=Math.max(0,Date.now()-(itemStart||Date.now())),d=document.createElement('div');
+  d.innerHTML=`<span class="t">${now.toISOString().slice(11,23)} · +${t}ms</span> ${msg}`;const L=$('#log');L.appendChild(d);L.scrollTop=L.scrollHeight;}
+
+function emitEvent(kind,extra){
+  const event=Object.assign({t:itemStart?Date.now()-itemStart:0,kind,itemId:current?current.itemId:null},extra||{});
+  itemTelemetry.push(event);
+  post({type:'telemetry',event});
+  log(`<b>${kind}</b>`+(extra&&Object.keys(extra).length?' · '+JSON.stringify(extra):''));
+}
+
+/* ---------- outline pointer: teaches the GESTURE, never the answer ---------- */
+const ghost=$('#ghost');
+function ghostShow(v){ghost.classList.toggle('show',v);}
+function centerOf(el){const r=el.getBoundingClientRect();return{x:r.left+r.width/2,y:r.top+r.height/2};}
+async function ghostTo(el){if(!el)return;const c=centerOf(el);ghost.style.transform=`translate(${c.x-10}px,${c.y-8}px)`;await sleep(620);}
+async function ghostTap(){ghost.classList.remove('tap');void ghost.offsetWidth;ghost.classList.add('tap');await sleep(430);}
+async function gestureHint(){
+  // Reads across the story, then points at the forward control. It only ever points at
+  // what the current step has on screen, marks nothing and selects nothing, so no answer
+  // is revealed and the hint cannot fly at a hidden element.
+  ghostShow(true);await sleep(220);
+  await ghostTo($('#storybody'));await sleep(160);
+  await ghostTo($('#question'));await sleep(160);
+  await ghostTo($('#go'));await ghostTap();await sleep(180);
+  ghostShow(false);await sleep(240);
+}
+
+/* ---------- rendering the served item ---------- */
+function setCue(k,txt){const el=$('#phasecue');el.dataset.phase=k;el.textContent=txt;}
+function setStatus(kind,msg){const el=$('#status');el.className=kind;el.textContent=msg;}
+
+/* ---------- the three steps ---------- */
+/** Time on each screen so far, including the one still open. */
+function stepTotals(){
+  const out={...stepMs};
+  if(interactive&&!submitted&&stepAt)out[step]+=Date.now()-stepAt;
+  return out;
+}
+const STEP_COPY={
+  read:'Read the whole story, then press the arrow.',
+  mark:'Tap every number in the story you will use, then press the arrow.',
+  answer:'Tap the answer you worked out, then press the check.',
+};
+function setStep(next,via){
+  if(!STEPS.includes(next))return;
+  if(stepAt)stepMs[step]+=Date.now()-stepAt;
+  step=next;stepAt=Date.now();
+  $('#stagecard').dataset.step=step;
+  STEPS.forEach(s=>{$('#step_'+s).dataset.on=s===step?'1':'0';});
+  setNumbersEnabled(step==='mark');
+  setAnswersEnabled(step==='answer');
+  $('#modellabel').textContent=step==='answer'?'Numbers I chose':'Numbers I will use';
+  const last=step==='answer';
+  const go=$('#go');
+  go.innerHTML=last?'&#10003;':'&#8594;';
+  go.title=last?'send answer':'go on';
+  go.setAttribute('aria-label',go.title);
+  go.classList.toggle('ready',!last||staged!==null);
+  setCue('scored',step==='answer'?'Your answer':'Your turn');
+  setStatus('neutral',STEP_COPY[step]);
+  emitEvent('step',{step,via:via||'forward',marked:marked.length});
+  renderMeters();
+}
+/** The forward control: one step on, or the answer on the last step. */
+function advance(){
+  if(!interactive||submitted)return;
+  const at=STEPS.indexOf(step);
+  if(step==='answer'){submit();return;}
+  if(step==='mark'&&marked.length===0){
+    setStatus('neutral','Tap at least one number in the story before you go on.');
+    return;
+  }
+  setStep(STEPS[at+1],'forward');
+}
+/** Step back towards the story. This takes the answer row off screen. */
+function stepBack(){
+  if(!interactive||submitted||step==='read')return;
+  backs++;M.rereads++;
+  emitEvent('reread',{count:M.rereads,from:step});
+  setStep(STEPS[STEPS.indexOf(step)-1],'back');
+}
+
+function renderStory(sentences,question){
+  numberTokens=[];
+  const html=sentences.map(sentence=>{
+    const parts=String(sentence).split(/(\d+)/);
+    return '<p>'+parts.map(part=>{
+      if(!/^\d+$/.test(part))return esc(part);
+      const idx=numberTokens.length;
+      numberTokens.push(Number(part));
+      return `<button class="num" data-idx="${idx}" data-val="${part}" aria-label="number ${part}">${part}</button>`;
+    }).join('')+'</p>';
+  }).join('');
+  $('#storybody').innerHTML=html;
+  $('#question').textContent=question;
+}
+function renderModel(){
+  const chips=marked.map(i=>`<span class="chip">${numberTokens[i]}</span>`).join(' ');
+  $('#modelchips').innerHTML=chips;
+  $('#modelempty').style.display=marked.length?'none':'';
+}
+function renderServedItem(item){
+  current=item;submitted=false;interactive=false;staged=null;firstKey=null;
+  selectionOrder=[];marked=[];markActions=0;itemTelemetry=[];
+  M.rev=0;M.firstLat=null;M.blur=0;M.rereads=0;
+  step='read';stepAt=0;stepMs={read:0,mark:0,answer:0};backs=0;
+  $('#stagecard').dataset.step='read';
+  STEPS.forEach(s=>{$('#step_'+s).dataset.on=s==='read'?'1':'0';});
+  $('#go').innerHTML='&#8594;';
+  $('#go').title='go on';$('#go').setAttribute('aria-label','go on');
+  $('#modellabel').textContent='Numbers I will use';
+  const c=item.content;
+  renderStory(c.storySentences||[],c.question||'');
+  renderModel();
+  const box=$('#answers');box.innerHTML='';
+  (c.options||[]).forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='answer';b.dataset.key=o.key;b.dataset.i=i;b.dataset.value=o.value;
+    b.setAttribute('aria-label','answer '+o.value);
+    b.textContent=o.value;box.appendChild(b);
+  });
+  $('#go').classList.remove('ready');
+  setNumbersEnabled(false);setAnswersEnabled(false);
+  itemStart=Date.now();
+  renderMeters();
+  emitEvent('render',{difficulty:item.difficulty,options:(c.options||[]).length,
+    storyNumbers:numberTokens.length,sentences:(c.storySentences||[]).length,
+    words:c.readingLoad?c.readingLoad.words:null});
+}
+function setNumbersEnabled(on){$$('.num').forEach(b=>{b.disabled=!on;});}
+function setAnswersEnabled(on){$$('.answer').forEach(b=>{b.disabled=!on;});}
+
+/* ---------- interaction ---------- */
+function toggleNumber(el){
+  if(!interactive||submitted||step!=='mark')return;
+  const idx=+el.dataset.idx;
+  const at=marked.indexOf(idx);
+  if(at>=0){marked.splice(at,1);el.classList.remove('marked');}
+  else{marked.push(idx);el.classList.add('marked');}
+  markActions++;
+  if(M.firstLat===null){M.firstLat=Date.now()-itemStart;emitEvent('first_action',{via:'mark',latencyMs:M.firstLat});}
+  emitEvent('model',{action:at>=0?'unmark':'mark',value:numberTokens[idx],marked:marked.length});
+  renderModel();renderMeters();
+}
+function stageOption(el){
+  if(!interactive||submitted||step!=='answer')return;
+  const key=el.dataset.key;
+  if(M.firstLat===null){M.firstLat=Date.now()-itemStart;emitEvent('first_action',{via:'answer',latencyMs:M.firstLat});}
+  if(staged!==null&&staged!==key){M.rev++;emitEvent('change',{from:staged,to:key});}
+  if(firstKey===null)firstKey=key;
+  staged=key;selectionOrder.push(key);
+  $$('.answer').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');
+  $('#go').classList.add('ready');
+  renderMeters();
+}
+function submit(){
+  if(!interactive||submitted||staged===null)return;
+  const rt=Date.now()-itemStart;
+  const totals=stepTotals();
+  M.rt=rt;M.rts.push(rt);
+  submitted=true;interactive=false;
+  stepMs=totals;stepAt=0;
+  $('#go').classList.remove('ready');setNumbersEnabled(false);setAnswersEnabled(false);
+  // NEUTRAL acknowledgment only — never correct/incorrect.
+  setCue('done','Answer sent');
+  setStatus('neutral',standalone?'Answer received. Loading the next story.':'Answer received. Next story coming up.');
+  emitEvent('submit',{selectedKey:staged,rtMs:rt,markedCount:marked.length,stepMs:totals});
+  // `selectedKey` is the graded field; `markedNumbers` and `stepMs` are the process record
+  // of the relevance step, kept separate from it so the two are never conflated.
+  const response={
+    selectedKey:staged,
+    selectedValue:Number($(`.answer[data-key="${staged}"]`).dataset.value),
+    firstSelectedKey:firstKey,
+    selectionOrder:selectionOrder.slice(),
+    markedNumbers:marked.map(i=>numberTokens[i]),
+    markOrder:marked.slice(),
+    storyNumbers:numberTokens.slice(),
+    stepMs:{...totals},stepBacks:backs,
+    markActions,rereads:M.rereads,changeCount:M.rev,
+  };
+  const metrics={
+    'M-RT':rt,
+    'M-RTFIRST':M.firstLat==null?rt:M.firstLat,
+    'M-REV':M.rev,
+    'M-ENGAGE':M.blur,
+    'M-RAPIDGUESS':rt<900?1:0,
+    'M-PATH':markActions,
+    'M-PROG':Math.round(modelProgress()*100)/100,
+    'M-PLANFUL':planful(),
+  };
+  const result={itemId:current.itemId,typeCode:current.typeCode,domain:current.domain,
+    response,metrics,telemetry:itemTelemetry.slice()};
+  post({type:'result',result});
+  log('RESULT emitted \u2192 '+JSON.stringify({response,metrics}));
+  renderMeters();
+  if(standalone)setTimeout(advanceStandalone,1300);
+}
+
+/* ---------- host-driven lifecycle ---------- */
+/* R1 — the story waits behind the play gate. The item is rendered on `init` but stays
+   covered and inert until the child presses play, which is also when the response clock
+   starts, so M-RT measures reading and reasoning rather than however long they took to
+   look up. */
+function openGate(withTutorial){
+  gateTutorial=!!withTutorial;
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('warmup','Ready when you are');
+  setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+function onInit(item){
+  if(!item||!item.content||!Array.isArray(item.content.storySentences)){log('init ignored: malformed ServedItem');return;}
+  renderServedItem(item);
+  openGate(false);
+}
+async function beginItem(withTutorial){
+  if(interactive||submitted||!current)return;
+  closeGate();
+  // The interaction lock is RELEASED here — every path that shows an item ends
+  // in beginItem, so the lock can never survive into the answering phase.
+  interactive=true;itemStart=Date.now();
+  setStep('read','start');
+  if(withTutorial&&!tutorialShown){tutorialShown=true;await gestureHint();if(submitted)return;}
+  renderMeters();
+}
+function onHostMessage(e){
+  const d=e.data;if(!d||d.source!==HOST_SRC)return;
+  if(d.type==='init')onInit(d.item);
+  else if(d.type==='start')openGate(!!d.tutorial);
+}
+
+/* ---------- standalone fallback (QA when there is no host) ---------- */
+function toServed(b){const{answer,scoring,provenance,...s}=b;return s;}
+async function loadBankSamples(){
+  try{
+    const res=await fetch('../banks/QUANT-WORD-01.jsonl',{cache:'no-store'});
+    if(res.ok){
+      const all=(await res.text()).trim().split('\n').filter(Boolean).map(l=>JSON.parse(l)).map(toServed);
+      all.sort((a,b)=>a.difficulty-b.difficulty);
+      const N=Math.min(12,all.length),pick=[];
+      for(let i=0;i<N;i++)pick.push(all[N===1?0:Math.round(i*(all.length-1)/(N-1))]);
+      log('standalone: fetched '+all.length+' bank items; cycling '+pick.length+' across difficulty');
+      return pick;
+    }
+  }catch(_){/* file:// blocks fetch — use the inline fallback */}
+  log('standalone: bank fetch unavailable (open via a local server for the full bank) — using inline samples');
+  return INLINE_SAMPLES.slice();
+}
+// Standalone shows the same gate the child sees, so double-click QA exercises it too.
+function playStandalone(){const item=standaloneQueue[standaloneIdx%standaloneQueue.length];onInit(item);openGate(standaloneIdx===0);}
+function advanceStandalone(){standaloneIdx++;playStandalone();}
+async function bootstrapStandalone(){if(standalone)return;standalone=true;standaloneQueue=await loadBankSamples();standaloneIdx=0;playStandalone();}
+
+/* Inline served-item fallback (real bank rows with answer/scoring/provenance stripped). */
+const INLINE_SAMPLES=[
+{"itemId":"c36c1054-ecf4-4284-9442-b0258220d63a","typeCode":"QUANT-WORD-01","domain":"quantitative","difficulty":2,"ageBands":["2-3"],"demoPath":"demos/QUANT-WORD-01.html","content":{"typeCode":"QUANT-WORD-01","presentation":"text","prompt":"Read the story. Then choose the number that answers the question.","storyText":"At the lake, Rosa has 7 seeds. Rosa makes 5 more seeds. How many seeds does Rosa have in all?","storySentences":["At the lake, Rosa has 7 seeds.","Rosa makes 5 more seeds."],"question":"How many seeds does Rosa have in all?","options":[{"key":"A","value":17},{"key":"B","value":2},{"key":"C","value":12},{"key":"D","value":13}],"readingLoad":{"sentences":3,"words":20,"maxWordLength":5,"band":"2-3"}},"syntheticOnly":true,"validated":false},
+{"itemId":"be0dc1c7-7a89-422f-8413-7700c66c85a0","typeCode":"QUANT-WORD-01","domain":"quantitative","difficulty":9.06,"ageBands":["4-5"],"demoPath":"demos/QUANT-WORD-01.html","content":{"typeCode":"QUANT-WORD-01","presentation":"text","prompt":"Read the story. Then choose the number that answers the question.","storyText":"Jade fills 2 cups with bracelets. Each cup holds 5 bracelets. How many bracelets does Jade have in all?","storySentences":["Jade fills 2 cups with bracelets.","Each cup holds 5 bracelets."],"question":"How many bracelets does Jade have in all?","options":[{"key":"A","value":2},{"key":"B","value":10},{"key":"C","value":7},{"key":"D","value":11}],"readingLoad":{"sentences":3,"words":19,"maxWordLength":9,"band":"4-5"}},"syntheticOnly":true,"validated":false},
+{"itemId":"c09c9243-8a18-4816-b1a6-aaac5df44db6","typeCode":"QUANT-WORD-01","domain":"quantitative","difficulty":17.07,"ageBands":["6-8"],"demoPath":"demos/QUANT-WORD-01.html","content":{"typeCode":"QUANT-WORD-01","presentation":"text","prompt":"Read the story. Then choose the number that answers the question.","storyText":"Leo fills 4 boxes with tiles. Each box holds 6 tiles. Later, Leo gives 7 tiles to Dev. Next, Leo buys 10 more tiles. Dev has 3 kites at home. How many tiles does Leo have now?","storySentences":["Leo fills 4 boxes with tiles.","Each box holds 6 tiles.","Later, Leo gives 7 tiles to Dev.","Next, Leo buys 10 more tiles.","Dev has 3 kites at home."],"question":"How many tiles does Leo have now?","options":[{"key":"A","value":7},{"key":"B","value":17},{"key":"C","value":27},{"key":"D","value":20}],"readingLoad":{"sentences":6,"words":37,"maxWordLength":5,"band":"6-8"}},"syntheticOnly":true,"validated":false}
+];
+
+/* ---------- wiring ---------- */
+$('#play').addEventListener('click',()=>{if(current&&!interactive&&!submitted)beginItem(gateTutorial);});
+$('#story').addEventListener('click',e=>{const n=e.target.closest('.num');if(n)toggleNumber(n);});
+$('#answers').addEventListener('click',e=>{const o=e.target.closest('.answer');if(o&&!o.disabled)stageOption(o);});
+$('#go').addEventListener('click',advance);
+$('#reread').addEventListener('click',stepBack);
+document.addEventListener('keydown',e=>{
+  if(!interactive||submitted)return;
+  if(e.key==='Enter'){advance();return;}
+  if(step!=='answer')return;
+  if(/^[1-9]$/.test(e.key)){const o=$$('.answer')[+e.key-1];if(o)stageOption(o);return;}
+  const o=$$('.answer').find(b=>b.dataset.key.toUpperCase()===e.key.toUpperCase());if(o)stageOption(o);
+});
+window.addEventListener('blur',()=>{if(interactive&&!submitted){M.blur++;emitEvent('engagement',{reason:'blur'});renderMeters();}});
+
+buildMeters();renderMeters();
+window.addEventListener('message',onHostMessage);
+post({type:'ready'});
+if(!embedded){bootstrapStandalone();}
+else{setTimeout(()=>{if(!current)bootstrapStandalone();},1000);} // QA-safe if a host embeds but never inits
+</script>
+</body>
+</html>
