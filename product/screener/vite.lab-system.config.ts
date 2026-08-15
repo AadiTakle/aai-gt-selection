@@ -16,7 +16,7 @@ const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
  * here out of the archive copy it was originally taken from. It affects the shared screener app too.
  */
 function serveExamSkin(): Plugin {
-  const skin = r('../archive/apps/web/public/exam-skin.css');
+  const skin = r('../../archive/apps/web/public/exam-skin.css');
   return {
     name: 'serve-exam-skin-workaround',
     configureServer(server) {

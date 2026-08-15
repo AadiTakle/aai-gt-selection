@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPA-ROLL-01 · Rolling Cube</title>
+<style>
+  :root{--bg1:#fcf4ef;--bg2:#f8e8de;--ink:#001117;--card:#ffffff;--accent:#004f71;--good:#146c43;--tel-bg:#002a3a;--tel-ink:#f5ddcd;--tel-key:#ebba9b;--tel-dim:#e48b53;}
+  *{box-sizing:border-box} html,body{margin:0;min-height:100%}
+  body{font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:linear-gradient(135deg,var(--bg1),var(--bg2));display:flex;min-height:100%}
+  #wrap{flex:1;display:flex;flex-direction:column;align-items:center;padding:18px;gap:10px;min-width:0}
+  #badge{font-size:12px;letter-spacing:.08em;color:#4a6470;text-transform:uppercase;font-weight:700}
+  #howto{max-width:600px;width:100%;background:#ffffff;border:1px solid #ecd9cb;border-left:5px solid var(--accent);border-radius:12px;padding:12px 16px;box-shadow:0 8px 24px -18px #002a3a}
+  #howto h1{margin:0 0 4px;font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  #howto p{margin:0;font-size:14px;color:#33505c;line-height:1.5}
+  #phasecue{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:#f8e8de;color:#004f71;border:2px solid #ecd9cb;min-height:30px}
+  #phasecue[data-phase="waiting"]{background:#f5ddcd;color:#6f4526;border-color:#ebba9b}
+  #phasecue[data-phase="ready"]{background:#f8e8de;color:#004f71;border-color:#ecd9cb}
+  #phasecue[data-phase="locked"]{background:#004f71;color:#ffffff;border-color:#004f71}
+  #prompt{max-width:600px;width:100%;font-size:16px;font-weight:800;color:#33505c;text-align:center;min-height:22px}
+  #status{min-height:22px;font-size:14px;font-weight:700;text-align:center}
+  #status.ok{color:var(--good)} #status.neutral{color:#4a6470}
+  #stagecard{background:var(--card);border-radius:26px;padding:20px;box-shadow:0 18px 50px -22px #002a3a;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:560px;width:100%}
+  #stage{position:relative;width:100%;height:300px;perspective:1000px;border-radius:18px;background:radial-gradient(120% 120% at 50% 12%,#fcf4ef,#fcf4ef);border:3px solid #f8e8de;overflow:hidden}
+  #cam{position:absolute;left:50%;top:56%;transform-style:preserve-3d;transform:translate(-50%,-50%) rotateX(-22deg) rotateY(-26deg)}
+  .tile{position:absolute;width:60px;height:60px;left:-30px;top:-30px;border-radius:8px;background:#f8e8de;box-shadow:inset 0 0 0 2px #ecd9cb;display:flex;align-items:center;justify-content:center;font-size:22px;color:#6f4526}
+  .tile.path{background:#f5ddcd}.tile.start{background:#ecd9cb;color:#33505c}.tile.end{background:#ecd9cb;color:#4a6470;box-shadow:inset 0 0 0 3px #4a6470}
+  #cubeWrap{position:absolute;left:0;top:0;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.45,.05,.3,1)}
+  #cube{position:absolute;left:-31px;top:-31px;width:62px;height:62px;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.45,.05,.3,1)}
+  .face{position:absolute;width:62px;height:62px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:34px;color:#ffffff;font-weight:800;background:var(--f,#ecd9cb);box-shadow:inset 0 0 0 3px rgba(255,255,255,.35),inset 0 0 22px rgba(0,0,0,.25);text-shadow:0 1px 2px rgba(0,0,0,.35)}
+  /* Blank while the cube is in motion: a child who can read the symbols off the
+     moving cube is not tracking it mentally, which is the construct (rule R2). */
+  #cube.blind .face{background:#ecd9cb;color:transparent;text-shadow:none}
+  #askHi{position:absolute;left:-33px;top:-33px;width:66px;height:66px;border-radius:10px;border:3px dashed #ebba9b;box-shadow:0 0 16px 3px rgba(255,212,121,.8);pointer-events:none}
+  #askTag{position:absolute;left:0;right:0;top:8px;text-align:center;font-weight:800;color:#002a3a;font-size:15px;z-index:5}
+  #legend{position:absolute;inset:8px;background:rgba(255,255,255,.94);border-radius:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;padding:10px;z-index:8;transition:opacity .3s}
+  #legend.hide{opacity:0;pointer-events:none}
+  .lf{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:#4a6470;font-weight:700}
+  .lf .cf{width:46px;height:46px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#ffffff;font-weight:800;box-shadow:inset 0 0 0 3px rgba(255,255,255,.35),inset 0 0 16px rgba(0,0,0,.22);text-shadow:0 1px 2px rgba(0,0,0,.35)}
+  .controls{display:flex;gap:12px;align-items:center}
+  button{font:inherit;border:0;cursor:pointer}
+  .ctl{width:48px;height:48px;border-radius:14px;background:#f8e8de;color:#6f4526;font-size:20px}
+  .ctl[disabled]{opacity:.3;pointer-events:none}
+  #options{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .opt{width:60px;height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:30px;color:#ffffff;font-weight:800;position:relative;box-shadow:inset 0 0 0 3px rgba(255,255,255,.35),inset 0 0 18px rgba(0,0,0,.22);text-shadow:0 1px 2px rgba(0,0,0,.35);cursor:pointer;transition:transform .1s}
+  .opt small{position:absolute;bottom:2px;right:5px;font-size:10px;opacity:.85}
+  .opt.sel{outline:4px solid var(--accent);outline-offset:2px}
+  .opt[disabled]{pointer-events:none;opacity:.85}
+  #go{width:64px;height:64px;border-radius:50%;background:var(--accent);color:#ffffff;font-size:28px;box-shadow:0 10px 24px -8px var(--accent);opacity:.35;pointer-events:none;transition:.2s}
+  #go.ready{opacity:1;pointer-events:auto;animation:pulse 1.1s infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  #keys{font-size:12px;color:#4a6470;text-align:center}#keys b{color:#6f4526}
+  #telemetry{width:326px;flex:0 0 326px;background:var(--tel-bg);color:var(--tel-ink);display:flex;flex-direction:column;font:13px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace}
+  #telemetry h3{margin:0;padding:12px 14px;font-size:12px;letter-spacing:.1em;color:#ffffff;background:#002a3a;text-transform:uppercase}
+  #itemcard{margin:12px 12px 4px;padding:10px;border:1px solid #004f71;border-radius:12px}
+  .itemRow{display:flex;justify-content:space-between;color:#4a6470;font-size:11px;padding:2px 0}.itemRow b{color:#f8e8de}
+  #mlist{padding:8px 12px;display:flex;flex-direction:column;gap:7px}
+  .mrow{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:baseline}
+  .mid{color:var(--tel-key);font-weight:700}.mval{color:#ffffff;text-align:right;overflow-wrap:anywhere}.mname{grid-column:1/3;color:var(--tel-dim);font-size:11px;margin-top:-3px}
+  #logwrap{border-top:1px solid #33505c;margin-top:auto}
+  #logwrap b{display:block;padding:8px 12px 4px;color:#4a6470;font-size:11px;letter-spacing:.08em}
+  #log{height:150px;overflow:auto;padding:0 12px 12px;white-space:pre-wrap}
+  #log div{padding:2px 0;border-bottom:1px dotted #004f71}#log .t{color:#6f4526}
+  @media(max-width:860px){body{flex-direction:column}#telemetry{width:100%;flex:none;height:300px}}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+<style>html[data-gt-telemetry="off"] #telemetry{display:none}</style>
+<script>/* D-028 — the researcher telemetry panel is presentational only. Embedded in the
+   child-facing screener it is hidden: naming the behavioural metrics to the child can
+   change the behaviour being measured. `?telemetry=1` restores it for a live
+   demonstration, and standalone (opened directly) is unchanged. Sampling, metric
+   computation and the {type:'telemetry'} postMessage stream are untouched. */
+(function(){var f=/(^|[?&])telemetry=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-telemetry','off');})();</script>
+<style>html[data-gt-chrome="off"] #howto{display:none}</style>
+<script>/* Instant-question gate. Embedded in the screener the "How to use" panel is hidden so the
+   child sees the question itself the moment it appears; the per-item status line carries the
+   instruction in words. A test should not spend its first seconds being read. `?chrome=1`
+   restores the panel for a walkthrough, and standalone (opened directly) is unchanged. */
+(function(){var f=/(^|[?&])chrome=1(&|$)/.test(location.search),e=true;try{e=!!(window.parent&&window.parent!==window);}catch(_){e=true;}if(e&&!f)document.documentElement.setAttribute('data-gt-chrome','off');})();</script>
+<link rel="stylesheet" href="../exam-skin.css">
+</head>
+<body>
+  <div id="wrap">
+    <div id="badge">SPA-ROLL-01 · Rolling Cube</div>
+    <header id="howto">
+      <h1>How to use — Rolling Cube</h1>
+      <p>Look at the six faces, then press the roll button (&#9654;) to roll the cube along the path. The faces go blank while it moves, so keep track of them in your head, and work out which symbol lands on the highlighted face. Tap that symbol, then press the check to lock your answer. Space rolls the cube; R watches it again; S steps one roll on practice items.</p>
+    </header>
+    <div id="phasecue" data-phase="waiting">Waiting for item</div>
+    <div id="prompt"></div>
+    <div id="stagecard">
+      <div id="stage">
+        <div id="askTag"></div>
+        <div id="cam">
+          <div id="board"></div>
+          <div id="cubeWrap"><div id="cube"></div><div id="askHi"></div></div>
+        </div>
+        <div id="legend"></div>
+      </div>
+      <div class="controls">
+        <button class="ctl" id="rollplay" title="roll the cube">▶</button>
+        <button class="ctl" id="step" title="one roll">⇥</button>
+        <button class="ctl" id="replay" title="watch the roll again">↻</button>
+      </div>
+      <div id="options" aria-label="answer choices"></div>
+      <div class="controls"><button id="go" title="lock answer" aria-label="lock answer">✓</button></div>
+      <div id="keys"><b>Space</b> roll · <b>S</b> step · <b>R</b> watch again · <b>1–6</b> pick · <b>Enter</b> lock</div>
+      <div id="status" class="neutral">Waiting for an item from the host…</div>
+    </div>
+    <div id="playgate">
+      <p>The cube is ready. Press play when you are, and then you can roll it.</p>
+      <button type="button" id="play">Play</button>
+    </div>
+  </div>
+  <aside id="telemetry">
+    <h3>Live telemetry · per-child</h3>
+    <div id="itemcard">
+      <div class="itemRow"><span>ITEM</span><b id="i_id">—</b></div>
+      <div class="itemRow"><span>ASK</span><b id="i_ask">—</b></div>
+      <div class="itemRow"><span>ROLLS</span><b id="i_rolls">—</b></div>
+      <div class="itemRow"><span>DIFFICULTY</span><b id="i_diff">—</b></div>
+    </div>
+    <div id="mlist"></div>
+    <div id="logwrap"><b>EVENT LOG</b><div id="log"></div></div>
+  </aside>
+<script>
+'use strict';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* ---- postMessage embedding contract (EXAM_ADAPTIVE_BUILD_PLAN.md §2) ----
+   host->demo : {source:'gt-exam-host', type:'init', item:ServedItem} , {type:'start'}
+   demo->host : {source:'gt-exam-demo', type:'ready'} , {type:'result', result:ItemResult} , {type:'telemetry', event}
+   The demo renders ServedItem.content only (cube paint + roll path). It NEVER receives or
+   shows the answer key, and it emits the child's raw response + numeric metrics — no correctness. */
+const HOST='gt-exam-host', SELF='gt-exam-demo';
+const embedded=window.parent&&window.parent!==window;
+function post(type,extra){const msg=Object.assign({source:SELF,type},extra||{});if(embedded){try{window.parent.postMessage(msg,'*')}catch(e){}}}
+
+/* ---------- cube slots + orientation matrices (animation only; not the key) ---------- */
+const KEYS=['U','D','N','S','E','W'];
+const FACE_CSS={U:'rotateX(90deg) translateZ(31px)',D:'rotateX(-90deg) translateZ(31px)',
+ S:'translateZ(31px)',N:'rotateY(180deg) translateZ(31px)',
+ E:'rotateY(90deg) translateZ(31px)',W:'rotateY(-90deg) translateZ(31px)'};
+const RZp=[[0,-1,0],[1,0,0],[0,0,1]],RZn=[[0,1,0],[-1,0,0],[0,0,1]],RXp=[[1,0,0],[0,0,-1],[0,1,0]],RXn=[[1,0,0],[0,0,1],[0,-1,0]];
+const ROLL={E:RZp,W:RZn,N:RXp,S:RXn};
+const ID=[[1,0,0],[0,1,0],[0,0,1]];
+function matmul(A,B){const R=[[0,0,0],[0,0,0],[0,0,0]];for(let i=0;i<3;i++)for(let j=0;j<3;j++){let s=0;for(let k=0;k<3;k++)s+=A[i][k]*B[k][j];R[i][j]=s;}return R;}
+function css3d(M){return `matrix3d(${M[0][0]},${M[1][0]},${M[2][0]},0,${M[0][1]},${M[1][1]},${M[2][1]},0,${M[0][2]},${M[1][2]},${M[2][2]},0,0,0,0,1)`;}
+
+/* ---------- state ---------- */
+let item=null,content=null,paint=null,cells=[],dirs=[],ask='top',options=[];
+let selected=-1,locked=true,started=false,stepIdx=0,M=ID,animating=false,rolling=false,cen={x:0,z:0},cellPx=62,stepAllowed=false;
+const T={itemStart:0,first:0,revs:0,plays:0,steps:0,replays:0,path:[],rt:0,rapid:false,blur:false,committed:false,lastActivity:performance.now(),events:[]};
+
+const PHASE={waiting:'Waiting for item',ready:'Ready',locked:'Answer locked'};
+function setCue(k){const el=$('#phasecue');el.dataset.phase=k;el.textContent=PHASE[k];}
+function setStatus(cls,msg){const el=$('#status');el.className=cls;el.textContent=msg;}
+
+/* ---------- telemetry ---------- */
+function nowRel(){return Math.max(0,performance.now()-(T.itemStart||performance.now()));}
+function progStr(){return `${stepIdx}/${dirs.length} rolls`;}
+const METERS=[
+ {id:'M-RTFIRST',name:'Time to first action',get:()=>T.first?`${Math.round(T.first)} ms`:'—'},
+ {id:'M-RT',name:'Commit time (engagement-gated)',get:()=>T.committed?`${T.rt} ms${T.rapid?' · gated':''}`:'—'},
+ {id:'M-REV',name:'Answer revisions',get:()=>String(T.revs)},
+ {id:'M-PATH',name:'Play / step / replay actions',get:()=>`${T.plays}p ${T.steps}s ${T.replays}r · ${progStr()}`},
+ {id:'M-EXPLORE',name:'Roll views used',get:()=>String(T.plays+T.steps+T.replays)},
+ {id:'M-REPLAY',name:'Sequence replays',get:()=>String(T.replays)},
+ {id:'M-RAPIDGUESS',name:'Rapid/idle flag (tracked)',get:()=>T.committed?(T.rapid?'1':'0'):'—'},
+];
+function buildMeters(){$('#mlist').innerHTML=METERS.map(m=>`<div class="mrow"><span class="mid">${m.id}</span><span class="mval" id="v_${m.id}"></span><span class="mname">${m.name}</span></div>`).join('');}
+function renderMeters(){METERS.forEach(m=>{const el=$('#v_'+m.id);if(el)el.textContent=m.get();});}
+function log(msg){const d=document.createElement('div');d.innerHTML=`<span class="t">+${Math.round(nowRel())}ms</span> ${msg}`;$('#log').appendChild(d);$('#log').scrollTop=$('#log').scrollHeight;}
+function emit(kindEv,data){const ev=Object.assign({t:Math.round(nowRel()),kind:kindEv},data||{});T.events.push(ev);post('telemetry',{event:ev});}
+function first(){if(!T.first&&started){T.first=performance.now()-T.itemStart;emit('first_action',{ms:Math.round(T.first)});log(`first action @ ${Math.round(T.first)}ms`);renderMeters();}}
+function activity(){T.lastActivity=performance.now();}
+addEventListener('pointerdown',activity);addEventListener('keydown',activity);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&started&&!locked){T.blur=true;emit('blur');}});
+
+/* ---------- board + cube render ---------- */
+function buildCube(){$('#cube').innerHTML=KEYS.map(k=>`<div class="face" style="transform:${FACE_CSS[k]};--f:${paint[k].col}">${paint[k].sym}</div>`).join('');}
+function boardCenter(){let sx=0,sz=0;cells.forEach(c=>{sx+=c.x;sz+=c.z;});return {x:sx/cells.length,z:sz/cells.length};}
+function renderBoard(){
+  cen=boardCenter();cellPx=62;const b=$('#board');b.innerHTML='';
+  cells.forEach((c,i)=>{const d=document.createElement('div');d.className='tile'+(i===0?' start':'')+(i===cells.length-1?' end':'')+(i>0&&i<cells.length-1?' path':'');
+    const X=(c.x-cen.x)*cellPx,Z=(c.z-cen.z)*cellPx;d.style.transform=`translate3d(${X}px,0,${Z}px) rotateX(90deg)`;
+    if(i<cells.length-1){const dir=dirs[i];d.textContent={E:'\u25B6',W:'\u25C0',N:'\u25B2',S:'\u25BC'}[dir];}else if(i===cells.length-1)d.textContent='\u25CE';
+    b.appendChild(d);});
+  placeCube(0);
+}
+function placeCube(idx){const c=cells[idx];const X=(c.x-cen.x)*cellPx,Z=(c.z-cen.z)*cellPx;$('#cubeWrap').style.transform=`translate3d(${X}px,-31px,${Z}px)`;}
+function setAskHi(){$('#askHi').style.transform=ask==='top'?'translateY(-33px) rotateX(90deg)':'translateZ(33px)';$('#askTag').textContent=content.question.askTag;}
+function showLegend(){
+  const order=[['U','TOP'],['D','BASE'],['S','FRONT'],['N','BACK'],['E','RIGHT'],['W','LEFT']];
+  $('#legend').innerHTML=order.map(([k,lbl])=>`<div class="lf"><div class="cf" style="background:${paint[k].col}">${paint[k].sym}</div>${lbl}</div>`).join('');
+  $('#legend').classList.remove('hide');
+}
+
+/* ---------- roll stepping ---------- */
+/** Faces are readable only when the cube is at rest, never while it moves. */
+function setBlind(on){$('#cube').classList.toggle('blind',on);}
+async function doStep(){
+  if(stepIdx>=dirs.length||animating)return;
+  animating=true;setBlind(true);const dir=dirs[stepIdx];M=matmul(ROLL[dir],M);stepIdx++;
+  placeCube(stepIdx);$('#cube').style.transform=css3d(M);
+  renderMeters();
+  await sleep(520);animating=false;
+  if(!rolling)setBlind(false);
+  if(stepIdx>=dirs.length)maybeReady();
+}
+function maybeReady(){if(!locked&&stepIdx>=dirs.length&&selected>=0)$('#go').classList.add('ready');}
+async function playAll(){
+  if(rolling||animating)return;
+  rolling=true;
+  while(stepIdx<dirs.length){await doStep();await sleep(120);}
+  rolling=false;setBlind(false);maybeReady();
+}
+/**
+ * One viewing of the whole sequence. A press that starts a sequence which has
+ * already run to the end is a REPLAY: re-watching means the child is offloading
+ * the mental rotation onto the animation, which is what `M-REPLAY` records.
+ */
+async function watchRoll(fromStart){
+  if(locked||rolling||animating)return;first();$('#legend').classList.add('hide');
+  if((fromStart&&stepIdx>0)||stepIdx>=dirs.length){
+    T.replays++;T.path.push('replay');emit('replay');log('replay sequence');resetRoll();$('#go').classList.remove('ready');
+  }else{
+    T.plays++;T.path.push('play');emit('play');log('play roll');
+  }
+  renderMeters();await playAll();
+}
+function resetRoll(){stepIdx=0;M=ID;setBlind(false);$('#cube').style.transition='none';$('#cubeWrap').style.transition='none';$('#cube').style.transform=css3d(M);placeCube(0);void $('#cube').offsetWidth;$('#cube').style.transition='';$('#cubeWrap').style.transition='';}
+
+/* ---------- options + answer ---------- */
+function renderOptions(){
+  $('#options').innerHTML=options.map((o,i)=>`<div class="opt" data-i="${i}" style="background:${o.color}" aria-label="choice ${o.key}">${o.sym}<small>${o.key}</small></div>`).join('');
+  $$('.opt').forEach(el=>el.onclick=()=>choose(+el.dataset.i,'tap'));
+}
+function choose(i,modality){
+  if(locked||i<0||i>=options.length)return;
+  first();if(selected>=0&&selected!==i)T.revs++;
+  selected=i;$$('.opt').forEach((o,k)=>o.classList.toggle('sel',k===i));
+  T.path.push('pick('+options[i].key+')');
+  maybeReady();
+  emit('select',{key:options[i].key,index:i,modality});log(`choose ${options[i].key} via ${modality}`);renderMeters();
+}
+function submit(){
+  if(locked||selected<0||!started||stepIdx<dirs.length)return;   // must watch the full roll first
+  locked=true;$('#go').classList.remove('ready');$$('.opt').forEach(o=>o.setAttribute('disabled',''));$('#step').disabled=true;
+  T.rt=Math.round(performance.now()-T.itemStart);T.committed=true;
+  const idle=performance.now()-T.lastActivity;T.rapid=T.rt<350||idle>22000;
+  const response={selectedKey:options[selected].key,selectedIndex:selected,ask,plays:T.plays,steps:T.steps,replays:T.replays,revisions:T.revs,rollsWatched:stepIdx,msToCommit:T.rt};
+  const metrics={'M-RT':T.rt,'M-RTFIRST':Math.round(T.first),'M-REV':T.revs,'M-PATH':T.plays+T.steps,'M-EXPLORE':T.plays+T.steps+T.replays,'M-REPLAY':T.replays,'M-RAPIDGUESS':T.rapid?1:0};
+  const result={itemId:item.itemId,typeCode:item.typeCode,domain:item.domain,response,metrics,telemetry:T.events.slice()};
+  emit('commit',{key:response.selectedKey});
+  setCue('locked');setStatus('ok','Answer locked.');   // never reveal correct/incorrect
+  log(`LOCK ${response.selectedKey} · ${T.rt}ms · rev${T.revs} · ${T.plays}p ${T.steps}s ${T.replays}r`);renderMeters();
+  post('result',{result});
+  if(!embedded){cycleNext();}
+}
+async function cycleNext(){await sleep(1100);nextSample();}
+
+/* ---------- item lifecycle ---------- */
+function loadItem(served){
+  item=served;content=served.content;paint=content.cube.faces;cells=content.path.cells;dirs=content.path.dirs;ask=content.question.ask;options=content.options;
+  selected=-1;locked=true;started=false;stepIdx=0;M=ID;animating=false;rolling=false;stepAllowed=!!(content.scaffold&&content.scaffold.step);
+  Object.assign(T,{itemStart:0,first:0,revs:0,plays:0,steps:0,replays:0,path:[],rt:0,rapid:false,blur:false,committed:false,lastActivity:performance.now(),events:[]});
+  buildCube();renderBoard();resetRoll();setAskHi();renderOptions();showLegend();
+  $('#prompt').textContent=content.question.prompt;
+  $('#go').classList.remove('ready');$$('.opt').forEach(o=>o.removeAttribute('disabled'));$('#step').disabled=!stepAllowed;
+  $('#i_id').textContent=(served.itemId||'—').slice(0,8);
+  $('#i_ask').textContent=ask;
+  $('#i_rolls').textContent=`${dirs.length} · ${content.path.turns} turns`;
+  $('#i_diff').textContent=(served.difficulty!=null?Number(served.difficulty).toFixed(2):'—');
+  setCue('ready');setStatus('neutral','Look at the faces, then press the roll button. They go blank while it rolls.');
+  $('#log').innerHTML='';log(`item ${(served.itemId||'').slice(0,8)} · ask ${ask} · ${dirs.length} rolls [${dirs.join('')}]`);renderMeters();
+}
+/* R1 — the cube waits behind the play gate. `start` used to unlock the controls, set
+   `T.itemStart` and drop the face legend the instant the host sent it, so the scored M-RT and
+   M-RTFIRST began before the child had looked at the faces. `init` renders behind the gate,
+   `start` only arms it, and the press of play is what starts the clock and releases the roll
+   controls. The roll itself still never starts on its own: `#rollplay` is the only thing that
+   begins it, so the child studies the faces first. */
+function openGate(){
+  document.documentElement.setAttribute('data-gt-gate','closed');
+  setCue('ready');setStatus('neutral','Press play when you are ready.');
+}
+function closeGate(){document.documentElement.removeAttribute('data-gt-gate');}
+/* Every route through this item is keyboard-reachable, so the gate is too. Behind a closed
+   gate the item's own shortcuts do nothing, so any key the child presses means "I am ready":
+   it presses play and is consumed rather than silently going nowhere. */
+function gateKey(e){
+  if(document.documentElement.getAttribute('data-gt-gate')!=='closed')return false;
+  if(!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/^(Tab|Escape|Shift|Control|Alt|Meta|CapsLock)$/.test(e.key)){
+    $('#play').click();e.preventDefault();
+  }
+  return true;
+}
+async function startItem(){if(!content||started)return;closeGate();started=true;locked=false;T.itemStart=performance.now();emit('start');
+  setStatus('neutral','Look at the faces, then press the roll button. They go blank while it rolls.');
+  await sleep(500);$('#legend').classList.add('hide');
+}
+
+/* ---------- input ---------- */
+$('#play').onclick=()=>{void startItem();};   // a second press is a no-op: `started` is set
+$('#rollplay').onclick=()=>{watchRoll(false);};
+$('#step').onclick=()=>{if(locked||$('#step').disabled||rolling)return;first();T.steps++;T.path.push('step');emit('step');log('step');renderMeters();doStep();};
+$('#replay').onclick=()=>{watchRoll(true);};
+$('#go').onclick=()=>{if($('#go').classList.contains('ready'))submit();};
+addEventListener('keydown',e=>{if(e.repeat)return;if(gateKey(e))return;const k=e.key.toLowerCase();
+ if(e.key===' '){$('#rollplay').onclick();}
+ else if(k==='s'){$('#step').onclick();}
+ else if(k==='r'){$('#replay').onclick();}
+ else if(/^[1-9]$/.test(e.key)){choose(+e.key-1,'key');}
+ else if(e.key==='Enter'){submit();}
+ else return;e.preventDefault();
+});
+
+/* ---------- host message handling ---------- */
+let gotInit=false;
+addEventListener('message',e=>{const d=e.data;if(!d||d.source!==HOST)return;
+ if(d.type==='init'&&d.item){gotInit=true;loadItem(d.item);post('ready');openGate();}
+ else if(d.type==='start'){openGate();}
+});
+
+/* ---------- standalone fallback (opens by double-click; no host present) ----------
+   Embeds real ServedItems produced by generators/SPA-ROLL-01.mjs so the renderer
+   and the bank stay in sync. Answer keys are NOT present in a ServedItem. */
+const SAMPLES=[{"itemId":"a4e1876f-9046-402f-b287-b08ebd39d38a","typeCode":"SPA-ROLL-01","domain":"spatial","difficulty":1,"ageBands":["2-3"],"content":{"typeCode":"SPA-ROLL-01","question":{"mode":"roll_cube","ask":"top","prompt":"Which symbol lands on the TOP face?","askTag":"which symbol lands on TOP?"},"grid":{"W":5,"H":5},"cube":{"faces":{"U":{"sym":"✚","col":"#3eb7d3"},"D":{"sym":"★","col":"#9b6be8"},"N":{"sym":"▲","col":"#28ad9c"},"S":{"sym":"■","col":"#f5ad32"},"E":{"sym":"●","col":"#5267df"},"W":{"sym":"◆","col":"#ef6b8f"}}},"path":{"cells":[{"x":2,"z":2},{"x":1,"z":2}],"dirs":["W"],"turns":0},"optionKind":"symbol","options":[{"key":"A","sym":"✚","color":"#3eb7d3"},{"key":"B","sym":"◆","color":"#ef6b8f"},{"key":"C","sym":"●","color":"#5267df"}],"scaffold":{"step":true,"warmup":true}},"syntheticOnly":true,"validated":false},{"itemId":"c69f3ec6-b666-4b31-8bf9-49ac5274c915","typeCode":"SPA-ROLL-01","domain":"spatial","difficulty":5.96,"ageBands":["2-3","4-5"],"content":{"typeCode":"SPA-ROLL-01","question":{"mode":"roll_cube","ask":"top","prompt":"Which symbol lands on the TOP face?","askTag":"which symbol lands on TOP?"},"grid":{"W":5,"H":5},"cube":{"faces":{"U":{"sym":"■","col":"#f5ad32"},"D":{"sym":"▲","col":"#28ad9c"},"N":{"sym":"◆","col":"#ef6b8f"},"S":{"sym":"✚","col":"#3eb7d3"},"E":{"sym":"★","col":"#9b6be8"},"W":{"sym":"●","col":"#5267df"}}},"path":{"cells":[{"x":2,"z":2},{"x":3,"z":2},{"x":3,"z":1},{"x":2,"z":1},{"x":1,"z":1}],"dirs":["E","N","W","W"],"turns":2},"optionKind":"symbol","options":[{"key":"A","sym":"★","color":"#9b6be8"},{"key":"B","sym":"✚","color":"#3eb7d3"},{"key":"C","sym":"◆","color":"#ef6b8f"},{"key":"D","sym":"■","color":"#f5ad32"}],"scaffold":{"step":true,"warmup":true}},"syntheticOnly":true,"validated":false},{"itemId":"e8ba2723-f05d-49ba-a905-4a19411c803f","typeCode":"SPA-ROLL-01","domain":"spatial","difficulty":12,"ageBands":["4-5","6-8"],"content":{"typeCode":"SPA-ROLL-01","question":{"mode":"roll_cube","ask":"front","prompt":"Which symbol ends up on the FRONT face (toward you)?","askTag":"which symbol faces YOU (front)?"},"grid":{"W":6,"H":6},"cube":{"faces":{"U":{"sym":"●","col":"#5267df"},"D":{"sym":"★","col":"#9b6be8"},"N":{"sym":"▲","col":"#28ad9c"},"S":{"sym":"◆","col":"#ef6b8f"},"E":{"sym":"■","col":"#f5ad32"},"W":{"sym":"✚","col":"#3eb7d3"}}},"path":{"cells":[{"x":3,"z":3},{"x":3,"z":4},{"x":3,"z":5},{"x":2,"z":5},{"x":2,"z":4},{"x":3,"z":4},{"x":4,"z":4},{"x":5,"z":4}],"dirs":["S","S","W","N","E","E","E"],"turns":3},"optionKind":"symbol","options":[{"key":"A","sym":"■","color":"#f5ad32"},{"key":"B","sym":"▲","color":"#28ad9c"},{"key":"C","sym":"✚","color":"#3eb7d3"},{"key":"D","sym":"●","color":"#5267df"},{"key":"E","sym":"◆","color":"#ef6b8f"},{"key":"F","sym":"★","color":"#9b6be8"}],"scaffold":{"step":false,"warmup":false}},"syntheticOnly":true,"validated":false},{"itemId":"b21d25fd-30b1-4635-901d-17e251eb45f6","typeCode":"SPA-ROLL-01","domain":"spatial","difficulty":19.1,"ageBands":["6-8"],"content":{"typeCode":"SPA-ROLL-01","question":{"mode":"roll_cube","ask":"front","prompt":"Which symbol ends up on the FRONT face (toward you)?","askTag":"which symbol faces YOU (front)?"},"grid":{"W":7,"H":7},"cube":{"faces":{"U":{"sym":"■","col":"#f5ad32"},"D":{"sym":"✚","col":"#3eb7d3"},"N":{"sym":"◆","col":"#ef6b8f"},"S":{"sym":"▲","col":"#28ad9c"},"E":{"sym":"●","col":"#5267df"},"W":{"sym":"★","col":"#9b6be8"}}},"path":{"cells":[{"x":3,"z":3},{"x":3,"z":4},{"x":4,"z":4},{"x":5,"z":4},{"x":5,"z":3},{"x":5,"z":2},{"x":6,"z":2},{"x":6,"z":3},{"x":5,"z":3},{"x":4,"z":3},{"x":3,"z":3}],"dirs":["S","E","E","N","N","E","S","W","W","W"],"turns":5},"optionKind":"symbol","options":[{"key":"A","sym":"★","color":"#9b6be8"},{"key":"B","sym":"▲","color":"#28ad9c"},{"key":"C","sym":"✚","color":"#3eb7d3"},{"key":"D","sym":"◆","color":"#ef6b8f"},{"key":"E","sym":"■","color":"#f5ad32"},{"key":"F","sym":"●","color":"#5267df"}],"scaffold":{"step":false,"warmup":false}},"syntheticOnly":true,"validated":false}];
+let sampleIdx=0;
+function nextSample(){loadItem(SAMPLES[sampleIdx%SAMPLES.length]);sampleIdx++;openGate();}
+
+/* ---------- boot ---------- */
+buildMeters();renderMeters();
+if(embedded)post('ready');
+setTimeout(()=>{if(!gotInit&&!embedded){
+  $('#howto').querySelector('p').insertAdjacentHTML('beforeend',' <b>(Standalone preview: cycling built-in sample items.)</b>');
+  nextSample();
+}},500);
+</script>
+</body>
+</html>
